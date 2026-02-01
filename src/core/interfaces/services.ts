@@ -21,6 +21,10 @@ export interface IConfigService {
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
   getConfigPath(): string;
+  /**
+   * Get the current user's UUID, fetching and caching it if necessary
+   */
+  getUserUuid(): Promise<string | undefined>;
 }
 
 /**

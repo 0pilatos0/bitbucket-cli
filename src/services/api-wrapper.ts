@@ -114,14 +114,18 @@ export class PullrequestsApiWrapper {
   async list(
     workspace: string,
     repoSlug: string,
-    state?: 'OPEN' | 'MERGED' | 'DECLINED' | 'SUPERSEDED'
+    state?: 'OPEN' | 'MERGED' | 'DECLINED' | 'SUPERSEDED',
+    query?: string
   ): Promise<PaginatedResponse<Pullrequest>> {
     const response =
-      await this.api.repositoriesWorkspaceRepoSlugPullrequestsGet({
-        workspace,
-        repoSlug,
-        state,
-      });
+      await this.api.repositoriesWorkspaceRepoSlugPullrequestsGet(
+        {
+          workspace,
+          repoSlug,
+          state,
+        },
+        query ? { params: { q: query } } : undefined
+      );
     const data = response.data;
     return {
       values: toArray(

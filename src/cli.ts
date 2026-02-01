@@ -346,6 +346,7 @@ prCmd
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
+  .option('--mine', 'Show only PRs where you are a reviewer')
   .action(async (options) => {
     try {
       const cmd = container.resolve<ListPRsCommand>(

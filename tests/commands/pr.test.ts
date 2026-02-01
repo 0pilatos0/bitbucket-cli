@@ -18,10 +18,15 @@ import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
 import {
   createMockOutputService,
   createMockGitService,
+  createMockConfigService,
   mockPullRequest,
   mockUser,
 } from '../setup.js';
-import type { IContextService } from '../../src/core/interfaces/services.js';
+import type {
+  IContextService,
+  IConfigService,
+} from '../../src/core/interfaces/services.js';
+import { PullrequestsApiWrapper } from '../../src/services/api-wrapper.js';
 import type { BBError } from '../../src/types/errors.js';
 import type {
   Pullrequest,
@@ -351,13 +356,20 @@ function createMockContextService(context?: {
 describe('ListPRsCommand', () => {
   it('should list open pull requests by default', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
     });
+    const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -369,13 +381,20 @@ describe('ListPRsCommand', () => {
       { ...mockPullRequest, id: 2, state: 'MERGED' as const },
     ];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
     });
+    const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
     await command.execute({ state: 'MERGED' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -383,23 +402,37 @@ describe('ListPRsCommand', () => {
 
   it('should fail when no repo context', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
     const contextService = createMockContextService();
+    const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
 
     await expect(command.execute({}, { globalOptions: {} })).rejects.toThrow();
   });
 
   it('should show message when no PRs found', async () => {
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: [] });
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
     });
+    const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(
@@ -410,17 +443,71 @@ describe('ListPRsCommand', () => {
   it('should label draft pull requests', async () => {
     const prs = [{ ...mockPullRequest, id: 1, draft: true }];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
     });
+    const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table-rows:'))).toBe(true);
     expect(output.logs.some((log) => log.includes('[DRAFT]'))).toBe(true);
+  });
+
+  it('should filter by reviewer when --mine flag is used', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const configService = createMockConfigService({ userUuid: '{test-uuid}' });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
+    await command.execute({ mine: true }, { globalOptions: {} });
+
+    expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
+  });
+
+  it('should show warning when --mine is used but no user UUID is available', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
+    await command.execute({ mine: true }, { globalOptions: {} });
+
+    expect(output.logs.some((log) => log.includes('warning:'))).toBe(true);
+    expect(
+      output.logs.some((log) =>
+        log.includes('Could not determine your user UUID')
+      )
+    ).toBe(true);
   });
 });
 

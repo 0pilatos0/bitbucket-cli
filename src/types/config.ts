@@ -9,6 +9,7 @@ export interface BBConfig {
   lastVersionCheck?: string;
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
+  userUuid?: string;
 }
 
 export interface AuthCredentials {
@@ -34,6 +35,7 @@ export const CONFIG_KEYS = [
   'lastVersionCheck',
   'skipVersionCheck',
   'versionCheckInterval',
+  'userUuid',
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
 

@@ -5,15 +5,18 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
+  IConfigService,
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
+import type { Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import type { PullrequestsApiWrapper } from '../../services/api-wrapper.js';
 
 export interface ListPRsOptions extends GlobalOptions {
   state?: string;
   limit?: string;
+  mine?: boolean;
 }
 
 export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
@@ -21,8 +24,9 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
   public readonly description = 'List pull requests';
 
   constructor(
-    private readonly pullrequestsApi: PullrequestsApi,
+    private readonly pullrequestsApi: PullrequestsApiWrapper,
     private readonly contextService: IContextService,
+    private readonly configService: IConfigService,
     output: IOutputService
   ) {
     super(output);
@@ -43,25 +47,35 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       | 'DECLINED'
       | 'SUPERSEDED';
 
-    try {
-      const response =
-        await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-          {
-            workspace: repoContext.workspace,
-            repoSlug: repoContext.repoSlug,
-            state,
-          }
-        );
+    let query: string | undefined;
 
-      const data = response.data;
-      const values = data.values ? Array.from(data.values) : [];
+    if (options.mine) {
+      const userUuid = await this.configService.getUserUuid();
+      if (userUuid) {
+        query = `reviewers.uuid="${userUuid}"`;
+      } else {
+        this.output.warning(
+          'Could not determine your user UUID. Showing all PRs.'
+        );
+      }
+    }
+
+    try {
+      const response = await this.pullrequestsApi.list(
+        repoContext.workspace,
+        repoContext.repoSlug,
+        state,
+        query
+      );
+
+      const values = response.values;
 
       if (values.length === 0) {
         this.output.text(`No ${state.toLowerCase()} pull requests found`);
         return;
       }
 
-      const rows = values.map((pr: Pullrequest) => {
+      const rows = values.map((pr) => {
         const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
         const source = pr.source as { branch?: { name?: string } } | undefined;
         const destination = pr.destination as

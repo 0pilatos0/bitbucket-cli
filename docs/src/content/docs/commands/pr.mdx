@@ -116,6 +116,7 @@ bb pr list [options]
 | `-r, --repo <repo>` | Repository |
 | `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
 | `--limit <number>` | Maximum number of PRs (default: 25) |
+| `--mine` | Show only PRs where you are a reviewer |
 
 ### Examples
 
@@ -137,11 +138,18 @@ bb pr list --json
 
 # List more results
 bb pr list --limit 50
+
+# List PRs where you are a reviewer
+bb pr list --mine
+
+# List open PRs where you are a reviewer
+bb pr list --mine --state OPEN
 ```
 
 ### Notes
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
+- The `--mine` flag filters to show only PRs where you are listed as a reviewer
 
 ---
 

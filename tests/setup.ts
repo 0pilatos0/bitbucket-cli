@@ -71,6 +71,9 @@ export function createMockConfigService(config: BBConfig = {}): IConfigService {
     getConfigPath() {
       return '/tmp/test-config/config.json';
     },
+    async getUserUuid() {
+      return currentConfig.userUuid;
+    },
   };
 }
 

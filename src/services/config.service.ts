@@ -7,15 +7,25 @@ import { homedir } from 'node:os';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import type { BBConfig, AuthCredentials } from '../types/config.js';
+import type { UsersApi } from '../generated/api.js';
 
 export class ConfigService implements IConfigService {
   private readonly configDir: string;
   private readonly configFile: string;
   private configCache: BBConfig | null = null;
+  private usersApi: UsersApi | null = null;
 
-  constructor(configDir?: string) {
+  constructor(configDir?: string, usersApi?: UsersApi) {
     this.configDir = configDir ?? join(homedir(), '.config', 'bb');
     this.configFile = join(this.configDir, 'config.json');
+    this.usersApi = usersApi ?? null;
+  }
+
+  /**
+   * Set the UsersApi instance for fetching user data
+   */
+  public setUsersApi(usersApi: UsersApi): void {
+    this.usersApi = usersApi;
   }
 
   private async ensureConfigDir(): Promise<void> {
@@ -130,5 +140,36 @@ export class ConfigService implements IConfigService {
    */
   public clearCache(): void {
     this.configCache = null;
+  }
+
+  /**
+   * Get the current user's UUID, fetching and caching it if necessary
+   */
+  public async getUserUuid(): Promise<string | undefined> {
+    const config = await this.getConfig();
+
+    // Return cached UUID if available
+    if (config.userUuid) {
+      return config.userUuid;
+    }
+
+    // Fetch UUID from API if we have a UsersApi instance
+    if (this.usersApi) {
+      try {
+        const response = await this.usersApi.userGet();
+        const userUuid = response.data.uuid;
+
+        if (userUuid) {
+          // Cache the UUID in config
+          await this.setValue('userUuid', userUuid);
+          return userUuid;
+        }
+      } catch {
+        // Silently fail - user UUID is not critical
+        return undefined;
+      }
+    }
+
+    return undefined;
   }
 }

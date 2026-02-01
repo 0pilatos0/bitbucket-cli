@@ -11,6 +11,7 @@ import {
   VersionService,
   createApiClient,
 } from './services/index.js';
+import { PullrequestsApiWrapper } from './services/api-wrapper.js';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -99,6 +100,15 @@ export function bootstrap(): Container {
     const axiosInstance = createApiClient(configService);
     return new UsersApi(undefined, undefined, axiosInstance);
   });
+
+  // Inject UsersApi into ConfigService for user UUID resolution
+  const configServiceForInjection = container.resolve<ConfigService>(
+    ServiceTokens.ConfigService
+  );
+  const usersApiForInjection = container.resolve<UsersApi>(
+    ServiceTokens.UsersApi
+  );
+  configServiceForInjection.setUsersApi(usersApiForInjection);
 
   container.register(ServiceTokens.CommitStatusesApi, () => {
     const configService = container.resolve<ConfigService>(
@@ -250,10 +260,19 @@ export function bootstrap(): Container {
     const contextService = container.resolve<ContextService>(
       ServiceTokens.ContextService
     );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new ListPRsCommand(pullrequestsApi, contextService, output);
+    const pullrequestsApiWrapper = new PullrequestsApiWrapper(pullrequestsApi);
+    return new ListPRsCommand(
+      pullrequestsApiWrapper,
+      contextService,
+      configService,
+      output
+    );
   });
 
   container.register(ServiceTokens.ViewPRCommand, () => {
