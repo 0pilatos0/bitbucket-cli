@@ -1,4 +1,4 @@
-import { toArray } from './api-helpers.js';
+import { isObject, toArray } from './api-helpers.js';
 
 export interface ActivityUser {
   display_name?: string;
@@ -36,9 +36,6 @@ export interface DiffstatEntry {
   old?: { path?: string };
   new?: { path?: string };
 }
-
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null;
 
 const getIterableValues = <T>(data: unknown): Iterable<T> | undefined => {
   if (!isObject(data)) {

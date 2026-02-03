@@ -3,7 +3,7 @@ export interface CloneLink {
   href?: string;
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
+export const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 const isIterable = (value: unknown): value is Iterable<unknown> =>

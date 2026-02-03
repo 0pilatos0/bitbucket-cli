@@ -13,7 +13,11 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { getLinkHref, toArray } from '../../types/api-helpers.js';
+import {
+  getBranchName,
+  getLinkHref,
+  toArray,
+} from '../../types/api-helpers.js';
 
 export interface EditPROptions extends GlobalOptions {
   id?: string;
@@ -61,8 +65,8 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
 
       const values = toArray(prsResponse.data.values);
       const matchingPR = values.find((pr: Pullrequest) => {
-        const source = pr.source as { branch?: { name?: string } } | undefined;
-        return source?.branch?.name === currentBranch;
+        const branchName = getBranchName(pr.source);
+        return branchName === currentBranch;
       });
 
       if (!matchingPR) {

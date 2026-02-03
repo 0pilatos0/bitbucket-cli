@@ -35,4 +35,19 @@ describe('api response parsers', () => {
     const diffText = 'diff --git a/file b/file';
     expect(parseDiffResponse(diffText)).toBe(diffText);
   });
+
+  it('parsers handle non-iterable inputs', () => {
+    expect(parsePullrequestActivities(undefined)).toEqual([]);
+    expect(parsePullrequestActivities({})).toEqual([]);
+    expect(parsePullrequestActivities({ values: 123 })).toEqual([]);
+
+    expect(parseDiffstats(null)).toEqual([]);
+    expect(parseDiffstats({})).toEqual([]);
+    expect(parseDiffstats({ values: { foo: 'bar' } })).toEqual([]);
+  });
+
+  it('parseDiffResponse coerces non-string values', () => {
+    expect(parseDiffResponse(null)).toBe('');
+    expect(parseDiffResponse(123)).toBe('123');
+  });
 });
