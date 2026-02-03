@@ -10,6 +10,11 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import {
+  getContentRaw,
+  getUserDisplayName,
+  toArray,
+} from '../../types/api-helpers.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
   limit?: string;
@@ -52,7 +57,7 @@ export class ListCommentsPRCommand extends BaseCommand<
       );
 
     const data = response.data;
-    const values = data.values ? Array.from(data.values) : [];
+    const values = toArray(data.values);
 
     if (values.length === 0) {
       this.output.info('No comments found on this pull request');
@@ -60,14 +65,10 @@ export class ListCommentsPRCommand extends BaseCommand<
     }
 
     const rows = values.map((comment) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const content = (comment.content as any)?.raw ?? '';
+      const content = getContentRaw(comment.content) ?? '';
       return [
         comment.id?.toString() ?? '',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (comment.user as any)?.nickname ??
-          (comment.user as any)?.display_name ??
-          'Unknown',
+        getUserDisplayName(comment.user) ?? 'Unknown',
         comment.deleted
           ? '[deleted]'
           : options.truncate === false

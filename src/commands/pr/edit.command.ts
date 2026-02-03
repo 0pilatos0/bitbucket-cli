@@ -13,6 +13,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { getLinkHref, toArray } from '../../types/api-helpers.js';
 
 export interface EditPROptions extends GlobalOptions {
   id?: string;
@@ -58,9 +59,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
           }
         );
 
-      const values = prsResponse.data.values
-        ? Array.from(prsResponse.data.values)
-        : [];
+      const values = toArray(prsResponse.data.values);
       const matchingPR = values.find((pr: Pullrequest) => {
         const source = pr.source as { branch?: { name?: string } } | undefined;
         return source?.branch?.name === currentBranch;
@@ -113,7 +112,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       );
 
     const pr = response.data;
-    const links = pr.links as { html?: { href?: string } } | undefined;
+    const url = getLinkHref(pr.links, 'html');
 
     this.output.success(`Updated pull request #${pr.id}`);
     this.output.text(`  ${chalk.dim('Title:')} ${pr.title}`);
@@ -124,6 +123,6 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
           : pr.description;
       this.output.text(`  ${chalk.dim('Description:')} ${truncatedDesc}`);
     }
-    this.output.text(`  ${chalk.dim('URL:')} ${links?.html?.href}`);
+    this.output.text(`  ${chalk.dim('URL:')} ${url ?? ''}`);
   }
 }

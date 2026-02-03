@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { getCloneLinks, getLinkHref } from '../../types/api-helpers.js';
 
 export interface ViewRepoOptions extends GlobalOptions {
   repository?: string;
@@ -86,15 +87,10 @@ export class ViewRepoCommand extends BaseCommand<ViewRepoOptions, void> {
       `  ${chalk.dim('Updated:')} ${this.output.formatDate(repo.updated_on ?? '')}`
     );
     this.output.text('');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.output.text(
-      `  ${chalk.dim('URL:')} ${(repo.links as any)?.html?.href}`
-    );
+    const repoUrl = getLinkHref(repo.links, 'html');
+    this.output.text(`  ${chalk.dim('URL:')} ${repoUrl ?? ''}`);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sshClone = Array.from((repo.links as any)?.clone ?? []).find(
-      (c: any) => c.name === 'ssh'
-    ) as { href?: string } | undefined;
+    const sshClone = getCloneLinks(repo.links).find((c) => c.name === 'ssh');
     if (sshClone?.href) {
       this.output.text(`  ${chalk.dim('SSH:')} ${sshClone.href}`);
     }

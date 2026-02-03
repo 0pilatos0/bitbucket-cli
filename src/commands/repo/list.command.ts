@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
+import { toArray } from '../../types/api-helpers.js';
 
 export interface ListReposOptions {
   workspace?: string;
@@ -38,7 +39,7 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
       workspace,
     });
 
-    const repos = Array.from(response.data.values ?? []).slice(0, limit);
+    const repos = toArray(response.data.values).slice(0, limit);
 
     if (repos.length === 0) {
       this.output.text('No repositories found');

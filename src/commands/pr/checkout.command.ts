@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { getBranchName } from '../../types/api-helpers.js';
 
 export interface CheckoutPROptions extends GlobalOptions {}
 
@@ -51,8 +52,7 @@ export class CheckoutPRCommand extends BaseCommand<
       );
 
     const pr = prResponse.data;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const branchName = (pr.source as any)?.branch?.name;
+    const branchName = getBranchName(pr.source);
     const localBranchName = `pr-${prId}`;
 
     if (!branchName) {

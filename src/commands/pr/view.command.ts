@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { getLinkHref, toArray } from '../../types/api-helpers.js';
 
 export interface ViewPROptions extends GlobalOptions {}
 
@@ -146,7 +147,7 @@ export class ViewPRCommand extends BaseCommand<
   }
 
   private renderReviewers(pr: Pullrequest): void {
-    const participants = pr.participants ? Array.from(pr.participants) : [];
+    const participants = toArray(pr.participants);
     const reviewers = participants.filter((p) => p.role === 'REVIEWER');
 
     if (reviewers.length === 0) {
@@ -182,12 +183,10 @@ export class ViewPRCommand extends BaseCommand<
   }
 
   private renderFooter(pr: Pullrequest): void {
-    const links = pr.links as { html?: { href?: string } } | undefined;
+    const url = getLinkHref(pr.links, 'html');
     this.output.text('');
     this.output.text(chalk.gray('─'.repeat(60)));
-    this.output.text(
-      `${chalk.dim('URL:')} ${chalk.blue.underline(links?.html?.href ?? '')}`
-    );
+    this.output.text(`${chalk.dim('URL:')} ${chalk.blue.underline(url ?? '')}`);
     this.output.text('');
   }
 

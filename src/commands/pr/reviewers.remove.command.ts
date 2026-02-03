@@ -10,6 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, UsersApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { toArray } from '../../types/api-helpers.js';
 
 export interface RemoveReviewerPROptions extends GlobalOptions {
   id: string;
@@ -61,7 +62,7 @@ export class RemoveReviewerPRCommand extends BaseCommand<
     const pr = prResponse.data;
 
     // Build list of reviewers (excluding the one to remove)
-    const existingReviewers = pr.reviewers ? Array.from(pr.reviewers) : [];
+    const existingReviewers = toArray(pr.reviewers);
     const reviewerUuids = existingReviewers
       .map((r) => (r as { uuid?: string }).uuid)
       .filter((uuid) => uuid && uuid !== user.uuid);

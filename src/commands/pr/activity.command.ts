@@ -10,6 +10,10 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import {
+  parsePullrequestActivities,
+  type PullrequestActivity,
+} from '../../types/api-responses.js';
 
 export interface ActivityPROptions extends GlobalOptions {
   limit?: string;
@@ -52,15 +56,12 @@ export class ActivityPRCommand extends BaseCommand<
       );
 
     // The generated API types say this returns void, but it actually returns paginated activity
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = response.data as any;
-    const values = data?.values ? Array.from(data.values) : [];
+    const values = parsePullrequestActivities(response.data);
 
     const filterTypes = this.parseTypeFilter(options.type);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const activities =
       filterTypes.length > 0
-        ? values.filter((activity: any) =>
+        ? values.filter((activity) =>
             filterTypes.includes(this.getActivityType(activity))
           )
         : values;
@@ -98,8 +99,7 @@ export class ActivityPRCommand extends BaseCommand<
       .filter((type) => type.length > 0);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getActivityType(activity: any): string {
+  private getActivityType(activity: PullrequestActivity): string {
     if (activity.comment) {
       return 'comment';
     }
@@ -131,8 +131,7 @@ export class ActivityPRCommand extends BaseCommand<
     return activity.type ? activity.type.toLowerCase() : 'activity';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getActorName(activity: any): string {
+  private getActorName(activity: PullrequestActivity): string {
     const user =
       activity.comment?.user ??
       activity.comment?.author ??
@@ -151,8 +150,7 @@ export class ActivityPRCommand extends BaseCommand<
     return user.display_name || user.username || 'Unknown';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private formatActivityDate(activity: any): string {
+  private formatActivityDate(activity: PullrequestActivity): string {
     const date =
       activity.comment?.created_on ??
       activity.approval?.date ??
@@ -169,8 +167,10 @@ export class ActivityPRCommand extends BaseCommand<
     return this.output.formatDate(date);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private buildActivityDetails(activity: any, type: string): string {
+  private buildActivityDetails(
+    activity: PullrequestActivity,
+    type: string
+  ): string {
     switch (type) {
       case 'comment': {
         const content = activity.comment?.content?.raw ?? '';

@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { CommitStatusesApi, Commitstatus } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { toArray } from '../../types/api-helpers.js';
 
 export interface ChecksPROptions extends GlobalOptions {
   json?: boolean;
@@ -53,7 +54,7 @@ export class ChecksPRCommand extends BaseCommand<
       );
 
     const data = response.data;
-    const statuses = data?.values ? Array.from(data.values) : [];
+    const statuses = toArray(data?.values);
 
     const useJson = options.json || context.globalOptions.json;
 

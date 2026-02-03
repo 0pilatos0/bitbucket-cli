@@ -10,6 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { toArray } from '../../types/api-helpers.js';
 
 export interface ListPRsOptions extends GlobalOptions {
   state?: string;
@@ -51,7 +52,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       });
 
     const data = response.data;
-    const values = data.values ? Array.from(data.values) : [];
+    const values = toArray(data.values);
 
     if (values.length === 0) {
       this.output.text(`No ${state.toLowerCase()} pull requests found`);

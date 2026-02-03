@@ -14,6 +14,15 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import {
+  getBranchName,
+  getLinkHref,
+  toArray,
+} from '../../types/api-helpers.js';
+import {
+  parseDiffResponse,
+  parseDiffstats,
+} from '../../types/api-responses.js';
 
 const execAsync = promisify(exec);
 
@@ -65,9 +74,8 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
           }
         );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pr = Array.from(prsResponse.data.values ?? []).find(
-        (p: any) => p.source?.branch?.name === currentBranch
+      const pr = toArray(prsResponse.data.values).find(
+        (value) => getBranchName(value.source) === currentBranch
       );
 
       if (!pr) {
@@ -89,8 +97,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
           }
         );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const diffUrl = (prResponse.data.links as any)?.diff?.href;
+      const diffUrl = getLinkHref(prResponse.data.links, 'diff');
       if (!diffUrl) {
         throw new Error('Could not get diff URL');
       }
@@ -173,10 +180,8 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffstat = diffstatResponse.data as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const files = Array.from(diffstat.values ?? []).map((file: any) => {
+    const diffstat = parseDiffstats(diffstatResponse.data);
+    const files = diffstat.map((file) => {
       const path = file.new?.path || file.old?.path || 'unknown';
       return {
         path,
@@ -239,11 +244,9 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffstat = diffstatResponse.data as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fileNames = Array.from(diffstat.values ?? []).map(
-      (file: any) => file.new?.path || file.old?.path || 'unknown'
+    const diffstat = parseDiffstats(diffstatResponse.data);
+    const fileNames = diffstat.map(
+      (file) => file.new?.path || file.old?.path || 'unknown'
     );
 
     for (const fileName of fileNames) {
@@ -267,7 +270,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    const diff = diffResponse.data;
+    const diff = parseDiffResponse(diffResponse.data);
 
     const shouldColorize = this.shouldColorize(options.color);
     const colorizedDiff = shouldColorize
