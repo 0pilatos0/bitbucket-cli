@@ -14,7 +14,15 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+import {
+  Badge,
+  Card,
+  CardGrid,
+  LinkButton,
+  LinkCard,
+  Tabs,
+  TabItem,
+} from '@astrojs/starlight/components';
 
 ## Why Bitbucket CLI?
 
@@ -77,6 +85,37 @@ bb pr list
 
 ---
 
+## Pick a Workflow <Badge text="New" variant="tip" />
+
+Use task-focused guides when you want the shortest path to a result:
+
+<CardGrid>
+  <LinkCard
+    title="Create and update PRs"
+    href="/commands/pr/create-and-edit/"
+    description="Open pull requests quickly, then edit titles and descriptions without context switching."
+  />
+  <LinkCard
+    title="Review and merge safely"
+    href="/commands/pr/review-and-merge/"
+    description="Approve, decline, mark draft PRs ready, and merge with explicit strategy controls."
+  />
+  <LinkCard
+    title="Inspect diffs and checkout"
+    href="/commands/pr/diff-and-checkout/"
+    description="View patches, open browser diffs, or checkout PR branches locally for deep review."
+  />
+  <LinkCard
+    title="Automate comments and reviewers"
+    href="/commands/pr/comments/"
+    description="Use script-friendly commands for review comments and reviewer management."
+  />
+</CardGrid>
+
+<LinkButton href="/commands/pr/" icon="right-arrow" variant="primary">Browse PR command workflows</LinkButton>
+
+---
+
 ## What Can You Do?
 
 <CardGrid stagger>
@@ -123,7 +162,7 @@ bb pr list
 
 ---
 
-## Feature Highlights
+## Feature Highlights <Badge text="Updated" variant="note" />
 
 | Feature | Description |
 |---------|-------------|
@@ -142,7 +181,7 @@ bb pr list
   <Card title="Command Reference" icon="list-format">
     Complete documentation for all commands and options.
 
-    [View Commands →](/commands/auth/)
+    [View Commands →](/commands/pr/)
   </Card>
   <Card title="Scripting Guide" icon="seti:json">
     Learn to use bb in scripts, automation, and CI/CD.

@@ -7,6 +7,24 @@ export default defineConfig({
     starlight({
       title: "Bitbucket CLI",
       description: "A powerful command-line interface for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows — all from your terminal.",
+      logo: {
+        src: './src/assets/logo.svg',
+        alt: 'Bitbucket CLI',
+      },
+      editLink: {
+        baseUrl:
+          'https://github.com/0pilatos0/bitbucket-cli/edit/main/docs/',
+      },
+      lastUpdated: true,
+      customCss: ['/src/styles/docs.css'],
+      pagefind: {
+        ranking: {
+          pageLength: 0.05,
+          termFrequency: 0.2,
+          termSaturation: 1.6,
+          termSimilarity: 8,
+        },
+      },
       components: {
         Head: './src/components/Head.astro',
       },
@@ -41,7 +59,12 @@ export default defineConfig({
           items: [
             { label: "Auth Commands", slug: "commands/auth" },
             { label: "Repo Commands", slug: "commands/repo" },
-            { label: "PR Commands", slug: "commands/pr" },
+            {
+              label: 'PR Commands',
+              autogenerate: {
+                directory: 'commands/pr',
+              },
+            },
             { label: "Config Commands", slug: "commands/config" },
             { label: "Completion", slug: "commands/completion" },
           ],
@@ -52,7 +75,14 @@ export default defineConfig({
             { label: "Repository Context", slug: "guides/repository-context" },
             { label: "Scripting & Automation", slug: "guides/scripting" },
             { label: "CI/CD Integration", slug: "guides/cicd" },
-            { label: "AI Agent Integration", slug: "guides/ai-agents" },
+            {
+              label: 'AI Agent Integration',
+              slug: 'guides/ai-agents',
+              badge: {
+                text: 'New',
+                variant: 'tip',
+              },
+            },
           ],
         },
         {

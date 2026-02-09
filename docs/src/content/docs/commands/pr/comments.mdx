@@ -1,0 +1,212 @@
+---
+title: Comments
+description: List, add, edit, and delete pull request comments
+sidebar:
+  order: 6
+  badge:
+    text: New
+    variant: tip
+---
+
+Manage pull request comments.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr comments`
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `list <id>` | List comments on a pull request |
+| `add <id> <message>` | Add a comment to a pull request |
+| `edit <pr-id> <comment-id> <message>` | Edit a comment on a pull request |
+| `delete <pr-id> <comment-id>` | Delete a comment on a pull request |
+
+---
+
+## `bb pr comments list`
+
+List comments on a pull request.
+
+```bash
+bb pr comments list <id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--limit <number>` | Maximum number of comments (default: 25) |
+| `--no-truncate` | Show full comment content without truncation |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# List comments on PR #42
+bb pr comments list 42
+
+# List more comments
+bb pr comments list 42 --limit 50
+
+# Show full comment content (not truncated)
+bb pr comments list 42 --no-truncate
+
+# List comments in specific repository
+bb pr comments list 42 -w myworkspace -r myrepo
+
+# Get comments as JSON
+bb pr comments list 42 --json
+```
+
+### Notes
+
+- By default, comment content is truncated to 60 characters in the table view
+- Use `--no-truncate` to display the full comment text
+- `--limit` is enforced across paginated comment responses
+
+---
+
+## `bb pr comments add`
+
+Add a comment to a pull request. Supports both general comments and inline comments on specific file lines.
+
+```bash
+bb pr comments add <id> <message> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+| `message` | Comment message |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `--file <path>` | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
+| `--line-to <number>` | Line number in the new version of the file (requires `--file`) |
+| `--line-from <number>` | Line number in the old version of the file (requires `--file`) |
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Add a general comment to PR #42
+bb pr comments add 42 "LGTM! This looks great."
+
+# Add an inline comment on a specific line in the new file
+bb pr comments add 42 "Consider renaming this variable" --file src/index.ts --line-to 15
+
+# Add an inline comment on a line in the old (removed) version of the file
+bb pr comments add 42 "Why was this removed?" --file src/utils.ts --line-from 10
+
+# Add an inline comment spanning old and new lines
+bb pr comments add 42 "This logic changed" --file src/app.ts --line-from 5 --line-to 8
+
+# Add a comment to PR in specific repository
+bb pr comments add 42 "Please review this." -w myworkspace -r myrepo
+
+# Get comment as JSON
+bb pr comments add 42 "Good job!" --json
+```
+
+### Notes
+
+- `--file` is required when using `--line-to` or `--line-from`
+- At least one of `--line-to` or `--line-from` is required when using `--file`
+- Line numbers must be positive integers
+
+---
+
+## `bb pr comments edit`
+
+Edit a comment on a pull request.
+
+```bash
+bb pr comments edit <pr-id> <comment-id> <message>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | Comment ID |
+| `message` | New comment message |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Edit comment #123 on PR #42
+bb pr comments edit 42 123 "Updated: I noticed something else..."
+
+# Edit comment in specific repository
+bb pr comments edit 42 123 "Revised feedback" -w myworkspace -r myrepo
+
+# Get updated comment as JSON
+bb pr comments edit 42 123 "Final comment" --json
+```
+
+---
+
+## `bb pr comments delete`
+
+Delete a comment from a pull request.
+
+```bash
+bb pr comments delete <pr-id> <comment-id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | Comment ID |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Delete comment #123 from PR #42
+bb pr comments delete 42 123
+
+# Delete comment in specific repository
+bb pr comments delete 42 456 -w myworkspace -r myrepo
+
+# Delete comment with JSON output
+bb pr comments delete 42 456 --json
+```
+
+### Notes
+
+- Deleting a comment is permanent and cannot be undone

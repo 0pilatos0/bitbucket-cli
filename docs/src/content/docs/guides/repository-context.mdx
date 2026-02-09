@@ -3,6 +3,8 @@ title: Understanding Repository Context
 description: How the CLI determines which workspace and repository to use
 ---
 
+import { FileTree } from '@astrojs/starlight/components';
+
 Many commands in the Bitbucket CLI need to know which workspace and repository you're working with. The CLI uses a sophisticated resolution system to determine this automatically, so you don't always need to specify them explicitly.
 
 ## Context Resolution Order
@@ -13,6 +15,20 @@ The CLI checks multiple sources in this order:
 2. **Current Git repository** (automatically detected from your git remote URL)
 3. **Config file defaults** (`defaultWorkspace` setting)
 4. **Combinations** of the above sources
+
+### Typical Local Layout
+
+<FileTree>
+- projects/
+  - myworkspace-tools/
+    - .git/
+    - src/
+      - commands/
+      - services/
+    - README.md
+</FileTree>
+
+When you run `bb` from `myworkspace-tools/`, the CLI reads the Bitbucket remote from `.git/` and uses that workspace/repo as context.
 
 ### Examples
 

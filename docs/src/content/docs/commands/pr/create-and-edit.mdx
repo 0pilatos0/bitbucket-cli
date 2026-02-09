@@ -1,0 +1,187 @@
+---
+title: Create, Edit, and View PRs
+description: Create pull requests, edit metadata, and inspect PR details
+sidebar:
+  order: 2
+---
+
+Create and inspect pull requests.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr create`
+
+Create a new pull request.
+
+```bash
+bb pr create [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-t, --title <title>` | Pull request title (required) |
+| `-b, --body <body>` | Pull request description |
+| `-s, --source <branch>` | Source branch (default: current branch) |
+| `-d, --destination <branch>` | Destination branch (default: main) |
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--close-source-branch` | Close source branch after merge |
+| `--draft` | Create the pull request as draft |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Create a PR from current branch to main
+bb pr create -t "Add new feature"
+
+# Create a PR with full details
+bb pr create -t "Add login page" -b "Implements user login functionality" -d develop
+
+# Create a PR that will close the source branch after merging
+bb pr create -t "Hotfix: Critical bug" --close-source-branch
+
+# Create a draft PR
+bb pr create -t "WIP: Add feature" --draft
+```
+
+---
+
+## `bb pr edit`
+
+Edit an existing pull request's title or description.
+
+```bash
+bb pr edit [id] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID (optional - auto-detects from current branch) |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-t, --title <title>` | New pull request title |
+| `-b, --body <body>` | New pull request description |
+| `-F, --body-file <file>` | Read description from file |
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Edit PR title by ID
+bb pr edit 42 -t "Updated: Add new feature"
+
+# Edit PR description
+bb pr edit 42 -b "This PR implements the new login flow"
+
+# Edit both title and description
+bb pr edit 42 -t "New title" -b "New description"
+
+# Auto-detect PR from current branch and update title
+bb pr edit -t "Updated title"
+
+# Read description from a file
+bb pr edit 42 -F description.md
+
+# Get updated PR as JSON
+bb pr edit 42 -t "New title" --json
+```
+
+### Notes
+
+- When no ID is provided, the command searches for an open PR where the source branch matches your current git branch
+- At least one of `--title`, `--body`, or `--body-file` must be provided
+- The `--body-file` option reads the entire file contents as the new description
+
+---
+
+## `bb pr list`
+
+List pull requests.
+
+```bash
+bb pr list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
+| `--limit <number>` | Maximum number of PRs (default: 25) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# List open PRs in current repository
+bb pr list
+
+# List merged PRs
+bb pr list -s MERGED
+
+# List declined PRs
+bb pr list -s DECLINED
+
+# List PRs in specific repository
+bb pr list -w myworkspace -r myrepo
+
+# List with JSON output for scripting
+bb pr list --json
+
+# List more results
+bb pr list --limit 50
+```
+
+### Notes
+
+- Draft PRs are shown with a `[DRAFT]` prefix in the title
+- `--limit` is enforced across paginated API responses
+
+---
+
+## `bb pr view`
+
+View pull request details.
+
+```bash
+bb pr view <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View PR #42 in current repository
+bb pr view 42
+
+# View PR in specific repository
+bb pr view 42 -w myworkspace -r myrepo
+
+# Get PR details as JSON
+bb pr view 42 --json
+```

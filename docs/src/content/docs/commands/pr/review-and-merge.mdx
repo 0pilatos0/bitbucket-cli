@@ -1,0 +1,150 @@
+---
+title: Review and Merge
+description: Approve, decline, mark ready, and merge pull requests
+sidebar:
+  order: 5
+---
+
+Complete review and merge pull request workflows.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr merge`
+
+Merge a pull request.
+
+```bash
+bb pr merge <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `-m, --message <message>` | Merge commit message |
+| `--close-source-branch` | Delete source branch after merge |
+| `--strategy <strategy>` | Merge strategy: merge_commit, squash, fast_forward |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Merge PR #42
+bb pr merge 42
+
+# Merge with squash strategy and delete source branch
+bb pr merge 42 --strategy squash --close-source-branch
+
+# Merge with custom commit message
+bb pr merge 42 -m "Merge feature: Add user authentication"
+```
+
+---
+
+## `bb pr approve`
+
+Approve a pull request.
+
+```bash
+bb pr approve <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Approve PR in current repository
+bb pr approve 42
+
+# Approve PR in specific repository
+bb pr approve 42 -w myworkspace -r myrepo
+```
+
+---
+
+## `bb pr decline`
+
+Decline a pull request.
+
+```bash
+bb pr decline <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Decline PR in current repository
+bb pr decline 42
+
+# Decline PR in specific repository
+bb pr decline 42 -w myworkspace -r myrepo
+```
+
+---
+
+## `bb pr ready`
+
+Mark a draft pull request as ready for review.
+
+```bash
+bb pr ready <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Mark draft PR as ready
+bb pr ready 42
+
+# Mark draft PR in specific repository
+bb pr ready 42 -w myworkspace -r myrepo
+```

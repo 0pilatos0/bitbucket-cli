@@ -1,0 +1,82 @@
+---
+title: PR Commands
+description: Task-based reference for creating, reviewing, and merging pull requests
+sidebar:
+  order: 1
+---
+
+import {
+  Badge,
+  CardGrid,
+  LinkButton,
+  LinkCard,
+} from '@astrojs/starlight/components';
+
+Manage pull requests in Bitbucket repositories.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## Choose a Workflow <Badge text="Task-based" variant="note" />
+
+<CardGrid>
+  <LinkCard
+    title="Create, edit, and view"
+    href="/commands/pr/create-and-edit/"
+    description="Open pull requests, update metadata, and inspect details with JSON output support."
+  />
+  <LinkCard
+    title="Activity and checks"
+    href="/commands/pr/activity-and-checks/"
+    description="Inspect activity history and CI/build status before approving or merging."
+  />
+  <LinkCard
+    title="Diff and checkout"
+    href="/commands/pr/diff-and-checkout/"
+    description="Review patch output, fetch PR branches locally, and open browser diffs."
+  />
+  <LinkCard
+    title="Review and merge"
+    href="/commands/pr/review-and-merge/"
+    description="Approve, decline, mark drafts ready, and merge with explicit strategy control."
+  />
+  <LinkCard
+    title="Comments"
+    href="/commands/pr/comments/"
+    description="List, add, edit, and delete general or inline review comments."
+  />
+  <LinkCard
+    title="Reviewers"
+    href="/commands/pr/reviewers/"
+    description="Assign and remove reviewers with clear behavior in idempotent cases."
+  />
+</CardGrid>
+
+<LinkButton href="/commands/pr/create-and-edit/" icon="right-arrow" variant="primary">Start with PR creation</LinkButton>
+
+## Most-Used Commands
+
+| Task | Command |
+|------|---------|
+| Create a PR | `bb pr create -t "Add feature"` |
+| List open PRs | `bb pr list` |
+| View PR details | `bb pr view 42` |
+| View checks | `bb pr checks 42` |
+| Review diff | `bb pr diff 42 --stat` |
+| Checkout PR locally | `bb pr checkout 42` |
+| Approve PR | `bb pr approve 42` |
+| Merge PR | `bb pr merge 42 --strategy squash` |
+
+## JSON for Automation
+
+Use `--json` when scripting:
+
+```bash
+# List open PR titles
+bb pr list --json | jq -r '.pullRequests[].title'
+
+# Grab a PR URL from view output
+bb pr view 42 --json | jq -r '.links.html.href'
+
+# Capture diffstat totals
+bb pr diff 42 --stat --json | jq '{filesChanged, totalAdditions, totalDeletions}'
+```

@@ -1,0 +1,91 @@
+---
+title: Activity and Checks
+description: Inspect pull request activity history and CI/CD check status
+sidebar:
+  order: 3
+---
+
+Inspect pull request activity and build checks.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr activity`
+
+Show a pull request activity log.
+
+```bash
+bb pr activity <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--limit <number>` | Maximum number of activity entries (default: 25) |
+| `--type <types>` | Filter by activity type (comma-separated) |
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View activity for PR #42
+bb pr activity 42
+
+# Filter to comment and approval events
+bb pr activity 42 --type comment,approval
+
+# Limit results
+bb pr activity 42 --limit 10
+
+# Get activity as JSON
+bb pr activity 42 --json
+```
+
+### Notes
+
+- `--limit` is enforced across paginated activity responses
+
+---
+
+## `bb pr checks`
+
+Show CI/CD checks and build status for a pull request.
+
+```bash
+bb pr checks <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View checks for PR #42
+bb pr checks 42
+
+# View checks in a specific repository
+bb pr checks 42 -w myworkspace -r myrepo
+
+# Get checks as JSON
+bb pr checks 42 --json
+```

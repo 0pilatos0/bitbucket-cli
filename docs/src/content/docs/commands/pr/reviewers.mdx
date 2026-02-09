@@ -1,0 +1,151 @@
+---
+title: Reviewers
+description: List, add, and remove pull request reviewers
+sidebar:
+  order: 7
+---
+
+Manage pull request reviewers.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr reviewers`
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `list <id>` | List reviewers on a pull request |
+| `add <id> <username>` | Add a reviewer to a pull request |
+| `remove <id> <username>` | Remove a reviewer from a pull request |
+
+---
+
+## `bb pr reviewers list`
+
+List reviewers assigned to a pull request.
+
+```bash
+bb pr reviewers list <id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# List reviewers on PR #42
+bb pr reviewers list 42
+
+# List reviewers in specific repository
+bb pr reviewers list 42 -w myworkspace -r myrepo
+
+# Get reviewers as JSON for scripting
+bb pr reviewers list 42 --json
+```
+
+### Notes
+
+- Displays reviewers in a table with display name and account ID
+- Shows a message if no reviewers are assigned
+- Due to Bitbucket Cloud GDPR changes, the deprecated `username` field is not displayed
+
+---
+
+## `bb pr reviewers add`
+
+Add a reviewer to a pull request by username.
+
+```bash
+bb pr reviewers add <id> <username>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+| `username` | Username of the user to add as reviewer |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Add johndoe as reviewer to PR #42
+bb pr reviewers add 42 johndoe
+
+# Add reviewer in specific repository
+bb pr reviewers add 42 johndoe -w myworkspace -r myrepo
+
+# Add reviewer and get result as JSON
+bb pr reviewers add 42 johndoe --json
+```
+
+### Notes
+
+- The user must exist in Bitbucket; you'll get a clear error message if the user is not found
+- If the user is already a reviewer, the command succeeds without making changes
+- Uses UUID for identification (GDPR-compliant)
+
+---
+
+## `bb pr reviewers remove`
+
+Remove a reviewer from a pull request.
+
+```bash
+bb pr reviewers remove <id> <username>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+| `username` | Username of the reviewer to remove |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Remove johndoe as reviewer from PR #42
+bb pr reviewers remove 42 johndoe
+
+# Remove reviewer in specific repository
+bb pr reviewers remove 42 johndoe -w myworkspace -r myrepo
+
+# Remove reviewer and get result as JSON
+bb pr reviewers remove 42 johndoe --json
+```
+
+### Notes
+
+- The user must exist in Bitbucket; you'll get a clear error message if the user is not found
+- If the user is not a reviewer on the PR, the command succeeds without making changes
+- Uses UUID for identification (GDPR-compliant)

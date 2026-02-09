@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Bitbucket CLI">
+  <rect width="100" height="100" rx="20" fill="#0052CC" />
+  <text
+    x="50"
+    y="68"
+    font-family="monospace"
+    font-size="50"
+    font-weight="700"
+    fill="#FFFFFF"
+    text-anchor="middle"
+  >
+    bb
+  </text>
+</svg>

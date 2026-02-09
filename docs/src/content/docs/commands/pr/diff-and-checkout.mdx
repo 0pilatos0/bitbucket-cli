@@ -1,0 +1,115 @@
+---
+title: Diff and Checkout
+description: Checkout pull request branches locally and inspect diff output
+sidebar:
+  order: 4
+---
+
+Review pull request changes with local checkout and diff tooling.
+
+Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+## `bb pr checkout`
+
+Checkout a pull request locally. This command fetches the PR's source branch and checks it out, creating a local tracking branch if needed.
+
+```bash
+bb pr checkout <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Checkout PR #42 to review locally
+bb pr checkout 42
+
+# Checkout PR from specific repository
+bb pr checkout 42 -w myworkspace -r myrepo
+```
+
+### Notes
+
+The command will:
+
+1. Fetch the latest changes from the remote
+2. Try to checkout the PR's source branch
+3. If the branch doesn't exist locally, create a new branch named `pr-<id>` tracking `origin/<source-branch>`
+
+---
+
+## `bb pr diff`
+
+View the diff of a pull request. Shows the changes introduced by the PR in unified diff format with syntax highlighting.
+
+```bash
+bb pr diff [id] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pull request ID (optional - auto-detects from current branch) |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--color <when>` | Colorize output: `auto`, `always`, `never` (default: auto) |
+| `--name-only` | Show only names of changed files |
+| `--stat` | Show diffstat (files changed, insertions, deletions) |
+| `--web` | Open diff in web browser |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View diff for PR #42
+bb pr diff 42
+
+# Auto-detect PR from current branch
+bb pr diff
+
+# Show only changed file names
+bb pr diff 42 --name-only
+
+# Show statistics (like git diff --stat)
+bb pr diff 42 --stat
+
+# Open diff in browser
+bb pr diff 42 --web
+
+# Return browser URL as JSON
+bb pr diff 42 --web --json
+
+# Disable colors for piping to file or other commands
+bb pr diff 42 --color never > pr-42.patch
+
+# Get diffstat as JSON for scripting
+bb pr diff 42 --stat --json
+```
+
+### Notes
+
+- When no ID is provided, the command searches for an open PR where the source branch matches your current git branch
+- The `--stat` output shows files changed with insertions (+) and deletions (-)
+- `-w` remains the global short alias for `--workspace`; use `--web` (long form) to open the diff in a browser
+- Use `--color never` when piping output to files or other commands
+- Use the global `--no-color` flag to disable color output for all command formatting
+- The diff is colorized by default when output is a terminal (green for additions, red for deletions, cyan for hunk headers)
