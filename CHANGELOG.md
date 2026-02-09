@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.8.1
+
+### Patch Changes
+
+- [#112](https://github.com/0pilatos0/bitbucket-cli/pull/112) [`3022e04`](https://github.com/0pilatos0/bitbucket-cli/commit/3022e04346bde4d01bbd9195a4b1aad7b93aa9f0) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Emit structured JSON errors to stderr when `--json` is enabled, including typed error codes for command validation and config failures. This makes scripting more reliable while preserving non-zero exits and existing human-readable error output in non-JSON mode.
+
+- [#107](https://github.com/0pilatos0/bitbucket-cli/pull/107) [`4cb0e33`](https://github.com/0pilatos0/bitbucket-cli/commit/4cb0e33456af3387e60121885c73af3bbfeba460) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Resolve the `-w` short-flag collision in `bb pr diff` by making `--web`
+  long-form only, keeping `-w` consistently reserved for global
+  `--workspace`.
+
+- [#110](https://github.com/0pilatos0/bitbucket-cli/pull/110) [`f995668`](https://github.com/0pilatos0/bitbucket-cli/commit/f995668d1720990fa972ccf358c6b4245f0f0843) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix `bb pr diff --web --json` to return a Bitbucket web diff URL instead of
+  an API endpoint URL.
+
+- [#106](https://github.com/0pilatos0/bitbucket-cli/pull/106) [`dafd375`](https://github.com/0pilatos0/bitbucket-cli/commit/dafd375496d67ca8cc5d2c7587220d46785dbc7b) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix `bb auth logout` and failed `bb auth login` cleanup to remove only
+  authentication fields (`username` and `apiToken`) while preserving other
+  configuration values.
+
+- [#108](https://github.com/0pilatos0/bitbucket-cli/pull/108) [`30c1b10`](https://github.com/0pilatos0/bitbucket-cli/commit/30c1b10512fff4fdc468d445bfa40c9d94e039e3) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix Windows config path resolution to store `config.json` in `%APPDATA%\bb` by default, with a home-directory fallback when `APPDATA` is unavailable. This aligns runtime behavior with the documentation.
+
+- [#113](https://github.com/0pilatos0/bitbucket-cli/pull/113) [`63bba51`](https://github.com/0pilatos0/bitbucket-cli/commit/63bba51e0235a9a203ff679c6e1303ff6ee8e407) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Honor `--limit` across paginated PR and repository list commands, including PR activity and PR comments. Also improve `bb pr diff` and `bb pr edit` auto-detection so they can find matching pull requests across multiple pages.
+
 ## 1.8.0
 
 ### Minor Changes
