@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
+import { collectPages, parseLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ActivityPROptions extends GlobalOptions {
@@ -41,29 +42,39 @@ export class ActivityPRCommand extends BaseCommand<
     });
 
     const prId = Number.parseInt(options.id, 10);
-
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-        }
-      );
-
-    // The generated API types say this returns void, but it actually returns paginated activity
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = response.data as any;
-    const values = data?.values ? Array.from(data.values) : [];
-
     const filterTypes = this.parseTypeFilter(options.type);
+    const limit = parseLimit(options.limit);
+
+    const activities = await collectPages<unknown>({
+      limit,
+      fetchPage: async (page, pagelen) => {
+        const response =
+          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
+            {
+              workspace: repoContext.workspace,
+              repoSlug: repoContext.repoSlug,
+              pullRequestId: prId,
+            },
+            {
+              params: { page, pagelen },
+            }
+          );
+
+        // The generated API types say this returns void, but it actually returns paginated activity
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return response.data as any;
+      },
+      shouldInclude: (activity) => {
+        if (filterTypes.length === 0) {
+          return true;
+        }
+
+        return filterTypes.includes(this.getActivityType(activity));
+      },
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const activities =
-      filterTypes.length > 0
-        ? values.filter((activity: any) =>
-            filterTypes.includes(this.getActivityType(activity))
-          )
-        : values;
+    const typedActivities = activities as any[];
 
     if (context.globalOptions.json) {
       this.output.json({
@@ -73,13 +84,13 @@ export class ActivityPRCommand extends BaseCommand<
         filters: {
           types: filterTypes,
         },
-        count: activities.length,
-        activities,
+        count: typedActivities.length,
+        activities: typedActivities,
       });
       return;
     }
 
-    if (activities.length === 0) {
+    if (typedActivities.length === 0) {
       if (filterTypes.length > 0) {
         this.output.info('No activity entries matched the requested filter');
       } else {
@@ -88,7 +99,7 @@ export class ActivityPRCommand extends BaseCommand<
       return;
     }
 
-    const rows = activities.map((activity) => {
+    const rows = typedActivities.map((activity) => {
       const activityType = this.getActivityType(activity);
       return [
         activityType.toUpperCase(),

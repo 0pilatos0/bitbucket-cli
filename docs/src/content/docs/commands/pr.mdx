@@ -145,6 +145,7 @@ bb pr list --limit 50
 ### Notes
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
+- `--limit` is enforced across paginated API responses
 
 ---
 
@@ -224,6 +225,10 @@ bb pr activity 42 --limit 10
 # Get activity as JSON
 bb pr activity 42 --json
 ```
+
+### Notes
+
+- `--limit` is enforced across paginated activity responses
 
 ---
 
@@ -574,6 +579,7 @@ bb pr comments list 42 --json
 
 - By default, comment content is truncated to 60 characters in the table view
 - Use `--no-truncate` to display the full comment text
+- `--limit` is enforced across paginated comment responses
 
 ---
 

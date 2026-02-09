@@ -8,7 +8,8 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { RepositoriesApi } from '../../generated/api.js';
+import type { RepositoriesApi, Repository } from '../../generated/api.js';
+import { collectPages, parseLimit } from '../../services/pagination.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface ListReposOptions {
@@ -35,13 +36,23 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     const workspace = await this.resolveWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = Number.parseInt(options.limit || '25', 10);
+    const limit = parseLimit(options.limit);
 
-    const response = await this.repositoriesApi.repositoriesWorkspaceGet({
-      workspace,
+    const repos = await collectPages<Repository>({
+      limit,
+      fetchPage: async (page, pagelen) => {
+        const response = await this.repositoriesApi.repositoriesWorkspaceGet(
+          {
+            workspace,
+          },
+          {
+            params: { page, pagelen },
+          }
+        );
+
+        return response.data;
+      },
     });
-
-    const repos = Array.from(response.data.values ?? []).slice(0, limit);
 
     if (context.globalOptions.json) {
       this.output.json({

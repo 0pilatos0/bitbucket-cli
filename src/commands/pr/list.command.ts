@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
+import { collectPages, parseLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListPRsOptions extends GlobalOptions {
@@ -42,16 +43,26 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       | 'MERGED'
       | 'DECLINED'
       | 'SUPERSEDED';
+    const limit = parseLimit(options.limit);
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        state,
-      });
+    const values = await collectPages<Pullrequest>({
+      limit,
+      fetchPage: async (page, pagelen) => {
+        const response =
+          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
+            {
+              workspace: repoContext.workspace,
+              repoSlug: repoContext.repoSlug,
+              state,
+            },
+            {
+              params: { page, pagelen },
+            }
+          );
 
-    const data = response.data;
-    const values = data.values ? Array.from(data.values) : [];
+        return response.data;
+      },
+    });
 
     if (context.globalOptions.json) {
       this.output.json({

@@ -14,6 +14,7 @@ import { ReadyPRCommand } from '../../src/commands/pr/ready.command.js';
 import { CheckoutPRCommand } from '../../src/commands/pr/checkout.command.js';
 import { DiffPRCommand } from '../../src/commands/pr/diff.command.js';
 import { ActivityPRCommand } from '../../src/commands/pr/activity.command.js';
+import { ListCommentsPRCommand } from '../../src/commands/pr/comments.list.command.js';
 import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
 import { CommentPRCommand } from '../../src/commands/pr/comment.command.js';
 import {
@@ -26,6 +27,7 @@ import type { IContextService } from '../../src/core/interfaces/services.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type {
   Pullrequest,
+  PullrequestComment,
   PullrequestsApi,
   PaginatedPullrequests,
   Participant,
@@ -68,10 +70,53 @@ function createSet<T>(items: T[]): Set<T> {
   return new Set(items);
 }
 
+function extractPaginationParams(axiosOptions: unknown): {
+  page: number;
+  pagelen: number;
+} {
+  if (!axiosOptions || typeof axiosOptions !== 'object') {
+    return { page: 1, pagelen: 25 };
+  }
+
+  const params = (axiosOptions as { params?: unknown }).params;
+  if (!params || typeof params !== 'object') {
+    return { page: 1, pagelen: 25 };
+  }
+
+  const pageValue = (params as { page?: unknown }).page;
+  const pagelenValue = (params as { pagelen?: unknown }).pagelen;
+
+  const page =
+    typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
+      ? pageValue
+      : 1;
+  const pagelen =
+    typeof pagelenValue === 'number' &&
+    Number.isFinite(pagelenValue) &&
+    pagelenValue > 0
+      ? pagelenValue
+      : 25;
+
+  return { page, pagelen };
+}
+
+function getTableRows(logs: string[]): string[][] {
+  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
+  if (!rowsLog) {
+    return [];
+  }
+
+  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
+}
+
 // Mock PullrequestsApi factory - returns a partial mock that we cast to the full type
 function createMockPullrequestsApi(
   options: {
     pullRequests?: Pullrequest[];
+    pullRequestPages?: Pullrequest[][];
+    activityPages?: Array<Array<Record<string, unknown>>>;
+    comments?: PullrequestComment[];
+    commentsPages?: PullrequestComment[][];
     throwOnGet?: boolean;
     throwOnList?: boolean;
     throwOnCreate?: boolean;
@@ -83,20 +128,74 @@ function createMockPullrequestsApi(
     throwOnDiffstat?: boolean;
     throwOnActivity?: boolean;
     throwOnComment?: boolean;
+    onListCall?: (request: unknown, axiosOptions?: unknown) => void;
+    onActivityCall?: (request: unknown, axiosOptions?: unknown) => void;
+    onCommentsListCall?: (request: unknown, axiosOptions?: unknown) => void;
   } = {}
 ): PullrequestsApi & { lastCommentBody?: Record<string, unknown> } {
   const prs = options.pullRequests ?? [mockPullRequest];
+  const allPullRequests = options.pullRequestPages
+    ? options.pullRequestPages.flat()
+    : prs;
+  const defaultActivities: Array<Record<string, unknown>> = [
+    {
+      comment: {
+        id: 101,
+        content: { raw: 'Looks good to me' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+      },
+    },
+  ];
+  const defaultComments: PullrequestComment[] = [
+    {
+      id: 1,
+      type: 'pullrequest_comment',
+      content: { raw: 'Looks good to me' },
+      user: mockUser,
+      created_on: '2024-01-02T00:00:00.000Z',
+      deleted: false,
+    } as PullrequestComment,
+  ];
 
   const mockApi = {
-    async repositoriesWorkspaceRepoSlugPullrequestsGet() {
+    async repositoriesWorkspaceRepoSlugPullrequestsGet(
+      request: unknown,
+      axiosOptions?: unknown
+    ) {
       if (options.throwOnList) {
         throw new Error('API Error');
       }
+
+      options.onListCall?.(request, axiosOptions);
+
+      const { page, pagelen } = extractPaginationParams(axiosOptions);
+      let pageValues: Pullrequest[];
+      let totalSize: number;
+      let hasNext: boolean;
+
+      if (options.pullRequestPages) {
+        pageValues = options.pullRequestPages[page - 1] ?? [];
+        totalSize = options.pullRequestPages.flat().length;
+        hasNext = page < options.pullRequestPages.length;
+      } else {
+        const start = (page - 1) * pagelen;
+        const end = start + pagelen;
+        pageValues = prs.slice(start, end);
+        totalSize = prs.length;
+        hasNext = end < prs.length;
+      }
+
       const paginated: PaginatedPullrequests = {
-        values: createSet(prs),
-        pagelen: 25,
-        size: prs.length,
+        values: createSet(pageValues),
+        page,
+        pagelen,
+        size: totalSize,
+        next: hasNext
+          ? `https://api.bitbucket.org/2.0/repositories/workspace/repo/pullrequests?page=${page + 1}`
+          : undefined,
       };
+
       return createAxiosResponse(paginated);
     },
 
@@ -106,7 +205,7 @@ function createMockPullrequestsApi(
       if (options.throwOnGet) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -138,7 +237,7 @@ function createMockPullrequestsApi(
       if (options.throwOnMerge) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -169,7 +268,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDecline) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -186,7 +285,7 @@ function createMockPullrequestsApi(
       if (options.throwOnUpdate) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -204,7 +303,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDiff) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -218,7 +317,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDiffstat) {
         throw new Error('API Error');
       }
-      const pr = prs.find((p) => p.id === params.pullRequestId);
+      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -239,27 +338,83 @@ function createMockPullrequestsApi(
       } as unknown as void);
     },
 
-    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(params: {
-      pullRequestId: number;
-    }) {
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
+      params: {
+        pullRequestId: number;
+      },
+      axiosOptions?: unknown
+    ) {
       if (options.throwOnActivity) {
         throw new Error('API Error');
       }
+
+      options.onActivityCall?.(params, axiosOptions);
+
+      const { page, pagelen } = extractPaginationParams(axiosOptions);
+      let pageValues: Array<Record<string, unknown>>;
+      let totalSize: number;
+      let hasNext: boolean;
+
+      if (options.activityPages) {
+        pageValues = options.activityPages[page - 1] ?? [];
+        totalSize = options.activityPages.flat().length;
+        hasNext = page < options.activityPages.length;
+      } else {
+        const allActivities = defaultActivities;
+        const start = (page - 1) * pagelen;
+        const end = start + pagelen;
+        pageValues = allActivities.slice(start, end);
+        totalSize = allActivities.length;
+        hasNext = end < allActivities.length;
+      }
+
       // The API returns void but we return data for testing
       return createAxiosResponse({
-        values: createSet([
-          {
-            comment: {
-              id: 101,
-              content: { raw: 'Looks good to me' },
-              user: mockUser,
-              created_on: '2024-01-02T00:00:00.000Z',
-            },
-          },
-        ]),
-        pagelen: 25,
-        size: 1,
+        values: createSet(pageValues),
+        page,
+        pagelen,
+        size: totalSize,
+        next: hasNext
+          ? `https://api.bitbucket.org/2.0/repositories/workspace/repo/pullrequests/${params.pullRequestId}/activity?page=${page + 1}`
+          : undefined,
       } as unknown as void);
+    },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
+      params: {
+        pullRequestId: number;
+      },
+      axiosOptions?: unknown
+    ) {
+      options.onCommentsListCall?.(params, axiosOptions);
+
+      const { page, pagelen } = extractPaginationParams(axiosOptions);
+      const allComments = options.comments ?? defaultComments;
+      let pageValues: PullrequestComment[];
+      let totalSize: number;
+      let hasNext: boolean;
+
+      if (options.commentsPages) {
+        pageValues = options.commentsPages[page - 1] ?? [];
+        totalSize = options.commentsPages.flat().length;
+        hasNext = page < options.commentsPages.length;
+      } else {
+        const start = (page - 1) * pagelen;
+        const end = start + pagelen;
+        pageValues = allComments.slice(start, end);
+        totalSize = allComments.length;
+        hasNext = end < allComments.length;
+      }
+
+      return createAxiosResponse({
+        values: createSet(pageValues),
+        page,
+        pagelen,
+        size: totalSize,
+        next: hasNext
+          ? `https://api.bitbucket.org/2.0/repositories/workspace/repo/pullrequests/${params.pullRequestId}/comments?page=${page + 1}`
+          : undefined,
+      });
     },
 
     async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(params: {
@@ -445,6 +600,26 @@ describe('ListPRsCommand', () => {
     expect(output.logs.some((log) => log.includes('[DRAFT]'))).toBe(true);
   });
 
+  it('should respect limit option', async () => {
+    const prs = [
+      { ...mockPullRequest, id: 1, title: 'PR 1' },
+      { ...mockPullRequest, id: 2, title: 'PR 2' },
+      { ...mockPullRequest, id: 3, title: 'PR 3' },
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    await command.execute({ limit: '2' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(2);
+  });
+
   it('should output json when requested', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
@@ -558,6 +733,200 @@ describe('ActivityPRCommand', () => {
     expect(
       output.logs.some((log) => log.includes('No activity entries matched'))
     ).toBe(true);
+  });
+
+  it('should respect limit option', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      activityPages: [
+        [
+          {
+            comment: {
+              id: 1,
+              content: { raw: 'Comment 1' },
+              user: mockUser,
+              created_on: '2024-01-01T00:00:00.000Z',
+            },
+          },
+          {
+            comment: {
+              id: 2,
+              content: { raw: 'Comment 2' },
+              user: mockUser,
+              created_on: '2024-01-01T01:00:00.000Z',
+            },
+          },
+          {
+            comment: {
+              id: 3,
+              content: { raw: 'Comment 3' },
+              user: mockUser,
+              created_on: '2024-01-01T02:00:00.000Z',
+            },
+          },
+        ],
+      ],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(2);
+  });
+
+  it('should continue paginating when type filter is used', async () => {
+    const requestedPages: number[] = [];
+    const pullrequestsApi = createMockPullrequestsApi({
+      activityPages: [
+        [
+          {
+            approval: {
+              user: mockUser,
+              date: '2024-01-01T00:00:00.000Z',
+            },
+          },
+        ],
+        [
+          {
+            comment: {
+              id: 10,
+              content: { raw: 'Filtered comment' },
+              user: mockUser,
+              created_on: '2024-01-01T01:00:00.000Z',
+            },
+          },
+        ],
+      ],
+      onActivityCall: (_request, axiosOptions) => {
+        requestedPages.push(extractPaginationParams(axiosOptions).page);
+      },
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '1', type: 'comment', limit: '1' },
+      { globalOptions: {} }
+    );
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(1);
+    expect(requestedPages).toEqual([1, 2]);
+  });
+});
+
+describe('ListCommentsPRCommand', () => {
+  it('should list comments with limit', async () => {
+    const comments: PullrequestComment[] = [
+      {
+        id: 1,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 1' },
+        user: mockUser,
+        created_on: '2024-01-01T00:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+      {
+        id: 2,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 2' },
+        user: mockUser,
+        created_on: '2024-01-01T01:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+      {
+        id: 3,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 3' },
+        user: mockUser,
+        created_on: '2024-01-01T02:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ comments });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(2);
+  });
+
+  it('should include limited count in json output', async () => {
+    const comments: PullrequestComment[] = [
+      {
+        id: 1,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 1' },
+        user: mockUser,
+        created_on: '2024-01-01T00:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+      {
+        id: 2,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 2' },
+        user: mockUser,
+        created_on: '2024-01-01T01:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+      {
+        id: 3,
+        type: 'pullrequest_comment',
+        content: { raw: 'Comment 3' },
+        user: mockUser,
+        created_on: '2024-01-01T02:00:00.000Z',
+        deleted: false,
+      } as PullrequestComment,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ comments });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '1', limit: '2' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.count).toBe(2);
+    expect(parsed.comments).toHaveLength(2);
   });
 });
 
@@ -1021,6 +1390,49 @@ describe('DiffPRCommand', () => {
     expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
   });
 
+  it('should auto-detect PR across paginated results', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequestPages: [
+        [
+          {
+            ...mockPullRequest,
+            id: 100,
+            source: {
+              branch: { name: 'other-branch' },
+            },
+          } as Pullrequest,
+        ],
+        [
+          {
+            ...mockPullRequest,
+            id: 101,
+            source: {
+              branch: { name: 'feature-branch' },
+            },
+          } as Pullrequest,
+        ],
+      ],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService({
+      currentBranch: 'feature-branch',
+    });
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute({}, { globalOptions: {} });
+
+    expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
+  });
+
   it('should fail when no ID provided and branch not found', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
@@ -1201,6 +1613,52 @@ describe('EditPRCommand', () => {
     );
     await command.execute(
       { title: 'Updated via auto-detect' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+  });
+
+  it('should auto-detect PR across paginated results', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequestPages: [
+        [
+          {
+            ...mockPullRequest,
+            id: 50,
+            source: {
+              branch: { name: 'other-branch' },
+            },
+          } as Pullrequest,
+        ],
+        [
+          {
+            ...mockPullRequest,
+            id: 51,
+            source: {
+              branch: { name: 'feature-branch' },
+            },
+          } as Pullrequest,
+        ],
+      ],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService({
+      currentBranch: 'feature-branch',
+    });
+    const output = createMockOutputService();
+
+    const command = new EditPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute(
+      { title: 'Updated via paginated auto-detect' },
       { globalOptions: {} }
     );
 

@@ -8,7 +8,11 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi } from '../../generated/api.js';
+import type {
+  PullrequestComment,
+  PullrequestsApi,
+} from '../../generated/api.js';
+import { collectPages, parseLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
@@ -41,18 +45,26 @@ export class ListCommentsPRCommand extends BaseCommand<
     });
 
     const prId = Number.parseInt(options.id, 10);
+    const limit = parseLimit(options.limit);
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-        }
-      );
+    const values = await collectPages<PullrequestComment>({
+      limit,
+      fetchPage: async (page, pagelen) => {
+        const response =
+          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
+            {
+              workspace: repoContext.workspace,
+              repoSlug: repoContext.repoSlug,
+              pullRequestId: prId,
+            },
+            {
+              params: { page, pagelen },
+            }
+          );
 
-    const data = response.data;
-    const values = data.values ? Array.from(data.values) : [];
+        return response.data;
+      },
+    });
 
     if (context.globalOptions.json) {
       this.output.json({
