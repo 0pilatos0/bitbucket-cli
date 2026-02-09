@@ -28,7 +28,7 @@ Thanks for your interest in contributing! This guide will help you get started.
 | --------------- | --------------------------- |
 | `bun run dev`   | Run CLI in development mode |
 | `bun run build` | Build for production        |
-| `bun run test`  | Run tests                   |
+| `bun test`      | Run tests                   |
 | `bun run lint`  | Type-check with TypeScript  |
 
 ## Making Changes
@@ -45,15 +45,16 @@ git checkout -b fix/your-fix
 
 - Follow existing code patterns
 - Add tests for new functionality
-- Ensure all tests pass: `bun run test`
+- Ensure all tests pass: `bun test`
 - Ensure types are correct: `bun run lint`
+- Ensure formatting is valid: `bun run format:check`
 
 ### 3. Add a changeset
 
 **This is required for all PRs that affect the package.**
 
 ```bash
-bun changeset
+bun run changeset
 ```
 
 This will prompt you to:
@@ -112,7 +113,8 @@ Releases are automated via changesets:
 3. Merging that PR triggers:
    - Version bump
    - CHANGELOG update
-   - GitHub Package publish
+   - npm publish (primary package distribution)
+   - GitHub Packages publish
    - GitHub Release creation
 
 ## Questions?

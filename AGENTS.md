@@ -86,16 +86,18 @@ bun run release
 - Classes: PascalCase (e.g., `ConfigService`, `ListReposCommand`)
 - Functions/Methods: camelCase (e.g., `execute`, `getConfig`)
 - Constants: UPPER_SNAKE_CASE (e.g., `MAX_RETRIES`)
-- Interfaces: PascalCase with `I` prefix (e.g., `IConfigService`)
-- Private members: underscore prefix (e.g., `private readonly _cache`)
+- Service interfaces in `src/core/interfaces/services.ts` use `I` prefix (e.g., `IConfigService`)
+- Other interfaces follow existing local style (e.g., `CommandContext`, `CommandMetadata`)
+- Private members use descriptive camelCase names by default; keep `_name` only when matching existing class style
 - Type parameters: single uppercase letter (e.g., `T`, `E`, `R`)
 
 ### Error Handling
 
 - Use `BBError` and `ErrorCode` from `src/types/errors.ts` for expected failures
 - API errors are normalized in `src/services/api-client.service.ts` to `APIError`
-- Commands should `try/catch`, call `handleError()`, then rethrow
-- `handleError()` sets `process.exitCode` except in tests
+- Let `BaseCommand.run()` handle top-level command errors (text/JSON rendering and exit code)
+- Use command-level `try/catch` only when adding context, fallback behavior, or cleanup before rethrowing
+- `handleError()` in `BaseCommand` sets `process.exitCode` except in tests
 - Use `requireOption()` from `BaseCommand` for required CLI options
 - Only throw for exceptional cases; CLI is responsible for exit behavior
 
@@ -138,7 +140,10 @@ bun run release
 ### Security and Config
 
 - Never log or commit secrets (tokens, passwords)
-- Config is stored in `~/.config/bb/config.json` with `0o600` permissions
+- Config path is platform-aware:
+  - Linux/macOS: `~/.config/bb/config.json`
+  - Windows: `%APPDATA%\\bb\\config.json` (fallback `%USERPROFILE%\\AppData\\Roaming\\bb\\config.json`)
+- Config writes use `0o600` permissions where supported
 - Avoid printing sensitive config values to output
 - API auth uses Basic auth via `ConfigService.getCredentials()`
 
