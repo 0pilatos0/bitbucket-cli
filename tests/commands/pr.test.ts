@@ -1083,6 +1083,35 @@ describe('DiffPRCommand', () => {
     );
   });
 
+  it('should return web diff URL in JSON when --web is set', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute(
+      { id: '1', web: true },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.mode).toBe('web');
+    expect(parsed.url).toBe(
+      'https://bitbucket.org/workspace/repo/pull-requests/1/diff'
+    );
+  });
+
   it('should fail for non-existent PR', async () => {
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: [] });
     const contextService = createMockContextService({

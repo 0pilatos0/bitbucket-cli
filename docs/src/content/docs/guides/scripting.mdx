@@ -39,6 +39,9 @@ bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.di
 
 # Get PR URLs
 bb pr list --json | jq -r '.pullRequests[].links.html.href'
+
+# Get web diff URL for a PR
+bb pr diff 42 --web --json | jq -r '.url'
 ```
 
 ### Common jq Patterns

@@ -189,16 +189,16 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffUrl = (prResponse.data.links as any)?.diff?.href;
-    if (!diffUrl) {
-      throw new Error('Could not get diff URL');
+    const links = prResponse.data.links as
+      | { html?: { href?: string } }
+      | undefined;
+    const htmlUrl = links?.html?.href;
+    if (htmlUrl) {
+      const normalizedHtmlUrl = htmlUrl.replace(/\/$/, '');
+      return `${normalizedHtmlUrl}/diff`;
     }
 
-    return diffUrl.replace(
-      /api\.bitbucket\.org\/2\.0\/repositories\/(.*?)\/pullrequests\/(\d+)\/diff/,
-      'bitbucket.org/$1/pull-requests/$2/diff'
-    );
+    return `https://bitbucket.org/${workspace}/${repoSlug}/pull-requests/${prId}/diff`;
   }
 
   private async showStat(
