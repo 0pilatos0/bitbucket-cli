@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.2
+
+### Patch Changes
+
+- [#115](https://github.com/0pilatos0/bitbucket-cli/pull/115) [`436a6ee`](https://github.com/0pilatos0/bitbucket-cli/commit/436a6eeb60459f0956aae5dc319d4659b206963d) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix `bb completion install` path errors in published builds by externalizing
+  `tabtab` during bundling so shell script templates are resolved from runtime
+  `node_modules` instead of CI-only absolute paths.
+
 ## 1.8.1
 
 ### Patch Changes
