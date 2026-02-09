@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CheckoutPROptions extends GlobalOptions {}
 
@@ -56,7 +57,11 @@ export class CheckoutPRCommand extends BaseCommand<
     const localBranchName = `pr-${prId}`;
 
     if (!branchName) {
-      throw new Error('Pull request source branch not found');
+      throw new BBError({
+        code: ErrorCode.API_NOT_FOUND,
+        message: 'Pull request source branch not found',
+        context: { pullRequestId: prId },
+      });
     }
 
     await this.gitService.fetch();

@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface AuthStatus {
   authenticated: boolean;
@@ -80,9 +81,11 @@ export class StatusCommand extends BaseCommand<void, void> {
         );
       }
     } catch (error) {
-      throw new Error(
-        `Authentication is invalid or expired. Run ${this.output.highlight('bb auth login')} to re-authenticate.`
-      );
+      throw new BBError({
+        code: ErrorCode.AUTH_INVALID,
+        message: `Authentication is invalid or expired. Run ${this.output.highlight('bb auth login')} to re-authenticate.`,
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 }

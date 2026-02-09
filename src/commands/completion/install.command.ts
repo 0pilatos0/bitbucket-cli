@@ -5,6 +5,7 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 import tabtab from 'tabtab';
 
 export class InstallCompletionCommand extends BaseCommand<void, void> {
@@ -38,7 +39,11 @@ export class InstallCompletionCommand extends BaseCommand<void, void> {
         'Restart your shell or source your profile to enable completions.'
       );
     } catch (error) {
-      throw new Error(`Failed to install completions: ${error}`);
+      throw new BBError({
+        code: ErrorCode.UNKNOWN,
+        message: `Failed to install completions: ${error}`,
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 }

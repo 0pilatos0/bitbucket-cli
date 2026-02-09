@@ -13,6 +13,7 @@ import {
   parseSettableConfigValue,
   SETTABLE_CONFIG_KEYS,
 } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export class SetConfigCommand extends BaseCommand<
   { key: string; value: string },
@@ -38,16 +39,20 @@ export class SetConfigCommand extends BaseCommand<
 
     // Check if key is protected
     if (SetConfigCommand.PROTECTED_KEYS.includes(key)) {
-      throw new Error(
-        `Cannot set '${key}' directly. Use 'bb auth login' to configure authentication.`
-      );
+      throw new BBError({
+        code: ErrorCode.CONFIG_INVALID_KEY,
+        message: `Cannot set '${key}' directly. Use 'bb auth login' to configure authentication.`,
+        context: { key },
+      });
     }
 
     // Check if key is valid
     if (!isSettableConfigKey(key)) {
-      throw new Error(
-        `Unknown config key '${key}'. Valid keys: ${SETTABLE_CONFIG_KEYS.join(', ')}`
-      );
+      throw new BBError({
+        code: ErrorCode.CONFIG_INVALID_KEY,
+        message: `Unknown config key '${key}'. Valid keys: ${SETTABLE_CONFIG_KEYS.join(', ')}`,
+        context: { key },
+      });
     }
 
     const parsedValue = parseSettableConfigValue(key, value);

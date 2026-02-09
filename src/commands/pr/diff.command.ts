@@ -13,6 +13,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 const execAsync = promisify(exec);
 
@@ -50,7 +51,11 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     if (options.id) {
       prId = Number.parseInt(options.id, 10);
       if (Number.isNaN(prId)) {
-        throw new TypeError('Invalid PR ID');
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message: 'Invalid PR ID',
+          context: { id: options.id },
+        });
       }
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
@@ -70,9 +75,11 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
       );
 
       if (!pr) {
-        throw new Error(
-          `No open pull request found for branch "${currentBranch}"`
-        );
+        throw new BBError({
+          code: ErrorCode.API_NOT_FOUND,
+          message: `No open pull request found for branch "${currentBranch}"`,
+          context: { branch: currentBranch },
+        });
       }
 
       prId = pr.id!;

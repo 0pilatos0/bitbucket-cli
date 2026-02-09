@@ -132,6 +132,17 @@ bb pr diff 42 --stat --json | jq -r '.files[].path'
 
 ## Errors
 
-When a command fails, the CLI exits non-zero and prints an error message to stderr.
+When a command fails, the CLI exits non-zero.
+
+- In normal mode, errors are plain text on stderr.
+- In `--json` mode, errors are compact JSON objects on stderr.
+
+Example:
+
+```bash
+bb config get invalidKey --json 2>error.json
+cat error.json
+# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval","context":{"key":"invalidKey"}}
+```
 
 In automation, always check the process exit code before parsing stdout JSON.

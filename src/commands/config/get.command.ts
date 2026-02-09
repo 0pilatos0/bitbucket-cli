@@ -13,6 +13,7 @@ import {
   normalizeReadableConfigValue,
   READABLE_CONFIG_KEYS,
 } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
   public readonly name = 'get';
@@ -35,16 +36,20 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
 
     // Check if key is hidden
     if (GetConfigCommand.HIDDEN_KEYS.includes(key)) {
-      throw new Error(
-        `Cannot display '${key}' - use 'bb auth token' to get authentication credentials`
-      );
+      throw new BBError({
+        code: ErrorCode.CONFIG_INVALID_KEY,
+        message: `Cannot display '${key}' - use 'bb auth token' to get authentication credentials`,
+        context: { key },
+      });
     }
 
     // Check if key is valid
     if (!isReadableConfigKey(key)) {
-      throw new Error(
-        `Unknown config key '${key}'. Valid keys: ${READABLE_CONFIG_KEYS.join(', ')}`
-      );
+      throw new BBError({
+        code: ErrorCode.CONFIG_INVALID_KEY,
+        message: `Unknown config key '${key}'. Valid keys: ${READABLE_CONFIG_KEYS.join(', ')}`,
+        context: { key },
+      });
     }
 
     const rawValue = await this.configService.getValue(key);

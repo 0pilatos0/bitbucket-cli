@@ -312,9 +312,16 @@ fi
 # Process prs.json...
 ```
 
-For JSON output, errors include the error code:
+For JSON output, errors are emitted to stderr and include the error code:
 
 ```bash
 bb pr view 999 --json 2>&1
 # {"name":"BBError","code":2002,"message":"Pull request not found"}
 ```
+
+Typical JSON error payload fields:
+
+- `name` - Error class name
+- `code` - Numeric CLI error code
+- `message` - Human-readable message
+- `context` - Optional structured metadata

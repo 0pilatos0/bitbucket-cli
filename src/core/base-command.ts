@@ -39,16 +39,39 @@ export abstract class BaseCommand<
    * Handle command error - output error and set exit code
    */
   protected handleError(error: unknown, context: CommandContext): void {
-    if (error instanceof Error) {
+    if (context.globalOptions.json) {
+      this.output.jsonError(this.normalizeErrorForJson(error));
+    } else if (error instanceof Error) {
       this.output.error(error.message);
     } else {
       this.output.error(String(error));
     }
+
     // Only set exit code in production - during tests this causes false failures
     // because the exit code persists across test files
     if (process.env.NODE_ENV !== 'test') {
       process.exitCode = 1;
     }
+  }
+
+  private normalizeErrorForJson(error: unknown): Record<string, unknown> {
+    if (error instanceof BBError) {
+      return error.toJSON();
+    }
+
+    if (error instanceof Error) {
+      return {
+        name: error.name,
+        code: ErrorCode.UNKNOWN,
+        message: error.message,
+      };
+    }
+
+    return {
+      name: 'Error',
+      code: ErrorCode.UNKNOWN,
+      message: String(error),
+    };
   }
 
   /**

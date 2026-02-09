@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { createMockOutputService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
-import type { BBError } from '../../src/types/errors.js';
+import { BBError, ErrorCode } from '../../src/types/errors.js';
 
 class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
   public readonly name = 'test';
@@ -37,6 +37,22 @@ class TestCommandWithError extends BaseCommand<{ option?: string }, void> {
     _context: CommandContext
   ): Promise<void> {
     throw new Error('Test error');
+  }
+}
+
+class TestCommandWithBBError extends BaseCommand<{ option?: string }, void> {
+  public readonly name = 'test-error-bb';
+  public readonly description = 'Test command with BBError';
+
+  async execute(
+    _options: { option?: string },
+    _context: CommandContext
+  ): Promise<void> {
+    throw new BBError({
+      code: ErrorCode.CONFIG_INVALID_KEY,
+      message: 'Unknown config key',
+      context: { key: 'invalidKey' },
+    });
   }
 }
 
@@ -184,6 +200,30 @@ describe('BaseCommand', () => {
       );
 
       expect(output.logs).toContain('error:Test error');
+    });
+
+    it('should output structured JSON error on failure in json mode', async () => {
+      const command = new TestCommandWithError(output);
+
+      await expect(
+        command.run({}, { globalOptions: { json: true } })
+      ).rejects.toThrow('Test error');
+
+      expect(output.logs).toContain(
+        'jsonError:{"name":"Error","code":9999,"message":"Test error"}'
+      );
+    });
+
+    it('should preserve BBError code and context in json mode', async () => {
+      const command = new TestCommandWithBBError(output);
+
+      await expect(
+        command.run({}, { globalOptions: { json: true } })
+      ).rejects.toThrow('Unknown config key');
+
+      expect(output.logs).toContain(
+        'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key","context":{"key":"invalidKey"}}'
+      );
     });
   });
 });
