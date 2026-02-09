@@ -469,7 +469,7 @@ prCmd
   .option('--color <when>', 'Colorize output (auto, always, never)', 'auto')
   .option('--name-only', 'Show only names of changed files')
   .option('--stat', 'Show diffstat')
-  .option('-w, --web', 'Open diff in web browser')
+  .option('--web', 'Open diff in web browser')
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
