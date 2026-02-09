@@ -2,20 +2,47 @@
  * Configuration service implementation
  */
 
-import { join } from 'node:path';
+import { join, win32 } from 'node:path';
 import { homedir } from 'node:os';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import type { BBConfig, AuthCredentials } from '../types/config.js';
+
+interface ConfigServicePathOptions {
+  platform?: NodeJS.Platform;
+  appData?: string;
+  homeDir?: string;
+}
 
 export class ConfigService implements IConfigService {
   private readonly configDir: string;
   private readonly configFile: string;
   private configCache: BBConfig | null = null;
 
-  constructor(configDir?: string) {
-    this.configDir = configDir ?? join(homedir(), '.config', 'bb');
-    this.configFile = join(this.configDir, 'config.json');
+  constructor(configDir?: string, options: ConfigServicePathOptions = {}) {
+    const platform = options.platform ?? process.platform;
+    const joinPath = platform === 'win32' ? win32.join : join;
+
+    this.configDir =
+      configDir ?? this.resolveDefaultConfigDir({ ...options, platform });
+    this.configFile = joinPath(this.configDir, 'config.json');
+  }
+
+  private resolveDefaultConfigDir(options: ConfigServicePathOptions): string {
+    const platform = options.platform ?? process.platform;
+
+    if (platform === 'win32') {
+      const appDataDir = options.appData ?? process.env.APPDATA;
+      if (appDataDir) {
+        return win32.join(appDataDir, 'bb');
+      }
+
+      const homeDir = options.homeDir ?? homedir();
+      return win32.join(homeDir, 'AppData', 'Roaming', 'bb');
+    }
+
+    const homeDir = options.homeDir ?? homedir();
+    return join(homeDir, '.config', 'bb');
   }
 
   private async ensureConfigDir(): Promise<void> {
