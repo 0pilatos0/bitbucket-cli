@@ -69,7 +69,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
         `Logged in as ${user.display_name} (${user.username})`
       );
     } catch (error) {
-      await this.configService.clearConfig();
+      await this.configService.clearCredentials();
       throw new Error(
         `Authentication failed: ${error instanceof Error ? error.message : String(error)}`
       );

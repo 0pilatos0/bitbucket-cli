@@ -66,6 +66,14 @@ export function createMockConfigService(config: BBConfig = {}): IConfigService {
       currentConfig.username = creds.username;
       currentConfig.apiToken = creds.apiToken;
     },
+    async clearCredentials() {
+      const {
+        username: _username,
+        apiToken: _apiToken,
+        ...rest
+      } = currentConfig;
+      currentConfig = rest;
+    },
     async clearConfig() {
       currentConfig = {};
     },

@@ -99,7 +99,9 @@ describe('LoginCommand', () => {
   });
 
   it('should output error message when authentication fails', async () => {
-    const configService = createMockConfigService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'team-workspace',
+    });
     const output = createMockOutputService();
     const usersApi = createMockUsersApiError('Invalid credentials');
 
@@ -121,24 +123,27 @@ describe('LoginCommand', () => {
     const config = await configService.getConfig();
     expect(config.username).toBeUndefined();
     expect(config.apiToken).toBeUndefined();
+    expect(config.defaultWorkspace).toBe('team-workspace');
   });
 });
 
 describe('LogoutCommand', () => {
-  it('should clear config on logout', async () => {
+  it('should clear only credentials on logout', async () => {
     const configService = createMockConfigService({
       username: 'testuser',
       apiToken: 'testpass',
+      defaultWorkspace: 'team-workspace',
     });
     const output = createMockOutputService();
 
     const command = new LogoutCommand(configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
-    // Verify config was cleared
+    // Verify only credentials were cleared
     const config = await configService.getConfig();
     expect(config.username).toBeUndefined();
     expect(config.apiToken).toBeUndefined();
+    expect(config.defaultWorkspace).toBe('team-workspace');
 
     expect(output.logs).toContain('success:Logged out of Bitbucket');
   });

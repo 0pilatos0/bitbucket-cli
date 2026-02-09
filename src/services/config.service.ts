@@ -98,6 +98,12 @@ export class ConfigService implements IConfigService {
     });
   }
 
+  public async clearCredentials(): Promise<void> {
+    const config = await this.getConfig();
+    const { username: _username, apiToken: _apiToken, ...rest } = config;
+    await this.setConfig(rest);
+  }
+
   public async clearConfig(): Promise<void> {
     this.configCache = null;
     await this.setConfig({});

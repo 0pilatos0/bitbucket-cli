@@ -21,7 +21,7 @@ export class LogoutCommand extends BaseCommand<void, void> {
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
-    await this.configService.clearConfig();
+    await this.configService.clearCredentials();
 
     if (context.globalOptions.json) {
       this.output.json({ authenticated: false, success: true });

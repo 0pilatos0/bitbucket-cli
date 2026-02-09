@@ -208,6 +208,28 @@ describe('ConfigService', () => {
     });
   });
 
+  describe('clearCredentials', () => {
+    it('should clear only authentication values', async () => {
+      await configService.setConfig({
+        username: 'user',
+        apiToken: 'pass',
+        defaultWorkspace: 'workspace',
+        skipVersionCheck: true,
+        versionCheckInterval: 3,
+      });
+
+      await configService.clearCredentials();
+
+      const config = await configService.getConfig();
+
+      expect(config.username).toBeUndefined();
+      expect(config.apiToken).toBeUndefined();
+      expect(config.defaultWorkspace).toBe('workspace');
+      expect(config.skipVersionCheck).toBe(true);
+      expect(config.versionCheckInterval).toBe(3);
+    });
+  });
+
   describe('getValue', () => {
     it('should return specific config value', async () => {
       await configService.setConfig({
