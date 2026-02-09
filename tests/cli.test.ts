@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import { resolveNoColorSetting, withGlobalOptions } from '../src/cli.js';
+import { cli } from '../src/cli.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
 
 describe('withGlobalOptions', () => {
@@ -160,5 +161,31 @@ describe('resolveNoColorSetting', () => {
     } as NodeJS.ProcessEnv);
 
     expect(noColor).toBe(false);
+  });
+});
+
+describe('CLI option wiring', () => {
+  it('should reserve -w for global --workspace and keep pr diff --web long-only', () => {
+    const workspaceOption = cli.options.find(
+      (option) => option.long === '--workspace'
+    );
+    expect(workspaceOption?.short).toBe('-w');
+
+    const prCommand = cli.commands.find((command) => command.name() === 'pr');
+    expect(prCommand).toBeDefined();
+
+    const diffCommand = prCommand?.commands.find(
+      (command) => command.name() === 'diff'
+    );
+    expect(diffCommand).toBeDefined();
+
+    const webOption = diffCommand?.options.find(
+      (option) => option.long === '--web'
+    );
+    expect(webOption).toBeDefined();
+    expect(webOption?.short).toBeUndefined();
+    expect(diffCommand?.options.some((option) => option.short === '-w')).toBe(
+      false
+    );
   });
 });
