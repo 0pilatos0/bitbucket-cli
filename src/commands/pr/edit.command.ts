@@ -11,6 +11,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
+import { collectPages, MAX_PAGE_LENGTH } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
@@ -49,22 +50,32 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
 
-      const prsResponse =
-        await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-          {
-            workspace: repoContext.workspace,
-            repoSlug: repoContext.repoSlug,
-            state: 'OPEN',
-          }
-        );
+      const matches = await collectPages<Pullrequest>({
+        limit: 1,
+        pageSize: MAX_PAGE_LENGTH,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
+              {
+                workspace: repoContext.workspace,
+                repoSlug: repoContext.repoSlug,
+                state: 'OPEN',
+              },
+              {
+                params: { page, pagelen },
+              }
+            );
 
-      const values = prsResponse.data.values
-        ? Array.from(prsResponse.data.values)
-        : [];
-      const matchingPR = values.find((pr: Pullrequest) => {
-        const source = pr.source as { branch?: { name?: string } } | undefined;
-        return source?.branch?.name === currentBranch;
+          return response.data;
+        },
+        shouldInclude: (pullRequest) => {
+          const source = pullRequest.source as
+            | { branch?: { name?: string } }
+            | undefined;
+          return source?.branch?.name === currentBranch;
+        },
       });
+      const matchingPR = matches[0];
 
       if (!matchingPR) {
         throw new BBError({

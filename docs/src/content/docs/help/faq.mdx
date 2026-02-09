@@ -216,6 +216,9 @@ bb pr list --json | jq '.count'
 bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
 ```
 
+For list commands, add `--limit` when you need more than the default result
+count.
+
 ---
 
 ### Can I use bb with git hooks?

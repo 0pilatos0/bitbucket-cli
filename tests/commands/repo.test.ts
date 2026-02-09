@@ -18,18 +18,77 @@ import type { IContextService } from '../../src/core/interfaces/services.js';
 import type { BBError } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
 
+function extractPaginationParams(axiosOptions: unknown): {
+  page: number;
+  pagelen: number;
+} {
+  if (!axiosOptions || typeof axiosOptions !== 'object') {
+    return { page: 1, pagelen: 25 };
+  }
+
+  const params = (axiosOptions as { params?: unknown }).params;
+  if (!params || typeof params !== 'object') {
+    return { page: 1, pagelen: 25 };
+  }
+
+  const pageValue = (params as { page?: unknown }).page;
+  const pagelenValue = (params as { pagelen?: unknown }).pagelen;
+
+  const page =
+    typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
+      ? pageValue
+      : 1;
+  const pagelen =
+    typeof pagelenValue === 'number' &&
+    Number.isFinite(pagelenValue) &&
+    pagelenValue > 0
+      ? pagelenValue
+      : 25;
+
+  return { page, pagelen };
+}
+
+function getTableRows(logs: string[]): string[][] {
+  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
+  if (!rowsLog) {
+    return [];
+  }
+
+  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
+}
+
 // Helper to create mock RepositoriesApi
 function createMockRepositoriesApi(
-  repos: (typeof mockRepository)[] = [mockRepository]
+  repos: (typeof mockRepository)[] = [mockRepository],
+  options: {
+    onListCall?: (request: unknown, axiosOptions?: unknown) => void;
+  } = {}
 ): RepositoriesApi {
   return {
-    repositoriesWorkspaceGet: async () => ({
-      data: {
-        values: repos,
-        pagelen: repos.length,
-        size: repos.length,
-      },
-    }),
+    repositoriesWorkspaceGet: async (
+      request: unknown,
+      axiosOptions?: unknown
+    ) => {
+      options.onListCall?.(request, axiosOptions);
+
+      const { page, pagelen } = extractPaginationParams(axiosOptions);
+      const start = (page - 1) * pagelen;
+      const end = start + pagelen;
+      const values = repos.slice(start, end);
+
+      return {
+        data: {
+          values,
+          page,
+          pagelen,
+          size: repos.length,
+          next:
+            end < repos.length
+              ? `https://api.bitbucket.org/2.0/repositories/workspace?page=${page + 1}`
+              : undefined,
+        },
+      };
+    },
     repositoriesWorkspaceRepoSlugGet: async ({
       repoSlug,
     }: {
@@ -185,7 +244,39 @@ describe('ListReposCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(2);
+  });
+
+  it('should paginate when limit exceeds first page size', async () => {
+    const repos = Array.from({ length: 55 }, (_, index) => ({
+      ...mockRepository,
+      slug: `repo-${index + 1}`,
+      full_name: `workspace/repo-${index + 1}`,
+      name: `repo-${index + 1}`,
+    }));
+    const requestedPages: number[] = [];
+    const repositoriesApi = createMockRepositoriesApi(repos, {
+      onListCall: (_request, axiosOptions) => {
+        requestedPages.push(extractPaginationParams(axiosOptions).page);
+      },
+    });
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      configService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace', limit: '55' },
+      { globalOptions: {} }
+    );
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(55);
+    expect(requestedPages).toEqual([1, 2]);
   });
 
   it('should show message when no repositories found', async () => {

@@ -11,7 +11,8 @@ import type {
   IOutputService,
   IGitService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi } from '../../generated/api.js';
+import type { Pullrequest, PullrequestsApi } from '../../generated/api.js';
+import { collectPages, MAX_PAGE_LENGTH } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
@@ -60,19 +61,32 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
 
-      const prsResponse =
-        await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-          {
-            workspace: repoContext.workspace,
-            repoSlug: repoContext.repoSlug,
-            state: 'OPEN',
-          }
-        );
+      const matches = await collectPages<Pullrequest>({
+        limit: 1,
+        pageSize: MAX_PAGE_LENGTH,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
+              {
+                workspace: repoContext.workspace,
+                repoSlug: repoContext.repoSlug,
+                state: 'OPEN',
+              },
+              {
+                params: { page, pagelen },
+              }
+            );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pr = Array.from(prsResponse.data.values ?? []).find(
-        (p: any) => p.source?.branch?.name === currentBranch
-      );
+          return response.data;
+        },
+        shouldInclude: (pullRequest) => {
+          const source = pullRequest.source as
+            | { branch?: { name?: string } }
+            | undefined;
+          return source?.branch?.name === currentBranch;
+        },
+      });
+      const pr = matches[0];
 
       if (!pr) {
         throw new BBError({
