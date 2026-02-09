@@ -26,7 +26,7 @@ Repository context is resolved in this order (highest priority first):
 
 Authentication credentials are resolved from:
 
-1. **Configuration file** (`~/.config/bb/config.json`)
+1. **Configuration file** (`~/.config/bb/config.json` on macOS/Linux, `%APPDATA%\bb\config.json` on Windows)
 2. **Environment variables** (`BB_USERNAME`, `BB_API_TOKEN`) when running `bb auth login`
 
 For color output, precedence is:

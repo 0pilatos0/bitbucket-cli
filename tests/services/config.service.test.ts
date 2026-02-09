@@ -255,6 +255,40 @@ describe('ConfigService', () => {
 
       expect(path).toBe(join(testConfigDir, 'config.json'));
     });
+
+    it('should use APPDATA on Windows', () => {
+      const windowsService = new ConfigService(undefined, {
+        platform: 'win32',
+        appData: 'C:\\Users\\test\\AppData\\Roaming',
+        homeDir: 'C:\\Users\\test',
+      });
+
+      expect(windowsService.getConfigPath()).toBe(
+        'C:\\Users\\test\\AppData\\Roaming\\bb\\config.json'
+      );
+    });
+
+    it('should fall back to home directory on Windows when APPDATA is missing', () => {
+      const windowsService = new ConfigService(undefined, {
+        platform: 'win32',
+        homeDir: 'C:\\Users\\test',
+      });
+
+      expect(windowsService.getConfigPath()).toBe(
+        'C:\\Users\\test\\AppData\\Roaming\\bb\\config.json'
+      );
+    });
+
+    it('should use dot-config directory on non-Windows platforms', () => {
+      const linuxService = new ConfigService(undefined, {
+        platform: 'linux',
+        homeDir: '/home/test',
+      });
+
+      expect(linuxService.getConfigPath()).toBe(
+        '/home/test/.config/bb/config.json'
+      );
+    });
   });
 
   describe('clearCache', () => {
