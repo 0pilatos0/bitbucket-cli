@@ -134,6 +134,9 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     json(data: unknown) {
       logs.push(`json:${JSON.stringify(data)}`);
     },
+    jsonError(data: unknown) {
+      logs.push(`jsonError:${JSON.stringify(data)}`);
+    },
     table(headers: string[], rows: string[][]) {
       logs.push(`table:${headers.join(',')}`);
       logs.push(`table-rows:${JSON.stringify(rows)}`);

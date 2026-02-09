@@ -9,6 +9,7 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CloneOptions {
   directory?: string;
@@ -67,9 +68,11 @@ export class CloneCommand extends BaseCommand<
       const config = await this.configService.getConfig();
 
       if (!config.defaultWorkspace) {
-        throw new Error(
-          'No workspace specified. Use workspace/repo format or set a default workspace.'
-        );
+        throw new BBError({
+          code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
+          message:
+            'No workspace specified. Use workspace/repo format or set a default workspace.',
+        });
       }
 
       workspace = config.defaultWorkspace;
@@ -78,9 +81,11 @@ export class CloneCommand extends BaseCommand<
       workspace = parts[0];
       repoSlug = parts[1];
     } else {
-      throw new Error(
-        'Invalid repository format. Use workspace/repo or a full URL.'
-      );
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: 'Invalid repository format. Use workspace/repo or a full URL.',
+        context: { repository },
+      });
     }
 
     return `git@bitbucket.org:${workspace}/${repoSlug}.git`;
@@ -90,7 +95,11 @@ export class CloneCommand extends BaseCommand<
     const parts = repository.split('/');
     const lastPart = parts.at(-1);
     if (!lastPart) {
-      throw new Error('Invalid repository format.');
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: 'Invalid repository format.',
+        context: { repository },
+      });
     }
     return lastPart.replace('.git', '');
   }

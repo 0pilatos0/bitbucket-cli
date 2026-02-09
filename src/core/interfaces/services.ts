@@ -52,6 +52,7 @@ export interface IContextService {
  */
 export interface IOutputService {
   json(data: unknown): void;
+  jsonError(data: unknown): void;
   table(headers: string[], rows: string[][]): void;
   success(message: string): void;
   error(message: string): void;

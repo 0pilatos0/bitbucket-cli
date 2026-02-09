@@ -16,6 +16,10 @@ export class OutputService implements IOutputService {
     console.log(JSON.stringify(data, null, 2));
   }
 
+  public jsonError(data: unknown): void {
+    console.error(JSON.stringify(data));
+  }
+
   public table(headers: string[], rows: string[][]): void {
     if (rows.length === 0) {
       return;

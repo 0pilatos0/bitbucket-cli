@@ -12,6 +12,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface EditPROptions extends GlobalOptions {
   id?: string;
@@ -66,9 +67,11 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       });
 
       if (!matchingPR) {
-        throw new Error(
-          `No open pull request found for current branch '${currentBranch}'. Specify a PR ID explicitly.`
-        );
+        throw new BBError({
+          code: ErrorCode.API_NOT_FOUND,
+          message: `No open pull request found for current branch '${currentBranch}'. Specify a PR ID explicitly.`,
+          context: { branch: currentBranch },
+        });
       }
 
       prId = matchingPR.id!;
@@ -79,16 +82,21 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       try {
         body = fs.readFileSync(options.bodyFile, 'utf-8');
       } catch (err) {
-        throw new Error(
-          `Failed to read file '${options.bodyFile}': ${err instanceof Error ? err.message : 'Unknown error'}`
-        );
+        throw new BBError({
+          code: ErrorCode.UNKNOWN,
+          message: `Failed to read file '${options.bodyFile}': ${err instanceof Error ? err.message : 'Unknown error'}`,
+          cause: err instanceof Error ? err : undefined,
+          context: { bodyFile: options.bodyFile },
+        });
       }
     }
 
     if (!options.title && !body) {
-      throw new Error(
-        'At least one of --title or --body (or --body-file) is required.'
-      );
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message:
+          'At least one of --title or --body (or --body-file) is required.',
+      });
     }
 
     const request: Pullrequest = {

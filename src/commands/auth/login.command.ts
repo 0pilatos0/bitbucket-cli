@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface LoginOptions {
   username?: string;
@@ -36,15 +37,19 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     const apiToken = options.password || process.env.BB_API_TOKEN;
 
     if (!username) {
-      throw new Error(
-        'Username is required. Use --username option or set BB_USERNAME environment variable.'
-      );
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message:
+          'Username is required. Use --username option or set BB_USERNAME environment variable.',
+      });
     }
 
     if (!apiToken) {
-      throw new Error(
-        'API token is required. Use --password option or set BB_API_TOKEN environment variable.'
-      );
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message:
+          'API token is required. Use --password option or set BB_API_TOKEN environment variable.',
+      });
     }
 
     await this.configService.setCredentials({ username, apiToken });
@@ -70,9 +75,10 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       );
     } catch (error) {
       await this.configService.clearCredentials();
-      throw new Error(
-        `Authentication failed: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new BBError({
+        code: ErrorCode.AUTH_INVALID,
+        message: `Authentication failed: ${error instanceof Error ? error.message : String(error)}`,
+      });
     }
   }
 }

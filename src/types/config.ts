@@ -2,6 +2,8 @@
  * Configuration types with validation
  */
 
+import { BBError, ErrorCode } from './errors.js';
+
 export interface BBConfig {
   username?: string;
   apiToken?: string;
@@ -104,18 +106,24 @@ export function parseSettableConfigValue<K extends SettableConfigKey>(
     case 'skipVersionCheck': {
       const parsed = parseBooleanLiteral(value);
       if (parsed === undefined) {
-        throw new Error(
-          "Invalid value for 'skipVersionCheck'. Expected 'true' or 'false'."
-        );
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message:
+            "Invalid value for 'skipVersionCheck'. Expected 'true' or 'false'.",
+          context: { key, value },
+        });
       }
       return parsed as BBConfig[K];
     }
     case 'versionCheckInterval': {
       const parsed = parsePositiveIntegerLiteral(value);
       if (parsed === undefined) {
-        throw new Error(
-          "Invalid value for 'versionCheckInterval'. Expected a positive integer (1 or greater)."
-        );
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message:
+            "Invalid value for 'versionCheckInterval'. Expected a positive integer (1 or greater).",
+          context: { key, value },
+        });
       }
       return parsed as BBConfig[K];
     }

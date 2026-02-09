@@ -11,6 +11,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CreatePROptions extends GlobalOptions {
   title?: string;
@@ -39,7 +40,10 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     context: CommandContext
   ): Promise<void> {
     if (!options.title) {
-      throw new Error('Pull request title is required. Use --title option.');
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: 'Pull request title is required. Use --title option.',
+      });
     }
 
     const repoContext = await this.contextService.requireRepoContext({
