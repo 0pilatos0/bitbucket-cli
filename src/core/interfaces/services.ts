@@ -17,6 +17,7 @@ export interface IConfigService {
   setConfig(config: BBConfig): Promise<void>;
   getCredentials(): Promise<AuthCredentials>;
   setCredentials(credentials: AuthCredentials): Promise<void>;
+  clearCredentials(): Promise<void>;
   clearConfig(): Promise<void>;
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
