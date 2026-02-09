@@ -8,6 +8,7 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export class TokenCommand extends BaseCommand<void, void> {
   public readonly name = 'token';
@@ -24,7 +25,10 @@ export class TokenCommand extends BaseCommand<void, void> {
     const credentials = await this.configService.getCredentials();
 
     if (!credentials.username || !credentials.apiToken) {
-      throw new Error("Not authenticated. Run 'bb auth login' first.");
+      throw new BBError({
+        code: ErrorCode.AUTH_REQUIRED,
+        message: "Not authenticated. Run 'bb auth login' first.",
+      });
     }
 
     const token = Buffer.from(

@@ -95,8 +95,16 @@ bb pr list --json > prs.json || {
 ```
 
 <Aside type="tip">
-For detailed error information, capture stderr and parse JSON error output.
+In `--json` mode, success JSON is written to stdout and error JSON is written to stderr.
+Parse them separately in scripts.
 </Aside>
+
+```bash
+if ! bb config get invalidKey --json > out.json 2> err.json; then
+  jq '.' err.json
+  exit 1
+fi
+```
 
 ---
 
@@ -334,7 +342,8 @@ def run_bb(args):
         text=True
     )
     if result.returncode != 0:
-        raise Exception(f"bb command failed: {result.stderr}")
+        error = json.loads(result.stderr)
+        raise Exception(f"bb command failed [{error['code']}]: {error['message']}")
     return json.loads(result.stdout)
 
 # List PRs

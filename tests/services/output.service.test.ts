@@ -59,6 +59,17 @@ describe('OutputService', () => {
     });
   });
 
+  describe('jsonError', () => {
+    it('should output compact JSON to stderr', () => {
+      output.jsonError({ name: 'BBError', code: 4003, message: 'Invalid key' });
+
+      expect(consoleErrors).toHaveLength(1);
+      expect(consoleErrors[0]).toBe(
+        '{"name":"BBError","code":4003,"message":"Invalid key"}'
+      );
+    });
+  });
+
   describe('table', () => {
     it('should output formatted table', () => {
       output.table(

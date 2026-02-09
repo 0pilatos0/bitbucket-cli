@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface ListReposOptions {
   workspace?: string;
@@ -73,9 +74,11 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     const config = await this.configService.getConfig();
 
     if (!config.defaultWorkspace) {
-      throw new Error(
-        'No workspace specified. Use --workspace option or set a default workspace.'
-      );
+      throw new BBError({
+        code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
+        message:
+          'No workspace specified. Use --workspace option or set a default workspace.',
+      });
     }
 
     return config.defaultWorkspace;

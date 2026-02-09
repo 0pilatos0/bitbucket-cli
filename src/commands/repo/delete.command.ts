@@ -10,6 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface DeleteRepoOptions extends GlobalOptions {
   yes?: boolean;
@@ -50,10 +51,12 @@ export class DeleteRepoCommand extends BaseCommand<
       await this.contextService.requireRepoContext(contextOptions);
 
     if (!yes) {
-      throw new Error(
-        `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.\n` +
-          'Use --yes to confirm deletion.'
-      );
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message:
+          `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.\n` +
+          'Use --yes to confirm deletion.',
+      });
     }
 
     await this.repositoriesApi.repositoriesWorkspaceRepoSlugDelete({

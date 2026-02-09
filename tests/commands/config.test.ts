@@ -98,6 +98,21 @@ describe('GetConfigCommand', () => {
       output.logs.some((log) => log.includes('versionCheckInterval'))
     ).toBe(true);
   });
+
+  it('should emit structured JSON error for invalid keys in json mode', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new GetConfigCommand(configService, output);
+
+    await expect(
+      command.run({ key: 'invalidKey' }, { globalOptions: { json: true } })
+    ).rejects.toBeDefined();
+
+    expect(output.logs).toContain(
+      'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval","context":{"key":"invalidKey"}}'
+    );
+  });
 });
 
 describe('SetConfigCommand', () => {

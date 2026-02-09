@@ -5,6 +5,7 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 import tabtab from 'tabtab';
 
 export class UninstallCompletionCommand extends BaseCommand<void, void> {
@@ -34,7 +35,11 @@ export class UninstallCompletionCommand extends BaseCommand<void, void> {
 
       this.output.success('Shell completions uninstalled successfully!');
     } catch (error) {
-      throw new Error(`Failed to uninstall completions: ${error}`);
+      throw new BBError({
+        code: ErrorCode.UNKNOWN,
+        message: `Failed to uninstall completions: ${error}`,
+        cause: error instanceof Error ? error : undefined,
+      });
     }
   }
 }
