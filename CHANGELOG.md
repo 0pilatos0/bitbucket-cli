@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.3
+
+### Patch Changes
+
+- [#117](https://github.com/0pilatos0/bitbucket-cli/pull/117) [`c3d7e63`](https://github.com/0pilatos0/bitbucket-cli/commit/c3d7e63a6a8e0b91de71948045a484882c3001d7) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refine API response parsing by adding shared typed helpers for links,
+  diffstats, and pull request activity payloads. This removes command-level
+  `any` casts in PR/repo commands and adds focused tests for the new parsers.
+
 ## 1.8.2
 
 ### Patch Changes
