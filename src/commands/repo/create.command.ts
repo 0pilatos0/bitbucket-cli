@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
+import { getCloneLinks, getLinkHref } from '../../services/response-parsers.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CreateRepoOptions {
@@ -80,15 +81,12 @@ export class CreateRepoCommand extends BaseCommand<
     }
 
     this.output.success(`Created repository ${repo.full_name}`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.output.text(
-      `  ${this.output.dim('URL:')} ${(repo.links as any)?.html?.href}`
-    );
+    const repoUrl = getLinkHref(repo.links, 'html') ?? '';
+    this.output.text(`  ${this.output.dim('URL:')} ${repoUrl}`);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sshClone = Array.from((repo.links as any)?.clone ?? []).find(
-      (c: any) => c.name === 'ssh'
-    ) as { href?: string } | undefined;
+    const sshClone = getCloneLinks(repo.links).find(
+      (cloneLink) => cloneLink.name === 'ssh'
+    );
     if (sshClone?.href) {
       this.output.text(
         `  ${this.output.dim('Clone:')} git clone ${sshClone.href}`

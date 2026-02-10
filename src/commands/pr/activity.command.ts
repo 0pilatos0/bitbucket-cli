@@ -10,6 +10,12 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  getRawContent,
+  getUserDisplayName,
+  parsePullrequestActivitiesPage,
+  type PullrequestActivity,
+} from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ActivityPROptions extends GlobalOptions {
@@ -45,7 +51,7 @@ export class ActivityPRCommand extends BaseCommand<
     const filterTypes = this.parseTypeFilter(options.type);
     const limit = parseLimit(options.limit);
 
-    const activities = await collectPages<unknown>({
+    const activities = await collectPages<PullrequestActivity>({
       limit,
       fetchPage: async (page, pagelen) => {
         const response =
@@ -60,9 +66,8 @@ export class ActivityPRCommand extends BaseCommand<
             }
           );
 
-        // The generated API types say this returns void, but it actually returns paginated activity
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return response.data as any;
+        // The generated API types say this returns void, but it actually returns paginated activity.
+        return parsePullrequestActivitiesPage(response.data);
       },
       shouldInclude: (activity) => {
         if (filterTypes.length === 0) {
@@ -73,9 +78,6 @@ export class ActivityPRCommand extends BaseCommand<
       },
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const typedActivities = activities as any[];
-
     if (context.globalOptions.json) {
       this.output.json({
         workspace: repoContext.workspace,
@@ -84,13 +86,13 @@ export class ActivityPRCommand extends BaseCommand<
         filters: {
           types: filterTypes,
         },
-        count: typedActivities.length,
-        activities: typedActivities,
+        count: activities.length,
+        activities,
       });
       return;
     }
 
-    if (typedActivities.length === 0) {
+    if (activities.length === 0) {
       if (filterTypes.length > 0) {
         this.output.info('No activity entries matched the requested filter');
       } else {
@@ -99,7 +101,7 @@ export class ActivityPRCommand extends BaseCommand<
       return;
     }
 
-    const rows = typedActivities.map((activity) => {
+    const rows = activities.map((activity) => {
       const activityType = this.getActivityType(activity);
       return [
         activityType.toUpperCase(),
@@ -123,8 +125,7 @@ export class ActivityPRCommand extends BaseCommand<
       .filter((type) => type.length > 0);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getActivityType(activity: any): string {
+  private getActivityType(activity: PullrequestActivity): string {
     if (activity.comment) {
       return 'comment';
     }
@@ -156,8 +157,7 @@ export class ActivityPRCommand extends BaseCommand<
     return activity.type ? activity.type.toLowerCase() : 'activity';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getActorName(activity: any): string {
+  private getActorName(activity: PullrequestActivity): string {
     const user =
       activity.comment?.user ??
       activity.comment?.author ??
@@ -169,15 +169,10 @@ export class ActivityPRCommand extends BaseCommand<
       activity.commit?.author?.user ??
       activity.user;
 
-    if (!user) {
-      return 'Unknown';
-    }
-
-    return user.display_name || user.username || 'Unknown';
+    return getUserDisplayName(user) ?? 'Unknown';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private formatActivityDate(activity: any): string {
+  private formatActivityDate(activity: PullrequestActivity): string {
     const date =
       activity.comment?.created_on ??
       activity.approval?.date ??
@@ -194,11 +189,13 @@ export class ActivityPRCommand extends BaseCommand<
     return this.output.formatDate(date);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private buildActivityDetails(activity: any, type: string): string {
+  private buildActivityDetails(
+    activity: PullrequestActivity,
+    type: string
+  ): string {
     switch (type) {
       case 'comment': {
-        const content = activity.comment?.content?.raw ?? '';
+        const content = getRawContent(activity.comment?.content) ?? '';
         const id = activity.comment?.id ? `#${activity.comment.id}` : '';
         const snippet = this.truncate(content, 80);
         return [id, snippet].filter(Boolean).join(' ');

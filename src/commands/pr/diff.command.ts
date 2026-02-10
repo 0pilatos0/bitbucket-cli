@@ -13,6 +13,11 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { Pullrequest, PullrequestsApi } from '../../generated/api.js';
 import { collectPages, MAX_PAGE_LENGTH } from '../../services/pagination.js';
+import {
+  getBranchName,
+  getLinkHref,
+  parseDiffstatFiles,
+} from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
@@ -80,10 +85,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
           return response.data;
         },
         shouldInclude: (pullRequest) => {
-          const source = pullRequest.source as
-            | { branch?: { name?: string } }
-            | undefined;
-          return source?.branch?.name === currentBranch;
+          return getBranchName(pullRequest.source) === currentBranch;
         },
       });
       const pr = matches[0];
@@ -210,10 +212,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    const links = prResponse.data.links as
-      | { html?: { href?: string } }
-      | undefined;
-    const htmlUrl = links?.html?.href;
+    const htmlUrl = getLinkHref(prResponse.data.links, 'html');
     if (htmlUrl) {
       const normalizedHtmlUrl = htmlUrl.replace(/\/$/, '');
       return `${normalizedHtmlUrl}/diff`;
@@ -242,17 +241,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffstat = diffstatResponse.data as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const files = Array.from(diffstat.values ?? []).map((file: any) => {
-      const path = file.new?.path || file.old?.path || 'unknown';
-      return {
-        path,
-        additions: file.lines_added ?? 0,
-        deletions: file.lines_removed ?? 0,
-      };
-    });
+    const files = parseDiffstatFiles(diffstatResponse.data);
 
     const totalAdditions = files.reduce(
       (sum: number, f: (typeof files)[0]) => sum + f.additions,
@@ -324,11 +313,8 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         }
       );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const diffstat = diffstatResponse.data as any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fileNames = Array.from(diffstat.values ?? []).map(
-      (file: any) => file.new?.path || file.old?.path || 'unknown'
+    const fileNames = parseDiffstatFiles(diffstatResponse.data).map(
+      (file) => file.path
     );
 
     if (useJson) {
