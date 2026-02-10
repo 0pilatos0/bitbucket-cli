@@ -13,6 +13,10 @@ import type {
   PullrequestsApi,
 } from '../../generated/api.js';
 import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  getRawContent,
+  getUserDisplayName,
+} from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
@@ -81,14 +85,10 @@ export class ListCommentsPRCommand extends BaseCommand<
     }
 
     const rows = values.map((comment) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const content = (comment.content as any)?.raw ?? '';
+      const content = getRawContent(comment.content) ?? '';
       return [
         comment.id?.toString() ?? '',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (comment.user as any)?.nickname ??
-          (comment.user as any)?.display_name ??
-          'Unknown',
+        getUserDisplayName(comment.user) ?? 'Unknown',
         comment.deleted
           ? '[deleted]'
           : options.truncate === false
