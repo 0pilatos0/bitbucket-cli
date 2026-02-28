@@ -120,6 +120,7 @@ bb pr list [options]
 | `-r, --repo <repo>` | Repository |
 | `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
 | `--limit <number>` | Maximum number of PRs (default: 25) |
+| `--mine` | Show only pull requests where you are a reviewer |
 | `--json` | Output as JSON |
 
 ### Examples
@@ -142,12 +143,16 @@ bb pr list --json
 
 # List more results
 bb pr list --limit 50
+
+# Show only pull requests assigned to you for review
+bb pr list --mine
 ```
 
 ### Notes
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
+- `--mine` filters by PRs where the authenticated user is assigned as a reviewer
 
 ---
 

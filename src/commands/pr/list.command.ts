@@ -8,13 +8,18 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
+import type {
+  PullrequestsApi,
+  Pullrequest,
+  UsersApi,
+} from '../../generated/api.js';
 import { collectPages, parseLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListPRsOptions extends GlobalOptions {
   state?: string;
   limit?: string;
+  mine?: boolean;
 }
 
 export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
@@ -23,6 +28,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
+    private readonly usersApi: UsersApi,
     private readonly contextService: IContextService,
     output: IOutputService
   ) {
@@ -44,6 +50,9 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       | 'DECLINED'
       | 'SUPERSEDED';
     const limit = parseLimit(options.limit);
+    const reviewerQuery = options.mine
+      ? await this.buildMineFilter()
+      : undefined;
 
     const values = await collectPages<Pullrequest>({
       limit,
@@ -56,7 +65,11 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
               state,
             },
             {
-              params: { page, pagelen },
+              params: {
+                page,
+                pagelen,
+                ...(reviewerQuery ? { q: reviewerQuery } : {}),
+              },
             }
           );
 
@@ -69,6 +82,9 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         state,
+        filters: {
+          mine: options.mine === true,
+        },
         count: values.length,
         pullRequests: values,
       });
@@ -102,5 +118,19 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       return text;
     }
     return text.substring(0, maxLength - 3) + '...';
+  }
+
+  private async buildMineFilter(): Promise<string | undefined> {
+    const response = await this.usersApi.userGet();
+    const userUuid = response.data.uuid;
+
+    if (!userUuid) {
+      this.output.warning(
+        'Could not determine your user UUID. Showing all pull requests.'
+      );
+      return undefined;
+    }
+
+    return `reviewers.uuid="${userUuid}"`;
   }
 }

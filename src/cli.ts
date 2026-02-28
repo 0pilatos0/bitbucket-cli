@@ -429,12 +429,14 @@ prCmd
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
+  .option('--mine', 'Show only PRs where you are a reviewer')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb pr list',
         'bb pr list -s MERGED --limit 10',
+        'bb pr list --mine',
         'bb pr list --json',
       ],
       validValues: {

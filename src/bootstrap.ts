@@ -254,13 +254,19 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const pullrequestsApi = container.resolve<PullrequestsApi>(
       ServiceTokens.PullrequestsApi
     );
+    const usersApi = container.resolve<UsersApi>(ServiceTokens.UsersApi);
     const contextService = container.resolve<ContextService>(
       ServiceTokens.ContextService
     );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new ListPRsCommand(pullrequestsApi, contextService, output);
+    return new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
   });
 
   container.register(ServiceTokens.ViewPRCommand, () => {

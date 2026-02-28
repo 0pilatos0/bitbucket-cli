@@ -34,6 +34,7 @@ import type {
   CommitStatusesApi,
   Commitstatus,
   PaginatedCommitstatuses,
+  UsersApi,
 } from '../../src/generated/api.js';
 import type { AxiosResponse } from 'axios';
 
@@ -479,6 +480,19 @@ function createMockCommitStatusesApi(
   return mockApi as unknown as CommitStatusesApi;
 }
 
+function createMockUsersApi(options: { uuid?: string } = {}): UsersApi {
+  const mockApi = {
+    async userGet() {
+      return createAxiosResponse({
+        ...mockUser,
+        uuid: options.uuid,
+      });
+    },
+  };
+
+  return mockApi as unknown as UsersApi;
+}
+
 function createMockContextService(context?: {
   workspace?: string;
   repoSlug?: string;
@@ -534,7 +548,8 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -552,7 +567,8 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({ state: 'MERGED' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -563,7 +579,8 @@ describe('ListPRsCommand', () => {
     const contextService = createMockContextService();
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
 
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
   });
@@ -576,7 +593,8 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({}, { globalOptions: {} });
 
     expect(
@@ -593,7 +611,8 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table-rows:'))).toBe(true);
@@ -613,7 +632,8 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({ limit: '2' }, { globalOptions: {} });
 
     const rows = getTableRows(output.logs);
@@ -628,10 +648,70 @@ describe('ListPRsCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListPRsCommand(pullrequestsApi, contextService, output);
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
     await command.execute({}, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
+  });
+
+  it('should include reviewer filter when --mine is set', async () => {
+    let capturedAxiosOptions: unknown;
+    const pullrequestsApi = createMockPullrequestsApi({
+      onListCall: (_request, axiosOptions) => {
+        capturedAxiosOptions = axiosOptions;
+      },
+    });
+    const usersApi = createMockUsersApi({ uuid: '{my-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute({ mine: true }, { globalOptions: {} });
+
+    const opts = capturedAxiosOptions as { params: Record<string, unknown> };
+    expect(opts.params.q).toBe('reviewers.uuid="{my-uuid}"');
+  });
+
+  it('should warn and show all PRs when --mine is set but uuid is missing', async () => {
+    let capturedAxiosOptions: unknown;
+    const pullrequestsApi = createMockPullrequestsApi({
+      onListCall: (_request, axiosOptions) => {
+        capturedAxiosOptions = axiosOptions;
+      },
+    });
+    const usersApi = createMockUsersApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute({ mine: true }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) =>
+        log.includes(
+          'Could not determine your user UUID. Showing all pull requests.'
+        )
+      )
+    ).toBe(true);
+    const opts = capturedAxiosOptions as { params: Record<string, unknown> };
+    expect(opts.params.q).toBeUndefined();
   });
 });
 
