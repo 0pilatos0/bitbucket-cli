@@ -5,6 +5,7 @@
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { bootstrap } from './bootstrap.js';
+import { buildHelpText } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
 import type { BaseCommand } from './core/base-command.js';
@@ -154,6 +155,18 @@ cli
   .option('--no-color', 'Disable color output')
   .option('-w, --workspace <workspace>', 'Specify workspace')
   .option('-r, --repo <repo>', 'Specify repository')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      envVars: {
+        BB_USERNAME: 'Bitbucket username (fallback for auth login)',
+        BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
+        NO_COLOR: 'Disable color output when set',
+        FORCE_COLOR: "Force color output when set (and not '0')",
+        DEBUG: "Enable HTTP debug logging when 'true'",
+      },
+    })
+  )
   .action(async () => {
     // Show help when no subcommand is provided
     cli.outputHelp();
@@ -191,6 +204,19 @@ authCmd
   .description('Authenticate with Bitbucket using an API token')
   .option('-u, --username <username>', 'Bitbucket username')
   .option('-p, --password <password>', 'Bitbucket API token')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb auth login -u myuser -p mytoken',
+        'BB_USERNAME=myuser BB_API_TOKEN=mytoken bb auth login',
+      ],
+      envVars: {
+        BB_USERNAME: 'Used when --username is not provided',
+        BB_API_TOKEN: 'Used when --password is not provided',
+      },
+    })
+  )
   .action(async (options) => {
     await runCommand(ServiceTokens.LoginCommand, options, cli);
   });
@@ -198,6 +224,7 @@ authCmd
 authCmd
   .command('logout')
   .description('Log out of Bitbucket')
+  .addHelpText('after', buildHelpText({ examples: ['bb auth logout'] }))
   .action(async () => {
     await runCommand(ServiceTokens.LogoutCommand, undefined, cli);
   });
@@ -205,6 +232,12 @@ authCmd
 authCmd
   .command('status')
   .description('Show authentication status')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb auth status', 'bb auth status --json'],
+    })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.StatusCommand, undefined, cli);
   });
@@ -212,6 +245,12 @@ authCmd
 authCmd
   .command('token')
   .description('Print the current access token')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb auth token', 'bb auth token | pbcopy'],
+    })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.TokenCommand, undefined, cli);
   });
@@ -225,6 +264,15 @@ repoCmd
   .command('clone <repository>')
   .description('Clone a Bitbucket repository')
   .option('-d, --directory <dir>', 'Directory to clone into')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo clone workspace/repo-name',
+        'bb repo clone workspace/repo-name -d my-directory',
+      ],
+    })
+  )
   .action(async (repository, options) => {
     await runCommand(
       ServiceTokens.CloneCommand,
@@ -240,6 +288,17 @@ repoCmd
   .option('--private', 'Create a private repository (default)')
   .option('--public', 'Create a public repository')
   .option('-p, --project <project>', 'Project key')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo create my-repo',
+        'bb repo create my-repo --public -p PROJ',
+        'bb repo create my-repo -d "My new repository"',
+      ],
+      defaults: { private: 'true (visibility is private unless --public)' },
+    })
+  )
   .action(async (name, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -254,6 +313,17 @@ repoCmd
   .command('list')
   .description('List repositories')
   .option('--limit <number>', 'Maximum number of repositories to list', '25')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo list',
+        'bb repo list --limit 50',
+        'bb repo list --json',
+      ],
+      defaults: { limit: '25' },
+    })
+  )
   .action(async (options) => {
     const context = createContext(cli);
     await runCommand(
@@ -267,6 +337,16 @@ repoCmd
 repoCmd
   .command('view [repository]')
   .description('View repository details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo view',
+        'bb repo view workspace/repo-name',
+        'bb repo view workspace/repo-name --json',
+      ],
+    })
+  )
   .action(async (repository, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -281,6 +361,15 @@ repoCmd
   .command('delete <repository>')
   .description('Delete a repository')
   .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo delete workspace/repo-name',
+        'bb repo delete workspace/repo-name --yes',
+      ],
+    })
+  )
   .action(async (repository, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -305,6 +394,21 @@ prCmd
   .option('-d, --destination <branch>', 'Destination branch (default: main)')
   .option('--close-source-branch', 'Close source branch after merge')
   .option('--draft', 'Create the pull request as draft')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr create -t "My PR" -b "Description"',
+        'bb pr create -t "My PR" --draft',
+        'bb pr create -t "My PR" -s feature -d develop',
+        'bb pr create -t "My PR" --close-source-branch',
+      ],
+      defaults: {
+        source: 'current git branch',
+        destination: 'main',
+      },
+    })
+  )
   .action(async (options) => {
     const context = createContext(cli);
     await runCommand(
@@ -324,6 +428,20 @@ prCmd
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr list',
+        'bb pr list -s MERGED --limit 10',
+        'bb pr list --json',
+      ],
+      validValues: {
+        'Valid states': ['OPEN', 'MERGED', 'DECLINED', 'SUPERSEDED'],
+      },
+      defaults: { state: 'OPEN', limit: '25' },
+    })
+  )
   .action(async (options) => {
     const context = createContext(cli);
     await runCommand(
@@ -337,6 +455,12 @@ prCmd
 prCmd
   .command('view <id>')
   .description('View pull request details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb pr view 42', 'bb pr view 42 --json'],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -352,6 +476,28 @@ prCmd
   .description('Show pull request activity log')
   .option('--limit <number>', 'Maximum number of activity entries', '25')
   .option('--type <types>', 'Filter activity by type (comma-separated)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr activity 42',
+        'bb pr activity 42 --type comment,approval',
+        'bb pr activity 42 --limit 10 --json',
+      ],
+      validValues: {
+        'Valid activity types (comma-separated)': [
+          'comment',
+          'approval',
+          'changes_requested',
+          'merge',
+          'decline',
+          'commit',
+          'update',
+        ],
+      },
+      defaults: { limit: '25' },
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -366,6 +512,12 @@ prCmd
   .command('checks <id>')
   .description('Show CI/CD checks and build status for a pull request')
   .option('--json', 'Output as JSON')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb pr checks 42', 'bb pr checks 42 --json'],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -382,6 +534,17 @@ prCmd
   .option('-t, --title <title>', 'New pull request title')
   .option('-b, --body <body>', 'New pull request description')
   .option('-F, --body-file <file>', 'Read description from file')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr edit 42 -t "New title"',
+        'bb pr edit 42 -b "Updated description"',
+        'bb pr edit 42 -F description.md',
+        'bb pr edit',
+      ],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -397,9 +560,26 @@ prCmd
   .description('Merge a pull request')
   .option('-m, --message <message>', 'Merge commit message')
   .option('--close-source-branch', 'Delete the source branch after merging')
-  .option(
-    '--strategy <strategy>',
-    'Merge strategy (merge_commit, squash, fast_forward)'
+  .option('--strategy <strategy>', 'Merge strategy')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr merge 42',
+        'bb pr merge 42 --strategy squash --close-source-branch',
+        'bb pr merge 42 -m "Merge feature X"',
+      ],
+      validValues: {
+        'Valid merge strategies': [
+          'merge_commit',
+          'squash',
+          'fast_forward',
+          'squash_fast_forward',
+          'rebase_fast_forward',
+          'rebase_merge',
+        ],
+      },
+    })
   )
   .action(async (id, options) => {
     const context = createContext(cli);
@@ -414,6 +594,7 @@ prCmd
 prCmd
   .command('approve <id>')
   .description('Approve a pull request')
+  .addHelpText('after', buildHelpText({ examples: ['bb pr approve 42'] }))
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -427,6 +608,7 @@ prCmd
 prCmd
   .command('decline <id>')
   .description('Decline a pull request')
+  .addHelpText('after', buildHelpText({ examples: ['bb pr decline 42'] }))
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -440,6 +622,7 @@ prCmd
 prCmd
   .command('ready <id>')
   .description('Mark a draft pull request as ready for review')
+  .addHelpText('after', buildHelpText({ examples: ['bb pr ready 42'] }))
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -453,6 +636,7 @@ prCmd
 prCmd
   .command('checkout <id>')
   .description('Checkout a pull request locally')
+  .addHelpText('after', buildHelpText({ examples: ['bb pr checkout 42'] }))
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -466,10 +650,26 @@ prCmd
 prCmd
   .command('diff [id]')
   .description('View pull request diff')
-  .option('--color <when>', 'Colorize output (auto, always, never)', 'auto')
+  .option('--color <when>', 'Colorize output', 'auto')
   .option('--name-only', 'Show only names of changed files')
   .option('--stat', 'Show diffstat')
   .option('--web', 'Open diff in web browser')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr diff 42',
+        'bb pr diff 42 --stat',
+        'bb pr diff 42 --name-only',
+        'bb pr diff --web',
+        'bb pr diff 42 --color always',
+      ],
+      validValues: {
+        'Valid --color values': ['auto', 'always', 'never'],
+      },
+      defaults: { color: 'auto' },
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -489,6 +689,17 @@ prCommentsCmd
   .description('List comments on a pull request')
   .option('--limit <number>', 'Maximum number of comments (default: 25)')
   .option('--no-truncate', 'Show full comment content without truncation')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments list 42',
+        'bb pr comments list 42 --no-truncate',
+        'bb pr comments list 42 --limit 50 --json',
+      ],
+      defaults: { limit: '25' },
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -505,6 +716,15 @@ prCommentsCmd
   .option('--file <path>', 'File path in the diff for inline comment')
   .option('--line-to <number>', 'Line number in the new file version')
   .option('--line-from <number>', 'Line number in the old file version')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments add 42 "LGTM"',
+        'bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10',
+      ],
+    })
+  )
   .action(async (id, message, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -518,6 +738,12 @@ prCommentsCmd
 prCommentsCmd
   .command('edit <pr-id> <comment-id> <message>')
   .description('Edit a comment on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb pr comments edit 42 12345 "Updated comment"'],
+    })
+  )
   .action(async (prId, commentId, message, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -531,6 +757,12 @@ prCommentsCmd
 prCommentsCmd
   .command('delete <pr-id> <comment-id>')
   .description('Delete a comment on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb pr comments delete 42 12345'],
+    })
+  )
   .action(async (prId, commentId, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -548,6 +780,12 @@ const prReviewersCmd = new Command('reviewers').description(
 prReviewersCmd
   .command('list <id>')
   .description('List reviewers on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb pr reviewers list 42', 'bb pr reviewers list 42 --json'],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -561,6 +799,10 @@ prReviewersCmd
 prReviewersCmd
   .command('add <id> <username>')
   .description('Add a reviewer to a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({ examples: ['bb pr reviewers add 42 jdoe'] })
+  )
   .action(async (id, username, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -574,6 +816,10 @@ prReviewersCmd
 prReviewersCmd
   .command('remove <id> <username>')
   .description('Remove a reviewer from a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({ examples: ['bb pr reviewers remove 42 jdoe'] })
+  )
   .action(async (id, username, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -594,6 +840,20 @@ const configCmd = new Command('config').description('Manage configuration');
 configCmd
   .command('get <key>')
   .description('Get a configuration value')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb config get defaultWorkspace'],
+      validValues: {
+        'Readable config keys': [
+          'username',
+          'defaultWorkspace',
+          'skipVersionCheck',
+          'versionCheckInterval',
+        ],
+      },
+    })
+  )
   .action(async (key) => {
     await runCommand(ServiceTokens.GetConfigCommand, { key }, cli);
   });
@@ -601,6 +861,23 @@ configCmd
 configCmd
   .command('set <key> <value>')
   .description('Set a configuration value')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb config set defaultWorkspace my-workspace',
+        'bb config set skipVersionCheck true',
+        'bb config set versionCheckInterval 86400',
+      ],
+      validValues: {
+        'Settable config keys': [
+          'defaultWorkspace (string)',
+          'skipVersionCheck (true/false)',
+          'versionCheckInterval (positive integer, seconds)',
+        ],
+      },
+    })
+  )
   .action(async (key, value) => {
     await runCommand(ServiceTokens.SetConfigCommand, { key, value }, cli);
   });
@@ -608,6 +885,12 @@ configCmd
 configCmd
   .command('list')
   .description('List all configuration values')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb config list', 'bb config list --json'],
+    })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.ListConfigCommand, undefined, cli);
   });
@@ -622,6 +905,7 @@ const completionCmd = new Command('completion').description(
 completionCmd
   .command('install')
   .description('Install shell completions for bash, zsh, or fish')
+  .addHelpText('after', buildHelpText({ examples: ['bb completion install'] }))
   .action(async () => {
     await runCommand(ServiceTokens.InstallCompletionCommand, undefined, cli);
   });
@@ -629,6 +913,10 @@ completionCmd
 completionCmd
   .command('uninstall')
   .description('Uninstall shell completions')
+  .addHelpText(
+    'after',
+    buildHelpText({ examples: ['bb completion uninstall'] })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.UninstallCompletionCommand, undefined, cli);
   });

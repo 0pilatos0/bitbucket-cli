@@ -189,3 +189,67 @@ describe('CLI option wiring', () => {
     );
   });
 });
+
+function captureHelp(
+  cmd: InstanceType<typeof import('commander').Command>
+): string {
+  let output = '';
+  cmd.configureOutput({
+    writeOut: (str: string) => {
+      output += str;
+    },
+  });
+  cmd.outputHelp();
+  return output;
+}
+
+describe('CLI help text integration', () => {
+  it('should include environment variables in root help', () => {
+    const output = captureHelp(cli);
+
+    expect(output).toContain('Environment variables:');
+    expect(output).toContain('BB_USERNAME');
+    expect(output).toContain('BB_API_TOKEN');
+    expect(output).toContain('NO_COLOR');
+    expect(output).toContain('FORCE_COLOR');
+    expect(output).toContain('DEBUG');
+  });
+
+  it('should include merge strategies and examples in pr merge help', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const mergeCmd = prCmd.commands.find((c) => c.name() === 'merge')!;
+    const output = captureHelp(mergeCmd);
+
+    expect(output).toContain('Examples:');
+    expect(output).toContain('$ bb pr merge 42');
+    expect(output).toContain('Valid merge strategies:');
+    expect(output).toContain('merge_commit');
+    expect(output).toContain('squash');
+    expect(output).toContain('fast_forward');
+    expect(output).toContain('squash_fast_forward');
+    expect(output).toContain('rebase_fast_forward');
+    expect(output).toContain('rebase_merge');
+  });
+
+  it('should include env var fallbacks in auth login help', () => {
+    const authCmd = cli.commands.find((c) => c.name() === 'auth')!;
+    const loginCmd = authCmd.commands.find((c) => c.name() === 'login')!;
+    const output = captureHelp(loginCmd);
+
+    expect(output).toContain('Examples:');
+    expect(output).toContain('BB_USERNAME');
+    expect(output).toContain('BB_API_TOKEN');
+  });
+
+  it('should include settable keys in config set help', () => {
+    const configCmd = cli.commands.find((c) => c.name() === 'config')!;
+    const setCmd = configCmd.commands.find((c) => c.name() === 'set')!;
+    const output = captureHelp(setCmd);
+
+    expect(output).toContain('Examples:');
+    expect(output).toContain('Settable config keys:');
+    expect(output).toContain('defaultWorkspace');
+    expect(output).toContain('skipVersionCheck');
+    expect(output).toContain('versionCheckInterval');
+  });
+});
