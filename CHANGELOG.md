@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.8.4
+
+### Patch Changes
+
+- [`f59f846`](https://github.com/0pilatos0/bitbucket-cli/commit/f59f846b6dbb2ac0a9f0a005fc094134c8a0d422) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add color support to CLI help text with bold headers, dim examples, and cyan values. Respects --no-color flag and NO_COLOR environment variable.
+
+- [`eb1e5cb`](https://github.com/0pilatos0/bitbucket-cli/commit/eb1e5cbddd99577008b7cf998ed290202284a7ca) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add usage examples, valid option values, defaults, and environment variable
+  documentation to all CLI command help text.
+
 ## 1.8.3
 
 ### Patch Changes
