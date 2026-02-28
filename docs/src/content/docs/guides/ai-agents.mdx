@@ -1,303 +1,313 @@
 ---
-title: AI Agent Integration
-description: Use the Bitbucket CLI with Claude Code, opencode, and other AI coding assistants
+title: AI Agent Integration - Claude Code, Cursor, Windsurf & More
+description: Set up the Bitbucket CLI with Claude Code, opencode, Cursor, Windsurf, and other AI coding assistants. Skill files, quick-start guides, and real-world workflow examples.
 ---
 
-import { Aside, Code, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-AI coding assistants can use the Bitbucket CLI to manage pull requests and repositories through natural conversation. Simply ask "Create a PR for this branch" and the AI handles the rest.
+Manage pull requests, repositories, and code reviews through natural conversation. Tell your AI assistant "Create a PR for this branch" and it handles the commands, flags, and context automatically.
 
-## Benefits
+## Quick Start
 
-- **Natural language** - No need to memorize command flags
-- **Intelligent chaining** - AI chains commands automatically
-- **Team consistency** - Encode conventions for everyone
-- **Faster workflows** - "Approve and merge PR 42" in one sentence
-
----
-
-## Setup
-
-Choose your AI agent:
+Pick your editor and paste the command:
 
 <Tabs>
   <TabItem label="Claude Code">
-    <Steps>
-      1. **Create the skill directory:**
-         ```bash
-         mkdir -p .claude/skills/bb-cli
-         ```
+    Run this in your project root:
 
-      2. **Create the skill file** at `.claude/skills/bb-cli/SKILL.md`:
-         ````markdown
-         ---
-         name: bb-cli
-         description: Execute Bitbucket Cloud CLI commands using `bb`. Use when creating, listing, editing, or managing pull requests, repositories, authentication, or configuration.
-         allowed-tools: Bash(bb:*), Read, Grep, Glob
-         ---
+    ```bash
+    mkdir -p .claude/skills/bb-cli && cat > .claude/skills/bb-cli/SKILL.md << 'SKILL'
+    ---
+    name: bb-cli
+    description: >
+      Bitbucket Cloud CLI. Use when the user wants to create, list, review,
+      merge, or manage pull requests, repositories, authentication, or
+      configuration via the `bb` command.
+    argument-hint: "[command or question]"
+    allowed-tools: Bash(bb *), Read, Grep, Glob
+    ---
 
-         # Bitbucket CLI (`bb`)
+    # Bitbucket CLI (`bb`)
 
-         Command-line interface for Bitbucket Cloud (@pilatos/bitbucket-cli).
+    CLI for Bitbucket Cloud. Package: `@pilatos/bitbucket-cli`.
 
-         ## Quick Start
+    ## Available commands
 
-         ```bash
-         bb auth status        # Check authentication
-         bb pr list            # List open PRs
-         bb pr create -t "..." # Create PR from current branch
-         ```
+    !`bb --help`
 
-          ## Requirements
+    ## Key workflows
 
-          - Bun runtime 1.0+ installed (https://bun.sh)
-          - `npm install -g @pilatos/bitbucket-cli` (or bun/pnpm)
-          - Authenticated via `bb auth login` (env vars supported during login)
-          - Run from git repo with Bitbucket remote
+    **Create PR:** `bb pr create -t "title" -b "description"`
+    **List PRs:** `bb pr list` (add `--mine` for your reviews, `--json` for scripts)
+    **Review:** `bb pr checkout <id>` → `bb pr diff <id>` → `bb pr approve <id>`
+    **Merge:** `bb pr merge <id> --strategy squash --close-source-branch`
+    **Draft:** `bb pr create -t "WIP" --draft` → later `bb pr ready <id>`
+    **Comments:** `bb pr comments list <id>` / `bb pr comments add <id> "text"`
+    **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`
 
-         ## Commands
+    ## Tips
 
-         See the full command reference in the skill file or run `bb --help`.
+    - Auto-detects workspace/repo from git remotes; override with `-w` / `-r`
+    - All commands support `--json` for structured output
+    - Merge strategies: `merge-commit`, `squash`, `fast-forward`
+    SKILL
 
-         **Key commands:**
-         - `bb pr create/list/view/diff/checkout/approve/merge/decline/ready/comments`
-         - `bb repo clone/create/list/view/delete`
-         - `bb auth login/logout/status/token`
-         - `bb config get/set/list`
+    echo "✓ Skill installed. Restart Claude Code to activate."
+    ```
 
-         ## Workflows
+    Restart Claude Code and try: **"List my open PRs"**
 
-         **Create PR:**
-         ```bash
-         git add . && git commit -m "feat: description"
-         git push -u origin feature-branch
-         bb pr create -t "feat: description" -b "Details"
-         ```
-
-         **Review and Merge:**
-         ```bash
-         bb pr checkout 42
-         bb pr diff 42
-         bb pr approve 42
-         bb pr merge 42 --strategy squash --close-source-branch
-         ```
-
-         **Draft PR:**
-         ```bash
-         bb pr create -t "WIP" --draft
-         bb pr ready 42  # Mark as ready later
-         ```
-
-         ## Tips
-
-         - Context auto-detection: run from git repo with Bitbucket remote
-         - JSON output: all commands support `--json`
-         - Error codes: 0=success, 1xxx=auth, 2xxx=API, 3xxx=git, 4xxx=config, 5xxx=validation, 6xxx=context, 7xxx=network
-         ````
-
-      3. **Restart Claude Code** to load the skill
-
-      4. **Test it:** Ask "List open PRs in this repo"
-    </Steps>
-    
     <Aside type="tip">
-      Add to `~/.claude/skills/bb-cli/SKILL.md` for global availability across all projects.
+      This also registers `/bb-cli` as a slash command. For personal use across all projects, install to `~/.claude/skills/bb-cli/SKILL.md` instead. Commit the project-level file to git so your team gets it automatically.
     </Aside>
   </TabItem>
-  
+
   <TabItem label="opencode">
-    <Steps>
-      1. **Create `AGENTS.md`** in your project root if it doesn't exist
+    Add this to `AGENTS.md` in your project root (create the file if it doesn't exist):
 
-      2. **Add the bb-cli section** to `AGENTS.md`:
-         ````markdown
-         ## Bitbucket CLI (bb)
+    ````markdown
+    ## Bitbucket CLI (`bb`)
 
-         Use `bb` (@pilatos/bitbucket-cli) for Bitbucket operations.
+    Use `bb` (`@pilatos/bitbucket-cli`) for all Bitbucket operations.
+    Requires Bun 1.0+ runtime. Install: `npm install -g @pilatos/bitbucket-cli`
 
-          ### Installation
+    ### Commands
 
-          ```bash
-          # Requires Bun runtime (https://bun.sh)
-          npm install -g @pilatos/bitbucket-cli
-          bb auth login
-          ```
+    **Pull Requests:**
+    - `bb pr create -t "title" -b "body"` - Create PR from current branch
+    - `bb pr list` - List open PRs (`--mine` for your reviews, `--json` for scripts)
+    - `bb pr view <id>` / `bb pr diff <id>` - Inspect a PR
+    - `bb pr checkout <id>` - Check out PR locally
+    - `bb pr approve <id>` / `bb pr decline <id>` - Review
+    - `bb pr merge <id> --strategy squash --close-source-branch` - Merge
+    - `bb pr ready <id>` - Mark draft as ready
+    - `bb pr comments add <id> "text"` - Add comment
+    - `bb pr reviewers add <id> <uuid>` - Add reviewer
 
-         ### Common Commands
+    **Repositories:**
+    - `bb repo list` / `bb repo view` / `bb repo clone workspace/repo`
 
-         **Pull Requests:**
-         - `bb pr list` - List open PRs
-         - `bb pr create -t "title"` - Create PR from current branch
-         - `bb pr view <id>` - View PR details
-         - `bb pr diff <id>` - View diff
-         - `bb pr checkout <id>` - Checkout locally
-         - `bb pr approve <id>` - Approve PR
-         - `bb pr merge <id>` - Merge PR
-         - `bb pr ready <id>` - Mark draft as ready
-         - `bb pr comments add <id> "text"` - Add comment
+    **Configuration:**
+    - `bb config set defaultWorkspace myworkspace`
+    - `bb auth status` - Check authentication
 
-         **Repositories:**
-         - `bb repo list -w workspace` - List repos
-         - `bb repo clone workspace/repo` - Clone
+    ### Tips
 
-          **Configuration:**
-          - `bb config set defaultWorkspace myworkspace`
+    - Auto-detects workspace/repo from git remotes; override with `-w` / `-r`
+    - All commands support `--json` for machine-readable output
+    - Run `bb --help` or `bb <command> --help` for full usage
+    ````
 
-          ### Tips
+    Run opencode in your project and try: **"What PRs are open?"**
 
-          1. Requires Bun runtime 1.0+ to execute
-          2. Auto-detection works when in a git repo with Bitbucket remote
-          3. Use `--json` for machine-readable output
-          4. Squash merge: `bb pr merge <id> --strategy squash`
-          5. Delete source branch: `--close-source-branch`
-
-         ### Workflows
-
-         **Create PR:**
-         ```bash
-         git add . && git commit -m "feat: desc"
-         git push -u origin feature-branch
-         bb pr create -t "feat: desc" -b "Details"
-         ```
-
-         **Review and Merge:**
-         ```bash
-         bb pr checkout 42
-         bb pr approve 42
-         bb pr merge 42 --strategy squash --close-source-branch
-         ```
-         ````
-
-      3. **Run opencode** in your project directory
-
-      4. **Test it:** Ask "What's the status of my PRs?"
-    </Steps>
-    
     <Aside type="tip">
-      opencode automatically reads AGENTS.md. Keep it version-controlled for team consistency.
+      Keep `AGENTS.md` version-controlled so your team stays in sync.
     </Aside>
   </TabItem>
-  
+
   <TabItem label="Cursor">
-    <Steps>
-      1. **Create `.cursorrules`** in your project root:
-         ````markdown
-         ## Bitbucket CLI (bb)
+    Run this in your project root:
 
-         Use `bb` (@pilatos/bitbucket-cli) for Bitbucket operations.
+    ```bash
+    mkdir -p .cursor/rules && cat > .cursor/rules/bb-cli.mdc << 'RULE'
+    ---
+    description: Bitbucket CLI - use `bb` for PR and repo operations
+    globs:
+    alwaysApply: true
+    ---
 
-         **Key Commands:**
-         - `bb pr create/list/view/diff/checkout/approve/merge/decline/ready/comments`
-         - `bb repo list/clone/view`
-         - `bb config get/set/list`
-         - `bb auth login/status`
+    # Bitbucket CLI (`bb`)
 
-         **Context:** Auto-detects workspace/repo from git remotes. Use `-w/-r` to override.
+    Use `bb` (`@pilatos/bitbucket-cli`) for Bitbucket operations.
 
-         **Output:** Use `--json` for machine-readable output.
+    ## Key commands
 
-         **Auth:** Requires `bb auth login` (which can use `BB_USERNAME` + `BB_API_TOKEN`).
+    - `bb pr create -t "title" -b "body"` - Create PR
+    - `bb pr list` - List open PRs (`--mine` for reviews, `--json` for scripts)
+    - `bb pr view/diff/checkout <id>` - Inspect PR
+    - `bb pr approve/decline/merge <id>` - Review and merge
+    - `bb pr merge <id> --strategy squash --close-source-branch`
+    - `bb pr ready <id>` - Mark draft as ready
+    - `bb pr comments add <id> "text"` - Comment on PR
+    - `bb repo list/view/clone` - Repository operations
+    - `bb config set defaultWorkspace <ws>` - Set defaults
 
-         **Workflows:**
-         - Create: Push branch → `bb pr create -t "title" -b "body"`
-         - Review: `bb pr checkout <id>` → review → `bb pr approve <id>` → `bb pr merge <id> --strategy squash`
-         ````
+    ## Context
 
-      2. **Open Cursor** in the project
+    Auto-detects workspace/repo from git remotes. Override with `-w`/`-r` flags.
+    Use `--json` for machine-readable output. Run `bb --help` for full usage.
+    RULE
 
-      3. **Use Composer or Chat** with bb commands
+    echo "✓ Rule created. Restart Cursor to activate."
+    ```
+  </TabItem>
 
-      4. **Test it:** Ask "Create a PR for my current changes"
-    </Steps>
+  <TabItem label="Windsurf">
+    Create `.windsurfrules` in your project root:
+
+    ````markdown
+    ## Bitbucket CLI (`bb`)
+
+    Use `bb` (`@pilatos/bitbucket-cli`) for Bitbucket operations.
+
+    **Key commands:**
+    - `bb pr create -t "title" -b "body"` - Create PR
+    - `bb pr list` - List open PRs (`--mine` for reviews, `--json` for scripts)
+    - `bb pr view/diff/checkout <id>` - Inspect PR
+    - `bb pr approve/decline/merge <id>` - Review and merge
+    - `bb pr merge <id> --strategy squash --close-source-branch`
+    - `bb pr ready <id>` - Mark draft as ready
+    - `bb pr comments add <id> "text"` - Comment on PR
+    - `bb repo list/view/clone` - Repository operations
+    - `bb config set defaultWorkspace <ws>` - Set defaults
+
+    **Context:** Auto-detects workspace/repo from git remotes. Use `-w`/`-r` to override.
+    **Output:** Use `--json` for machine-readable output.
+    **Help:** Run `bb --help` or `bb <command> --help` for full usage.
+    ````
   </TabItem>
 </Tabs>
 
+<Aside type="tip">
+  **No setup at all?** Just tell your AI assistant:
+  *"Run `bb --help` to learn the bb CLI, then use it to list my open PRs."*
+  Most AI coding assistants can learn any CLI from its `--help` output on the fly.
+</Aside>
+
 ---
 
-## Example Conversations
+## Example Workflows
 
-**Creating a PR:**
-```
-You: Create a PR for my current branch titled "Add user validation"
-AI: [Runs: bb pr create -t "Add user validation"]
-    ✅ Created PR #42
-    https://bitbucket.org/workspace/repo/pull-requests/42
-```
+These show what's possible once your AI assistant knows about `bb`. Natural language works — exact phrasing doesn't matter.
 
-**Checking Open PRs:**
-```
-You: What PRs need my review?
-AI: [Runs: bb pr list --json]
-    Found 3 open PRs:
-    • #42 - Add user validation (by john, 2 hours ago)
-    • #41 - Fix login bug (by jane, 1 day ago)
-    • #40 - Update dependencies (by bot, 3 days ago)
-```
+### Create and submit a PR
 
-**Review Workflow:**
 ```
-You: Review PR 42 and approve it if it looks good
-AI: [Runs: bb pr view 42, bb pr diff 42]
-    Changes look good. Approving...
-    [Runs: bb pr approve 42]
-    ✅ Approved PR #42.
+You: Push my changes and create a PR titled "Add input validation"
+      with a description of what changed
+
+AI:   [Runs: git push -u origin feat/input-validation]
+      [Runs: bb pr create -t "Add input validation" \
+        -b "Adds server-side validation for email and password fields.
+        Includes unit tests and updates the API docs."]
+
+      ✅ Created PR #47
+      https://bitbucket.org/acme/api/pull-requests/47
 ```
 
-**Draft PRs:**
-```
-You: Create a draft PR for my WIP
-AI: [Runs: bb pr create -t "WIP: Feature" --draft]
-    ✅ Created draft PR #43
+### Review multiple PRs at once
 
-You: Mark it ready for review
-AI: [Runs: bb pr ready 43]
-    ✅ Marked PR #43 as ready for review
+```
+You: Show me all open PRs and summarize which ones are ready to merge
+
+AI:   [Runs: bb pr list --json]
+      [Runs: bb pr diff 42, bb pr diff 45, bb pr diff 46]
+
+      3 open PRs:
+
+      • #42 "Fix login timeout" — 12 lines, 2 approvals, CI passing. Ready.
+      • #45 "Refactor auth module" — 340 lines, no reviews, CI failing. Needs work.
+      • #46 "Update README" — 3 lines, 1 approval. Ready.
+
+      Want me to merge #42 and #46?
+```
+
+### Full review-and-merge cycle
+
+```
+You: Check out PR 42, review the diff, and if it looks good,
+     approve and squash-merge it
+
+AI:   [Runs: bb pr checkout 42]
+      Checked out PR #42 on branch fix/login-timeout.
+
+      [Runs: bb pr diff 42]
+      Changes look clean — fixes the timeout by increasing the
+      retry limit from 3 to 5, with a new test covering the edge case.
+
+      [Runs: bb pr approve 42]
+      ✅ Approved.
+
+      [Runs: bb pr merge 42 --strategy squash --close-source-branch]
+      ✅ Merged PR #42 with squash strategy. Source branch deleted.
+```
+
+### Draft PR workflow
+
+```
+You: Create a draft PR for my work-in-progress
+
+AI:   [Runs: bb pr create -t "WIP: New dashboard" --draft]
+      ✅ Created draft PR #48
+
+You: Mark PR 48 as ready and add Alice as reviewer
+
+AI:   [Runs: bb pr ready 48]
+      [Runs: bb pr reviewers add 48 {alice-uuid}]
+      ✅ PR #48 is ready for review. Alice added as a reviewer.
 ```
 
 ---
 
 ## Team Conventions
 
-Add team-specific rules to your AI instructions:
+Encode your team's workflow rules in the instruction file so every team member's AI follows the same conventions:
 
 ```markdown
-### Branch Naming
+### Team Workflow
+
+**Branch naming:**
 - Features: `feat/<ticket>-<description>`
 - Bugs: `fix/<ticket>-<description>`
 - Hotfixes: `hotfix/<description>`
 
-### PR Requirements
-- All PRs need one approval
+**PR rules:**
+- Always create PRs with a descriptive body, not just a title
 - Use draft PRs for work-in-progress
-- Always squash merge features: `--strategy squash`
-- Always delete source branches: `--close-source-branch`
+- Require at least one approval before merging
+- Always squash-merge feature branches: `--strategy squash`
+- Always delete source branches after merge: `--close-source-branch`
 
-### Review Process
-1. bb pr checkout <id>
-2. Review changes with bb pr diff <id>
-3. bb pr approve <id>
-4. bb pr merge <id> --strategy squash --close-source-branch
+**Review process:**
+1. `bb pr checkout <id>` — check out locally
+2. `bb pr diff <id>` — review the changes
+3. `bb pr approve <id>` — approve if satisfied
+4. `bb pr merge <id> --strategy squash --close-source-branch` — merge
 ```
 
-This ensures everyone follows the same workflow automatically.
+Append this to your skill file, AGENTS.md, or cursor rule — wherever your team keeps AI instructions.
 
 ---
 
 ## Security
 
 <Aside type="caution">
-  Never commit API tokens to version control. Use environment variables.
+  Never commit API tokens to version control. Use environment variables or `bb auth login`.
 </Aside>
 
+Your AI assistant never sees the raw token — it calls `bb` commands, and the CLI handles authentication internally. The `allowed-tools` field in the Claude Code skill restricts the AI to only running `bb` commands and reading files — no arbitrary shell access.
+
+For CI/CD or shared environments, use environment variables:
+
 ```bash
-export BB_USERNAME=your-username
-export BB_API_TOKEN=your-api-token
+export BB_USERNAME="your-username"
+export BB_API_TOKEN="your-api-token"
+bb auth login   # Reads from env vars automatically
 ```
 
-For Claude Code, limit permissions in the skill:
-```yaml
-allowed-tools: Bash(bb:*), Read, Grep, Glob  # Good - only bb commands
-```
+### Required API token scopes
+
+| Scope | Required for |
+|-------|-------------|
+| `account:read` | `bb auth status` — verify identity |
+| `repository:read` | `bb repo list`, `bb repo view` — browse repos |
+| `repository:write` | `bb repo create`, `bb repo delete` — manage repos |
+| `pullrequest:read` | `bb pr list`, `bb pr view`, `bb pr diff` — browse PRs |
+| `pullrequest:write` | `bb pr create`, `bb pr merge`, `bb pr approve` — manage PRs |
+
+<Aside type="tip">
+  For read-only workflows (listing and viewing PRs), you only need the `read` scopes.
+</Aside>
 
 ---
 
@@ -305,18 +315,22 @@ allowed-tools: Bash(bb:*), Read, Grep, Glob  # Good - only bb commands
 
 | Issue | Solution |
 |-------|----------|
-| "Not authenticated" | Set `BB_USERNAME` and `BB_API_TOKEN`, then run `bb auth login` |
-| Commands still prompting | Claude Code: check `allowed-tools` includes `Bash(bb:*)` |
-| "Could not determine repo" | Run from git repo with Bitbucket remote, or use `-w/-r` flags |
-| AI using wrong syntax | Add more examples to your skill/instructions |
-| opencode not finding commands | Ensure bb CLI is installed and in PATH |
+| "Not authenticated" | Run `bb auth login` or set `BB_USERNAME` + `BB_API_TOKEN` env vars |
+| Claude doesn't use `bb` | Restart Claude Code after creating the skill file. Check `/bb-cli` shows in the slash menu |
+| "Could not determine repo" | Run from a git repo with a Bitbucket remote, or pass `-w`/`-r` flags explicitly |
+| Skill not auto-activating | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md |
+| Cursor rule not loading | Ensure the file is at `.cursor/rules/bb-cli.mdc` with valid frontmatter. Restart Cursor |
+| opencode ignoring AGENTS.md | Ensure the file is in the project root (not a subdirectory). Restart opencode |
+| `bb` command not found | Install with `npm install -g @pilatos/bitbucket-cli`. Requires [Bun 1.0+](https://bun.sh) runtime |
+| AI using wrong flags | Tell the AI to run `bb <command> --help` first |
+| Windsurf not picking up rules | Ensure `.windsurfrules` is in the project root. Restart Windsurf |
 
 ---
 
 ## Related Guides
 
-- [Scripting & Automation](/guides/scripting/)
-- [CI/CD Integration](/guides/cicd/)
-- [JSON Output](/reference/json-output/)
-- [Error Codes](/reference/error-codes/)
-- [Command Reference](/commands/pr/) - Full PR command documentation
+- [Scripting & Automation](/guides/scripting/) — JSON output, exit codes, and shell scripting patterns
+- [CI/CD Integration](/guides/cicd/) — Use `bb` in GitHub Actions, GitLab CI, Jenkins, and more
+- [JSON Output Reference](/reference/json-output/) — Detailed JSON schemas for all commands
+- [Error Codes](/reference/error-codes/) — Full list of exit codes and their meanings
+- [Command Reference](/commands/pr/) — Complete PR command documentation
