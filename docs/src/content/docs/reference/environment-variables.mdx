@@ -15,6 +15,7 @@ Environment variables allow you to configure the CLI without storing credentials
 | `BB_API_TOKEN` | Your Bitbucket API token | `ATBB...` |
 | `NO_COLOR` | Disable color output globally | `1` |
 | `FORCE_COLOR` | Force-enable color output globally | `1` |
+| `DEBUG` | Enable HTTP debug logging when set to `true` | `true` |
 
 ## Configuration Priority
 
@@ -31,9 +32,9 @@ Authentication credentials are resolved from:
 
 For color output, precedence is:
 
-1. `--color` (force color on)
+1. `--color` (force color on — only available on `bb pr diff`, not a global flag)
 2. `FORCE_COLOR`
-3. `--no-color`
+3. `--no-color` (global flag, available on all commands)
 4. `NO_COLOR`
 
 ---

@@ -157,7 +157,8 @@ bb repo view --json
 
 ### Notes
 
-The command will automatically detect the repository from your current directory's git remote if you don't specify one.
+- The positional `[repository]` argument is the primary way to specify the repo (e.g., `bb repo view myworkspace/myrepo`). The global `-w` and `-r` flags also work as an alternative.
+- The command will automatically detect the repository from your current directory's git remote if you don't specify one.
 
 ---
 

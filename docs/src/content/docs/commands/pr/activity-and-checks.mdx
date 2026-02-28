@@ -28,7 +28,7 @@ bb pr activity <id> [options]
 | Option | Description |
 |--------|-------------|
 | `--limit <number>` | Maximum number of activity entries (default: 25) |
-| `--type <types>` | Filter by activity type (comma-separated) |
+| `--type <types>` | Filter by activity type (comma-separated): `comment`, `approval`, `changes_requested`, `merge`, `decline`, `commit`, `update` |
 | `-w, --workspace <workspace>` | Workspace |
 | `-r, --repo <repo>` | Repository |
 | `--json` | Output as JSON |
@@ -52,6 +52,8 @@ bb pr activity 42 --json
 ### Notes
 
 - `--limit` is enforced across paginated activity responses
+- Valid `--type` values: `comment`, `approval`, `changes_requested`, `merge`, `decline`, `commit`, `update`
+- Multiple types can be combined: `--type comment,approval`
 
 ---
 

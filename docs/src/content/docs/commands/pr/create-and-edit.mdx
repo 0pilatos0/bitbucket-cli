@@ -152,7 +152,7 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
-- `--mine` filters by PRs where the authenticated user is assigned as a reviewer
+- `--mine` filters by PRs where the authenticated user is explicitly assigned as a reviewer (via `reviewers.uuid` on the Bitbucket API). It does not filter by author — only PRs you've been asked to review are shown.
 
 ---
 

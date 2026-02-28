@@ -17,9 +17,12 @@ The Bitbucket CLI uses **API Tokens** for authentication. This is a secure way t
 4. Click **Create API token**
 5. Give it a descriptive name (e.g., "Bitbucket CLI")
 6. Select the required scopes:
-   - **Account**: Read
-   - **Repositories**: Read, Write, Admin (depending on your needs)
-   - **Pull requests**: Read, Write
+   - `account:read` — verify your identity
+   - `repository:read` — list and view repositories
+   - `repository:write` — create repositories
+   - `repository:admin` — delete repositories (optional)
+   - `pullrequest:read` — list and view pull requests
+   - `pullrequest:write` — create, edit, merge, approve, decline pull requests
 7. Click **Create**
 8. **Copy the generated token** - you won't be able to see it again!
 

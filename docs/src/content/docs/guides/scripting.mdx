@@ -51,7 +51,8 @@ bb pr diff 42 --web --json | jq -r '.url'
 
 ```bash
 # PRs updated in the last 7 days
-bb pr list --json | jq --arg date "$(date -d '7 days ago' -Iseconds)" \
+bb pr list --json | jq --arg date "$(date -d '7 days ago' -Iseconds 2>/dev/null || \
+  date -v-7d -Iseconds)" \
   '.pullRequests[] | select(.updated_on > $date)'
 
 # PRs targeting main branch
@@ -152,7 +153,7 @@ max_retries=3
 retry_delay=5
 
 for ((i=1; i<=max_retries; i++)); do
-  if bb pr list -w workspace -r repo --json > prs.json 2>&1; then
+  if bb pr list -w workspace -r repo --json > prs.json 2>error.json; then
     break
   fi
 

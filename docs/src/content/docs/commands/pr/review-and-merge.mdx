@@ -31,8 +31,19 @@ bb pr merge <id> [options]
 | `-r, --repo <repo>` | Repository |
 | `-m, --message <message>` | Merge commit message |
 | `--close-source-branch` | Delete source branch after merge |
-| `--strategy <strategy>` | Merge strategy: merge_commit, squash, fast_forward |
+| `--strategy <strategy>` | Merge strategy (see table below) |
 | `--json` | Output as JSON |
+
+### Merge Strategies
+
+| Strategy | Description |
+|----------|-------------|
+| `merge_commit` | Create a merge commit (default) |
+| `squash` | Squash all commits into a single commit |
+| `fast_forward` | Fast-forward if possible, fail otherwise |
+| `squash_fast_forward` | Squash commits and fast-forward |
+| `rebase_fast_forward` | Rebase source commits onto destination and fast-forward |
+| `rebase_merge` | Rebase source commits onto destination and create a merge commit |
 
 ### Examples
 
@@ -45,6 +56,9 @@ bb pr merge 42 --strategy squash --close-source-branch
 
 # Merge with custom commit message
 bb pr merge 42 -m "Merge feature: Add user authentication"
+
+# Rebase and fast-forward
+bb pr merge 42 --strategy rebase_fast_forward
 ```
 
 ---

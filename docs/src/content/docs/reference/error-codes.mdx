@@ -296,6 +296,24 @@ bb config set defaultWorkspace myworkspace
 
 ---
 
+## Unknown Errors (9xxx)
+
+### 9999 - UNKNOWN
+
+**Message:** An unexpected error occurred
+
+**Cause:** The CLI encountered an error that doesn't fit any known category.
+
+**Solution:**
+- Check the error message for details
+- Retry the command
+- If the issue persists, [report it](https://github.com/0pilatos0/bitbucket-cli/issues) with full debug output:
+```bash
+DEBUG=true bb <your-command> 2>&1
+```
+
+---
+
 ## Handling Errors in Scripts
 
 When using the CLI in scripts, check the exit code and handle errors appropriately:

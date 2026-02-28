@@ -76,7 +76,7 @@ jobs:
       - name: List Open PRs
         run: |
           bb pr list -w myworkspace -r myrepo --json > prs.json
-          echo "Open PRs: $(jq length prs.json)"
+          echo "Open PRs: $(jq '.count' prs.json)"
 ```
 
 #### Auto-Create PR on Push
@@ -238,12 +238,18 @@ pipeline {
             steps {
                 sh '''
                     export PATH="$HOME/.bun/bin:$PATH"
-                    APPROVED_PRS=$(bb pr list -w myworkspace -r myrepo --json | \
-                        jq -r '.pullRequests[] | select(.participants | any(.approved == true)) | .id')
+                    # Get all open PR IDs, then check each for approval
+                    PR_IDS=$(bb pr list -w myworkspace -r myrepo --json | \
+                        jq -r '.pullRequests[].id')
 
-                    for PR_ID in $APPROVED_PRS; do
-                        echo "Merging PR #$PR_ID"
-                        bb pr merge $PR_ID -w myworkspace -r myrepo --strategy squash
+                    for PR_ID in $PR_IDS; do
+                        IS_APPROVED=$(bb pr view $PR_ID -w myworkspace -r myrepo --json | \
+                            jq '[.participants[] | select(.approved == true)] | length > 0')
+                        if [ "$IS_APPROVED" = "true" ]; then
+                            echo "Merging approved PR #$PR_ID"
+                            bb pr merge $PR_ID -w myworkspace -r myrepo --strategy squash
+                        fi
+                        sleep 1
                     done
                 '''
             }
@@ -346,13 +352,18 @@ set -e
 WORKSPACE="myworkspace"
 REPO="myrepo"
 
-# Find PRs that are approved and have passing builds
-approved_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json | jq -r '
-  .pullRequests[] |
-  select(.participants | any(.approved == true)) |
-  select(.state == "OPEN") |
-  .id
-')
+# Get all open PR IDs, then check each for approval via pr view
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json | jq -r '.pullRequests[].id')
+
+approved_prs=""
+for pr_id in $open_prs; do
+  is_approved=$(bb pr view "$pr_id" -w "$WORKSPACE" -r "$REPO" --json | \
+    jq '[.participants[] | select(.approved == true)] | length > 0')
+  if [ "$is_approved" = "true" ]; then
+    approved_prs="$approved_prs $pr_id"
+  fi
+  sleep 1
+done
 
 for pr_id in $approved_prs; do
   echo "Attempting to merge PR #$pr_id..."
@@ -375,7 +386,8 @@ done
 
 WORKSPACE="myworkspace"
 REPO="myrepo"
-SINCE_DATE=$(date -d '7 days ago' +%Y-%m-%d)
+SINCE_DATE=$(date -d '7 days ago' +%Y-%m-%d 2>/dev/null || \
+             date -v-7d +%Y-%m-%d)
 
 echo "# Changelog - Week of $(date +%Y-%m-%d)"
 echo ""
@@ -397,9 +409,10 @@ Create a dedicated CI/CD token with minimal permissions:
 
 | Use Case | Required Scopes |
 |----------|----------------|
-| Read-only checks | `repository:read`, `pullrequest:read` |
-| Create PRs | + `pullrequest:write` |
-| Merge PRs | + `pullrequest:write` |
+| Verify identity | `account:read` |
+| Read-only checks | + `repository:read`, `pullrequest:read` |
+| Create/merge PRs | + `pullrequest:write` |
+| Create repos | + `repository:write` |
 | Delete repos | + `repository:admin` |
 
 ### Secrets Management

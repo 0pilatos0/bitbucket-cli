@@ -3,6 +3,8 @@ title: JSON Output
 description: Reference for JSON output behavior across all commands
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 All commands support the global `--json` flag.
 
 Use JSON mode for automation, scripts, and CI/CD pipelines.
@@ -17,24 +19,56 @@ bb pr list --json
 bb repo view --json --no-color
 ```
 
-## Output Model
+<Aside type="tip">
+Discover the exact JSON shape of any command by running it with `--json` and piping to `jq .`:
+```bash
+bb <command> --json 2>/dev/null | jq .
+```
+</Aside>
 
-JSON output is normalized, but not every command returns the same shape.
+## Output Patterns
 
-- List commands return an object envelope with metadata and an array.
-- Read/create/update commands usually return a resource object (or resource plus metadata).
-- Action commands usually return `success: true` plus identifiers.
+The CLI uses a small number of consistent output patterns. Understanding these patterns lets you predict the JSON shape of any command.
 
-Typical top-level metadata fields include:
+### Pattern 1: Collection (List Commands)
 
-- `workspace`
-- `repoSlug`
-- `pullRequestId`
-- `count`
+Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`, `pr reviewers list`, `pr checks`
 
-## Common Examples
+Returns an envelope with metadata and a named array:
 
-### `bb pr list --json`
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "state": "OPEN",
+  "filters": {},
+  "count": 2,
+  "pullRequests": [...]
+}
+```
+
+**Common envelope fields:**
+
+| Field | Type | Present in |
+|-------|------|-----------|
+| `workspace` | string | PR and repo collections |
+| `repoSlug` | string | PR collections |
+| `count` | number | All collections |
+| `state` | string | `pr list` |
+| `filters` | object | `pr list` (when `--mine` is used), `pr activity` |
+
+**Collection key names:**
+
+| Command | Array key |
+|---------|-----------|
+| `pr list` | `pullRequests` |
+| `repo list` | `repositories` |
+| `pr comments list` | `comments` |
+| `pr activity` | `activities` |
+| `pr reviewers list` | `reviewers` |
+| `pr checks` | `statuses` (inside a `summary` + `statuses` structure) |
+
+#### Example: `bb pr list --json`
 
 ```json
 {
@@ -46,28 +80,107 @@ Typical top-level metadata fields include:
     {
       "id": 42,
       "title": "Add feature",
-      "state": "OPEN"
+      "state": "OPEN",
+      "draft": false,
+      "author": { "display_name": "Alice", "nickname": "alice" },
+      "source": { "branch": { "name": "feature/add-feature" } },
+      "destination": { "branch": { "name": "main" } },
+      "created_on": "2026-01-15T10:00:00.000000+00:00",
+      "updated_on": "2026-01-16T14:30:00.000000+00:00",
+      "links": { "html": { "href": "https://bitbucket.org/myworkspace/myrepo/pull-requests/42" } }
     }
   ]
 }
 ```
 
-### `bb repo list --json`
+#### Example: `bb pr list --mine --json`
 
 ```json
 {
   "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "state": "OPEN",
+  "filters": { "mine": true },
   "count": 1,
-  "repositories": [
-    {
-      "full_name": "myworkspace/myrepo",
-      "is_private": true
-    }
-  ]
+  "pullRequests": [...]
 }
 ```
 
-### `bb pr diff 42 --stat --json`
+#### Example: `bb pr checks 42 --json`
+
+```json
+{
+  "pullRequestId": 42,
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "summary": { "successful": 2, "failed": 0, "pending": 1 },
+  "statuses": [...]
+}
+```
+
+---
+
+### Pattern 2: Resource (View/Create Commands)
+
+Used by: `pr view`, `repo view`, `pr create`, `pr edit`
+
+Returns the raw Bitbucket API resource object directly, with no envelope:
+
+```json
+{
+  "type": "pullrequest",
+  "id": 42,
+  "title": "Add feature",
+  "state": "OPEN",
+  "author": {...},
+  "source": {...},
+  "destination": {...},
+  "participants": [...],
+  "links": {...}
+}
+```
+
+<Aside type="note">
+Resource responses include the full Bitbucket API object. The exact fields depend on the resource type. Use `jq keys` to discover available fields:
+```bash
+bb pr view 42 --json | jq 'keys'
+```
+</Aside>
+
+---
+
+### Pattern 3: Action (Approve/Merge/Decline Commands)
+
+Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete`, `pr reviewers add/remove`, `auth login`, `auth logout`
+
+Returns a success indicator plus resource identifiers:
+
+```json
+{
+  "success": true,
+  "pullRequestId": 42
+}
+```
+
+Some action commands include the full resource in the response:
+
+```json
+{
+  "success": true,
+  "pullRequestId": 42,
+  "pullRequest": {...}
+}
+```
+
+---
+
+### Pattern 4: Mode-Based (Diff Command)
+
+Used by: `pr diff` (with `--stat`, `--web`, `--name-only`, or default diff mode)
+
+Returns context metadata plus mode-specific data:
+
+#### `bb pr diff 42 --stat --json`
 
 ```json
 {
@@ -79,16 +192,24 @@ Typical top-level metadata fields include:
   "totalAdditions": 27,
   "totalDeletions": 11,
   "files": [
-    {
-      "path": "src/index.ts",
-      "additions": 10,
-      "deletions": 3
-    }
+    { "path": "src/index.ts", "additions": 10, "deletions": 3 }
   ]
 }
 ```
 
-### `bb pr diff 42 --web --json`
+#### `bb pr diff 42 --name-only --json`
+
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "pullRequestId": 42,
+  "mode": "name-only",
+  "files": ["src/index.ts", "src/utils.ts"]
+}
+```
+
+#### `bb pr diff 42 --web --json`
 
 ```json
 {
@@ -100,13 +221,57 @@ Typical top-level metadata fields include:
 }
 ```
 
-### `bb auth token --json`
+---
+
+### Pattern 5: Auth & Config (Custom)
+
+These commands have unique output shapes:
+
+#### `bb auth status --json`
 
 ```json
 {
-  "token": "base64-encoded-credentials"
+  "authenticated": true,
+  "user": {
+    "username": "myuser",
+    "displayName": "My Name",
+    "accountId": "70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
 }
 ```
+
+#### `bb auth token --json`
+
+```json
+{
+  "token": "base64-encoded-username:apiToken"
+}
+```
+
+#### `bb config list --json`
+
+```json
+{
+  "configPath": "/Users/you/.config/bb/config.json",
+  "config": {
+    "username": "myuser",
+    "apiToken": "********",
+    "defaultWorkspace": "myworkspace",
+    "skipVersionCheck": false
+  }
+}
+```
+
+#### `bb config get <key> --json`
+
+```json
+{
+  "key": "defaultWorkspace",
+  "value": "myworkspace"
+}
+```
+
+---
 
 ## jq Examples
 
@@ -122,6 +287,12 @@ bb repo list --json | jq -r '.repositories[].full_name'
 
 # Extract diff file paths
 bb pr diff 42 --stat --json | jq -r '.files[].path'
+
+# Get PR URLs
+bb pr list --json | jq -r '.pullRequests[].links.html.href'
+
+# Check auth status
+bb auth status --json | jq '.authenticated'
 ```
 
 ## Scripting Notes
@@ -129,6 +300,7 @@ bb pr diff 42 --stat --json | jq -r '.files[].path'
 - Prefer `--json` in scripts rather than parsing text output.
 - Do not rely on text formatting symbols (`✓`, table separators, colors).
 - If you need stable fields, prefer command-specific documented keys (`pullRequests`, `repositories`, `files`, `success`).
+- `pr list` returns lightweight PR objects. Use `pr view <id>` for full details including `participants` and `reviewers`.
 
 ## Errors
 
@@ -144,5 +316,14 @@ bb config get invalidKey --json 2>error.json
 cat error.json
 # {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval","context":{"key":"invalidKey"}}
 ```
+
+Error JSON fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Error class name (always `BBError`) |
+| `code` | number | Numeric [error code](/reference/error-codes/) |
+| `message` | string | Human-readable message |
+| `context` | object | Optional structured metadata |
 
 In automation, always check the process exit code before parsing stdout JSON.

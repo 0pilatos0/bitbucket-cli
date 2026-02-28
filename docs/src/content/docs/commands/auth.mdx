@@ -47,9 +47,11 @@ bb auth login
 ### Required Scopes
 
 Your API token needs these scopes:
-- **Account**: Read (to verify your identity)
-- **Repositories**: Read, Write (depending on operations you'll perform)
-- **Pull requests**: Read, Write (for PR operations)
+- `account:read` — verify your identity
+- `repository:read` — list and view repositories
+- `repository:write` — create repositories (if needed)
+- `pullrequest:read` — list and view pull requests
+- `pullrequest:write` — create, edit, merge, approve, decline pull requests
 
 See the [Authentication guide](/getting-started/authentication/) for detailed setup instructions.
 
@@ -125,7 +127,7 @@ Run bb auth login to authenticate.
 
 ## `bb auth token`
 
-Print the current access token (base64 encoded credentials).
+Print a base64-encoded string of `username:apiToken`, suitable for HTTP Basic auth headers.
 
 ```bash
 bb auth token [options]
