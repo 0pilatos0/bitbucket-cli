@@ -549,7 +549,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -568,7 +573,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({ state: 'MERGED' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
@@ -580,7 +590,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
 
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
   });
@@ -594,7 +609,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(
@@ -612,7 +632,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({}, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('table-rows:'))).toBe(true);
@@ -633,7 +658,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({ limit: '2' }, { globalOptions: {} });
 
     const rows = getTableRows(output.logs);
@@ -649,7 +679,12 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
 
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-    const command = new ListPRsCommand(pullrequestsApi, usersApi, contextService, output);
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
     await command.execute({}, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
