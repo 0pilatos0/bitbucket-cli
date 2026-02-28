@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.9.0
+
+### Minor Changes
+
+- [#94](https://github.com/0pilatos0/bitbucket-cli/pull/94) [`db2af3f`](https://github.com/0pilatos0/bitbucket-cli/commit/db2af3ffe41baacc888644a0b6e432a91b0d5948) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add a `--mine` flag to `bb pr list` so you can filter pull requests where the
+  authenticated user is assigned as a reviewer.
+
+### Patch Changes
+
+- [`322b99f`](https://github.com/0pilatos0/bitbucket-cli/commit/322b99f0ec3f41ebe5ecba2cf1a23fe1bff2f87b) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Comprehensive documentation fixes: correct merge strategies (all 6 now listed),
+  fix broken jq examples in CI/CD and scripting guides, add missing DEBUG env var,
+  enumerate activity type filter values, expand FAQ feature list, restructure JSON
+  output reference around 5 output patterns, standardize auth scope naming, add
+  macOS date fallbacks, fix error handling redirects, clarify --mine reviewer
+  filtering, and align config output format across pages.
+
+- [`2f5dd89`](https://github.com/0pilatos0/bitbucket-cli/commit/2f5dd891c71894afd1509021cb85bfe4e0026bc3) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Rewrite AI agent integration guide: add copy-paste quick start for Claude Code,
+  opencode, Cursor, and Windsurf; modernize skill file with dynamic context
+  injection and proper frontmatter; add realistic multi-step workflow examples,
+  token scope reference, security guidance, and expanded troubleshooting.
+
 ## 1.8.4
 
 ### Patch Changes
