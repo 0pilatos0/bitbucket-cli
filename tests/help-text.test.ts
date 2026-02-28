@@ -3,7 +3,9 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { buildHelpText } from '../src/help-text.js';
+import { createHelpTextBuilder } from '../src/help-text.js';
+
+const buildHelpText = createHelpTextBuilder(true);
 
 describe('buildHelpText', () => {
   it('should render examples section', () => {
@@ -110,5 +112,70 @@ describe('buildHelpText', () => {
 
     // There should be a blank line between the last example and the valid values header
     expect(lines[typesLine - 1]).toBe('');
+  });
+});
+
+describe('buildHelpText with color', () => {
+  const buildColoredHelpText = createHelpTextBuilder(false);
+
+  // ANSI escape code prefix
+  const ESC = '\x1b[';
+
+  it('should apply bold to section headers', () => {
+    const result = buildColoredHelpText({ examples: ['bb test'] });
+    // Bold ANSI: \x1b[1m
+    expect(result).toContain(`${ESC}1mExamples:`);
+  });
+
+  it('should apply dim to example $ prefix', () => {
+    const result = buildColoredHelpText({ examples: ['bb test'] });
+    // Dim ANSI: \x1b[2m
+    expect(result).toContain(`${ESC}2m$`);
+  });
+
+  it('should apply cyan to valid values', () => {
+    const result = buildColoredHelpText({
+      validValues: { States: ['OPEN', 'MERGED'] },
+    });
+    // Cyan ANSI: \x1b[36m
+    expect(result).toContain(`${ESC}36mOPEN, MERGED`);
+  });
+
+  it('should apply bold to default flag names', () => {
+    const result = buildColoredHelpText({
+      defaults: { state: 'OPEN' },
+    });
+    expect(result).toContain(`${ESC}1m--state`);
+  });
+
+  it('should apply cyan to default values', () => {
+    const result = buildColoredHelpText({
+      defaults: { state: 'OPEN' },
+    });
+    expect(result).toContain(`${ESC}36mOPEN`);
+  });
+
+  it('should apply bold to env var names', () => {
+    const result = buildColoredHelpText({
+      envVars: { BB_TOKEN: 'API token' },
+    });
+    expect(result).toContain(`${ESC}1mBB_TOKEN`);
+  });
+
+  it('should apply dim to env var descriptions', () => {
+    const result = buildColoredHelpText({
+      envVars: { BB_TOKEN: 'API token' },
+    });
+    expect(result).toContain(`${ESC}2mAPI token`);
+  });
+
+  it('should produce no ANSI codes when noColor is true', () => {
+    const result = buildHelpText({
+      examples: ['bb test'],
+      validValues: { States: ['OPEN'] },
+      defaults: { limit: '25' },
+      envVars: { BB_TOKEN: 'token' },
+    });
+    expect(result).not.toContain(ESC);
   });
 });

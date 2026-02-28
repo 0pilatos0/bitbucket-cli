@@ -5,6 +5,8 @@
  * appended via Commander's `.addHelpText('after', ...)`.
  */
 
+import { Chalk } from 'chalk';
+
 export interface HelpTextConfig {
   examples?: string[];
   validValues?: Record<string, string[]>;
@@ -12,42 +14,56 @@ export interface HelpTextConfig {
   envVars?: Record<string, string>;
 }
 
-export function buildHelpText(config: HelpTextConfig): string {
-  const sections: string[] = [];
+interface ColorFns {
+  bold: (text: string) => string;
+  dim: (text: string) => string;
+  cyan: (text: string) => string;
+}
 
-  if (config.examples?.length) {
-    sections.push('Examples:');
-    for (const example of config.examples) {
-      sections.push(`  $ ${example}`);
+export function createHelpTextBuilder(noColor: boolean) {
+  const passthrough = (t: string) => t;
+  const chalk = new Chalk({ level: noColor ? 0 : 1 });
+  const c: ColorFns = noColor
+    ? { bold: passthrough, dim: passthrough, cyan: passthrough }
+    : { bold: chalk.bold, dim: chalk.dim, cyan: chalk.cyan };
+
+  return function buildHelpText(config: HelpTextConfig): string {
+    const sections: string[] = [];
+
+    if (config.examples?.length) {
+      sections.push(c.bold('Examples:'));
+      for (const example of config.examples) {
+        sections.push(`  ${c.dim('$')} ${example}`);
+      }
     }
-  }
 
-  if (config.validValues) {
-    for (const [label, values] of Object.entries(config.validValues)) {
+    if (config.validValues) {
+      for (const [label, values] of Object.entries(config.validValues)) {
+        if (sections.length) sections.push('');
+        sections.push(c.bold(`${label}:`));
+        sections.push(`  ${c.cyan(values.join(', '))}`);
+      }
+    }
+
+    if (config.defaults) {
       if (sections.length) sections.push('');
-      sections.push(`${label}:`);
-      sections.push(`  ${values.join(', ')}`);
+      sections.push(c.bold('Defaults:'));
+      for (const [key, value] of Object.entries(config.defaults)) {
+        sections.push(`  ${c.bold(`--${key}`)}  ${c.cyan(value)}`);
+      }
     }
-  }
 
-  if (config.defaults) {
-    if (sections.length) sections.push('');
-    sections.push('Defaults:');
-    for (const [key, value] of Object.entries(config.defaults)) {
-      sections.push(`  --${key}  ${value}`);
+    if (config.envVars) {
+      if (sections.length) sections.push('');
+      sections.push(c.bold('Environment variables:'));
+      const maxLen = Math.max(
+        ...Object.keys(config.envVars).map((k) => k.length)
+      );
+      for (const [name, desc] of Object.entries(config.envVars)) {
+        sections.push(`  ${c.bold(name.padEnd(maxLen + 2))}${c.dim(desc)}`);
+      }
     }
-  }
 
-  if (config.envVars) {
-    if (sections.length) sections.push('');
-    sections.push('Environment variables:');
-    const maxLen = Math.max(
-      ...Object.keys(config.envVars).map((k) => k.length)
-    );
-    for (const [name, desc] of Object.entries(config.envVars)) {
-      sections.push(`  ${name.padEnd(maxLen + 2)}${desc}`);
-    }
-  }
-
-  return '\n' + sections.join('\n') + '\n';
+    return '\n' + sections.join('\n') + '\n';
+  };
 }

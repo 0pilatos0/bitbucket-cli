@@ -5,7 +5,7 @@
 import { Command } from 'commander';
 import { createRequire } from 'node:module';
 import { bootstrap } from './bootstrap.js';
-import { buildHelpText } from './help-text.js';
+import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
 import type { BaseCommand } from './core/base-command.js';
@@ -98,6 +98,7 @@ export function resolveNoColorSetting(
 
 // Bootstrap the container
 const noColor = resolveNoColorSetting(process.argv, process.env);
+const buildHelpText = createHelpTextBuilder(noColor);
 
 const container = bootstrap({ noColor });
 
