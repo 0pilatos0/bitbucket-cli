@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.1
+
+### Patch Changes
+
+- [#124](https://github.com/0pilatos0/bitbucket-cli/pull/124) [`322ef55`](https://github.com/0pilatos0/bitbucket-cli/commit/322ef55ce4b03c1dfbc3d8609ad21a4a052d1cec) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Expand test coverage for delete/edit comment and reviewer list/add/remove commands
+
+- [#123](https://github.com/0pilatos0/bitbucket-cli/pull/123) [`f73e86e`](https://github.com/0pilatos0/bitbucket-cli/commit/f73e86e9976bce8ed3137151d496a1d0f26b31bb) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Strengthen option validation: add NaN checks for numeric IDs in 6 PR subcommands, validate --state enum in list command, and require --name in repo create command
+
 ## 1.9.0
 
 ### Minor Changes
