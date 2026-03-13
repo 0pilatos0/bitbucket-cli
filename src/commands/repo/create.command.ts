@@ -39,7 +39,8 @@ export class CreateRepoCommand extends BaseCommand<
     options: { name: string } & CreateRepoOptions,
     context: CommandContext
   ): Promise<void> {
-    const { name, description, project } = options;
+    const { description, project } = options;
+    const name = this.requireOption(options.name, 'name');
     const isPublic = options.public === true;
 
     const workspace = await this.resolveWorkspace(options.workspace);

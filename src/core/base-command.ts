@@ -90,4 +90,37 @@ export abstract class BaseCommand<
     }
     return value;
   }
+
+  /**
+   * Parse a string option as an integer, throwing on invalid input
+   */
+  protected parseIntOption(value: string, name: string): number {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isNaN(parsed)) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: `--${name} must be a valid integer`,
+        context: { [name]: value },
+      });
+    }
+    return parsed;
+  }
+
+  /**
+   * Validate a string option against a set of allowed values
+   */
+  protected parseEnumOption<T extends string>(
+    value: string,
+    name: string,
+    allowed: readonly T[]
+  ): T {
+    if (!allowed.includes(value as T)) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: `--${name} must be one of: ${allowed.join(', ')}`,
+        context: { [name]: value },
+      });
+    }
+    return value as T;
+  }
 }

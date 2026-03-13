@@ -15,7 +15,7 @@ import {
   mockRepository,
 } from '../setup.js';
 import type { IContextService } from '../../src/core/interfaces/services.js';
-import type { BBError } from '../../src/types/errors.js';
+import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
 
 function extractPaginationParams(axiosOptions: unknown): {
@@ -427,7 +427,7 @@ describe('CreateRepoCommand', () => {
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
-  it('should create repo with undefined name (name is required type but not validated)', async () => {
+  it('should throw when name is missing', async () => {
     const repositoriesApi = createMockRepositoriesApi();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
@@ -439,14 +439,39 @@ describe('CreateRepoCommand', () => {
       configService,
       output
     );
-    // Note: The command expects name but doesn't validate it at runtime
-    await command.execute(
-      { name: undefined as unknown as string },
-      { globalOptions: {} }
+
+    try {
+      await command.execute(
+        { name: undefined as unknown as string },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+    }
+  });
+
+  it('should throw when name is empty string', async () => {
+    const repositoriesApi = createMockRepositoriesApi();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const output = createMockOutputService();
+
+    const command = new CreateRepoCommand(
+      repositoriesApi,
+      configService,
+      output
     );
 
-    // The mock will still succeed - actual API would fail
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+    try {
+      await command.execute({ name: '' }, { globalOptions: {} });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+    }
   });
 
   it('should fail when no workspace available', async () => {
