@@ -44,11 +44,15 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       ...options,
     });
 
-    const state = (options.state || 'OPEN') as
-      | 'OPEN'
-      | 'MERGED'
-      | 'DECLINED'
-      | 'SUPERSEDED';
+    const ALLOWED_STATES = [
+      'OPEN',
+      'MERGED',
+      'DECLINED',
+      'SUPERSEDED',
+    ] as const;
+    const state = options.state
+      ? this.parseEnumOption(options.state, 'state', ALLOWED_STATES)
+      : 'OPEN';
     const limit = parseLimit(options.limit);
     const reviewerQuery = options.mine
       ? await this.buildMineFilter()

@@ -39,7 +39,7 @@ export class ListReviewersPRCommand extends BaseCommand<
       ...options,
     });
 
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parseIntOption(options.id, 'id');
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(

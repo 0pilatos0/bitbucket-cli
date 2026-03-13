@@ -15,6 +15,11 @@ import { CheckoutPRCommand } from '../../src/commands/pr/checkout.command.js';
 import { DiffPRCommand } from '../../src/commands/pr/diff.command.js';
 import { ActivityPRCommand } from '../../src/commands/pr/activity.command.js';
 import { ListCommentsPRCommand } from '../../src/commands/pr/comments.list.command.js';
+import { DeleteCommentPRCommand } from '../../src/commands/pr/comments.delete.command.js';
+import { EditCommentPRCommand } from '../../src/commands/pr/comments.edit.command.js';
+import { ListReviewersPRCommand } from '../../src/commands/pr/reviewers.list.command.js';
+import { AddReviewerPRCommand } from '../../src/commands/pr/reviewers.add.command.js';
+import { RemoveReviewerPRCommand } from '../../src/commands/pr/reviewers.remove.command.js';
 import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
 import { CommentPRCommand } from '../../src/commands/pr/comment.command.js';
 import {
@@ -2252,5 +2257,273 @@ describe('CommentPRCommand', () => {
         )
       )
     ).toBe(true);
+  });
+});
+
+describe('ListCommentsPRCommand validation', () => {
+  it('should throw when --id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute({ id: 'abc' }, { globalOptions: {} });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('DeleteCommentPRCommand validation', () => {
+  it('should throw when --pr-id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new DeleteCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { prId: 'abc', commentId: '1' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+
+  it('should throw when --comment-id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new DeleteCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { prId: '1', commentId: 'xyz' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('EditCommentPRCommand validation', () => {
+  it('should throw when --pr-id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new EditCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { prId: 'abc', commentId: '1', message: 'updated' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+
+  it('should throw when --comment-id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new EditCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { prId: '1', commentId: 'xyz', message: 'updated' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('ListReviewersPRCommand validation', () => {
+  it('should throw when --id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListReviewersPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute({ id: 'abc' }, { globalOptions: {} });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('AddReviewerPRCommand validation', () => {
+  it('should throw when --id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { id: 'abc', username: 'user1' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('RemoveReviewerPRCommand validation', () => {
+  it('should throw when --id is non-numeric', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new RemoveReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute(
+        { id: 'abc', username: 'user1' },
+        { globalOptions: {} }
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    }
+  });
+});
+
+describe('ListPRsCommand validation', () => {
+  it('should throw when --state is invalid', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const usersApi = createMockUsersApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+
+    try {
+      await command.execute({ state: 'INVALID' }, { globalOptions: {} });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect((error as BBError).message).toContain('--state must be one of');
+    }
+  });
+
+  it('should default to OPEN when --state is not provided', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const usersApi = createMockUsersApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    // Should not throw - defaults to OPEN
+    expect(output.logs.length).toBeGreaterThan(0);
   });
 });
