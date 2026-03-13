@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0
+
+### Minor Changes
+
+- [#131](https://github.com/0pilatos0/bitbucket-cli/pull/131) [`ada0739`](https://github.com/0pilatos0/bitbucket-cli/commit/ada0739fc28c9d2115dff69cdcfe47a621a5ee64) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add automatic retry with exponential backoff for rate-limited (429) and transient server errors (502/503/504)
+
+### Patch Changes
+
+- [#130](https://github.com/0pilatos0/bitbucket-cli/pull/130) [`ddea45e`](https://github.com/0pilatos0/bitbucket-cli/commit/ddea45e3fe072ccd6448ee374fa7d81d00ba9da0) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix silent error swallowing in runCommand: ensure process.exitCode is always set on failure and log container resolution errors
+
 ## 1.9.1
 
 ### Patch Changes
