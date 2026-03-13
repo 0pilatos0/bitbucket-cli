@@ -56,6 +56,46 @@ class TestCommandWithBBError extends BaseCommand<{ option?: string }, void> {
   }
 }
 
+class TestCommandWithUnknownError extends BaseCommand<
+  { option?: string },
+  void
+> {
+  public readonly name = 'test-error-unknown';
+  public readonly description = 'Test command with unknown error';
+
+  async execute(
+    _options: { option?: string },
+    _context: CommandContext
+  ): Promise<void> {
+    throw 'string error';
+  }
+}
+
+class TestCommandWithParseHelpers extends BaseCommand<
+  { option?: string },
+  void
+> {
+  public readonly name = 'test-parse';
+  public readonly description = 'Test command with parse helpers';
+
+  async execute(
+    _options: { option?: string },
+    _context: CommandContext
+  ): Promise<void> {}
+
+  public callParseIntOption(value: string, name: string): number {
+    return this.parseIntOption(value, name);
+  }
+
+  public callParseEnumOption<T extends string>(
+    value: string,
+    name: string,
+    allowed: readonly T[]
+  ): T {
+    return this.parseEnumOption(value, name, allowed);
+  }
+}
+
 describe('BaseCommand', () => {
   let output: ReturnType<typeof createMockOutputService>;
   let originalNodeEnv: string | undefined;
@@ -224,6 +264,122 @@ describe('BaseCommand', () => {
       expect(output.logs).toContain(
         'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key","context":{"key":"invalidKey"}}'
       );
+    });
+
+    it('should set process.exitCode to 1 when NODE_ENV is not test', async () => {
+      process.env.NODE_ENV = 'production';
+      process.exitCode = 0;
+      const command = new TestCommandWithError(output);
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+        'Test error'
+      );
+
+      expect(process.exitCode).toBe(1);
+    });
+
+    it('should not set process.exitCode when NODE_ENV is test', async () => {
+      process.env.NODE_ENV = 'test';
+      process.exitCode = 0;
+      const command = new TestCommandWithError(output);
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+        'Test error'
+      );
+
+      expect(process.exitCode).toBe(0);
+    });
+
+    it('should handle non-Error thrown values by converting to string', async () => {
+      const command = new TestCommandWithUnknownError(output);
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toBe(
+        'string error'
+      );
+
+      expect(output.logs).toContain('error:string error');
+    });
+
+    it('should output json error for non-Error thrown values in json mode', async () => {
+      const command = new TestCommandWithUnknownError(output);
+
+      await expect(
+        command.run({}, { globalOptions: { json: true } })
+      ).rejects.toBe('string error');
+
+      expect(output.logs).toContain(
+        'jsonError:{"name":"Error","code":9999,"message":"string error"}'
+      );
+    });
+
+    it('should output BBError message in non-json mode', async () => {
+      const command = new TestCommandWithBBError(output);
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+        'Unknown config key'
+      );
+
+      expect(output.logs).toContain('error:Unknown config key');
+    });
+
+    it('should re-throw the original error after handling', async () => {
+      const command = new TestCommandWithBBError(output);
+
+      try {
+        await command.run({}, { globalOptions: {} });
+        expect(true).toBe(false); // should not reach here
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).code).toBe(ErrorCode.CONFIG_INVALID_KEY);
+      }
+    });
+  });
+
+  describe('parseIntOption', () => {
+    it('should parse valid integer string', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callParseIntOption('42', 'limit')).toBe(42);
+    });
+
+    it('should throw BBError for non-numeric string', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParseIntOption('abc', 'limit')).toThrow(
+        '--limit must be a valid integer'
+      );
+    });
+
+    it('should throw BBError for empty string', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParseIntOption('', 'limit')).toThrow(
+        '--limit must be a valid integer'
+      );
+    });
+  });
+
+  describe('parseEnumOption', () => {
+    it('should return value when it matches allowed values', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(
+        command.callParseEnumOption('open', 'state', [
+          'open',
+          'closed',
+        ] as const)
+      ).toBe('open');
+    });
+
+    it('should throw BBError for invalid enum value', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callParseEnumOption('invalid', 'state', [
+          'open',
+          'closed',
+        ] as const)
+      ).toThrow('--state must be one of: open, closed');
     });
   });
 });
