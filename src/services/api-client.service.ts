@@ -2,11 +2,40 @@
  * API Client Service - Axios instance with auth and error handling
  */
 
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
 const BASE_URL = 'https://api.bitbucket.org/2.0';
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+
+const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
+
+interface RetryableConfig extends InternalAxiosRequestConfig {
+  __retryCount?: number;
+}
+
+function getRetryDelay(error: AxiosError, attempt: number): number {
+  if (error.response?.status === 429) {
+    const retryAfter = error.response.headers['retry-after'];
+    if (retryAfter) {
+      const seconds = Number.parseInt(retryAfter, 10);
+      if (!Number.isNaN(seconds)) {
+        return seconds * 1000;
+      }
+    }
+  }
+  return BASE_DELAY_MS * Math.pow(2, attempt - 1);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function createApiClient(configService: IConfigService): AxiosInstance {
   const instance = axios.create({
@@ -33,7 +62,7 @@ export function createApiClient(configService: IConfigService): AxiosInstance {
     (error) => Promise.reject(error)
   );
 
-  // Response interceptor to transform axios errors into BBError
+  // Response interceptor with retry logic and error transformation
   instance.interceptors.response.use(
     (response) => {
       if (process.env.DEBUG === 'true') {
@@ -45,7 +74,7 @@ export function createApiClient(configService: IConfigService): AxiosInstance {
       }
       return response;
     },
-    (error: AxiosError) => {
+    async (error: AxiosError) => {
       if (process.env.DEBUG === 'true') {
         console.debug(`[HTTP] Error:`, error.message);
         if (error.response) {
@@ -55,6 +84,28 @@ export function createApiClient(configService: IConfigService): AxiosInstance {
           );
         }
       }
+
+      // Retry on transient/rate-limit errors
+      if (error.response && RETRYABLE_STATUS_CODES.has(error.response.status)) {
+        const config = error.config as RetryableConfig | undefined;
+        if (config) {
+          const retryCount = config.__retryCount ?? 0;
+          if (retryCount < MAX_RETRIES) {
+            config.__retryCount = retryCount + 1;
+            const delay = getRetryDelay(error, config.__retryCount);
+            const status = error.response.status;
+            const label =
+              status === 429 ? 'Rate limited' : `Server error (${status})`;
+            console.error(
+              `${label}, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${config.__retryCount}/${MAX_RETRIES})...`
+            );
+            await sleep(delay);
+            return instance(config);
+          }
+        }
+      }
+
+      // Transform non-retryable errors (or exhausted retries) into BBError
       if (error.response) {
         const { status, data } = error.response;
         const message = extractErrorMessage(data) || error.message;
