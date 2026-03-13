@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.1
+
+### Patch Changes
+
+- [#133](https://github.com/0pilatos0/bitbucket-cli/pull/133) [`b1a1d7a`](https://github.com/0pilatos0/bitbucket-cli/commit/b1a1d7a064e4508363cec6214919344486a7d937) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Remove unsafe `as unknown as` type casts in reviewer add/remove commands and extract shared reviewer update logic into a reusable service
+
 ## 1.10.0
 
 ### Minor Changes
