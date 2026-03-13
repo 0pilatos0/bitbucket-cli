@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, UsersApi } from '../../generated/api.js';
+import { updatePullRequestReviewers } from '../../services/reviewer.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface AddReviewerPROptions extends GlobalOptions {
@@ -43,46 +44,23 @@ export class AddReviewerPRCommand extends BaseCommand<
 
     const prId = this.parseIntOption(options.id, 'id');
 
-    // First look up the user to get their UUID
+    // Look up the user to get their UUID
     const userResponse = await this.usersApi.usersSelectedUserGet({
       selectedUser: options.username,
     });
     const user = userResponse.data;
 
-    // Get current PR to see existing reviewers
-    const prResponse =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
+    const updatedPr = await updatePullRequestReviewers(
+      this.pullrequestsApi,
+      repoContext,
+      prId,
+      (uuids) => {
+        if (!uuids.includes(user.uuid!)) {
+          return [...uuids, user.uuid!];
         }
-      );
-    const pr = prResponse.data;
-
-    // Build list of reviewers (existing + new)
-    const existingReviewers = pr.reviewers ? Array.from(pr.reviewers) : [];
-    const reviewerUuids = existingReviewers
-      .map((r) => (r as { uuid?: string }).uuid)
-      .filter(Boolean);
-
-    if (!reviewerUuids.includes(user.uuid)) {
-      reviewerUuids.push(user.uuid);
-    }
-
-    // Update PR with new reviewers list
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-          body: {
-            type: 'pullrequest',
-            reviewers: reviewerUuids.map((uuid) => ({ uuid })),
-          } as unknown as import('../../generated/api.js').Pullrequest,
-        }
-      );
+        return uuids;
+      }
+    );
 
     if (context.globalOptions.json) {
       this.output.json({
@@ -92,7 +70,7 @@ export class AddReviewerPRCommand extends BaseCommand<
           username: options.username,
           uuid: user.uuid,
         },
-        pullRequest: response.data,
+        pullRequest: updatedPr,
       });
       return;
     }
