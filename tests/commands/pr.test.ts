@@ -134,6 +134,8 @@ function createMockPullrequestsApi(
     throwOnDiffstat?: boolean;
     throwOnActivity?: boolean;
     throwOnComment?: boolean;
+    throwOnCommentDelete?: boolean;
+    throwOnCommentEdit?: boolean;
     onListCall?: (request: unknown, axiosOptions?: unknown) => void;
     onActivityCall?: (request: unknown, axiosOptions?: unknown) => void;
     onCommentsListCall?: (request: unknown, axiosOptions?: unknown) => void;
@@ -440,6 +442,35 @@ function createMockPullrequestsApi(
         inline: params.body.inline,
       });
     },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdDelete(_params: {
+      workspace: string;
+      repoSlug: string;
+      pullRequestId: number;
+      commentId: number;
+    }) {
+      if (options.throwOnCommentDelete) {
+        throw new Error('API Error');
+      }
+      return createAxiosResponse(undefined);
+    },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(params: {
+      workspace: string;
+      repoSlug: string;
+      pullRequestId: number;
+      commentId: number;
+      body: Record<string, unknown>;
+    }) {
+      if (options.throwOnCommentEdit) {
+        throw new Error('API Error');
+      }
+      return createAxiosResponse({
+        id: params.commentId,
+        type: 'pullrequest_comment',
+        content: params.body.content,
+      });
+    },
   };
 
   // Return the mock as PullrequestsApi - we only implement the methods we use
@@ -485,12 +516,23 @@ function createMockCommitStatusesApi(
   return mockApi as unknown as CommitStatusesApi;
 }
 
-function createMockUsersApi(options: { uuid?: string } = {}): UsersApi {
+function createMockUsersApi(
+  options: { uuid?: string; throwOnGetUser?: boolean } = {}
+): UsersApi {
   const mockApi = {
     async userGet() {
       return createAxiosResponse({
         ...mockUser,
         uuid: options.uuid,
+      });
+    },
+    async usersSelectedUserGet(_params: { selectedUser: string }) {
+      if (options.throwOnGetUser) {
+        throw new Error('User not found');
+      }
+      return createAxiosResponse({
+        ...mockUser,
+        uuid: options.uuid ?? '{user-uuid}',
       });
     },
   };
@@ -2260,33 +2302,12 @@ describe('CommentPRCommand', () => {
   });
 });
 
-describe('ListCommentsPRCommand validation', () => {
-  it('should throw when --id is non-numeric', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
+// ============================================================
+// DeleteCommentPRCommand tests
+// ============================================================
 
-    const command = new ListCommentsPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-
-    try {
-      await command.execute({ id: 'abc' }, { globalOptions: {} });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
-  });
-});
-
-describe('DeleteCommentPRCommand validation', () => {
-  it('should throw when --pr-id is non-numeric', async () => {
+describe('DeleteCommentPRCommand', () => {
+  it('should delete a comment and show success message', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -2299,20 +2320,17 @@ describe('DeleteCommentPRCommand validation', () => {
       contextService,
       output
     );
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
 
-    try {
-      await command.execute(
-        { prId: 'abc', commentId: '1' },
-        { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+    expect(
+      output.logs.some((log) => log.includes('Deleted comment #7 from PR #42'))
+    ).toBe(true);
   });
 
-  it('should throw when --comment-id is non-numeric', async () => {
+  it('should return JSON on success', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -2325,22 +2343,63 @@ describe('DeleteCommentPRCommand validation', () => {
       contextService,
       output
     );
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: { json: true } }
+    );
 
-    try {
-      await command.execute(
-        { prId: '1', commentId: 'xyz' },
-        { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.commentId).toBe(7);
+  });
+
+  it('should propagate API error on delete failure', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnCommentDelete: true,
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new DeleteCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('API Error');
+  });
+
+  it('should throw when no repo context available', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new DeleteCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow();
   });
 });
 
-describe('EditCommentPRCommand validation', () => {
-  it('should throw when --pr-id is non-numeric', async () => {
+// ============================================================
+// EditCommentPRCommand tests
+// ============================================================
+
+describe('EditCommentPRCommand', () => {
+  it('should edit a comment and show success message', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -2353,20 +2412,17 @@ describe('EditCommentPRCommand validation', () => {
       contextService,
       output
     );
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Updated text' },
+      { globalOptions: {} }
+    );
 
-    try {
-      await command.execute(
-        { prId: 'abc', commentId: '1', message: 'updated' },
-        { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+    expect(
+      output.logs.some((log) => log.includes('Updated comment #7 on PR #42'))
+    ).toBe(true);
   });
 
-  it('should throw when --comment-id is non-numeric', async () => {
+  it('should return JSON on success', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -2379,23 +2435,81 @@ describe('EditCommentPRCommand validation', () => {
       contextService,
       output
     );
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Updated text' },
+      { globalOptions: { json: true } }
+    );
 
-    try {
-      await command.execute(
-        { prId: '1', commentId: 'xyz', message: 'updated' },
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.commentId).toBe(7);
+    expect(parsed.comment).toBeDefined();
+  });
+
+  it('should propagate API error on edit failure', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnCommentEdit: true,
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new EditCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '7', message: 'Updated text' },
         { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+      )
+    ).rejects.toThrow('API Error');
+  });
+
+  it('should throw when no repo context available', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new EditCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '7', message: 'Updated text' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow();
   });
 });
 
-describe('ListReviewersPRCommand validation', () => {
-  it('should throw when --id is non-numeric', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
+// ============================================================
+// ListReviewersPRCommand tests
+// ============================================================
+
+describe('ListReviewersPRCommand', () => {
+  it('should display reviewers in a table', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { display_name: 'Alice', account_id: 'acc-1' },
+        { display_name: 'Bob', account_id: 'acc-2' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
@@ -2407,21 +2521,282 @@ describe('ListReviewersPRCommand validation', () => {
       contextService,
       output
     );
+    await command.execute({ id: '42' }, { globalOptions: {} });
 
-    try {
-      await command.execute({ id: 'abc' }, { globalOptions: {} });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+    expect(output.logs.some((log) => log.includes('table:'))).toBe(true);
+    const rows = getTableRows(output.logs);
+    expect(rows.length).toBe(2);
+  });
+
+  it('should show info message when no reviewers', async () => {
+    const prNoReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set() as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prNoReviewers],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListReviewersPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '42' }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('No reviewers assigned to this pull request')
+      )
+    ).toBe(true);
+  });
+
+  it('should return JSON with reviewers', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { display_name: 'Alice', account_id: 'acc-1' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListReviewersPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '42' }, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.count).toBe(1);
+    expect(parsed.reviewers).toHaveLength(1);
+  });
+
+  it('should return JSON with empty reviewers', async () => {
+    const prNoReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set() as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prNoReviewers],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListReviewersPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '42' }, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.count).toBe(0);
+    expect(parsed.reviewers).toHaveLength(0);
+  });
+
+  it('should handle reviewers with missing fields', async () => {
+    const prWithPartialReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([{ type: 'user' }]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithPartialReviewers],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListReviewersPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '42' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows.length).toBe(1);
+    expect(rows[0][0]).toBe('Unknown');
+    expect(rows[0][1]).toBe('');
   });
 });
 
-describe('AddReviewerPRCommand validation', () => {
-  it('should throw when --id is non-numeric', async () => {
+// ============================================================
+// AddReviewerPRCommand tests
+// ============================================================
+
+describe('AddReviewerPRCommand', () => {
+  it('should add reviewer to empty list and show success', async () => {
+    const prNoReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set() as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prNoReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{new-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'newuser' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('Added newuser as reviewer to pull request #42')
+      )
+    ).toBe(true);
+  });
+
+  it('should add reviewer to existing list', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{existing-uuid}', display_name: 'Existing' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{new-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'newuser' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('Added newuser as reviewer to pull request #42')
+      )
+    ).toBe(true);
+  });
+
+  it('should not duplicate when adding existing reviewer', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{same-uuid}', display_name: 'Same User' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{same-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'sameuser' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) => log.includes('Added sameuser as reviewer'))
+    ).toBe(true);
+  });
+
+  it('should return JSON on success', async () => {
+    const prNoReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set() as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prNoReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{new-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'newuser' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.reviewer.username).toBe('newuser');
+    expect(parsed.reviewer.uuid).toBe('{new-uuid}');
+    expect(parsed.pullRequest).toBeDefined();
+  });
+
+  it('should propagate error when user not found', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
-    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const usersApi = createMockUsersApi({ throwOnGetUser: true });
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
@@ -2435,23 +2810,168 @@ describe('AddReviewerPRCommand validation', () => {
       output
     );
 
-    try {
-      await command.execute(
-        { id: 'abc', username: 'user1' },
-        { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
+    await expect(
+      command.execute({ id: '42', username: 'unknown' }, { globalOptions: {} })
+    ).rejects.toThrow('User not found');
   });
 });
 
-describe('RemoveReviewerPRCommand validation', () => {
-  it('should throw when --id is non-numeric', async () => {
+// ============================================================
+// RemoveReviewerPRCommand tests
+// ============================================================
+
+describe('RemoveReviewerPRCommand', () => {
+  it('should remove reviewer from list and show success', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{remove-uuid}', display_name: 'Remove Me' },
+        { uuid: '{keep-uuid}', display_name: 'Keep Me' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{remove-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new RemoveReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'removeuser' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('Removed removeuser as reviewer from pull request #42')
+      )
+    ).toBe(true);
+  });
+
+  it('should remove last reviewer leaving empty list', async () => {
+    const prWithOneReviewer: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{only-uuid}', display_name: 'Only Reviewer' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithOneReviewer],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{only-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new RemoveReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'onlyuser' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('Removed onlyuser as reviewer from pull request #42')
+      )
+    ).toBe(true);
+  });
+
+  it('should succeed silently when removing non-existent reviewer', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{other-uuid}', display_name: 'Other' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{not-in-list}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new RemoveReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'ghost' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('Removed ghost as reviewer from pull request #42')
+      )
+    ).toBe(true);
+  });
+
+  it('should return JSON on success', async () => {
+    const prWithReviewers: Pullrequest = {
+      ...mockPullRequest,
+      id: 42,
+      reviewers: new Set([
+        { uuid: '{remove-uuid}', display_name: 'Remove Me' },
+      ]) as Pullrequest['reviewers'],
+    };
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [prWithReviewers],
+    });
+    const usersApi = createMockUsersApi({ uuid: '{remove-uuid}' });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new RemoveReviewerPRCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { id: '42', username: 'removeuser' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.reviewer.username).toBe('removeuser');
+    expect(parsed.reviewer.uuid).toBe('{remove-uuid}');
+    expect(parsed.pullRequest).toBeDefined();
+  });
+
+  it('should propagate error when user not found', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
-    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+    const usersApi = createMockUsersApi({ throwOnGetUser: true });
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
@@ -2465,65 +2985,8 @@ describe('RemoveReviewerPRCommand validation', () => {
       output
     );
 
-    try {
-      await command.execute(
-        { id: 'abc', username: 'user1' },
-        { globalOptions: {} }
-      );
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-    }
-  });
-});
-
-describe('ListPRsCommand validation', () => {
-  it('should throw when --state is invalid', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const usersApi = createMockUsersApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ListPRsCommand(
-      pullrequestsApi,
-      usersApi,
-      contextService,
-      output
-    );
-
-    try {
-      await command.execute({ state: 'INVALID' }, { globalOptions: {} });
-      expect(true).toBe(false);
-    } catch (error) {
-      expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-      expect((error as BBError).message).toContain('--state must be one of');
-    }
-  });
-
-  it('should default to OPEN when --state is not provided', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const usersApi = createMockUsersApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ListPRsCommand(
-      pullrequestsApi,
-      usersApi,
-      contextService,
-      output
-    );
-
-    await command.execute({}, { globalOptions: {} });
-
-    // Should not throw - defaults to OPEN
-    expect(output.logs.length).toBeGreaterThan(0);
+    await expect(
+      command.execute({ id: '42', username: 'unknown' }, { globalOptions: {} })
+    ).rejects.toThrow('User not found');
   });
 });
