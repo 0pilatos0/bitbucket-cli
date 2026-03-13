@@ -121,12 +121,26 @@ async function runCommand<TOptions, TResult>(
   program: Command,
   context?: CommandContext
 ): Promise<TResult | undefined> {
-  const cmd = container.resolve<BaseCommand<TOptions, TResult>>(token);
-  const resolvedContext = context ?? createContext(program);
-
   try {
+    const cmd = container.resolve<BaseCommand<TOptions, TResult>>(token);
+    const resolvedContext = context ?? createContext(program);
+
     return await cmd.run(options, resolvedContext);
-  } catch {
+  } catch (error) {
+    // BaseCommand.run() already calls handleError() which outputs the error
+    // and sets process.exitCode before re-throwing. We only need to handle
+    // errors that occur outside of run() (e.g., container resolution failures).
+    if (
+      error instanceof Error &&
+      error.message.startsWith('Service not registered')
+    ) {
+      console.error(`Internal error: ${error.message}`);
+    }
+
+    if (!process.exitCode) {
+      process.exitCode = 1;
+    }
+
     return undefined;
   }
 }
