@@ -22,6 +22,7 @@ import {
   RepositoriesApi,
   UsersApi,
   CommitStatusesApi,
+  SnippetsApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -57,6 +58,19 @@ import { AddReviewerPRCommand } from './commands/pr/reviewers.add.command.js';
 import { RemoveReviewerPRCommand } from './commands/pr/reviewers.remove.command.js';
 import { ListReviewersPRCommand } from './commands/pr/reviewers.list.command.js';
 import { ChecksPRCommand } from './commands/pr/checks.command.js';
+
+// Snippet commands
+import { ListSnippetsCommand } from './commands/snippet/list.command.js';
+import { ViewSnippetCommand } from './commands/snippet/view.command.js';
+import { CreateSnippetCommand } from './commands/snippet/create.command.js';
+import { EditSnippetCommand } from './commands/snippet/edit.command.js';
+import { DeleteSnippetCommand } from './commands/snippet/delete.command.js';
+import { WatchSnippetCommand } from './commands/snippet/watch.command.js';
+import { UnwatchSnippetCommand } from './commands/snippet/unwatch.command.js';
+import { ListSnippetCommentsCommand } from './commands/snippet/comments.list.command.js';
+import { AddSnippetCommentCommand } from './commands/snippet/comments.add.command.js';
+import { EditSnippetCommentCommand } from './commands/snippet/comments.edit.command.js';
+import { DeleteSnippetCommentCommand } from './commands/snippet/comments.delete.command.js';
 
 // Config commands
 import { GetConfigCommand } from './commands/config/get.command.js';
@@ -113,6 +127,14 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     );
     const axiosInstance = createApiClient(configService);
     return new CommitStatusesApi(undefined, undefined, axiosInstance);
+  });
+
+  container.register(ServiceTokens.SnippetsApi, () => {
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const axiosInstance = createApiClient(configService);
+    return new SnippetsApi(undefined, undefined, axiosInstance);
   });
 
   container.register(ServiceTokens.ContextService, () => {
@@ -518,6 +540,150 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.OutputService
     );
     return new ChecksPRCommand(commitStatusesApi, contextService, output);
+  });
+
+  // Register snippet commands
+  container.register(ServiceTokens.ListSnippetsCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new ListSnippetsCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.ViewSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new ViewSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.CreateSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new CreateSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.EditSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new EditSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.DeleteSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new DeleteSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.WatchSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new WatchSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.UnwatchSnippetCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new UnwatchSnippetCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.ListSnippetCommentsCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new ListSnippetCommentsCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.AddSnippetCommentCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new AddSnippetCommentCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.EditSnippetCommentCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new EditSnippetCommentCommand(snippetsApi, configService, output);
+  });
+
+  container.register(ServiceTokens.DeleteSnippetCommentCommand, () => {
+    const snippetsApi = container.resolve<SnippetsApi>(
+      ServiceTokens.SnippetsApi
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new DeleteSnippetCommentCommand(snippetsApi, configService, output);
   });
 
   // Register config commands

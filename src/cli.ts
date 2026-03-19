@@ -26,6 +26,7 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
       'auth',
       'repo',
       'pr',
+      'snippet',
       'config',
       'completion',
       '--help',
@@ -60,6 +61,17 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
       );
     } else if (env.prev === 'reviewers') {
       completions.push('list', 'add', 'remove');
+    } else if (env.prev === 'snippet') {
+      completions.push(
+        'list',
+        'view',
+        'create',
+        'edit',
+        'delete',
+        'watch',
+        'unwatch',
+        'comments'
+      );
     } else if (env.prev === 'config') {
       completions.push('get', 'set', 'list');
     } else if (env.prev === 'completion') {
@@ -850,6 +862,250 @@ prReviewersCmd
 cli.addCommand(prCmd);
 prCmd.addCommand(prCommentsCmd);
 prCmd.addCommand(prReviewersCmd);
+
+// Snippet commands
+const snippetCmd = new Command('snippet').description('Manage snippets');
+
+snippetCmd
+  .command('list')
+  .description('List snippets in a workspace')
+  .option('--role <role>', 'Filter by role (owner, contributor, member)')
+  .option('--limit <number>', 'Maximum number of snippets to list', '25')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb snippet list',
+        'bb snippet list --role owner',
+        'bb snippet list --limit 50 --json',
+      ],
+      validValues: {
+        'Valid roles': ['owner', 'contributor', 'member'],
+      },
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListSnippetsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('view <id>')
+  .description('View snippet details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet view kypj', 'bb snippet view kypj --json'],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewSnippetCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('create')
+  .description('Create a new snippet')
+  .option('-t, --title <title>', 'Snippet title')
+  .option('-f, --file <path...>', 'File(s) to include')
+  .option('--private', 'Create a private snippet (default)')
+  .option('--public', 'Create a public snippet')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb snippet create -t "My snippet" -f file.txt',
+        'bb snippet create -t "Config files" -f config.yml -f setup.sh --public',
+      ],
+      defaults: { private: 'true (visibility is private unless --public)' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateSnippetCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('edit <id>')
+  .description('Edit a snippet')
+  .option('-t, --title <title>', 'New snippet title')
+  .option('--private', 'Make snippet private')
+  .option('--public', 'Make snippet public')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb snippet edit kypj -t "New title"',
+        'bb snippet edit kypj --public',
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.EditSnippetCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('delete <id>')
+  .description('Delete a snippet')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet delete kypj', 'bb snippet delete kypj --yes'],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.DeleteSnippetCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('watch <id>')
+  .description('Watch a snippet')
+  .addHelpText('after', buildHelpText({ examples: ['bb snippet watch kypj'] }))
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.WatchSnippetCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd
+  .command('unwatch <id>')
+  .description('Stop watching a snippet')
+  .addHelpText(
+    'after',
+    buildHelpText({ examples: ['bb snippet unwatch kypj'] })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.UnwatchSnippetCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+const snippetCommentsCmd = new Command('comments').description(
+  'Manage snippet comments'
+);
+
+snippetCommentsCmd
+  .command('list <id>')
+  .description('List comments on a snippet')
+  .option('--limit <number>', 'Maximum number of comments', '25')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb snippet comments list kypj',
+        'bb snippet comments list kypj --limit 50 --json',
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListSnippetCommentsCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCommentsCmd
+  .command('add <id>')
+  .description('Add a comment to a snippet')
+  .option('-m, --message <text>', 'Comment message')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet comments add kypj -m "Great snippet!"'],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.AddSnippetCommentCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCommentsCmd
+  .command('edit <snippet-id> <comment-id> <message>')
+  .description('Edit a comment on a snippet')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet comments edit kypj 123 "Updated comment"'],
+    })
+  )
+  .action(async (snippetId, commentId, message, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.EditSnippetCommentCommand,
+      withGlobalOptions({ snippetId, commentId, message }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCommentsCmd
+  .command('delete <snippet-id> <comment-id>')
+  .description('Delete a comment on a snippet')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet comments delete kypj 123 --yes'],
+    })
+  )
+  .action(async (snippetId, commentId, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.DeleteSnippetCommentCommand,
+      withGlobalOptions({ snippetId, commentId, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+snippetCmd.addCommand(snippetCommentsCmd);
+cli.addCommand(snippetCmd);
 
 // Config commands
 const configCmd = new Command('config').description('Manage configuration');
