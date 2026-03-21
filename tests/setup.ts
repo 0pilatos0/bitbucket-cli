@@ -14,6 +14,8 @@ import type { BBError } from '../src/types/errors.js';
 import type {
   BBConfig,
   AuthCredentials,
+  OAuthCredentials,
+  AuthMethod,
   RepoContext,
   GlobalOptions,
 } from '../src/types/config.js';
@@ -63,6 +65,7 @@ export function createMockConfigService(config: BBConfig = {}): IConfigService {
       };
     },
     async setCredentials(creds: AuthCredentials) {
+      currentConfig.authMethod = 'basic';
       currentConfig.username = creds.username;
       currentConfig.apiToken = creds.apiToken;
     },
@@ -87,6 +90,49 @@ export function createMockConfigService(config: BBConfig = {}): IConfigService {
     },
     getConfigPath() {
       return '/tmp/test-config/config.json';
+    },
+    async getAuthMethod(): Promise<AuthMethod> {
+      return (currentConfig.authMethod as AuthMethod) ?? 'basic';
+    },
+    async getOAuthCredentials(): Promise<OAuthCredentials> {
+      if (
+        !currentConfig.oauthAccessToken ||
+        !currentConfig.oauthRefreshToken ||
+        !currentConfig.oauthExpiresAt
+      ) {
+        throw { code: 1001, message: 'OAuth auth required' } as BBError;
+      }
+      return {
+        accessToken: currentConfig.oauthAccessToken,
+        refreshToken: currentConfig.oauthRefreshToken,
+        expiresAt: currentConfig.oauthExpiresAt,
+      };
+    },
+    async setOAuthCredentials(creds: OAuthCredentials) {
+      const { username: _u, apiToken: _t, ...rest } = currentConfig;
+      currentConfig = {
+        ...rest,
+        authMethod: 'oauth',
+        oauthAccessToken: creds.accessToken,
+        oauthRefreshToken: creds.refreshToken,
+        oauthExpiresAt: creds.expiresAt,
+      };
+    },
+    async clearOAuthCredentials() {
+      const {
+        authMethod: _am,
+        oauthAccessToken: _at,
+        oauthRefreshToken: _rt,
+        oauthExpiresAt: _ea,
+        oauthClientId: _ci,
+        oauthClientSecret: _cs,
+        ...rest
+      } = currentConfig;
+      currentConfig = rest;
+    },
+    async isOAuthTokenExpired(): Promise<boolean> {
+      if (!currentConfig.oauthExpiresAt) return true;
+      return Date.now() >= (currentConfig.oauthExpiresAt - 60) * 1000;
     },
   };
 }

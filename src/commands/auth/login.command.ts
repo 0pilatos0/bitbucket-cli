@@ -9,27 +9,85 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
+import type { OAuthService } from '../../services/oauth.service.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface LoginOptions {
   username?: string;
   password?: string;
+  appPassword?: boolean;
+  clientId?: string;
+  clientSecret?: string;
 }
 
 export class LoginCommand extends BaseCommand<LoginOptions, void> {
   public readonly name = 'login';
   public readonly description =
-    'Authenticate with Bitbucket using an API token';
+    'Authenticate with Bitbucket';
 
   constructor(
     private readonly configService: IConfigService,
     private readonly usersApi: UsersApi,
+    private readonly oauthService: OAuthService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
+    options: LoginOptions,
+    context: CommandContext
+  ): Promise<void> {
+    const useAppPassword =
+      options.appPassword ||
+      options.username !== undefined ||
+      options.password !== undefined ||
+      process.env.BB_API_TOKEN !== undefined;
+
+    if (useAppPassword) {
+      return this.loginWithApiToken(options, context);
+    }
+
+    return this.loginWithOAuth(options, context);
+  }
+
+  private async loginWithOAuth(
+    options: LoginOptions,
+    context: CommandContext
+  ): Promise<void> {
+    this.output.info(
+      'Opening browser to authenticate with Bitbucket...'
+    );
+
+    try {
+      const userInfo = await this.oauthService.authorize(
+        options.clientId,
+        options.clientSecret
+      );
+
+      if (context.globalOptions.json) {
+        this.output.json({
+          authenticated: true,
+          method: 'oauth',
+          user: {
+            username: userInfo.username,
+            displayName: userInfo.displayName,
+            accountId: userInfo.accountId,
+          },
+        });
+        return;
+      }
+
+      this.output.success(
+        `Logged in as ${userInfo.displayName} (${userInfo.username})`
+      );
+    } catch (error) {
+      await this.configService.clearOAuthCredentials();
+      throw error;
+    }
+  }
+
+  private async loginWithApiToken(
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
@@ -52,6 +110,8 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       });
     }
 
+    // Clear any existing OAuth credentials first
+    await this.configService.clearOAuthCredentials();
     await this.configService.setCredentials({ username, apiToken });
 
     try {
@@ -61,6 +121,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       if (context.globalOptions.json) {
         this.output.json({
           authenticated: true,
+          method: 'api_token',
           user: {
             username: user.username,
             displayName: user.display_name,

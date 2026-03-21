@@ -6,7 +6,12 @@ import { join, win32 } from 'node:path';
 import { homedir } from 'node:os';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
-import type { BBConfig, AuthCredentials } from '../types/config.js';
+import type {
+  BBConfig,
+  AuthCredentials,
+  OAuthCredentials,
+  AuthMethod,
+} from '../types/config.js';
 
 interface ConfigServicePathOptions {
   platform?: NodeJS.Platform;
@@ -120,6 +125,7 @@ export class ConfigService implements IConfigService {
     const config = await this.getConfig();
     await this.setConfig({
       ...config,
+      authMethod: 'basic',
       username: credentials.username,
       apiToken: credentials.apiToken,
     });
@@ -156,6 +162,71 @@ export class ConfigService implements IConfigService {
 
   public getConfigPath(): string {
     return this.configFile;
+  }
+
+  public async getAuthMethod(): Promise<AuthMethod> {
+    const config = await this.getConfig();
+    return config.authMethod ?? 'basic';
+  }
+
+  public async getOAuthCredentials(): Promise<OAuthCredentials> {
+    const config = await this.getConfig();
+    const { oauthAccessToken, oauthRefreshToken, oauthExpiresAt } = config;
+
+    if (!oauthAccessToken || !oauthRefreshToken || !oauthExpiresAt) {
+      throw new BBError({
+        code: ErrorCode.AUTH_REQUIRED,
+        message:
+          "OAuth authentication required. Run 'bb auth login' to authenticate.",
+      });
+    }
+
+    return {
+      accessToken: oauthAccessToken,
+      refreshToken: oauthRefreshToken,
+      expiresAt: oauthExpiresAt,
+    };
+  }
+
+  public async setOAuthCredentials(
+    credentials: OAuthCredentials
+  ): Promise<void> {
+    const config = await this.getConfig();
+    const {
+      username: _u,
+      apiToken: _t,
+      ...rest
+    } = config;
+    await this.setConfig({
+      ...rest,
+      authMethod: 'oauth',
+      oauthAccessToken: credentials.accessToken,
+      oauthRefreshToken: credentials.refreshToken,
+      oauthExpiresAt: credentials.expiresAt,
+    });
+  }
+
+  public async clearOAuthCredentials(): Promise<void> {
+    const config = await this.getConfig();
+    const {
+      authMethod: _am,
+      oauthAccessToken: _at,
+      oauthRefreshToken: _rt,
+      oauthExpiresAt: _ea,
+      oauthClientId: _ci,
+      oauthClientSecret: _cs,
+      ...rest
+    } = config;
+    await this.setConfig(rest);
+  }
+
+  public async isOAuthTokenExpired(): Promise<boolean> {
+    const config = await this.getConfig();
+    if (!config.oauthExpiresAt) {
+      return true;
+    }
+    // Consider expired if within 60 seconds of expiry
+    return Date.now() >= (config.oauthExpiresAt - 60) * 1000;
   }
 
   /**

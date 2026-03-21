@@ -4,9 +4,17 @@
 
 import { BBError, ErrorCode } from './errors.js';
 
+export type AuthMethod = 'basic' | 'oauth';
+
 export interface BBConfig {
   username?: string;
   apiToken?: string;
+  authMethod?: AuthMethod;
+  oauthAccessToken?: string;
+  oauthRefreshToken?: string;
+  oauthExpiresAt?: number;
+  oauthClientId?: string;
+  oauthClientSecret?: string;
   defaultWorkspace?: string;
   lastVersionCheck?: string;
   skipVersionCheck?: boolean;
@@ -16,6 +24,12 @@ export interface BBConfig {
 export interface AuthCredentials {
   username: string;
   apiToken: string;
+}
+
+export interface OAuthCredentials {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
 }
 
 export interface RepoContext {
@@ -35,6 +49,12 @@ type ReadableConfigValue = string | number | boolean;
 export const CONFIG_KEYS = [
   'username',
   'apiToken',
+  'authMethod',
+  'oauthAccessToken',
+  'oauthRefreshToken',
+  'oauthExpiresAt',
+  'oauthClientId',
+  'oauthClientSecret',
   'defaultWorkspace',
   'lastVersionCheck',
   'skipVersionCheck',

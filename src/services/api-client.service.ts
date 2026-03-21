@@ -8,6 +8,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios';
 import type { IConfigService } from '../core/interfaces/services.js';
+import type { OAuthService } from './oauth.service.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
 const BASE_URL = 'https://api.bitbucket.org/2.0';
@@ -18,6 +19,7 @@ const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
 
 interface RetryableConfig extends InternalAxiosRequestConfig {
   __retryCount?: number;
+  __tokenRefreshed?: boolean;
 }
 
 function getRetryDelay(error: AxiosError, attempt: number): number {
@@ -37,7 +39,10 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function createApiClient(configService: IConfigService): AxiosInstance {
+export function createApiClient(
+  configService: IConfigService,
+  oauthService?: OAuthService
+): AxiosInstance {
   const instance = axios.create({
     baseURL: BASE_URL,
     headers: {
@@ -46,17 +51,27 @@ export function createApiClient(configService: IConfigService): AxiosInstance {
     },
   });
 
-  // Request interceptor to add Basic auth header
+  // Request interceptor to add auth header (Basic or Bearer)
   instance.interceptors.request.use(
     async (config) => {
       if (process.env.DEBUG === 'true') {
         console.debug(`[HTTP] ${config.method?.toUpperCase()} ${config.url}`);
       }
-      const credentials = await configService.getCredentials();
-      const authString = Buffer.from(
-        `${credentials.username}:${credentials.apiToken}`
-      ).toString('base64');
-      config.headers.Authorization = `Basic ${authString}`;
+
+      const authMethod = await configService.getAuthMethod();
+
+      if (authMethod === 'oauth' && oauthService) {
+        // Proactive refresh: get a valid token (refreshes if expired)
+        const accessToken = await oauthService.getValidAccessToken();
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      } else {
+        const credentials = await configService.getCredentials();
+        const authString = Buffer.from(
+          `${credentials.username}:${credentials.apiToken}`
+        ).toString('base64');
+        config.headers.Authorization = `Basic ${authString}`;
+      }
+
       return config;
     },
     (error) => Promise.reject(error)
@@ -82,6 +97,30 @@ export function createApiClient(configService: IConfigService): AxiosInstance {
             `[HTTP] Error Response Body:`,
             JSON.stringify(error.response.data, null, 2)
           );
+        }
+      }
+
+      // Reactive OAuth token refresh on 401
+      if (
+        error.response?.status === 401 &&
+        oauthService
+      ) {
+        const config = error.config as RetryableConfig | undefined;
+        if (config && !config.__tokenRefreshed) {
+          const authMethod = await configService.getAuthMethod();
+          if (authMethod === 'oauth') {
+            try {
+              config.__tokenRefreshed = true;
+              const newToken = await oauthService.refreshAccessToken();
+              config.headers.Authorization = `Bearer ${newToken}`;
+              return instance(config);
+            } catch {
+              throw new BBError({
+                code: ErrorCode.AUTH_EXPIRED,
+                message: `OAuth token expired. Run 'bb auth login' to re-authenticate.`,
+              });
+            }
+          }
         }
       }
 

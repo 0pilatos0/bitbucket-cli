@@ -129,6 +129,7 @@ export const ServiceTokens = {
   ContextService: 'ContextService',
   OutputService: 'OutputService',
   HttpClient: 'HttpClient',
+  OAuthService: 'OAuthService',
   VersionService: 'VersionService',
 
   // API Clients

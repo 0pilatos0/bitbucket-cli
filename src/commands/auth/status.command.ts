@@ -13,12 +13,14 @@ import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface AuthStatus {
   authenticated: boolean;
+  method?: string;
   user?: {
     username: string;
     display_name: string;
     account_id: string;
   };
   defaultWorkspace?: string;
+  tokenExpiresAt?: number;
 }
 
 export class StatusCommand extends BaseCommand<void, void> {
@@ -35,9 +37,13 @@ export class StatusCommand extends BaseCommand<void, void> {
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const config = await this.configService.getConfig();
+    const authMethod = await this.configService.getAuthMethod();
 
-    // Check if credentials exist
-    if (!config.username || !config.apiToken) {
+    // Check if any credentials exist
+    const hasBasicAuth = config.username && config.apiToken;
+    const hasOAuth = config.oauthAccessToken && config.oauthRefreshToken;
+
+    if (!hasBasicAuth && !hasOAuth) {
       if (context.globalOptions.json) {
         this.output.json({ authenticated: false });
         return;
@@ -56,24 +62,50 @@ export class StatusCommand extends BaseCommand<void, void> {
       const user = response.data;
 
       if (context.globalOptions.json) {
-        this.output.json({
+        const jsonOutput: Record<string, unknown> = {
           authenticated: true,
+          method: authMethod,
           user: {
             username: user.username,
             displayName: user.display_name,
             accountId: user.account_id,
           },
           defaultWorkspace: config.defaultWorkspace,
-        });
+        };
+        if (authMethod === 'oauth' && config.oauthExpiresAt) {
+          jsonOutput.tokenExpiresAt = config.oauthExpiresAt;
+        }
+        this.output.json(jsonOutput);
         return;
       }
 
       this.output.success('Logged in to Bitbucket');
       this.output.text(
+        `  Authentication: ${this.output.highlight(authMethod === 'oauth' ? 'OAuth' : 'API Token')}`
+      );
+      this.output.text(
         `  Username: ${this.output.highlight(user.username ?? '')}`
       );
       this.output.text(`  Display name: ${user.display_name}`);
       this.output.text(`  Account ID: ${user.account_id}`);
+
+      if (authMethod === 'oauth' && config.oauthExpiresAt) {
+        const expiresIn = config.oauthExpiresAt - Math.floor(Date.now() / 1000);
+        if (expiresIn > 0) {
+          const hours = Math.floor(expiresIn / 3600);
+          const minutes = Math.floor((expiresIn % 3600) / 60);
+          const parts = [];
+          if (hours > 0) parts.push(`${hours}h`);
+          parts.push(`${minutes}m`);
+          this.output.text(
+            `  Token expires: in ${parts.join(' ')}`
+          );
+        } else {
+          this.output.text(
+            `  Token expires: ${this.output.yellow('expired (will refresh automatically)')}`
+          );
+        }
+      }
 
       if (config.defaultWorkspace) {
         this.output.text(

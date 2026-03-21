@@ -8,6 +8,7 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import type { OAuthService } from '../../services/oauth.service.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export class TokenCommand extends BaseCommand<void, void> {
@@ -16,12 +17,27 @@ export class TokenCommand extends BaseCommand<void, void> {
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly oauthService: OAuthService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
+    const authMethod = await this.configService.getAuthMethod();
+
+    if (authMethod === 'oauth') {
+      const accessToken = await this.oauthService.getValidAccessToken();
+
+      if (context.globalOptions.json) {
+        this.output.json({ token: accessToken, type: 'bearer' });
+        return;
+      }
+
+      this.output.text(accessToken);
+      return;
+    }
+
     const credentials = await this.configService.getCredentials();
 
     if (!credentials.username || !credentials.apiToken) {
@@ -36,7 +52,7 @@ export class TokenCommand extends BaseCommand<void, void> {
     ).toString('base64');
 
     if (context.globalOptions.json) {
-      this.output.json({ token });
+      this.output.json({ token, type: 'basic' });
       return;
     }
 

@@ -8,6 +8,7 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import type { OAuthService } from '../../services/oauth.service.js';
 
 export class LogoutCommand extends BaseCommand<void, void> {
   public readonly name = 'logout';
@@ -15,13 +16,21 @@ export class LogoutCommand extends BaseCommand<void, void> {
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly oauthService: OAuthService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
-    await this.configService.clearCredentials();
+    const authMethod = await this.configService.getAuthMethod();
+
+    if (authMethod === 'oauth') {
+      await this.oauthService.revokeToken();
+      await this.configService.clearOAuthCredentials();
+    } else {
+      await this.configService.clearCredentials();
+    }
 
     if (context.globalOptions.json) {
       this.output.json({ authenticated: false, success: true });
