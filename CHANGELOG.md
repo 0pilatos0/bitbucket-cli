@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.11.0
+
+### Minor Changes
+
+- [`71ac4b0`](https://github.com/0pilatos0/bitbucket-cli/commit/71ac4b0e204aca4f9ff2cb5517a40fbb573dd4ef) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add OAuth 2.0 authentication support
+  - `bb auth login` now opens the browser for OAuth authorization by default
+  - API token auth remains available via `bb auth login -u <user> -p <token>` or `--app-password`
+  - OAuth tokens refresh automatically when expired
+  - Custom OAuth consumers supported via `--client-id` and `--client-secret`
+  - `bb auth status` shows authentication method and token expiry
+  - `bb auth logout` revokes OAuth tokens server-side
+  - `bb auth token` outputs the active bearer or basic token
+
 ## 1.10.1
 
 ### Patch Changes
