@@ -7,10 +7,8 @@ import { randomBytes } from 'node:crypto';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 
-const BITBUCKET_AUTHORIZE_URL =
-  'https://bitbucket.org/site/oauth2/authorize';
-const BITBUCKET_TOKEN_URL =
-  'https://bitbucket.org/site/oauth2/access_token';
+const BITBUCKET_AUTHORIZE_URL = 'https://bitbucket.org/site/oauth2/authorize';
+const BITBUCKET_TOKEN_URL = 'https://bitbucket.org/site/oauth2/access_token';
 
 const CALLBACK_PORT = 19872;
 const CALLBACK_PATH = '/callback';
@@ -47,12 +45,15 @@ export class OAuthService {
   /**
    * Start the OAuth authorization flow: open browser, wait for callback, exchange code for tokens
    */
-  public async authorize(clientId?: string, clientSecret?: string): Promise<{
+  public async authorize(
+    clientId?: string,
+    clientSecret?: string
+  ): Promise<{
     username: string;
     displayName: string;
     accountId: string;
   }> {
-    const resolvedClientId = clientId ?? await this.getClientId();
+    const resolvedClientId = clientId ?? (await this.getClientId());
     const state = generateState();
 
     const authUrl = this.buildAuthUrl(resolvedClientId, state);
@@ -61,7 +62,11 @@ export class OAuthService {
     const { code } = await this.waitForCallback(authUrl, state);
 
     // Exchange authorization code for tokens
-    const tokenResponse = await this.exchangeCode(code, resolvedClientId, clientSecret);
+    const tokenResponse = await this.exchangeCode(
+      code,
+      resolvedClientId,
+      clientSecret
+    );
 
     // Store tokens
     const expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expires_in;
@@ -204,14 +209,16 @@ export class OAuthService {
         reject(
           new BBError({
             code: ErrorCode.AUTH_INVALID,
-            message:
-              'Authorization timed out. Please try again.',
+            message: 'Authorization timed out. Please try again.',
           })
         );
       }, AUTH_TIMEOUT_MS);
 
       server = createServer((req, res) => {
-        const url = new URL(req.url ?? '/', `http://localhost:${CALLBACK_PORT}`);
+        const url = new URL(
+          req.url ?? '/',
+          `http://localhost:${CALLBACK_PORT}`
+        );
 
         if (url.pathname !== CALLBACK_PATH) {
           res.writeHead(404);
@@ -284,9 +291,7 @@ export class OAuthService {
         } catch {
           // If browser can't be opened, user can copy the URL
         }
-        console.error(
-          `If the browser doesn't open, visit:\n${authUrl}\n`
-        );
+        console.error(`If the browser doesn't open, visit:\n${authUrl}\n`);
       });
     });
   }
@@ -296,7 +301,7 @@ export class OAuthService {
     clientId: string,
     clientSecretOverride?: string
   ): Promise<TokenResponse> {
-    const clientSecret = clientSecretOverride ?? await this.getClientSecret();
+    const clientSecret = clientSecretOverride ?? (await this.getClientSecret());
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,

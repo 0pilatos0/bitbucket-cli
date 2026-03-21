@@ -252,9 +252,7 @@ describe('OAuthService', () => {
       });
       const service = new OAuthService(configService);
 
-      const fetchMock = mockFetch([
-        { ok: true, status: 200 },
-      ]);
+      const fetchMock = mockFetch([{ ok: true, status: 200 }]);
 
       await service.revokeToken();
 

@@ -22,8 +22,7 @@ export interface LoginOptions {
 
 export class LoginCommand extends BaseCommand<LoginOptions, void> {
   public readonly name = 'login';
-  public readonly description =
-    'Authenticate with Bitbucket';
+  public readonly description = 'Authenticate with Bitbucket';
 
   constructor(
     private readonly configService: IConfigService,
@@ -55,9 +54,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
-    this.output.info(
-      'Opening browser to authenticate with Bitbucket...'
-    );
+    this.output.info('Opening browser to authenticate with Bitbucket...');
 
     try {
       const userInfo = await this.oauthService.authorize(

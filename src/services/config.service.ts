@@ -192,11 +192,7 @@ export class ConfigService implements IConfigService {
     credentials: OAuthCredentials
   ): Promise<void> {
     const config = await this.getConfig();
-    const {
-      username: _u,
-      apiToken: _t,
-      ...rest
-    } = config;
+    const { username: _u, apiToken: _t, ...rest } = config;
     await this.setConfig({
       ...rest,
       authMethod: 'oauth',

@@ -101,10 +101,7 @@ export function createApiClient(
       }
 
       // Reactive OAuth token refresh on 401
-      if (
-        error.response?.status === 401 &&
-        oauthService
-      ) {
+      if (error.response?.status === 401 && oauthService) {
         const config = error.config as RetryableConfig | undefined;
         if (config && !config.__tokenRefreshed) {
           const authMethod = await configService.getAuthMethod();

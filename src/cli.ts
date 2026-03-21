@@ -217,11 +217,20 @@ const authCmd = new Command('auth').description('Authenticate with Bitbucket');
 authCmd
   .command('login')
   .description('Authenticate with Bitbucket (OAuth or API token)')
-  .option('-u, --username <username>', 'Bitbucket username (implies API token auth)')
-  .option('-p, --password <password>', 'Bitbucket API token (implies API token auth)')
+  .option(
+    '-u, --username <username>',
+    'Bitbucket username (implies API token auth)'
+  )
+  .option(
+    '-p, --password <password>',
+    'Bitbucket API token (implies API token auth)'
+  )
   .option('--app-password', 'Use API token authentication instead of OAuth')
   .option('--client-id <clientId>', 'Custom OAuth consumer client ID')
-  .option('--client-secret <clientSecret>', 'Custom OAuth consumer client secret')
+  .option(
+    '--client-secret <clientSecret>',
+    'Custom OAuth consumer client secret'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -233,7 +242,8 @@ authCmd
       ],
       envVars: {
         BB_USERNAME: 'Used when --username is not provided',
-        BB_API_TOKEN: 'Used when --password is not provided (implies API token auth)',
+        BB_API_TOKEN:
+          'Used when --password is not provided (implies API token auth)',
       },
     })
   )

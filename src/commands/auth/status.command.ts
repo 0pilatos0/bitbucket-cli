@@ -97,9 +97,7 @@ export class StatusCommand extends BaseCommand<void, void> {
           const parts = [];
           if (hours > 0) parts.push(`${hours}h`);
           parts.push(`${minutes}m`);
-          this.output.text(
-            `  Token expires: in ${parts.join(' ')}`
-          );
+          this.output.text(`  Token expires: in ${parts.join(' ')}`);
         } else {
           this.output.text(
             `  Token expires: ${this.output.yellow('expired (will refresh automatically)')}`

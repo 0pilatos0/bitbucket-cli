@@ -169,11 +169,13 @@ function mockOAuthConfigService(): IConfigService {
 /**
  * Creates a mock OAuthService.
  */
-function createMockOAuthService(options: {
-  validToken?: string;
-  refreshedToken?: string;
-  refreshShouldFail?: boolean;
-} = {}) {
+function createMockOAuthService(
+  options: {
+    validToken?: string;
+    refreshedToken?: string;
+    refreshShouldFail?: boolean;
+  } = {}
+) {
   let refreshCallCount = 0;
   return {
     service: {

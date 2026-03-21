@@ -311,9 +311,9 @@ describe('LoginCommand', () => {
       output
     );
 
-    await expect(
-      command.execute({}, { globalOptions: {} })
-    ).rejects.toThrow('OAuth failed');
+    await expect(command.execute({}, { globalOptions: {} })).rejects.toThrow(
+      'OAuth failed'
+    );
   });
 
   it('should output JSON with method field for OAuth login', async () => {
@@ -587,9 +587,7 @@ describe('StatusCommand', () => {
     const command = new StatusCommand(configService, usersApi, output);
     await command.execute(undefined, { globalOptions: {} });
 
-    expect(output.logs.some((log) => log.includes('Token expires'))).toBe(
-      true
-    );
+    expect(output.logs.some((log) => log.includes('Token expires'))).toBe(true);
   });
 
   it('should show expired message when OAuth token is expired', async () => {
@@ -605,9 +603,7 @@ describe('StatusCommand', () => {
     const command = new StatusCommand(configService, usersApi, output);
     await command.execute(undefined, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) => log.includes('expired'))
-    ).toBe(true);
+    expect(output.logs.some((log) => log.includes('expired'))).toBe(true);
   });
 
   it('should include method in JSON output', async () => {
