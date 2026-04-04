@@ -181,16 +181,13 @@ bb repo delete <repository> [options]
 | Option | Description |
 |--------|-------------|
 | `-w, --workspace <workspace>` | Workspace |
-| `-y, --yes` | Skip confirmation prompt |
+| `-y, --yes` | Confirm deletion (required) |
 | `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
-# Delete with confirmation prompt
-bb repo delete myworkspace/myrepo
-
-# Delete without confirmation (use with caution!)
+# Delete a repository (--yes is required to confirm)
 bb repo delete myworkspace/myrepo --yes
 
 # Delete using explicit workspace option

@@ -41,6 +41,7 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 | `defaultWorkspace` | string | Default workspace | `bb config set defaultWorkspace` |
 | `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
 | `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
+| `lastVersionCheck` | string | Timestamp of last update check | Automatic |
 
 ### Example Configuration (OAuth)
 
@@ -152,7 +153,7 @@ The CLI automatically checks for updates when you run the bare `bb` command (wit
 ### Example Notification
 
 ```
-⚠ A new version is available: 1.5.0 (you have 1.4.0)
+⚠ A new version is available: 1.12.0 (you have 1.11.0)
   Run 'bun install -g @pilatos/bitbucket-cli' to update
   Or disable with 'bb config set skipVersionCheck true'
 ```

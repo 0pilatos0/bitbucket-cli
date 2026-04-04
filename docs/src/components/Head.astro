@@ -1,6 +1,9 @@
 ---
 import type { Props } from '@astrojs/starlight/props';
 import Default from '@astrojs/starlight/components/Head.astro';
+import { readFileSync } from 'node:fs';
+
+const cliVersion = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')).version;
 
 const { title, description, id, lastUpdated, entry } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -44,8 +47,6 @@ const metaDescription = description || (entry?.data?.description) || 'A powerful
 <meta name="robots" content="index, follow" />
 <meta name="googlebot" content="index, follow" />
 <meta name="author" content="Bitbucket CLI Contributors" />
-<meta name="keywords" content="bitbucket, cli, command line, git, pull requests, repository, automation, devtools" />
-
 <!-- Article metadata for guides/docs -->
 {id !== 'index' && (
   <>
@@ -84,7 +85,7 @@ const metaDescription = description || (entry?.data?.description) || 'A powerful
       "name": "Bitbucket CLI Contributors",
       "url": "https://github.com/0pilatos0/bitbucket-cli"
     },
-    "softwareVersion": "1.4.0",
+    "softwareVersion": cliVersion,
     "downloadUrl": "https://www.npmjs.com/package/@pilatos/bitbucket-cli",
     "codeRepository": "https://github.com/0pilatos0/bitbucket-cli",
     "license": "https://github.com/0pilatos0/bitbucket-cli/blob/main/LICENSE",
