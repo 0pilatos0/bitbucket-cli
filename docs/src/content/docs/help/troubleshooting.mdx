@@ -258,9 +258,11 @@ Error: Rate limit exceeded
 
 **Solutions:**
 
-1. Wait a few minutes and retry
+1. The CLI automatically retries rate-limited requests (HTTP 429) up to 3 times with exponential backoff. If you still see this error, the rate limit is sustained.
 
-2. For scripts, implement delays:
+2. Wait a few minutes and retry
+
+3. For scripts, add delays between calls:
    ```bash
    for pr_id in 1 2 3 4 5; do
      bb pr view $pr_id

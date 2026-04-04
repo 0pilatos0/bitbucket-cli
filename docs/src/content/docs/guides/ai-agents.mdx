@@ -249,36 +249,6 @@ AI:   [Runs: bb pr ready 48]
 
 ---
 
-## Team Conventions
-
-Encode your team's workflow rules in the instruction file so every team member's AI follows the same conventions:
-
-```markdown
-### Team Workflow
-
-**Branch naming:**
-- Features: `feat/<ticket>-<description>`
-- Bugs: `fix/<ticket>-<description>`
-- Hotfixes: `hotfix/<description>`
-
-**PR rules:**
-- Always create PRs with a descriptive body, not just a title
-- Use draft PRs for work-in-progress
-- Require at least one approval before merging
-- Always squash-merge feature branches: `--strategy squash`
-- Always delete source branches after merge: `--close-source-branch`
-
-**Review process:**
-1. `bb pr checkout <id>` — check out locally
-2. `bb pr diff <id>` — review the changes
-3. `bb pr approve <id>` — approve if satisfied
-4. `bb pr merge <id> --strategy squash --close-source-branch` — merge
-```
-
-Append this to your skill file, AGENTS.md, or cursor rule — wherever your team keeps AI instructions.
-
----
-
 ## Security
 
 <Aside type="caution">
@@ -299,14 +269,15 @@ bb auth login   # Reads from env vars automatically
 
 | Scope | Required for |
 |-------|-------------|
-| `account:read` | `bb auth status` — verify identity |
-| `repository:read` | `bb repo list`, `bb repo view` — browse repos |
-| `repository:write` | `bb repo create`, `bb repo delete` — manage repos |
-| `pullrequest:read` | `bb pr list`, `bb pr view`, `bb pr diff` — browse PRs |
-| `pullrequest:write` | `bb pr create`, `bb pr merge`, `bb pr approve` — manage PRs |
+| `read:user:bitbucket` | `bb auth status` — verify identity |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view` — browse repos |
+| `write:repository:bitbucket` | `bb repo create` — create repos |
+| `admin:repository:bitbucket` | `bb repo delete` — delete repos (optional) |
+| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb pr diff` — browse PRs |
+| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge`, `bb pr approve` — manage PRs |
 
 <Aside type="tip">
-  For read-only workflows (listing and viewing PRs), you only need the `read` scopes.
+  For read-only workflows (listing and viewing PRs), you only need the `read` scopes. OAuth users don't need to select scopes manually — they are requested automatically.
 </Aside>
 
 ---

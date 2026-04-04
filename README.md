@@ -55,7 +55,7 @@ npm install -g @pilatos/bitbucket-cli
 bb --version
 ```
 
-> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher (Node.js is not supported)
+> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher. The CLI is installed via npm but runs on the Bun runtime — Node.js is not supported. Install Bun first: `curl -fsSL https://bun.sh/install | bash`
 
 ---
 
@@ -98,7 +98,7 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 - Create a token: [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
 - Authenticate: `bb auth login`
 
-> **Note:** Bitbucket app passwords are deprecated. Use API tokens instead.
+> **Note:** Bitbucket app passwords are [deprecated](https://bitbucket.org/blog/deprecating-app-passwords) (new ones can no longer be created). Use OAuth or API tokens instead.
 
 ---
 
