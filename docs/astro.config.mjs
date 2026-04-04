@@ -1,8 +1,11 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 
-const cliVersion = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8")).version;
+const rootPkg = new URL("../package.json", import.meta.url);
+const cliVersion = existsSync(rootPkg)
+  ? JSON.parse(readFileSync(rootPkg, "utf-8")).version
+  : "latest";
 
 export default defineConfig({
   vite: {
