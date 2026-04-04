@@ -3,7 +3,7 @@ title: Bitbucket CLI
 description: A powerful command-line interface for Bitbucket Cloud
 template: splash
 hero:
-  tagline: Work with Bitbucket from your terminal. Clone repos, manage PRs, and automate workflows — all without leaving the command line.
+  tagline: Clone repos, manage PRs, and automate workflows — all from your terminal. If you know GitHub's gh, you'll feel right at home.
   actions:
     - text: Get Started
       link: /getting-started/quickstart/
@@ -15,7 +15,6 @@ hero:
 ---
 
 import {
-  Badge,
   Card,
   CardGrid,
   LinkButton,
@@ -24,30 +23,9 @@ import {
   TabItem,
 } from '@astrojs/starlight/components';
 
-## Why Bitbucket CLI?
+## Install
 
-If you've used GitHub's `gh` CLI and loved it, you've probably wished for something similar for Bitbucket. **Now you have it.**
-
-<CardGrid>
-  <Card title="Stay in Your Terminal" icon="terminal">
-    No more context-switching to the browser. Clone repos, create PRs, and review code without leaving your workflow.
-  </Card>
-  <Card title="Automate Everything" icon="rocket">
-    JSON output, scriptable commands, and CI/CD integration. Build automated workflows with ease.
-  </Card>
-  <Card title="Familiar Patterns" icon="puzzle">
-    Inspired by GitHub CLI, so if you know `gh`, you'll feel right at home with `bb`.
-  </Card>
-  <Card title="Smart Context Detection" icon="magnifier">
-    Automatically detects workspace and repo from your git directory. Less typing, more doing.
-  </Card>
-</CardGrid>
-
----
-
-## Quick Start
-
-Get productive in 60 seconds (requires [Bun](https://bun.sh) runtime):
+Requires [Bun](https://bun.sh) 1.0+ runtime.
 
 <Tabs>
   <TabItem label="npm">
@@ -68,59 +46,19 @@ Get productive in 60 seconds (requires [Bun](https://bun.sh) runtime):
 </Tabs>
 
 ```bash
-# Authenticate
-bb auth login
-
-# Clone a repo
-bb repo clone myworkspace/myrepo
-
-# Create a PR
-bb pr create -t "My awesome feature"
-
-# List open PRs
-bb pr list
+bb auth login                          # authenticate
+bb repo clone myworkspace/myrepo       # clone a repo
+bb pr create -t "My awesome feature"   # create a PR
+bb pr list                             # list open PRs
 ```
 
-[Full Quick Start Guide →](/getting-started/quickstart/)
-
 ---
 
-## Pick a Workflow <Badge text="New" variant="tip" />
-
-Use task-focused guides when you want the shortest path to a result:
+## What can you do?
 
 <CardGrid>
-  <LinkCard
-    title="Create and update PRs"
-    href="/commands/pr/create-and-edit/"
-    description="Open pull requests quickly, then edit titles and descriptions without context switching."
-  />
-  <LinkCard
-    title="Review and merge safely"
-    href="/commands/pr/review-and-merge/"
-    description="Approve, decline, mark draft PRs ready, and merge with explicit strategy controls."
-  />
-  <LinkCard
-    title="Inspect diffs and checkout"
-    href="/commands/pr/diff-and-checkout/"
-    description="View patches, open browser diffs, or checkout PR branches locally for deep review."
-  />
-  <LinkCard
-    title="Automate comments and reviewers"
-    href="/commands/pr/comments/"
-    description="Use script-friendly commands for review comments and reviewer management."
-  />
-</CardGrid>
-
-<LinkButton href="/commands/pr/" icon="right-arrow" variant="primary">Browse PR command workflows</LinkButton>
-
----
-
-## What Can You Do?
-
-<CardGrid stagger>
   <Card title="Repository Management" icon="folder">
-    Clone, create, list, view, and delete repositories. Full control over your Bitbucket repos.
+    Clone, create, list, view, and delete repositories.
 
     ```bash
     bb repo clone workspace/repo
@@ -130,29 +68,27 @@ Use task-focused guides when you want the shortest path to a result:
   </Card>
 
   <Card title="Pull Request Workflows" icon="document">
-    Complete PR lifecycle management — create, review, approve, merge, and more.
+    Full PR lifecycle — create, review, approve, merge.
 
     ```bash
     bb pr create -t "Add feature"
-    bb pr view 42
-    bb pr checks 42
     bb pr approve 42
     bb pr merge 42 --strategy squash
     ```
   </Card>
 
   <Card title="Code Review" icon="open-book">
-    View diffs, checkout PR branches locally, and review code efficiently.
+    View diffs, checkout PR branches, inspect checks.
 
     ```bash
     bb pr diff 42
     bb pr checkout 42
-    bb pr diff --stat
+    bb pr checks 42
     ```
   </Card>
 
   <Card title="Scripting & Automation" icon="setting">
-    JSON output for all commands. Perfect for CI/CD pipelines and automation scripts.
+    JSON output on every command. Built for CI/CD.
 
     ```bash
     bb pr list --json | jq '.pullRequests[].title'
@@ -162,42 +98,60 @@ Use task-focused guides when you want the shortest path to a result:
 
 ---
 
-## Feature Highlights <Badge text="Updated" variant="note" />
+## PR Workflows
 
-| Feature | Description |
-|---------|-------------|
-| **Smart Context** | Auto-detects workspace/repo from git remote |
-| **JSON Output** | Machine-readable output for scripting |
-| **Shell Completion** | Tab completion for Bash, Zsh, and Fish |
-| **Secure Auth** | API token authentication with local storage |
-| **Cross-Platform** | Works on macOS, Linux, and Windows |
-| **Update Notifications** | Automatic update checks to keep you current |
+Task-focused guides for the shortest path to a result.
+
+<CardGrid>
+  <LinkCard
+    title="Create and update PRs"
+    href="/commands/pr/create-and-edit/"
+    description="Open pull requests, edit titles and descriptions."
+  />
+  <LinkCard
+    title="Review and merge"
+    href="/commands/pr/review-and-merge/"
+    description="Approve, decline, mark ready, merge with strategy controls."
+  />
+  <LinkCard
+    title="Diffs and checkout"
+    href="/commands/pr/diff-and-checkout/"
+    description="View patches, open browser diffs, checkout branches locally."
+  />
+  <LinkCard
+    title="Comments and reviewers"
+    href="/commands/pr/comments/"
+    description="Script-friendly review comments and reviewer management."
+  />
+</CardGrid>
+
+<LinkButton href="/commands/pr/" icon="right-arrow" variant="primary">All PR commands</LinkButton>
 
 ---
 
-## Explore the Docs
+## Explore
 
 <CardGrid>
-  <Card title="Command Reference" icon="list-format">
-    Complete documentation for all commands and options.
-
-    [View Commands →](/commands/pr/)
-  </Card>
-  <Card title="Scripting Guide" icon="seti:json">
-    Learn to use bb in scripts, automation, and CI/CD.
-
-    [Learn Scripting →](/guides/scripting/)
-  </Card>
-  <Card title="Troubleshooting" icon="warning">
-    Common issues and how to solve them.
-
-    [Get Help →](/help/troubleshooting/)
-  </Card>
-  <Card title="FAQ" icon="information">
-    Answers to frequently asked questions.
-
-    [Read FAQ →](/help/faq/)
-  </Card>
+  <LinkCard
+    title="Command Reference"
+    href="/commands/pr/"
+    description="All commands and options."
+  />
+  <LinkCard
+    title="Scripting Guide"
+    href="/guides/scripting/"
+    description="JSON output, exit codes, shell patterns."
+  />
+  <LinkCard
+    title="CI/CD Integration"
+    href="/guides/cicd/"
+    description="GitHub Actions, GitLab CI, Jenkins, and more."
+  />
+  <LinkCard
+    title="Troubleshooting"
+    href="/help/troubleshooting/"
+    description="Common issues and solutions."
+  />
 </CardGrid>
 
 ---
