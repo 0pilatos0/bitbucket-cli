@@ -1,9 +1,9 @@
 ---
 import type { Props } from '@astrojs/starlight/props';
 import Default from '@astrojs/starlight/components/Head.astro';
-import { readFileSync } from 'node:fs';
 
-const cliVersion = JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')).version;
+declare const __CLI_VERSION__: string;
+const cliVersion = __CLI_VERSION__;
 
 const { title, description, id, lastUpdated, entry } = Astro.props;
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
