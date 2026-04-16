@@ -174,6 +174,8 @@ export const ServiceTokens = {
 
   // API Clients - Snippets
   SnippetsApi: 'SnippetsApi',
+  SnippetsAxios: 'SnippetsAxios',
+  SnippetFilesService: 'SnippetFilesService',
 
   // Commands - Snippet
   ListSnippetsCommand: 'ListSnippetsCommand',

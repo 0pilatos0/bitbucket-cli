@@ -57,6 +57,37 @@ export interface IContextService {
 }
 
 /**
+ * Snippet files service interface - handles multipart create/edit and raw
+ * file-content fetches that the generated OpenAPI client does not model.
+ */
+export interface ISnippetFilesService {
+  createWithFiles(options: {
+    workspace: string;
+    title: string;
+    isPrivate: boolean;
+    files: Array<{ path: string; filename?: string }>;
+  }): Promise<unknown>;
+  editMetadata(options: {
+    workspace: string;
+    encodedId: string;
+    title?: string;
+    isPrivate?: boolean;
+  }): Promise<unknown>;
+  editWithFiles(options: {
+    workspace: string;
+    encodedId: string;
+    title?: string;
+    isPrivate?: boolean;
+    files: Array<{ path: string; filename?: string }>;
+  }): Promise<unknown>;
+  getFileContent(
+    workspace: string,
+    encodedId: string,
+    filePath: string
+  ): Promise<string>;
+}
+
+/**
  * Output service interface for formatting and displaying output
  */
 export interface IOutputService {

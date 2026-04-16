@@ -9,6 +9,7 @@ import type {
   IConfigService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import { resolveWorkspace } from '../../services/workspace-resolver.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CloneOptions {
@@ -65,17 +66,7 @@ export class CloneCommand extends BaseCommand<
     let repoSlug: string;
 
     if (parts.length === 1) {
-      const config = await this.configService.getConfig();
-
-      if (!config.defaultWorkspace) {
-        throw new BBError({
-          code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
-          message:
-            'No workspace specified. Use workspace/repo format or set a default workspace.',
-        });
-      }
-
-      workspace = config.defaultWorkspace;
+      workspace = await resolveWorkspace(this.configService);
       repoSlug = parts[0];
     } else if (parts.length === 2) {
       workspace = parts[0];

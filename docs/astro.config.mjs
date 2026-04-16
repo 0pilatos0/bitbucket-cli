@@ -76,6 +76,7 @@ export default defineConfig({
                 directory: 'commands/pr',
               },
             },
+            { label: "Snippet Commands", slug: "commands/snippet" },
             { label: "Config Commands", slug: "commands/config" },
             { label: "Completion", slug: "commands/completion" },
           ],

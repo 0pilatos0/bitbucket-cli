@@ -11,7 +11,9 @@ import {
   VersionService,
   OAuthService,
   createApiClient,
+  SnippetFilesService,
 } from './services/index.js';
+import type { AxiosInstance } from 'axios';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -150,12 +152,28 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     return new CommitStatusesApi(undefined, undefined, axiosInstance);
   });
 
-  container.register(ServiceTokens.SnippetsApi, () => {
+  container.register(ServiceTokens.SnippetsAxios, () => {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
-    const axiosInstance = createApiClient(configService);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    return createApiClient(configService, oauthService);
+  });
+
+  container.register(ServiceTokens.SnippetsApi, () => {
+    const axiosInstance = container.resolve<AxiosInstance>(
+      ServiceTokens.SnippetsAxios
+    );
     return new SnippetsApi(undefined, undefined, axiosInstance);
+  });
+
+  container.register(ServiceTokens.SnippetFilesService, () => {
+    const axiosInstance = container.resolve<AxiosInstance>(
+      ServiceTokens.SnippetsAxios
+    );
+    return new SnippetFilesService(axiosInstance);
   });
 
   container.register(ServiceTokens.ContextService, () => {
@@ -590,18 +608,26 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const snippetsApi = container.resolve<SnippetsApi>(
       ServiceTokens.SnippetsApi
     );
+    const snippetFilesService = container.resolve<SnippetFilesService>(
+      ServiceTokens.SnippetFilesService
+    );
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new ViewSnippetCommand(snippetsApi, configService, output);
+    return new ViewSnippetCommand(
+      snippetsApi,
+      snippetFilesService,
+      configService,
+      output
+    );
   });
 
   container.register(ServiceTokens.CreateSnippetCommand, () => {
-    const snippetsApi = container.resolve<SnippetsApi>(
-      ServiceTokens.SnippetsApi
+    const snippetFilesService = container.resolve<SnippetFilesService>(
+      ServiceTokens.SnippetFilesService
     );
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
@@ -609,12 +635,12 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new CreateSnippetCommand(snippetsApi, configService, output);
+    return new CreateSnippetCommand(snippetFilesService, configService, output);
   });
 
   container.register(ServiceTokens.EditSnippetCommand, () => {
-    const snippetsApi = container.resolve<SnippetsApi>(
-      ServiceTokens.SnippetsApi
+    const snippetFilesService = container.resolve<SnippetFilesService>(
+      ServiceTokens.SnippetFilesService
     );
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
@@ -622,7 +648,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new EditSnippetCommand(snippetsApi, configService, output);
+    return new EditSnippetCommand(snippetFilesService, configService, output);
   });
 
   container.register(ServiceTokens.DeleteSnippetCommand, () => {

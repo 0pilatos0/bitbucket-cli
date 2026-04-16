@@ -1,14 +1,21 @@
 /**
  * Edit snippet command implementation
+ *
+ * Supports metadata-only edits (title / visibility) via a JSON PUT and
+ * file replacement / addition via a multipart PUT. The generated OpenAPI
+ * client doesn't model either body shape, so we route through
+ * SnippetFilesService.
  */
 
+import fs from 'node:fs';
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IConfigService,
   IOutputService,
+  ISnippetFilesService,
 } from '../../core/interfaces/services.js';
-import type { SnippetsApi } from '../../generated/api.js';
+import { resolveWorkspace } from '../../services/workspace-resolver.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface EditSnippetOptions {
@@ -16,6 +23,7 @@ export interface EditSnippetOptions {
   title?: string;
   private?: boolean;
   public?: boolean;
+  file?: string[];
 }
 
 export class EditSnippetCommand extends BaseCommand<
@@ -26,7 +34,7 @@ export class EditSnippetCommand extends BaseCommand<
   public readonly description = 'Edit a snippet';
 
   constructor(
-    private readonly snippetsApi: SnippetsApi,
+    private readonly snippetFilesService: ISnippetFilesService,
     private readonly configService: IConfigService,
     output: IOutputService
   ) {
@@ -37,37 +45,59 @@ export class EditSnippetCommand extends BaseCommand<
     options: { id: string } & EditSnippetOptions,
     context: CommandContext
   ): Promise<void> {
-    const workspace = await this.resolveWorkspace(
+    const workspace = await resolveWorkspace(
+      this.configService,
       options.workspace ?? context.globalOptions.workspace
     );
 
-    if (
-      !options.title &&
-      options.private === undefined &&
-      options.public === undefined
-    ) {
+    const hasTitle = options.title !== undefined;
+    const hasVisibility =
+      options.private !== undefined || options.public !== undefined;
+    const hasFiles = options.file !== undefined && options.file.length > 0;
+
+    if (!hasTitle && !hasVisibility && !hasFiles) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
-        message: 'At least one of --title, --private, or --public is required.',
+        message:
+          'At least one of --title, --private, --public, or --file is required.',
       });
     }
 
-    const response = await this.snippetsApi.snippetsWorkspaceEncodedIdPut(
-      {
-        encodedId: options.id,
-        workspace,
-      },
-      {
-        data: {
-          ...(options.title ? { title: options.title } : {}),
-          ...(options.private !== undefined || options.public !== undefined
-            ? { is_private: !options.public }
-            : {}),
-        },
-      }
-    );
+    if (options.private && options.public) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: '--private and --public cannot both be set.',
+      });
+    }
 
-    const snippet = response.data;
+    if (hasFiles) {
+      for (const filePath of options.file!) {
+        if (!fs.existsSync(filePath)) {
+          throw new BBError({
+            code: ErrorCode.VALIDATION_INVALID,
+            message: `File not found: ${filePath}`,
+            context: { file: filePath },
+          });
+        }
+      }
+    }
+
+    const isPrivate = hasVisibility ? !options.public : undefined;
+
+    const snippet = hasFiles
+      ? await this.snippetFilesService.editWithFiles({
+          workspace,
+          encodedId: options.id,
+          title: options.title,
+          isPrivate,
+          files: options.file!.map((path) => ({ path })),
+        })
+      : await this.snippetFilesService.editMetadata({
+          workspace,
+          encodedId: options.id,
+          title: options.title,
+          isPrivate,
+        });
 
     if (context.globalOptions.json) {
       this.output.json(snippet);
@@ -75,23 +105,5 @@ export class EditSnippetCommand extends BaseCommand<
     }
 
     this.output.success(`Updated snippet ${options.id}`);
-  }
-
-  private async resolveWorkspace(workspace?: string): Promise<string> {
-    if (workspace) {
-      return workspace;
-    }
-
-    const config = await this.configService.getConfig();
-
-    if (!config.defaultWorkspace) {
-      throw new BBError({
-        code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
-        message:
-          'No workspace specified. Use --workspace option or set a default workspace.',
-      });
-    }
-
-    return config.defaultWorkspace;
   }
 }

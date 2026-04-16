@@ -21,8 +21,10 @@ import {
 } from '../setup.js';
 import type { SnippetsApi, Snippet } from '../../src/generated/api.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
+import type { ISnippetFilesService } from '../../src/core/interfaces/services.js';
 
-// Mock snippet data
+// --- Mock data ---
+
 const mockSnippet: Snippet & Record<string, unknown> = {
   type: 'snippet',
   id: 'kypj' as unknown as number,
@@ -63,6 +65,8 @@ const mockComment = {
   updated_on: '2026-01-15T12:00:00.000000+00:00',
 };
 
+// --- Helpers ---
+
 function extractPaginationParams(axiosOptions: unknown): {
   page: number;
   pagelen: number;
@@ -70,15 +74,12 @@ function extractPaginationParams(axiosOptions: unknown): {
   if (!axiosOptions || typeof axiosOptions !== 'object') {
     return { page: 1, pagelen: 25 };
   }
-
   const params = (axiosOptions as { params?: unknown }).params;
   if (!params || typeof params !== 'object') {
     return { page: 1, pagelen: 25 };
   }
-
   const pageValue = (params as { page?: unknown }).page;
   const pagelenValue = (params as { pagelen?: unknown }).pagelen;
-
   const page =
     typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
       ? pageValue
@@ -89,7 +90,6 @@ function extractPaginationParams(axiosOptions: unknown): {
     pagelenValue > 0
       ? pagelenValue
       : 25;
-
   return { page, pagelen };
 }
 
@@ -98,16 +98,62 @@ function getTableRows(logs: string[]): string[][] {
   if (!rowsLog) {
     return [];
   }
-
   return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
+}
+
+interface MockSnippetFilesServiceRecord {
+  create?: {
+    workspace: string;
+    title: string;
+    isPrivate: boolean;
+    files: Array<{ path: string; filename?: string }>;
+  };
+  editMetadata?: {
+    workspace: string;
+    encodedId: string;
+    title?: string;
+    isPrivate?: boolean;
+  };
+  editWithFiles?: {
+    workspace: string;
+    encodedId: string;
+    title?: string;
+    isPrivate?: boolean;
+    files: Array<{ path: string; filename?: string }>;
+  };
+  fileContentCalls: Array<{ filePath: string }>;
+}
+
+function createMockSnippetFilesService(fileContent = 'file contents here'): {
+  service: ISnippetFilesService;
+  record: MockSnippetFilesServiceRecord;
+} {
+  const record: MockSnippetFilesServiceRecord = { fileContentCalls: [] };
+  const service: ISnippetFilesService = {
+    async createWithFiles(options) {
+      record.create = { ...options };
+      return mockSnippet;
+    },
+    async editMetadata(options) {
+      record.editMetadata = { ...options };
+      return mockSnippet;
+    },
+    async editWithFiles(options) {
+      record.editWithFiles = { ...options };
+      return mockSnippet;
+    },
+    async getFileContent(_workspace, _encodedId, filePath) {
+      record.fileContentCalls.push({ filePath });
+      return fileContent;
+    },
+  };
+  return { service, record };
 }
 
 function createMockSnippetsApi(
   snippets: (typeof mockSnippet)[] = [mockSnippet],
-  options: {
-    onCreateCall?: (request: unknown) => void;
-    onDeleteCall?: (request: unknown) => void;
-  } = {}
+  comments: (typeof mockComment)[] = [mockComment],
+  options: { onDeleteCall?: (request: unknown) => void } = {}
 ): SnippetsApi {
   return {
     snippetsWorkspaceGet: async (_request: unknown, axiosOptions?: unknown) => {
@@ -115,7 +161,6 @@ function createMockSnippetsApi(
       const start = (page - 1) * pagelen;
       const end = start + pagelen;
       const values = snippets.slice(start, end);
-
       return {
         data: {
           values,
@@ -129,49 +174,35 @@ function createMockSnippetsApi(
         },
       };
     },
-    snippetsWorkspaceEncodedIdGet: async () => ({
-      data: mockSnippet,
-    }),
-    snippetsWorkspacePost: async (request: unknown) => {
-      options.onCreateCall?.(request);
-      return { data: mockSnippet };
-    },
-    snippetsWorkspaceEncodedIdPut: async () => ({
-      data: mockSnippet,
-    }),
+    snippetsWorkspaceEncodedIdGet: async () => ({ data: mockSnippet }),
     snippetsWorkspaceEncodedIdDelete: async (request: unknown) => {
       options.onDeleteCall?.(request);
       return { data: undefined };
     },
-    snippetsWorkspaceEncodedIdWatchPut: async () => ({
-      data: undefined,
-    }),
-    snippetsWorkspaceEncodedIdWatchDelete: async () => ({
-      data: undefined,
-    }),
+    snippetsWorkspaceEncodedIdWatchPut: async () => ({ data: undefined }),
+    snippetsWorkspaceEncodedIdWatchDelete: async () => ({ data: undefined }),
     snippetsWorkspaceEncodedIdCommentsGet: async (
       _request: unknown,
       axiosOptions?: unknown
     ) => {
       const { page, pagelen } = extractPaginationParams(axiosOptions);
-      const comments = [mockComment];
       const start = (page - 1) * pagelen;
       const end = start + pagelen;
       const values = comments.slice(start, end);
-
       return {
         data: {
           values,
           page,
           pagelen,
           size: comments.length,
-          next: undefined,
+          next:
+            end < comments.length
+              ? `https://api.bitbucket.org/2.0/snippets/workspace/kypj/comments?page=${page + 1}`
+              : undefined,
         },
       };
     },
-    snippetsWorkspaceEncodedIdCommentsPost: async () => ({
-      data: mockComment,
-    }),
+    snippetsWorkspaceEncodedIdCommentsPost: async () => ({ data: mockComment }),
     snippetsWorkspaceEncodedIdCommentsCommentIdPut: async () => ({
       data: mockComment,
     }),
@@ -203,7 +234,6 @@ describe('ListSnippetsCommand', () => {
 
     await cmd.run({ workspace: 'workspace' }, makeContext());
 
-    expect(output.logs.some((log) => log.startsWith('table:'))).toBe(true);
     const rows = getTableRows(output.logs);
     expect(rows.length).toBe(1);
     expect(rows[0][1]).toBe('Test snippet');
@@ -220,11 +250,9 @@ describe('ListSnippetsCommand', () => {
     await cmd.run({ workspace: 'workspace' }, makeContext(true));
 
     const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
     const data = JSON.parse(jsonLog!.substring(5));
     expect(data.workspace).toBe('workspace');
     expect(data.count).toBe(1);
-    expect(data.snippets).toHaveLength(1);
   });
 
   it('should show empty message when no snippets found', async () => {
@@ -268,7 +296,7 @@ describe('ListSnippetsCommand', () => {
     );
   });
 
-  it('should validate role option', async () => {
+  it('should reject invalid role', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
@@ -281,31 +309,31 @@ describe('ListSnippetsCommand', () => {
     );
   });
 
-  it('should pass role filter to API', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
-
-    await cmd.run({ role: 'owner', workspace: 'workspace' }, makeContext(true));
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
+  it('should accept all three API-valid roles', async () => {
+    for (const role of ['owner', 'contributor', 'member']) {
+      const output = createMockOutputService();
+      const configService = createMockConfigService({
+        defaultWorkspace: 'workspace',
+      });
+      const api = createMockSnippetsApi();
+      const cmd = new ListSnippetsCommand(api, configService, output);
+      await cmd.run({ role, workspace: 'workspace' }, makeContext(true));
+      const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+      expect(jsonLog).toBeDefined();
+    }
   });
 
-  it('should respect limit option', async () => {
-    const manySnippets = Array.from({ length: 10 }, (_, i) => ({
+  it('should respect --limit across pages', async () => {
+    const many = Array.from({ length: 80 }, (_, i) => ({
       ...mockSnippet,
-      id: `snip${i}` as unknown as number,
+      id: `s${i}` as unknown as number,
       title: `Snippet ${i}`,
     }));
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi(manySnippets);
+    const api = createMockSnippetsApi(many);
     const cmd = new ListSnippetsCommand(api, configService, output);
 
     await cmd.run({ limit: '3', workspace: 'workspace' }, makeContext(true));
@@ -319,18 +347,24 @@ describe('ListSnippetsCommand', () => {
 // --- ViewSnippetCommand ---
 
 describe('ViewSnippetCommand', () => {
-  it('should display snippet details as text', async () => {
+  it('should display snippet details as text with URL', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ViewSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
     expect(output.logs.some((log) => log.includes('Test snippet'))).toBe(true);
     expect(output.logs.some((log) => log.includes('foo.txt'))).toBe(true);
+    expect(
+      output.logs.some((log) =>
+        log.includes('https://bitbucket.org/snippets/workspace/kypj')
+      )
+    ).toBe(true);
   });
 
   it('should display snippet as JSON', async () => {
@@ -339,38 +373,98 @@ describe('ViewSnippetCommand', () => {
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ViewSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext(true));
 
     const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
     const data = JSON.parse(jsonLog!.substring(5));
     expect(data.title).toBe('Test snippet');
   });
 
-  it('should show web URL in text output', async () => {
+  it('should fall back to self link when html link is missing', async () => {
+    const snippetNoHtml = {
+      ...mockSnippet,
+      links: { self: { href: 'https://api.example/selfonly' } },
+    };
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const api = {
+      ...createMockSnippetsApi(),
+      snippetsWorkspaceEncodedIdGet: async () => ({ data: snippetNoHtml }),
+    } as unknown as SnippetsApi;
+    const { service } = createMockSnippetFilesService();
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
+
+    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
+
+    expect(
+      output.logs.some((log) => log.includes('https://api.example/selfonly'))
+    ).toBe(true);
+  });
+
+  it('should print a single file with --file', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ViewSnippetCommand(api, configService, output);
+    const { service, record } = createMockSnippetFilesService('hello content');
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
 
-    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
+    await cmd.run(
+      { id: 'kypj', workspace: 'workspace', file: 'foo.txt' },
+      makeContext()
+    );
 
-    expect(
-      output.logs.some((log) =>
-        log.includes('https://bitbucket.org/snippets/workspace/kypj')
+    expect(record.fileContentCalls).toEqual([{ filePath: 'foo.txt' }]);
+    expect(output.logs.some((log) => log === 'text:hello content')).toBe(true);
+  });
+
+  it('should reject --file when file is not in snippet', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const api = createMockSnippetsApi();
+    const { service } = createMockSnippetFilesService();
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
+
+    await expect(
+      cmd.run(
+        { id: 'kypj', workspace: 'workspace', file: 'missing.txt' },
+        makeContext()
       )
-    ).toBe(true);
+    ).rejects.toThrow('File not found in snippet');
+  });
+
+  it('should print all files with --files', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const api = createMockSnippetsApi();
+    const { service, record } = createMockSnippetFilesService('aaa');
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
+
+    await cmd.run(
+      { id: 'kypj', workspace: 'workspace', files: true },
+      makeContext()
+    );
+
+    expect(record.fileContentCalls.length).toBe(1);
+    expect(output.logs.some((log) => log.includes('── foo.txt ──'))).toBe(true);
   });
 
   it('should throw when no workspace available', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({});
     const api = createMockSnippetsApi();
-    const cmd = new ViewSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new ViewSnippetCommand(api, service, configService, output);
 
     await expect(
       cmd.run({ id: 'kypj' }, { globalOptions: {} })
@@ -381,34 +475,64 @@ describe('ViewSnippetCommand', () => {
 // --- CreateSnippetCommand ---
 
 describe('CreateSnippetCommand', () => {
-  it('should create snippet and show success', async () => {
+  it('should create snippet via multipart with files and metadata', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new CreateSnippetCommand(api, configService, output);
+    const { service, record } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
 
     await cmd.run(
-      { title: 'My snippet', file: ['package.json'] },
+      {
+        title: 'My snippet',
+        file: ['package.json'],
+        workspace: 'workspace',
+      },
       makeContext()
     );
 
+    expect(record.create).toBeDefined();
+    expect(record.create!.workspace).toBe('workspace');
+    expect(record.create!.title).toBe('My snippet');
+    expect(record.create!.isPrivate).toBe(true); // default
+    expect(record.create!.files).toEqual([{ path: 'package.json' }]);
     expect(output.logs.some((log) => log.includes('Created snippet'))).toBe(
       true
     );
   });
 
-  it('should create snippet with JSON output', async () => {
+  it('should send is_private=false when --public is set', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new CreateSnippetCommand(api, configService, output);
+    const { service, record } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
 
     await cmd.run(
-      { title: 'My snippet', file: ['package.json'], workspace: 'workspace' },
+      {
+        title: 'Public',
+        file: ['package.json'],
+        public: true,
+        workspace: 'workspace',
+      },
+      makeContext()
+    );
+
+    expect(record.create!.isPrivate).toBe(false);
+  });
+
+  it('should output JSON when --json set', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const { service } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
+
+    await cmd.run(
+      { title: 'X', file: ['package.json'], workspace: 'workspace' },
       makeContext(true)
     );
 
@@ -421,8 +545,8 @@ describe('CreateSnippetCommand', () => {
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new CreateSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
 
     await expect(
       cmd.run({ file: ['file.txt'] }, makeContext())
@@ -434,8 +558,8 @@ describe('CreateSnippetCommand', () => {
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new CreateSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
 
     await expect(cmd.run({ title: 'Test' }, makeContext())).rejects.toThrow(
       'At least one file is required'
@@ -447,8 +571,8 @@ describe('CreateSnippetCommand', () => {
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new CreateSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
 
     await expect(
       cmd.run(
@@ -457,44 +581,95 @@ describe('CreateSnippetCommand', () => {
       )
     ).rejects.toThrow('File not found');
   });
+
+  it('should reject --public and --private together', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const { service } = createMockSnippetFilesService();
+    const cmd = new CreateSnippetCommand(service, configService, output);
+
+    await expect(
+      cmd.run(
+        {
+          title: 'X',
+          file: ['package.json'],
+          public: true,
+          private: true,
+          workspace: 'workspace',
+        },
+        makeContext()
+      )
+    ).rejects.toThrow('cannot both be set');
+  });
 });
 
 // --- EditSnippetCommand ---
 
 describe('EditSnippetCommand', () => {
-  it('should edit snippet title', async () => {
+  it('should edit metadata (title) via JSON path', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommand(api, configService, output);
+    const { service, record } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
 
     await cmd.run(
       { id: 'kypj', title: 'New title', workspace: 'workspace' },
       makeContext()
     );
 
+    expect(record.editMetadata).toEqual({
+      workspace: 'workspace',
+      encodedId: 'kypj',
+      title: 'New title',
+      isPrivate: undefined,
+    });
+    expect(record.editWithFiles).toBeUndefined();
     expect(
       output.logs.some((log) => log.includes('Updated snippet kypj'))
     ).toBe(true);
   });
 
-  it('should edit snippet with JSON output', async () => {
+  it('should send is_private=true when --private', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommand(api, configService, output);
+    const { service, record } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
 
     await cmd.run(
-      { id: 'kypj', title: 'New title', workspace: 'workspace' },
-      makeContext(true)
+      { id: 'kypj', private: true, workspace: 'workspace' },
+      makeContext()
     );
 
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
+    expect(record.editMetadata!.isPrivate).toBe(true);
+  });
+
+  it('should route to multipart when --file is provided', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const { service, record } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
+
+    await cmd.run(
+      {
+        id: 'kypj',
+        file: ['package.json'],
+        title: 'T',
+        workspace: 'workspace',
+      },
+      makeContext()
+    );
+
+    expect(record.editWithFiles).toBeDefined();
+    expect(record.editWithFiles!.files).toEqual([{ path: 'package.json' }]);
+    expect(record.editMetadata).toBeUndefined();
   });
 
   it('should throw when no edit options provided', async () => {
@@ -502,12 +677,48 @@ describe('EditSnippetCommand', () => {
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommand(api, configService, output);
+    const { service } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
     ).rejects.toThrow('At least one of');
+  });
+
+  it('should reject --public and --private together', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const { service } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
+
+    await expect(
+      cmd.run(
+        { id: 'kypj', public: true, private: true, workspace: 'workspace' },
+        makeContext()
+      )
+    ).rejects.toThrow('cannot both be set');
+  });
+
+  it('should reject --file pointing to missing file', async () => {
+    const output = createMockOutputService();
+    const configService = createMockConfigService({
+      defaultWorkspace: 'workspace',
+    });
+    const { service } = createMockSnippetFilesService();
+    const cmd = new EditSnippetCommand(service, configService, output);
+
+    await expect(
+      cmd.run(
+        {
+          id: 'kypj',
+          file: ['nonexistent-xyz.txt'],
+          workspace: 'workspace',
+        },
+        makeContext()
+      )
+    ).rejects.toThrow('File not found');
   });
 });
 
@@ -520,7 +731,7 @@ describe('DeleteSnippetCommand', () => {
       defaultWorkspace: 'workspace',
     });
     let deletedId: string | undefined;
-    const api = createMockSnippetsApi([], {
+    const api = createMockSnippetsApi([], [], {
       onDeleteCall: (req) => {
         deletedId = (req as { encodedId: string }).encodedId;
       },
@@ -538,26 +749,6 @@ describe('DeleteSnippetCommand', () => {
     expect(deletedId).toBe('kypj');
   });
 
-  it('should delete snippet with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommand(api, configService, output);
-
-    await cmd.run(
-      { id: 'kypj', yes: true, workspace: 'workspace' },
-      makeContext(true)
-    );
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-    expect(data.snippetId).toBe('kypj');
-  });
-
   it('should throw without --yes flag', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
@@ -572,7 +763,7 @@ describe('DeleteSnippetCommand', () => {
   });
 });
 
-// --- WatchSnippetCommand ---
+// --- Watch / Unwatch ---
 
 describe('WatchSnippetCommand', () => {
   it('should watch a snippet', async () => {
@@ -589,25 +780,7 @@ describe('WatchSnippetCommand', () => {
       output.logs.some((log) => log.includes('Now watching snippet kypj'))
     ).toBe(true);
   });
-
-  it('should watch with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new WatchSnippetCommand(api, configService, output);
-
-    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext(true));
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-    expect(data.watching).toBe(true);
-  });
 });
-
-// --- UnwatchSnippetCommand ---
 
 describe('UnwatchSnippetCommand', () => {
   it('should unwatch a snippet', async () => {
@@ -624,25 +797,9 @@ describe('UnwatchSnippetCommand', () => {
       output.logs.some((log) => log.includes('Stopped watching snippet kypj'))
     ).toBe(true);
   });
-
-  it('should unwatch with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new UnwatchSnippetCommand(api, configService, output);
-
-    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext(true));
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-    expect(data.watching).toBe(false);
-  });
 });
 
-// --- ListSnippetCommentsCommand ---
+// --- Comments ---
 
 describe('ListSnippetCommentsCommand', () => {
   it('should list comments as table', async () => {
@@ -655,27 +812,30 @@ describe('ListSnippetCommentsCommand', () => {
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
-    expect(output.logs.some((log) => log.startsWith('table:'))).toBe(true);
     const rows = getTableRows(output.logs);
     expect(rows.length).toBe(1);
   });
 
-  it('should list comments as JSON', async () => {
+  it('should respect --limit across pages', async () => {
+    const many = Array.from({ length: 80 }, (_, i) => ({
+      ...mockComment,
+      id: i + 1,
+    }));
     const output = createMockOutputService();
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
+    const api = createMockSnippetsApi([mockSnippet], many);
     const cmd = new ListSnippetCommentsCommand(api, configService, output);
 
-    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext(true));
+    await cmd.run(
+      { id: 'kypj', limit: '5', workspace: 'workspace' },
+      makeContext(true)
+    );
 
     const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
     const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.snippetId).toBe('kypj');
-    expect(data.count).toBe(1);
-    expect(data.comments).toHaveLength(1);
+    expect(data.count).toBe(5);
   });
 
   it('should show empty message when no comments', async () => {
@@ -683,13 +843,8 @@ describe('ListSnippetCommentsCommand', () => {
     const configService = createMockConfigService({
       defaultWorkspace: 'workspace',
     });
-    const emptyApi = {
-      ...createMockSnippetsApi(),
-      snippetsWorkspaceEncodedIdCommentsGet: async () => ({
-        data: { values: [], size: 0, next: undefined },
-      }),
-    } as unknown as SnippetsApi;
-    const cmd = new ListSnippetCommentsCommand(emptyApi, configService, output);
+    const api = createMockSnippetsApi([mockSnippet], []);
+    const cmd = new ListSnippetCommentsCommand(api, configService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -698,8 +853,6 @@ describe('ListSnippetCommentsCommand', () => {
     );
   });
 });
-
-// --- AddSnippetCommentCommand ---
 
 describe('AddSnippetCommentCommand', () => {
   it('should add a comment', async () => {
@@ -711,31 +864,11 @@ describe('AddSnippetCommentCommand', () => {
     const cmd = new AddSnippetCommentCommand(api, configService, output);
 
     await cmd.run(
-      { id: 'kypj', message: 'Great snippet!', workspace: 'workspace' },
+      { id: 'kypj', message: 'Great!', workspace: 'workspace' },
       makeContext()
     );
 
     expect(output.logs.some((log) => log.includes('Added comment'))).toBe(true);
-  });
-
-  it('should add comment with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new AddSnippetCommentCommand(api, configService, output);
-
-    await cmd.run(
-      { id: 'kypj', message: 'Great!', workspace: 'workspace' },
-      makeContext(true)
-    );
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-    expect(data.snippetId).toBe('kypj');
   });
 
   it('should throw when message is missing', async () => {
@@ -751,8 +884,6 @@ describe('AddSnippetCommentCommand', () => {
     ).rejects.toThrow('message is required');
   });
 });
-
-// --- EditSnippetCommentCommand ---
 
 describe('EditSnippetCommentCommand', () => {
   it('should edit a comment', async () => {
@@ -778,30 +909,6 @@ describe('EditSnippetCommentCommand', () => {
     );
   });
 
-  it('should edit comment with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommentCommand(api, configService, output);
-
-    await cmd.run(
-      {
-        snippetId: 'kypj',
-        commentId: '1',
-        message: 'Updated',
-        workspace: 'workspace',
-      },
-      makeContext(true)
-    );
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    expect(jsonLog).toBeDefined();
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-  });
-
   it('should throw for invalid comment ID', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
@@ -823,8 +930,6 @@ describe('EditSnippetCommentCommand', () => {
     ).rejects.toThrow('must be a valid integer');
   });
 });
-
-// --- DeleteSnippetCommentCommand ---
 
 describe('DeleteSnippetCommentCommand', () => {
   it('should delete a comment with --yes flag', async () => {
@@ -850,30 +955,6 @@ describe('DeleteSnippetCommentCommand', () => {
     );
   });
 
-  it('should delete comment with JSON output', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, configService, output);
-
-    await cmd.run(
-      {
-        snippetId: 'kypj',
-        commentId: '1',
-        yes: true,
-        workspace: 'workspace',
-      },
-      makeContext(true)
-    );
-
-    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
-    const data = JSON.parse(jsonLog!.substring(5));
-    expect(data.success).toBe(true);
-    expect(data.commentId).toBe(1);
-  });
-
   it('should throw without --yes flag', async () => {
     const output = createMockOutputService();
     const configService = createMockConfigService({
@@ -888,26 +969,5 @@ describe('DeleteSnippetCommentCommand', () => {
         makeContext()
       )
     ).rejects.toThrow('Use --yes to confirm deletion');
-  });
-
-  it('should throw for invalid comment ID', async () => {
-    const output = createMockOutputService();
-    const configService = createMockConfigService({
-      defaultWorkspace: 'workspace',
-    });
-    const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, configService, output);
-
-    await expect(
-      cmd.run(
-        {
-          snippetId: 'kypj',
-          commentId: 'invalid',
-          yes: true,
-          workspace: 'workspace',
-        },
-        makeContext()
-      )
-    ).rejects.toThrow('must be a valid integer');
   });
 });

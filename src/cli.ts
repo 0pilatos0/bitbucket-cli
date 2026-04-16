@@ -72,6 +72,12 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
         'unwatch',
         'comments'
       );
+    } else if (
+      env.prev === 'comments' &&
+      typeof env.line === 'string' &&
+      env.line.includes(' snippet ')
+    ) {
+      completions.push('list', 'add', 'edit', 'delete');
     } else if (env.prev === 'config') {
       completions.push('get', 'set', 'list');
     } else if (env.prev === 'completion') {
@@ -913,10 +919,20 @@ snippetCmd
 snippetCmd
   .command('view <id>')
   .description('View snippet details')
+  .option(
+    '-f, --file <name>',
+    'Print contents of a specific file in the snippet'
+  )
+  .option('--files', 'Print contents of all files in the snippet')
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb snippet view kypj', 'bb snippet view kypj --json'],
+      examples: [
+        'bb snippet view kypj',
+        'bb snippet view kypj --json',
+        'bb snippet view kypj --file foo.txt',
+        'bb snippet view kypj --files',
+      ],
     })
   )
   .action(async (id, options) => {
@@ -962,12 +978,17 @@ snippetCmd
   .option('-t, --title <title>', 'New snippet title')
   .option('--private', 'Make snippet private')
   .option('--public', 'Make snippet public')
+  .option(
+    '-f, --file <path...>',
+    'Replace/add file(s) (sends multipart update)'
+  )
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb snippet edit kypj -t "New title"',
         'bb snippet edit kypj --public',
+        'bb snippet edit kypj -f updated.txt',
       ],
     })
   )

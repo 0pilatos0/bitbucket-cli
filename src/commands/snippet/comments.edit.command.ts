@@ -9,7 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { SnippetComment, SnippetsApi } from '../../generated/api.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import { resolveWorkspace } from '../../services/workspace-resolver.js';
 
 export interface EditSnippetCommentOptions {
   workspace?: string;
@@ -23,7 +23,7 @@ export class EditSnippetCommentCommand extends BaseCommand<
   } & EditSnippetCommentOptions,
   void
 > {
-  public readonly name = 'edit-comment';
+  public readonly name = 'edit';
   public readonly description = 'Edit a comment on a snippet';
 
   constructor(
@@ -42,7 +42,8 @@ export class EditSnippetCommentCommand extends BaseCommand<
     } & EditSnippetCommentOptions,
     context: CommandContext
   ): Promise<void> {
-    const workspace = await this.resolveWorkspace(
+    const workspace = await resolveWorkspace(
+      this.configService,
       options.workspace ?? context.globalOptions.workspace
     );
 
@@ -75,23 +76,5 @@ export class EditSnippetCommentCommand extends BaseCommand<
     this.output.success(
       `Updated comment #${commentId} on snippet ${options.snippetId}`
     );
-  }
-
-  private async resolveWorkspace(workspace?: string): Promise<string> {
-    if (workspace) {
-      return workspace;
-    }
-
-    const config = await this.configService.getConfig();
-
-    if (!config.defaultWorkspace) {
-      throw new BBError({
-        code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
-        message:
-          'No workspace specified. Use --workspace option or set a default workspace.',
-      });
-    }
-
-    return config.defaultWorkspace;
   }
 }

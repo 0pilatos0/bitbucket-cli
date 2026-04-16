@@ -9,11 +9,16 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { Snippet, SnippetsApi } from '../../generated/api.js';
+import { SnippetsWorkspaceGetRoleEnum } from '../../generated/api.js';
 import { collectPages, parseLimit } from '../../services/pagination.js';
 import { getUserDisplayName } from '../../services/response-parsers.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import { resolveWorkspace } from '../../services/workspace-resolver.js';
 
-const VALID_ROLES = ['owner', 'contributor', 'member'] as const;
+const VALID_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum) as readonly (
+  | 'owner'
+  | 'contributor'
+  | 'member'
+)[];
 
 export interface ListSnippetsOptions {
   workspace?: string;
@@ -40,7 +45,8 @@ export class ListSnippetsCommand extends BaseCommand<
     options: ListSnippetsOptions,
     context: CommandContext
   ): Promise<void> {
-    const workspace = await this.resolveWorkspace(
+    const workspace = await resolveWorkspace(
+      this.configService,
       options.workspace ?? context.globalOptions.workspace
     );
     const limit = parseLimit(options.limit);
@@ -92,23 +98,5 @@ export class ListSnippetsCommand extends BaseCommand<
       ['ID', 'TITLE', 'VISIBILITY', 'CREATOR', 'UPDATED'],
       rows
     );
-  }
-
-  private async resolveWorkspace(workspace?: string): Promise<string> {
-    if (workspace) {
-      return workspace;
-    }
-
-    const config = await this.configService.getConfig();
-
-    if (!config.defaultWorkspace) {
-      throw new BBError({
-        code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
-        message:
-          'No workspace specified. Use --workspace option or set a default workspace.',
-      });
-    }
-
-    return config.defaultWorkspace;
   }
 }
