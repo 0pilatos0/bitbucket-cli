@@ -1,7 +1,18 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import { readFileSync, existsSync } from "node:fs";
+
+const rootPkg = new URL("../package.json", import.meta.url);
+const cliVersion = existsSync(rootPkg)
+  ? JSON.parse(readFileSync(rootPkg, "utf-8")).version
+  : "latest";
 
 export default defineConfig({
+  vite: {
+    define: {
+      __CLI_VERSION__: JSON.stringify(cliVersion),
+    },
+  },
   site: "https://bitbucket-cli.paulvanderlei.com",
   integrations: [
     starlight({

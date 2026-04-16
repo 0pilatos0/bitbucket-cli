@@ -8,6 +8,7 @@ export { ContextService } from './context.service.js';
 export { OutputService } from './output.service.js';
 export { VersionService } from './version.service.js';
 export { createApiClient } from './api-client.service.js';
+export { OAuthService } from './oauth.service.js';
 export {
   extractReviewerUuids,
   buildReviewersUpdateBody,

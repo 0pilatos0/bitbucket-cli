@@ -30,16 +30,36 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 
 | Key | Type | Description | Set By |
 |-----|------|-------------|--------|
-| `username` | string | Your Bitbucket username | `bb auth login` |
-| `apiToken` | string | Your API token (stored securely) | `bb auth login` |
+| `authMethod` | `"basic"` \| `"oauth"` | Active authentication method | `bb auth login` |
+| `username` | string | Your Bitbucket username (API token auth) | `bb auth login -u` |
+| `apiToken` | string | Your API token (API token auth) | `bb auth login -p` |
+| `oauthAccessToken` | string | OAuth access token | `bb auth login` (OAuth) |
+| `oauthRefreshToken` | string | OAuth refresh token | `bb auth login` (OAuth) |
+| `oauthExpiresAt` | number | OAuth token expiry (Unix timestamp) | `bb auth login` (OAuth) |
+| `oauthClientId` | string | Custom OAuth consumer client ID | `bb auth login --client-id` |
+| `oauthClientSecret` | string | Custom OAuth consumer client secret | `bb auth login --client-secret` |
 | `defaultWorkspace` | string | Default workspace | `bb config set defaultWorkspace` |
 | `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
 | `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
+| `lastVersionCheck` | string | Timestamp of last update check | Automatic |
 
-### Example Configuration
+### Example Configuration (OAuth)
 
 ```json
 {
+  "authMethod": "oauth",
+  "oauthAccessToken": "xxxxxxxxxxxxxxxx",
+  "oauthRefreshToken": "xxxxxxxxxxxxxxxx",
+  "oauthExpiresAt": 1711036800,
+  "defaultWorkspace": "myworkspace"
+}
+```
+
+### Example Configuration (API Token)
+
+```json
+{
+  "authMethod": "basic",
   "username": "myuser",
   "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx",
   "defaultWorkspace": "myworkspace",
@@ -109,8 +129,12 @@ Some configuration keys cannot be set directly:
 
 | Key | Reason | How to Set |
 |-----|--------|------------|
-| `username` | Tied to authentication | Use `bb auth login` |
-| `apiToken` | Security-sensitive | Use `bb auth login` |
+| `username` | Tied to authentication | Use `bb auth login -u` |
+| `apiToken` | Security-sensitive | Use `bb auth login -p` |
+| `authMethod` | Managed by login flow | Use `bb auth login` |
+| `oauthAccessToken` | Managed by OAuth flow | Use `bb auth login` |
+| `oauthRefreshToken` | Managed by OAuth flow | Use `bb auth login` |
+| `oauthExpiresAt` | Managed by OAuth flow | Use `bb auth login` |
 
 ---
 
@@ -129,7 +153,7 @@ The CLI automatically checks for updates when you run the bare `bb` command (wit
 ### Example Notification
 
 ```
-⚠ A new version is available: 1.5.0 (you have 1.4.0)
+⚠ A new version is available: 1.12.0 (you have 1.11.0)
   Run 'bun install -g @pilatos/bitbucket-cli' to update
   Or disable with 'bb config set skipVersionCheck true'
 ```
@@ -204,7 +228,7 @@ Never share your config file or commit it to version control. The API token gran
 bb auth logout
 ```
 
-This removes `username` and `apiToken` but keeps `defaultWorkspace` and other settings.
+This removes authentication credentials (OAuth tokens or API token) but keeps `defaultWorkspace` and other settings. For OAuth, it also revokes the token on Bitbucket's side.
 
 It does not perform a full config reset.
 

@@ -11,7 +11,7 @@ Get productive with the Bitbucket CLI in under a minute.
 
 ```bash
 npm install -g @pilatos/bitbucket-cli
-bb auth login -u your-username -p your-api-token
+bb auth login
 bb repo clone myworkspace/myrepo
 bb pr create -t "My feature"
 ```
@@ -24,7 +24,6 @@ Before you begin, you'll need:
 
 - **[Bun](https://bun.sh) runtime 1.0+** installed (required to run the CLI)
 - A **Bitbucket Cloud** account
-- An **API token** (we'll create one below)
 
 <Aside type="caution">
 The CLI requires Bun runtime to execute. You can install the package via npm/pnpm/bun, but Bun must be available on your system to run `bb` commands.
@@ -47,30 +46,15 @@ The CLI requires Bun runtime to execute. You can install the package via npm/pnp
    bb --version
    ```
 
-2. **Create an API Token**
-
-   1. Go to [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-   2. Click **Create API token**
-   3. Name it (e.g., "bb CLI")
-   4. Select scopes:
-      - Account: Read
-      - Repositories: Read, Write
-      - Pull requests: Read, Write
-   5. Click **Create** and copy the token
-
-   <Aside type="caution">
-   Save your token now! You won't be able to see it again.
-   </Aside>
-
-3. **Authenticate**
+2. **Authenticate**
 
    ```bash
-   export BB_USERNAME=your-username
-   export BB_API_TOKEN=your-api-token
    bb auth login
    ```
 
-   Or pass credentials directly:
+   This opens your browser to authorize the CLI with your Bitbucket account. No token setup needed.
+
+   For CI/CD or headless environments, use an API token instead:
    ```bash
    bb auth login -u your-username -p your-api-token
    ```
@@ -80,14 +64,16 @@ The CLI requires Bun runtime to execute. You can install the package via npm/pnp
    bb auth status
    ```
 
-4. **Clone a Repository**
+   See the [Authentication guide](/getting-started/authentication/) for full details.
+
+3. **Clone a Repository**
 
    ```bash
    bb repo clone myworkspace/myrepo
    cd myrepo
    ```
 
-5. **Create Your First PR**
+4. **Create Your First PR**
 
    ```bash
    git checkout -b feature/my-feature

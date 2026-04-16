@@ -128,6 +128,24 @@ See [Environment Variables Reference](/reference/environment-variables/) for det
 
 ---
 
+## Built-in Resilience
+
+The CLI handles common transient failures automatically — you don't need to implement this yourself in most cases.
+
+### Automatic Retry
+
+API requests that fail with transient errors (HTTP 429, 502, 503, 504) are retried automatically up to 3 times with exponential backoff. This means rate-limited or temporarily unavailable responses are handled without any extra scripting.
+
+### OAuth Token Refresh
+
+OAuth access tokens expire after 2 hours. The CLI refreshes them automatically — both proactively (before expiry) and reactively (on 401 responses). Long-running scripts using OAuth don't need manual re-authentication.
+
+<Aside type="tip">
+The built-in retry covers most transient failures. Only add your own retry logic if you need custom behavior beyond 3 attempts.
+</Aside>
+
+---
+
 ## Scripting Best Practices
 
 ### Always Use Explicit Flags
@@ -142,41 +160,30 @@ bb pr list -w myworkspace -r myrepo --json
 bb pr list --json
 ```
 
-### Handle API Failures
+### Handle Persistent Failures
 
-Implement retry logic for transient failures:
+The CLI retries transient errors automatically (see [Built-in Resilience](#built-in-resilience) above). For persistent failures, handle the exit code:
 
 ```bash
 #!/bin/bash
 
-max_retries=3
-retry_delay=5
-
-for ((i=1; i<=max_retries; i++)); do
-  if bb pr list -w workspace -r repo --json > prs.json 2>error.json; then
-    break
-  fi
-
-  if [ $i -lt $max_retries ]; then
-    echo "Attempt $i failed, retrying in ${retry_delay}s..."
-    sleep $retry_delay
-  else
-    echo "All attempts failed"
-    exit 1
-  fi
-done
+if ! bb pr list -w workspace -r repo --json > prs.json 2>error.json; then
+  echo "Failed to list PRs"
+  cat error.json
+  exit 1
+fi
 ```
 
-### Respect Rate Limits
+### Add Delays in Loops
 
-Add delays between requests:
+When making many sequential API calls, add short delays to avoid hitting rate limits:
 
 ```bash
 #!/bin/bash
 
 for pr_id in $(bb pr list --json | jq -r '.pullRequests[].id'); do
   bb pr view "$pr_id" --json
-  sleep 1  # Rate limit protection
+  sleep 1
 done
 ```
 
@@ -265,120 +272,5 @@ for pr_id in $stale_prs; do
 done
 ```
 
-### Repository Backup Script
 
-Clone all repositories in a workspace:
 
-```bash
-#!/bin/bash
-set -e
-
-WORKSPACE="myworkspace"
-BACKUP_DIR="./bitbucket-backup-$(date +%Y%m%d)"
-
-mkdir -p "$BACKUP_DIR"
-cd "$BACKUP_DIR"
-
-echo "Fetching repository list..."
-repos=$(bb repo list -w "$WORKSPACE" --json | jq -r '.repositories[].name')
-
-for repo in $repos; do
-  echo "Cloning $repo..."
-  bb repo clone "$WORKSPACE/$repo" || echo "Failed to clone $repo"
-  sleep 1
-done
-
-echo "Backup complete: $BACKUP_DIR"
-```
-
-### PR Diff Analysis
-
-Analyze changes across all open PRs:
-
-```bash
-#!/bin/bash
-
-WORKSPACE="myworkspace"
-REPO="myrepo"
-
-echo "Analyzing open PRs..."
-echo ""
-
-total_files=0
-total_additions=0
-total_deletions=0
-
-for pr_id in $(bb pr list -w "$WORKSPACE" -r "$REPO" --json | jq -r '.pullRequests[].id'); do
-  stats=$(bb pr diff "$pr_id" -w "$WORKSPACE" -r "$REPO" --stat --json 2>/dev/null)
-
-  if [ -n "$stats" ]; then
-    files=$(echo "$stats" | jq '.filesChanged // 0')
-    additions=$(echo "$stats" | jq '.totalAdditions // 0')
-    deletions=$(echo "$stats" | jq '.totalDeletions // 0')
-
-    echo "PR #$pr_id: $files files, +$additions -$deletions"
-
-    total_files=$((total_files + files))
-    total_additions=$((total_additions + additions))
-    total_deletions=$((total_deletions + deletions))
-  fi
-
-  sleep 1
-done
-
-echo ""
-echo "Total: $total_files files, +$total_additions -$total_deletions"
-```
-
----
-
-## Python Integration
-
-```python
-import subprocess
-import json
-
-def run_bb(args):
-    """Run bb command and return parsed JSON output."""
-    result = subprocess.run(
-        ['bb'] + args + ['--json'],
-        capture_output=True,
-        text=True
-    )
-    if result.returncode != 0:
-        error = json.loads(result.stderr)
-        raise Exception(f"bb command failed [{error['code']}]: {error['message']}")
-    return json.loads(result.stdout)
-
-# List PRs
-prs = run_bb(['pr', 'list', '-w', 'workspace', '-r', 'repo'])
-for pr in prs['pullRequests']:
-    print(f"#{pr['id']}: {pr['title']}")
-
-# Get PR details
-pr = run_bb(['pr', 'view', '42', '-w', 'workspace', '-r', 'repo'])
-print(f"State: {pr['state']}")
-```
-
----
-
-## Bun/Node.js Integration
-
-You can call the `bb` CLI from Bun or Node.js scripts. Note that the CLI itself requires Bun runtime, but you can invoke it from any JavaScript runtime.
-
-```javascript
-import { execSync } from 'child_process';
-
-function runBB(args) {
-  const result = execSync(`bb ${args.join(' ')} --json`, {
-    encoding: 'utf8'
-  });
-  return JSON.parse(result);
-}
-
-// List PRs
-const prs = runBB(['pr', 'list', '-w', 'workspace', '-r', 'repo']);
-prs.pullRequests.forEach(pr => {
-  console.log(`#${pr.id}: ${pr.title}`);
-});
-```

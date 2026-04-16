@@ -409,11 +409,11 @@ Create a dedicated CI/CD token with minimal permissions:
 
 | Use Case | Required Scopes |
 |----------|----------------|
-| Verify identity | `account:read` |
-| Read-only checks | + `repository:read`, `pullrequest:read` |
-| Create/merge PRs | + `pullrequest:write` |
-| Create repos | + `repository:write` |
-| Delete repos | + `repository:admin` |
+| Verify identity | `read:user:bitbucket` |
+| Read-only checks | + `read:repository:bitbucket`, `read:pullrequest:bitbucket` |
+| Create/merge PRs | + `write:pullrequest:bitbucket` |
+| Create repos | + `write:repository:bitbucket` |
+| Delete repos | + `admin:repository:bitbucket` |
 
 ### Secrets Management
 

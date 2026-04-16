@@ -152,7 +152,13 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
-- `--mine` filters by PRs where the authenticated user is explicitly assigned as a reviewer (via `reviewers.uuid` on the Bitbucket API). It does not filter by author — only PRs you've been asked to review are shown.
+
+:::caution[`--mine` does not mean "my PRs"]
+`--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, use `--json` with `jq`:
+```bash
+bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "your-username")'
+```
+:::
 
 ---
 

@@ -15,18 +15,7 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 
 ### How does this compare to GitHub CLI (gh)?
 
-The Bitbucket CLI is inspired by GitHub's excellent `gh` CLI and aims to provide a similar experience for Bitbucket users:
-
-| Feature | GitHub CLI | Bitbucket CLI |
-|---------|-----------|---------------|
-| Authentication | OAuth/token | API token |
-| Repository management | Yes | Yes |
-| Pull requests | Yes | Yes |
-| Issues | Yes | Not yet |
-| Actions/Pipelines | Yes | Not yet |
-| Gists/Snippets | Yes | Not yet |
-| JSON output | Yes | Yes |
-| Shell completion | Yes | Yes |
+The Bitbucket CLI is inspired by GitHub's excellent `gh` CLI and aims to provide a similar experience for Bitbucket users. It covers authentication, repository management, pull requests, configuration, and shell completion. Features not yet supported include issues, pipelines, snippets, and branch permissions.
 
 ---
 
@@ -82,9 +71,15 @@ Never share this file or commit it to version control.
 
 As of September 9, 2025, Bitbucket app passwords can no longer be created. Existing app passwords will be disabled on June 9, 2026.
 
-Use **API tokens** instead:
-1. Go to [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-2. Create a new token with required scopes
+Use **OAuth** (recommended) or **API tokens** instead:
+
+```bash
+# OAuth (recommended — opens browser)
+bb auth login
+
+# API token
+bb auth login -u your-username -p your-api-token
+```
 
 ---
 
@@ -112,16 +107,18 @@ This updates the stored credentials each time you switch.
 
 ### What scopes does my token need?
 
-Minimum required scopes:
+**OAuth users:** Scopes are requested automatically during authorization. No manual selection needed.
+
+**API token users:** Minimum required scopes:
 
 | Scope | Required For |
 |-------|-------------|
-| `account:read` | `bb auth status` |
-| `repository:read` | `bb repo list`, `bb repo view` |
-| `repository:write` | `bb repo create` |
-| `repository:admin` | `bb repo delete` |
-| `pullrequest:read` | `bb pr list`, `bb pr view` |
-| `pullrequest:write` | `bb pr create`, `bb pr merge` |
+| `read:user:bitbucket` | `bb auth status` |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view` |
+| `write:repository:bitbucket` | `bb repo create` |
+| `admin:repository:bitbucket` | `bb repo delete` |
+| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view` |
+| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge` |
 
 <Aside type="tip">
 For full functionality, grant all repository and pull request scopes.

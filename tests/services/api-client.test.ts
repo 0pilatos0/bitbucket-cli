@@ -38,6 +38,17 @@ function mockConfigService(): IConfigService {
     getConfigPath() {
       return '/tmp/test-config.json';
     },
+    async getAuthMethod() {
+      return 'basic' as const;
+    },
+    async getOAuthCredentials() {
+      throw new Error('No OAuth credentials');
+    },
+    async setOAuthCredentials() {},
+    async clearOAuthCredentials() {},
+    async isOAuthTokenExpired() {
+      return true;
+    },
   };
 }
 
@@ -109,6 +120,212 @@ function createNetworkErrorAdapter() {
 
 // Speed up the sleep() calls by overriding global setTimeout
 const originalSetTimeout = globalThis.setTimeout;
+
+/**
+ * Creates a mock config service that uses OAuth.
+ */
+function mockOAuthConfigService(): IConfigService {
+  return {
+    async getConfig() {
+      return {
+        authMethod: 'oauth' as const,
+        oauthAccessToken: 'oauth-access-token',
+        oauthRefreshToken: 'oauth-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+      };
+    },
+    async setConfig() {},
+    async getCredentials() {
+      throw new Error('No basic credentials');
+    },
+    async setCredentials() {},
+    async clearCredentials() {},
+    async clearConfig() {},
+    async getValue() {
+      return undefined;
+    },
+    async setValue() {},
+    getConfigPath() {
+      return '/tmp/test-config.json';
+    },
+    async getAuthMethod() {
+      return 'oauth' as const;
+    },
+    async getOAuthCredentials() {
+      return {
+        accessToken: 'oauth-access-token',
+        refreshToken: 'oauth-refresh-token',
+        expiresAt: Math.floor(Date.now() / 1000) + 3600,
+      };
+    },
+    async setOAuthCredentials() {},
+    async clearOAuthCredentials() {},
+    async isOAuthTokenExpired() {
+      return false;
+    },
+  };
+}
+
+/**
+ * Creates a mock OAuthService.
+ */
+function createMockOAuthService(
+  options: {
+    validToken?: string;
+    refreshedToken?: string;
+    refreshShouldFail?: boolean;
+  } = {}
+) {
+  let refreshCallCount = 0;
+  return {
+    service: {
+      async getValidAccessToken() {
+        return options.validToken ?? 'valid-oauth-token';
+      },
+      async refreshAccessToken() {
+        refreshCallCount++;
+        if (options.refreshShouldFail) {
+          throw new Error('Refresh failed');
+        }
+        return options.refreshedToken ?? 'refreshed-oauth-token';
+      },
+      async authorize() {
+        return { username: 'user', displayName: 'User', accountId: '123' };
+      },
+      async revokeToken() {},
+    } as any,
+    getRefreshCallCount: () => refreshCallCount,
+  };
+}
+
+describe('createApiClient - OAuth auth', () => {
+  let client: AxiosInstance;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('should use Bearer token when auth method is oauth', async () => {
+    const oauthMock = createMockOAuthService({ validToken: 'my-bearer-token' });
+    const mockAdapter = createMockAdapter([
+      { status: 200, data: { ok: true } },
+    ]);
+    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+  });
+
+  it('should use Basic auth when auth method is basic even with oauthService provided', async () => {
+    const oauthMock = createMockOAuthService();
+    const mockAdapter = createMockAdapter([
+      { status: 200, data: { ok: true } },
+    ]);
+    client = createApiClient(mockConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+  });
+
+  it('should attempt token refresh on 401 for OAuth', async () => {
+    const oauthMock = createMockOAuthService({
+      validToken: 'expired-token',
+      refreshedToken: 'new-token',
+    });
+    const mockAdapter = createMockAdapter([
+      { status: 401, data: { error: { message: 'Unauthorized' } } },
+      { status: 200, data: { ok: true } },
+    ]);
+    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    expect(oauthMock.getRefreshCallCount()).toBe(1);
+    expect(mockAdapter.getCallCount()).toBe(2);
+  });
+
+  it('should not retry 401 more than once for OAuth (prevent infinite loop)', async () => {
+    const oauthMock = createMockOAuthService({
+      validToken: 'bad-token',
+      refreshedToken: 'still-bad-token',
+    });
+    const mockAdapter = createMockAdapter([
+      { status: 401, data: { error: { message: 'Unauthorized' } } },
+      { status: 401, data: { error: { message: 'Still unauthorized' } } },
+    ]);
+    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err: any) {
+      // Second 401 after refresh should throw APIError, not retry again
+      expect(err).toBeInstanceOf(APIError);
+    }
+
+    // Only one refresh attempt
+    expect(oauthMock.getRefreshCallCount()).toBe(1);
+  });
+
+  it('should throw AUTH_EXPIRED when refresh fails on 401', async () => {
+    const oauthMock = createMockOAuthService({
+      validToken: 'expired-token',
+      refreshShouldFail: true,
+    });
+    const mockAdapter = createMockAdapter([
+      { status: 401, data: { error: { message: 'Unauthorized' } } },
+    ]);
+    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err).toBeInstanceOf(BBError);
+      expect(err.code).toBe(ErrorCode.AUTH_EXPIRED);
+      expect(err.message).toContain('bb auth login');
+    }
+  });
+
+  it('should not attempt OAuth refresh on 401 for basic auth', async () => {
+    const oauthMock = createMockOAuthService();
+    const mockAdapter = createMockAdapter([
+      { status: 401, data: { error: { message: 'Unauthorized' } } },
+    ]);
+    // basic auth config, but oauthService is provided
+    client = createApiClient(mockConfigService(), oauthMock.service);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err).toBeInstanceOf(APIError);
+      expect(err.code).toBe(ErrorCode.AUTH_INVALID);
+    }
+
+    // Should not have tried to refresh
+    expect(oauthMock.getRefreshCallCount()).toBe(0);
+  });
+});
 
 describe('createApiClient - retry/backoff', () => {
   let client: AxiosInstance;

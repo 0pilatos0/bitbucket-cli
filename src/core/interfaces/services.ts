@@ -5,6 +5,8 @@
 import type {
   BBConfig,
   AuthCredentials,
+  OAuthCredentials,
+  AuthMethod,
   RepoContext,
   GlobalOptions,
 } from '../../types/config.js';
@@ -22,6 +24,13 @@ export interface IConfigService {
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
   getConfigPath(): string;
+
+  // OAuth support
+  getAuthMethod(): Promise<AuthMethod>;
+  getOAuthCredentials(): Promise<OAuthCredentials>;
+  setOAuthCredentials(credentials: OAuthCredentials): Promise<void>;
+  clearOAuthCredentials(): Promise<void>;
+  isOAuthTokenExpired(): Promise<boolean>;
 }
 
 /**

@@ -1,8 +1,6 @@
 ---
 title: Auth Commands
 description: Authentication commands reference
-banner:
-  content: 'Bitbucket app passwords are deprecated and cannot be created. Use API tokens instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
 Manage authentication with Bitbucket.
@@ -11,7 +9,7 @@ Global options available on all auth commands: `--json`, `--no-color`.
 
 ## `bb auth login`
 
-Authenticate with Bitbucket using an API token.
+Authenticate with Bitbucket using OAuth (default) or an API token.
 
 ```bash
 bb auth login [options]
@@ -21,17 +19,26 @@ bb auth login [options]
 
 | Option | Description |
 |--------|-------------|
-| `-u, --username <username>` | Bitbucket username |
-| `-p, --password <password>` | Bitbucket API token |
+| `-u, --username <username>` | Bitbucket username (implies API token auth) |
+| `-p, --password <password>` | Bitbucket API token (implies API token auth) |
+| `--app-password` | Use API token authentication instead of OAuth (legacy flag name — uses API tokens, not app passwords) |
+| `--client-id <clientId>` | Custom OAuth consumer client ID |
+| `--client-secret <clientSecret>` | Custom OAuth consumer client secret |
 | `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
-# Login with credentials via command line
+# Login with OAuth (opens browser)
+bb auth login
+
+# Login with a custom OAuth consumer
+bb auth login --client-id YOUR_KEY --client-secret YOUR_SECRET
+
+# Login with API token
 bb auth login -u myuser -p your-api-token
 
-# Login using environment variables
+# Login using environment variables (API token)
 export BB_USERNAME=myuser
 export BB_API_TOKEN=your-api-token
 bb auth login
@@ -39,19 +46,49 @@ bb auth login
 
 ### How It Works
 
+**OAuth flow (default):**
+
+1. The CLI starts a local callback server and opens your browser
+2. You authorize the CLI on Bitbucket's consent screen
+3. Bitbucket redirects back to the CLI with an authorization code
+4. The CLI exchanges the code for access and refresh tokens
+5. Tokens are stored in your config file
+6. Access tokens expire after 2 hours and are refreshed automatically
+
+**API token flow (with `-u`/`-p` or `--app-password`):**
+
 1. You provide your Bitbucket username and API token
-2. The CLI stores the credentials securely in your config file
+2. The CLI stores the credentials in your config file
 3. The CLI verifies the credentials by fetching your user information
 4. If verification fails, credentials are not saved
 
-### Required Scopes
+### Auth Method Detection
 
-Your API token needs these scopes:
-- `account:read` — verify your identity
-- `repository:read` — list and view repositories
-- `repository:write` — create repositories (if needed)
-- `pullrequest:read` — list and view pull requests
-- `pullrequest:write` — create, edit, merge, approve, decline pull requests
+The CLI determines which flow to use based on flags:
+
+| Condition | Auth Method |
+|-----------|------------|
+| No flags | OAuth |
+| `-u` or `-p` provided | API Token |
+| `--app-password` flag | API Token |
+| `BB_API_TOKEN` env var set | API Token |
+
+:::note
+The `--app-password` flag is a legacy name. It triggers API token authentication, not Bitbucket app passwords (which are deprecated). Prefer using `-u`/`-p` flags or environment variables instead.
+:::
+
+### Required Scopes (API Token)
+
+When using API tokens, your token needs these scopes:
+
+- `read:user:bitbucket` — verify your identity
+- `read:repository:bitbucket` — list and view repositories
+- `write:repository:bitbucket` — create repositories
+- `admin:repository:bitbucket` — delete repositories (optional)
+- `read:pullrequest:bitbucket` — list and view pull requests
+- `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
+
+OAuth scopes are requested automatically during authorization.
 
 See the [Authentication guide](/getting-started/authentication/) for detailed setup instructions.
 
@@ -79,7 +116,10 @@ bb auth logout
 
 ### What Gets Removed
 
-This command removes only your stored credentials (`username` and `apiToken`) from the config file. Other settings like `defaultWorkspace`, `skipVersionCheck`, and `versionCheckInterval` are preserved.
+- **OAuth**: Revokes the token on Bitbucket's side, then removes `oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, `authMethod`, and custom OAuth consumer credentials from the config file.
+- **API Token**: Removes `username` and `apiToken` from the config file.
+
+Other settings like `defaultWorkspace`, `skipVersionCheck`, and `versionCheckInterval` are preserved.
 
 ---
 
@@ -109,9 +149,20 @@ bb auth status --json
 
 ### Output
 
-When authenticated:
+When authenticated with OAuth:
 ```
 ✓ Logged in to Bitbucket
+  Authentication: OAuth
+  Username: myuser
+  Display name: My Name
+  Account ID: 123456789
+  Token expires: in 1h 42m
+```
+
+When authenticated with API token:
+```
+✓ Logged in to Bitbucket
+  Authentication: API Token
   Username: myuser
   Display name: My Name
   Account ID: 123456789
@@ -127,7 +178,7 @@ Run bb auth login to authenticate.
 
 ## `bb auth token`
 
-Print a base64-encoded string of `username:apiToken`, suitable for HTTP Basic auth headers.
+Print the current access token.
 
 ```bash
 bb auth token [options]
@@ -149,6 +200,11 @@ bb auth token
 bb auth token --json
 ```
 
+### Output
+
+- **OAuth**: Prints the bearer access token (automatically refreshes if expired).
+- **API Token**: Prints a base64-encoded `username:apiToken` string suitable for HTTP Basic auth headers.
+
 ### Use Cases
 
 This is useful for:
@@ -157,5 +213,5 @@ This is useful for:
 - Verifying token format
 
 :::caution
-Keep your token secure! Anyone with this token can access your Bitbucket account with the scopes you've granted to the API token.
+Keep your token secure! Anyone with this token can access your Bitbucket account with the scopes you've granted.
 :::

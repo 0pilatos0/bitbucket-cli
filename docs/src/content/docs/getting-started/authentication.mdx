@@ -1,48 +1,87 @@
 ---
 title: Authentication
 description: How to authenticate with Bitbucket
-banner:
-  content: 'Bitbucket app passwords are deprecated and cannot be created. Use API tokens instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
 
-The Bitbucket CLI uses **API Tokens** for authentication. This is a secure way to grant CLI access without exposing your main account password.
+The Bitbucket CLI supports two authentication methods: **OAuth** (recommended) and **API Tokens**.
 
-## Create an API Token
+## OAuth (Recommended)
 
-1. Log in to [Bitbucket](https://bitbucket.org)
-2. Go to **Personal settings** (click your avatar in the bottom left)
-3. Navigate to **API tokens** under "Access management"
-4. Click **Create API token**
-5. Give it a descriptive name (e.g., "Bitbucket CLI")
-6. Select the required scopes:
-   - `read:user:bitbucket` — verify your identity
-   - `read:repository:bitbucket` — list and view repositories
-   - `write:repository:bitbucket` — create repositories
-   - `admin:repository:bitbucket` — delete repositories (optional)
-   - `read:pullrequest:bitbucket` — list and view pull requests
-   - `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
-7. Click **Create**
-8. **Copy the generated token** - you won't be able to see it again!
-
-## Login
+The simplest way to authenticate. Just run:
 
 ```bash
-bb auth login -u your-username -p your-api-token
-```
-
-### Using Environment Variables
-
-You can also set credentials via environment variables, which is especially useful for CI/CD pipelines:
-
-```bash
-export BB_USERNAME=your-username
-export BB_API_TOKEN=your-api-token
 bb auth login
 ```
 
+This opens your browser where you authorize the CLI with your Bitbucket account. No tokens to copy, no scopes to select manually.
+
+<Aside type="tip">
+OAuth tokens expire after 2 hours but are refreshed automatically — you won't be interrupted.
+</Aside>
+
+### Using a Custom OAuth Consumer
+
+Organizations can use their own OAuth consumer instead of the built-in default:
+
+```bash
+bb auth login --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
+```
+
+To set up a custom OAuth consumer:
+1. Go to **Workspace settings** > **Apps and features** > **OAuth consumers**
+2. Click **Add consumer**
+3. Set **Callback URL** to `http://localhost:19872/callback`
+4. Grant permissions: Account (Read), Repositories (Read, Write, Admin), Pull requests (Read, Write)
+5. Save and use the generated **Key** as `--client-id` and **Secret** as `--client-secret`
+
+Custom credentials are stored in your config file for subsequent logins.
+
+---
+
+## API Token (for CI/CD and headless environments)
+
+Use API tokens when a browser is not available (SSH sessions, Docker containers, CI/CD pipelines).
+
+<Steps>
+
+1. **Create an API Token**
+
+   1. Log in to [Bitbucket](https://bitbucket.org)
+   2. Go to **Personal settings** (click your avatar in the bottom left)
+   3. Navigate to **API tokens** under "Access management"
+   4. Click **Create API token**
+   5. Give it a descriptive name (e.g., "Bitbucket CLI")
+   6. Select the required scopes:
+      - `read:user:bitbucket` — verify your identity
+      - `read:repository:bitbucket` — list and view repositories
+      - `write:repository:bitbucket` — create repositories
+      - `admin:repository:bitbucket` — delete repositories (optional)
+      - `read:pullrequest:bitbucket` — list and view pull requests
+      - `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
+   7. Click **Create**
+   8. **Copy the generated token** - you won't be able to see it again!
+
+2. **Authenticate**
+
+   ```bash
+   bb auth login -u your-username -p your-api-token
+   ```
+
+   Or using environment variables:
+
+   ```bash
+   export BB_USERNAME=your-username
+   export BB_API_TOKEN=your-api-token
+   bb auth login
+   ```
+
+</Steps>
+
 See [Environment Variables Reference](/reference/environment-variables/) for more details on using environment variables in scripts and CI/CD.
+
+---
 
 ## Check Auth Status
 
@@ -50,7 +89,7 @@ See [Environment Variables Reference](/reference/environment-variables/) for mor
 bb auth status
 ```
 
-This shows your current authentication status and account information.
+This shows your current authentication method, account information, and token expiry (for OAuth).
 
 ## Logout
 
@@ -58,7 +97,7 @@ This shows your current authentication status and account information.
 bb auth logout
 ```
 
-This removes only stored credentials (`username` and `apiToken`) from your system and preserves non-auth CLI settings.
+This removes stored credentials and revokes your OAuth token (if using OAuth). Non-auth settings are preserved.
 
 ## Configuration Storage
 
@@ -70,7 +109,7 @@ Credentials are stored in:
 See [Configuration File Reference](/reference/configuration/) for details on the config file format.
 
 <Aside type="caution">
-Never share your API token or config file. Keep them secure!
+Never share your credentials or config file. Keep them secure!
 </Aside>
 
 ## Next Steps

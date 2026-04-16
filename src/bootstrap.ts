@@ -9,6 +9,7 @@ import {
   ContextService,
   OutputService,
   VersionService,
+  OAuthService,
   createApiClient,
 } from './services/index.js';
 import { createRequire } from 'node:module';
@@ -96,12 +97,23 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     () => new OutputService({ noColor: options.noColor })
   );
 
+  // Register OAuth service
+  container.register(ServiceTokens.OAuthService, () => {
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
+    return new OAuthService(configService);
+  });
+
   // Register API clients with axios instance
   container.register(ServiceTokens.PullrequestsApi, () => {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
-    const axiosInstance = createApiClient(configService);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    const axiosInstance = createApiClient(configService, oauthService);
     return new PullrequestsApi(undefined, undefined, axiosInstance);
   });
 
@@ -109,7 +121,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
-    const axiosInstance = createApiClient(configService);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    const axiosInstance = createApiClient(configService, oauthService);
     return new RepositoriesApi(undefined, undefined, axiosInstance);
   });
 
@@ -117,7 +132,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
-    const axiosInstance = createApiClient(configService);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    const axiosInstance = createApiClient(configService, oauthService);
     return new UsersApi(undefined, undefined, axiosInstance);
   });
 
@@ -125,7 +143,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
-    const axiosInstance = createApiClient(configService);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    const axiosInstance = createApiClient(configService, oauthService);
     return new CommitStatusesApi(undefined, undefined, axiosInstance);
   });
 
@@ -151,20 +172,26 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.ConfigService
     );
     const usersApi = container.resolve<UsersApi>(ServiceTokens.UsersApi);
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new LoginCommand(configService, usersApi, output);
+    return new LoginCommand(configService, usersApi, oauthService, output);
   });
 
   container.register(ServiceTokens.LogoutCommand, () => {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new LogoutCommand(configService, output);
+    return new LogoutCommand(configService, oauthService, output);
   });
 
   container.register(ServiceTokens.StatusCommand, () => {
@@ -182,10 +209,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const configService = container.resolve<ConfigService>(
       ServiceTokens.ConfigService
     );
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new TokenCommand(configService, output);
+    return new TokenCommand(configService, oauthService, output);
   });
 
   // Register repo commands

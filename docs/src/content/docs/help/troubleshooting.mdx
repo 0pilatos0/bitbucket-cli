@@ -21,9 +21,29 @@ Error: Authentication required. Please run 'bb auth login' first.
 **Causes:**
 - You haven't logged in yet
 - Your credentials were cleared
+- OAuth tokens expired and could not be refreshed
 
 **Solution:**
 ```bash
+bb auth login
+```
+
+---
+
+### "OAuth token expired" Error
+
+**Symptoms:**
+```
+Error: OAuth token expired. Run 'bb auth login' to re-authenticate.
+```
+
+**Causes:**
+- The refresh token was revoked or expired
+- The OAuth consumer was deleted or modified
+
+**Solution:**
+```bash
+bb auth logout
 bb auth login
 ```
 
@@ -37,7 +57,7 @@ Error: Invalid credentials
 ```
 
 **Causes:**
-- Incorrect username
+- Incorrect username (API token auth)
 - Invalid or expired API token
 - Using a password instead of API token
 
@@ -45,20 +65,53 @@ Error: Invalid credentials
 
 <Steps>
 
-1. Verify your username is correct (your Bitbucket username, not email)
-
-2. Generate a fresh API token:
-   - Go to [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-   - Create a new token with required scopes
-   - Copy the token immediately
-
-3. Re-authenticate:
+1. If using OAuth, simply re-authenticate:
    ```bash
    bb auth logout
    bb auth login
    ```
 
+2. If using API tokens, verify your username and generate a fresh token:
+   - Go to [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
+   - Create a new token with required scopes
+   - Re-authenticate:
+   ```bash
+   bb auth login -u myuser -p your-new-token
+   ```
+
 </Steps>
+
+---
+
+### OAuth Browser Doesn't Open
+
+**Symptoms:** Running `bb auth login` shows a URL but doesn't open a browser.
+
+**Causes:**
+- SSH session or headless environment
+- No default browser configured
+- WSL without browser integration
+
+**Solution:**
+
+1. Copy the URL shown in the terminal and open it manually in any browser
+2. Or use API token auth instead:
+   ```bash
+   bb auth login -u myuser -p your-api-token
+   ```
+
+---
+
+### "Port 19872 is already in use" Error
+
+**Causes:**
+- Another instance of `bb auth login` is running
+- Another application is using port 19872
+
+**Solution:**
+1. Close any other `bb auth login` processes
+2. Check what's using the port: `lsof -i :19872` (macOS/Linux)
+3. Close the conflicting application and retry
 
 ---
 
@@ -76,9 +129,9 @@ Error: Invalid credentials
    - App passwords are at a different URL (deprecated)
 
 2. Check token scopes include:
-   - `account:read`
-   - `repository:read` and `repository:write`
-   - `pullrequest:read` and `pullrequest:write`
+   - `read:user:bitbucket`
+   - `read:repository:bitbucket` and `write:repository:bitbucket`
+   - `read:pullrequest:bitbucket` and `write:pullrequest:bitbucket`
 
 3. When pasting the token, ensure no extra whitespace:
    ```bash
@@ -87,6 +140,11 @@ Error: Invalid credentials
 
    # Bad - extra space
    bb auth login -u myuser -p " ATBB_xxxxx"
+   ```
+
+4. Or switch to OAuth to avoid token management entirely:
+   ```bash
+   bb auth login
    ```
 
 ---
@@ -200,9 +258,11 @@ Error: Rate limit exceeded
 
 **Solutions:**
 
-1. Wait a few minutes and retry
+1. The CLI automatically retries rate-limited requests (HTTP 429) up to 3 times with exponential backoff. If you still see this error, the rate limit is sustained.
 
-2. For scripts, implement delays:
+2. Wait a few minutes and retry
+
+3. For scripts, add delays between calls:
    ```bash
    for pr_id in 1 2 3 4 5; do
      bb pr view $pr_id

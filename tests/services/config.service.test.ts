@@ -313,6 +313,243 @@ describe('ConfigService', () => {
     });
   });
 
+  describe('getAuthMethod', () => {
+    it('should return basic when no auth method is set', async () => {
+      const method = await configService.getAuthMethod();
+      expect(method).toBe('basic');
+    });
+
+    it('should return oauth when authMethod is oauth', async () => {
+      await configService.setConfig({ authMethod: 'oauth' });
+      const method = await configService.getAuthMethod();
+      expect(method).toBe('oauth');
+    });
+
+    it('should return basic when authMethod is basic', async () => {
+      await configService.setConfig({ authMethod: 'basic' });
+      const method = await configService.getAuthMethod();
+      expect(method).toBe('basic');
+    });
+  });
+
+  describe('getOAuthCredentials', () => {
+    it('should return OAuth credentials when all fields exist', async () => {
+      await configService.setConfig({
+        oauthAccessToken: 'access-token',
+        oauthRefreshToken: 'refresh-token',
+        oauthExpiresAt: 1234567890,
+      });
+
+      const creds = await configService.getOAuthCredentials();
+
+      expect(creds.accessToken).toBe('access-token');
+      expect(creds.refreshToken).toBe('refresh-token');
+      expect(creds.expiresAt).toBe(1234567890);
+    });
+
+    it('should throw AUTH_REQUIRED when access token is missing', async () => {
+      await configService.setConfig({
+        oauthRefreshToken: 'refresh-token',
+        oauthExpiresAt: 1234567890,
+      });
+
+      await expect(configService.getOAuthCredentials()).rejects.toMatchObject({
+        code: ErrorCode.AUTH_REQUIRED,
+      });
+    });
+
+    it('should throw AUTH_REQUIRED when refresh token is missing', async () => {
+      await configService.setConfig({
+        oauthAccessToken: 'access-token',
+        oauthExpiresAt: 1234567890,
+      });
+
+      await expect(configService.getOAuthCredentials()).rejects.toMatchObject({
+        code: ErrorCode.AUTH_REQUIRED,
+      });
+    });
+
+    it('should throw AUTH_REQUIRED when expires at is missing', async () => {
+      await configService.setConfig({
+        oauthAccessToken: 'access-token',
+        oauthRefreshToken: 'refresh-token',
+      });
+
+      await expect(configService.getOAuthCredentials()).rejects.toMatchObject({
+        code: ErrorCode.AUTH_REQUIRED,
+      });
+    });
+
+    it('should throw AUTH_REQUIRED when config is empty', async () => {
+      await expect(configService.getOAuthCredentials()).rejects.toMatchObject({
+        code: ErrorCode.AUTH_REQUIRED,
+        message: expect.stringContaining('bb auth login'),
+      });
+    });
+  });
+
+  describe('setOAuthCredentials', () => {
+    it('should store OAuth credentials and set authMethod to oauth', async () => {
+      await configService.setOAuthCredentials({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+        expiresAt: 1234567890,
+      });
+
+      const config = await configService.getConfig();
+
+      expect(config.authMethod).toBe('oauth');
+      expect(config.oauthAccessToken).toBe('access');
+      expect(config.oauthRefreshToken).toBe('refresh');
+      expect(config.oauthExpiresAt).toBe(1234567890);
+    });
+
+    it('should clear basic auth credentials when setting OAuth', async () => {
+      await configService.setConfig({
+        username: 'olduser',
+        apiToken: 'oldtoken',
+        defaultWorkspace: 'workspace',
+      });
+
+      await configService.setOAuthCredentials({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+        expiresAt: 1234567890,
+      });
+
+      const config = await configService.getConfig();
+
+      expect(config.username).toBeUndefined();
+      expect(config.apiToken).toBeUndefined();
+      expect(config.authMethod).toBe('oauth');
+      expect(config.defaultWorkspace).toBe('workspace');
+    });
+
+    it('should preserve non-auth config values', async () => {
+      await configService.setConfig({
+        defaultWorkspace: 'myworkspace',
+        skipVersionCheck: true,
+        versionCheckInterval: 7,
+      });
+
+      await configService.setOAuthCredentials({
+        accessToken: 'access',
+        refreshToken: 'refresh',
+        expiresAt: 1234567890,
+      });
+
+      const config = await configService.getConfig();
+
+      expect(config.defaultWorkspace).toBe('myworkspace');
+      expect(config.skipVersionCheck).toBe(true);
+      expect(config.versionCheckInterval).toBe(7);
+    });
+  });
+
+  describe('clearOAuthCredentials', () => {
+    it('should clear all OAuth fields', async () => {
+      await configService.setConfig({
+        authMethod: 'oauth',
+        oauthAccessToken: 'access',
+        oauthRefreshToken: 'refresh',
+        oauthExpiresAt: 1234567890,
+        oauthClientId: 'custom-id',
+        oauthClientSecret: 'custom-secret',
+        defaultWorkspace: 'workspace',
+      });
+
+      await configService.clearOAuthCredentials();
+
+      const config = await configService.getConfig();
+
+      expect(config.authMethod).toBeUndefined();
+      expect(config.oauthAccessToken).toBeUndefined();
+      expect(config.oauthRefreshToken).toBeUndefined();
+      expect(config.oauthExpiresAt).toBeUndefined();
+      expect(config.oauthClientId).toBeUndefined();
+      expect(config.oauthClientSecret).toBeUndefined();
+      expect(config.defaultWorkspace).toBe('workspace');
+    });
+
+    it('should preserve non-OAuth config values', async () => {
+      await configService.setConfig({
+        authMethod: 'oauth',
+        oauthAccessToken: 'access',
+        oauthRefreshToken: 'refresh',
+        oauthExpiresAt: 1234567890,
+        defaultWorkspace: 'workspace',
+        skipVersionCheck: false,
+        versionCheckInterval: 3,
+      });
+
+      await configService.clearOAuthCredentials();
+
+      const config = await configService.getConfig();
+
+      expect(config.defaultWorkspace).toBe('workspace');
+      expect(config.skipVersionCheck).toBe(false);
+      expect(config.versionCheckInterval).toBe(3);
+    });
+  });
+
+  describe('isOAuthTokenExpired', () => {
+    it('should return true when no expiry is set', async () => {
+      const expired = await configService.isOAuthTokenExpired();
+      expect(expired).toBe(true);
+    });
+
+    it('should return true when token has expired', async () => {
+      await configService.setConfig({
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+
+      const expired = await configService.isOAuthTokenExpired();
+      expect(expired).toBe(true);
+    });
+
+    it('should return true when token expires within 60 seconds', async () => {
+      await configService.setConfig({
+        oauthExpiresAt: Math.floor(Date.now() / 1000) + 30,
+      });
+
+      const expired = await configService.isOAuthTokenExpired();
+      expect(expired).toBe(true);
+    });
+
+    it('should return false when token is valid and not near expiry', async () => {
+      await configService.setConfig({
+        oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+      });
+
+      const expired = await configService.isOAuthTokenExpired();
+      expect(expired).toBe(false);
+    });
+  });
+
+  describe('setCredentials (authMethod tracking)', () => {
+    it('should set authMethod to basic when setting credentials', async () => {
+      await configService.setCredentials({
+        username: 'user',
+        apiToken: 'token',
+      });
+
+      const config = await configService.getConfig();
+      expect(config.authMethod).toBe('basic');
+    });
+
+    it('should override oauth authMethod when setting basic credentials', async () => {
+      await configService.setConfig({ authMethod: 'oauth' });
+
+      await configService.setCredentials({
+        username: 'user',
+        apiToken: 'token',
+      });
+
+      const config = await configService.getConfig();
+      expect(config.authMethod).toBe('basic');
+    });
+  });
+
   describe('clearCache', () => {
     it('should clear cached config', async () => {
       await configService.setConfig({ username: 'original' });
