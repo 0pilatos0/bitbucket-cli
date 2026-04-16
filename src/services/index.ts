@@ -9,6 +9,8 @@ export { OutputService } from './output.service.js';
 export { VersionService } from './version.service.js';
 export { createApiClient } from './api-client.service.js';
 export { OAuthService } from './oauth.service.js';
+export { resolveWorkspace } from './workspace-resolver.js';
+export { SnippetFilesService } from './snippet-files.service.js';
 export {
   extractReviewerUuids,
   buildReviewersUpdateBody,

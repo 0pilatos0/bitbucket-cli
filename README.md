@@ -39,7 +39,7 @@
 
 ## At a glance
 
-- Stay in the terminal for repo and PR workflows
+- Stay in the terminal for repo, PR, and snippet workflows
 - JSON output for scripting and automation
 - Auto-detects workspace and repo from your git directory
 

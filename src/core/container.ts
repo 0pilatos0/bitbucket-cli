@@ -172,6 +172,24 @@ export const ServiceTokens = {
   RemoveReviewerPRCommand: 'RemoveReviewerPRCommand',
   ListReviewersPRCommand: 'ListReviewersPRCommand',
 
+  // API Clients - Snippets
+  SnippetsApi: 'SnippetsApi',
+  SnippetsAxios: 'SnippetsAxios',
+  SnippetFilesService: 'SnippetFilesService',
+
+  // Commands - Snippet
+  ListSnippetsCommand: 'ListSnippetsCommand',
+  ViewSnippetCommand: 'ViewSnippetCommand',
+  CreateSnippetCommand: 'CreateSnippetCommand',
+  EditSnippetCommand: 'EditSnippetCommand',
+  DeleteSnippetCommand: 'DeleteSnippetCommand',
+  WatchSnippetCommand: 'WatchSnippetCommand',
+  UnwatchSnippetCommand: 'UnwatchSnippetCommand',
+  ListSnippetCommentsCommand: 'ListSnippetCommentsCommand',
+  AddSnippetCommentCommand: 'AddSnippetCommentCommand',
+  EditSnippetCommentCommand: 'EditSnippetCommentCommand',
+  DeleteSnippetCommentCommand: 'DeleteSnippetCommentCommand',
+
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',
   SetConfigCommand: 'SetConfigCommand',
