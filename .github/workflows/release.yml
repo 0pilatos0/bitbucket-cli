@@ -3,12 +3,19 @@ name: Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish_only:
+        description: 'Skip the release stage and publish package.json version directly to npm'
+        type: boolean
+        default: false
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
     name: Release
+    if: github.event_name != 'workflow_dispatch' || inputs.publish_only != true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -102,11 +109,55 @@ jobs:
     outputs:
       should_publish: ${{ steps.publish.outputs.should_publish }}
 
+  # Single npm publish job. Runs inline (no workflow_call) so that npm's
+  # Trusted Publisher OIDC check sees `release.yml` as job_workflow_ref —
+  # matching the npmjs.com trusted-publisher configuration for this package.
+  #
+  # Triggers:
+  #   - automatic: after `release` creates the git tag and sets should_publish
+  #   - manual:    `gh workflow run "Release" --ref main -f publish_only=true`
+  #                (ships whatever version is currently in package.json; use
+  #                 this to re-publish a version that already has a git tag)
   publish:
     name: Publish to npm
-    needs: release
-    if: needs.release.outputs.should_publish == 'true'
-    uses: ./.github/workflows/publish.yml
+    needs: [release]
+    if: |
+      always() &&
+      !cancelled() &&
+      (
+        needs.release.outputs.should_publish == 'true' ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_only == true)
+      )
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
       id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.6
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Test
+        run: bun test
+        env:
+          NODE_ENV: test
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
