@@ -123,7 +123,7 @@ jobs:
     needs: [release]
     if: |
       always() &&
-      !cancelled() &&
+      (needs.release.result == 'success' || needs.release.result == 'skipped') &&
       (
         needs.release.outputs.should_publish == 'true' ||
         (github.event_name == 'workflow_dispatch' && inputs.publish_only == true)
