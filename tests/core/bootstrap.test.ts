@@ -14,29 +14,11 @@ import { Container, ServiceTokens } from '../../src/core/container.js';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
 
-// `HttpClient` is declared in ServiceTokens but bootstrap() does not register
-// it — every API client creates its own axios instance. This pins the known
-// gap so that if the token is wired up in the future, the pin is removed
-// intentionally (and if a *new* unregistered token appears, the test fails).
-const UNREGISTERED_TOKENS = new Set<string>([ServiceTokens.HttpClient]);
-
-function registeredTokens(): string[] {
-  return Object.values(ServiceTokens).filter(
-    (token) => !UNREGISTERED_TOKENS.has(token)
-  );
-}
-
 describe('bootstrap()', () => {
-  it('pins the set of known-unregistered tokens so new drift gets flagged', () => {
-    // If this ever changes, either register the missing token in bootstrap.ts
-    // or update the pinned set deliberately.
-    expect(Array.from(UNREGISTERED_TOKENS).sort()).toEqual(['HttpClient']);
-  });
-
   it('returns a Container with every registered service token wired up', () => {
     const container = bootstrap();
 
-    for (const token of registeredTokens()) {
+    for (const token of Object.values(ServiceTokens)) {
       expect(container.has(token)).toBe(true);
     }
   });
@@ -44,7 +26,7 @@ describe('bootstrap()', () => {
   it('resolves each registered ServiceToken without throwing', () => {
     const container = bootstrap();
 
-    for (const token of registeredTokens()) {
+    for (const token of Object.values(ServiceTokens)) {
       expect(() => container.resolve(token)).not.toThrow();
     }
   });
