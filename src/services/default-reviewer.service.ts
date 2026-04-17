@@ -50,13 +50,17 @@ export class DefaultReviewerService {
     repo: RepoContext,
     username: string
   ): Promise<DefaultReviewerEntry> {
+    // Bitbucket returns 400 if Content-Type: application/json is sent with an
+    // empty body (the global axios default). Send `{}` so the server sees a
+    // valid empty JSON document.
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugDefaultReviewersTargetUsernamePut(
         {
           workspace: repo.workspace,
           repoSlug: repo.repoSlug,
           targetUsername: username,
-        }
+        },
+        { data: {} }
       );
 
     return accountToEntry(response.data);

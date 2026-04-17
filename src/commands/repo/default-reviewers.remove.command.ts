@@ -8,6 +8,7 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import type { UsersApi } from '../../generated/api.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
@@ -26,6 +27,7 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
 
   constructor(
     private readonly defaultReviewerService: DefaultReviewerService,
+    private readonly usersApi: UsersApi,
     private readonly contextService: IContextService,
     output: IOutputService
   ) {
@@ -51,7 +53,13 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
       });
     }
 
-    await this.defaultReviewerService.remove(repoContext, options.username);
+    // Same as add: resolve via the users API so nicknames work.
+    const userResponse = await this.usersApi.usersSelectedUserGet({
+      selectedUser: options.username,
+    });
+    const identifier = userResponse.data.uuid ?? options.username;
+
+    await this.defaultReviewerService.remove(repoContext, identifier);
 
     if (context.globalOptions.json) {
       this.output.json({
