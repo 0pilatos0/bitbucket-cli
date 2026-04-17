@@ -329,26 +329,38 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const service = container.resolve<DefaultReviewerService>(
       ServiceTokens.DefaultReviewerService
     );
+    const usersApi = container.resolve<UsersApi>(ServiceTokens.UsersApi);
     const contextService = container.resolve<ContextService>(
       ServiceTokens.ContextService
     );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new AddDefaultReviewerCommand(service, contextService, output);
+    return new AddDefaultReviewerCommand(
+      service,
+      usersApi,
+      contextService,
+      output
+    );
   });
 
   container.register(ServiceTokens.RemoveDefaultReviewerCommand, () => {
     const service = container.resolve<DefaultReviewerService>(
       ServiceTokens.DefaultReviewerService
     );
+    const usersApi = container.resolve<UsersApi>(ServiceTokens.UsersApi);
     const contextService = container.resolve<ContextService>(
       ServiceTokens.ContextService
     );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return new RemoveDefaultReviewerCommand(service, contextService, output);
+    return new RemoveDefaultReviewerCommand(
+      service,
+      usersApi,
+      contextService,
+      output
+    );
   });
 
   // Register PR commands

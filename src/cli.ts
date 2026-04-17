@@ -529,9 +529,10 @@ prCmd
     (value: string, previous: string[]) => previous.concat([value]),
     [] as string[]
   )
+  .option('--default-reviewers', "Include the repository's default reviewers")
   .option(
-    '--default-reviewers',
-    "Include the repository's default reviewers (pass --no-default-reviewers to skip when the config key is enabled)"
+    '--no-default-reviewers',
+    "Skip the repository's default reviewers even when prCreateIncludeDefaultReviewers is true"
   )
   .addHelpText(
     'after',
