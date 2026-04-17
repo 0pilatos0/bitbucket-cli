@@ -807,17 +807,18 @@ prCommentsCmd
 prCommentsCmd
   .command('delete <pr-id> <comment-id>')
   .description('Delete a comment on a pull request')
+  .option('-y, --yes', 'Skip confirmation prompt')
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb pr comments delete 42 12345'],
+      examples: ['bb pr comments delete 42 12345 --yes'],
     })
   )
   .action(async (prId, commentId, options) => {
     const context = createContext(cli);
     await runCommand(
       ServiceTokens.DeleteCommentPRCommand,
-      withGlobalOptions({ prId, commentId }, context),
+      withGlobalOptions({ prId, commentId, ...options }, context),
       cli,
       context
     );
