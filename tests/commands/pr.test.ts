@@ -2321,7 +2321,7 @@ describe('DeleteCommentPRCommand', () => {
       output
     );
     await command.execute(
-      { prId: '42', commentId: '7' },
+      { prId: '42', commentId: '7', yes: true },
       { globalOptions: {} }
     );
 
@@ -2344,7 +2344,7 @@ describe('DeleteCommentPRCommand', () => {
       output
     );
     await command.execute(
-      { prId: '42', commentId: '7' },
+      { prId: '42', commentId: '7', yes: true },
       { globalOptions: { json: true } }
     );
 
@@ -2373,7 +2373,10 @@ describe('DeleteCommentPRCommand', () => {
     );
 
     await expect(
-      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+      command.execute(
+        { prId: '42', commentId: '7', yes: true },
+        { globalOptions: {} }
+      )
     ).rejects.toThrow('API Error');
   });
 
@@ -2389,8 +2392,30 @@ describe('DeleteCommentPRCommand', () => {
     );
 
     await expect(
-      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+      command.execute(
+        { prId: '42', commentId: '7', yes: true },
+        { globalOptions: {} }
+      )
     ).rejects.toThrow();
+  });
+
+  it('should throw without --yes flag', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new DeleteCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('Use --yes to confirm deletion');
   });
 });
 
