@@ -506,3 +506,127 @@ describe('createApiClient - retry/backoff', () => {
     expect(networkMock.getCallCount()).toBe(1);
   });
 });
+
+describe('createApiClient - DEBUG response logging redaction', () => {
+  let client: AxiosInstance;
+  let consoleDebugSpy: ReturnType<typeof spyOn>;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+  let originalDebug: string | undefined;
+
+  beforeEach(() => {
+    originalDebug = process.env.DEBUG;
+    consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleDebugSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+    if (originalDebug === undefined) {
+      delete process.env.DEBUG;
+    } else {
+      process.env.DEBUG = originalDebug;
+    }
+  });
+
+  function allDebugOutput(): string {
+    return consoleDebugSpy.mock.calls
+      .map((args) => args.map((a) => String(a)).join(' '))
+      .join('\n');
+  }
+
+  it('redacts access_token and refresh_token from response body logs', async () => {
+    process.env.DEBUG = 'true';
+    const mockAdapter = createMockAdapter([
+      {
+        status: 200,
+        data: {
+          access_token: 'secret-AT',
+          refresh_token: 'secret-RT',
+          expires_in: 7200,
+          scopes: 'repository',
+        },
+      },
+    ]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const output = allDebugOutput();
+    expect(output).toContain('[HTTP] Response Body:');
+    expect(output).not.toContain('secret-AT');
+    expect(output).not.toContain('secret-RT');
+    expect(output).toContain('[REDACTED]');
+    // Non-sensitive fields still logged.
+    expect(output).toContain('expires_in');
+    expect(output).toContain('7200');
+    expect(output).toContain('scopes');
+  });
+
+  it('redacts tokens from error response body logs', async () => {
+    process.env.DEBUG = 'true';
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: { error: 'invalid_grant', access_token: 'leaked' },
+      },
+    ]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+    } catch {
+      // expected
+    }
+
+    const output = allDebugOutput();
+    expect(output).toContain('[HTTP] Error Response Body:');
+    expect(output).not.toContain('leaked');
+    expect(output).toContain('[REDACTED]');
+    expect(output).toContain('invalid_grant');
+  });
+
+  it('redacts sensitive keys nested inside arrays and objects', async () => {
+    process.env.DEBUG = 'true';
+    const mockAdapter = createMockAdapter([
+      {
+        status: 200,
+        data: {
+          data: {
+            items: [
+              { id: 1, token: 'nested-secret' },
+              { id: 2, password: 'also-secret' },
+            ],
+          },
+        },
+      },
+    ]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const output = allDebugOutput();
+    expect(output).not.toContain('nested-secret');
+    expect(output).not.toContain('also-secret');
+    expect(output).toContain('[REDACTED]');
+  });
+
+  it('does not log response bodies when DEBUG is not set', async () => {
+    delete process.env.DEBUG;
+    const mockAdapter = createMockAdapter([
+      {
+        status: 200,
+        data: { access_token: 'should-never-log' },
+      },
+    ]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    expect(consoleDebugSpy).not.toHaveBeenCalled();
+  });
+});

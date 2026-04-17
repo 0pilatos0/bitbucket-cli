@@ -17,6 +17,45 @@ const BASE_DELAY_MS = 1000;
 
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
 
+const SENSITIVE_KEYS = new Set([
+  'access_token',
+  'refresh_token',
+  'token',
+  'id_token',
+  'client_secret',
+  'password',
+  'authorization',
+]);
+
+const REDACTED = '[REDACTED]';
+
+function redactSensitive(
+  value: unknown,
+  seen = new WeakSet<object>()
+): unknown {
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (seen.has(value as object)) {
+    return '[Circular]';
+  }
+  seen.add(value as object);
+
+  if (Array.isArray(value)) {
+    return value.map((item) => redactSensitive(item, seen));
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+      result[key] = REDACTED;
+    } else {
+      result[key] = redactSensitive(val, seen);
+    }
+  }
+  return result;
+}
+
 interface RetryableConfig extends InternalAxiosRequestConfig {
   __retryCount?: number;
   __tokenRefreshed?: boolean;
@@ -84,7 +123,7 @@ export function createApiClient(
         console.debug(`[HTTP] Response: ${response.status}`);
         console.debug(
           `[HTTP] Response Body:`,
-          JSON.stringify(response.data, null, 2)
+          JSON.stringify(redactSensitive(response.data), null, 2)
         );
       }
       return response;
@@ -95,7 +134,7 @@ export function createApiClient(
         if (error.response) {
           console.debug(
             `[HTTP] Error Response Body:`,
-            JSON.stringify(error.response.data, null, 2)
+            JSON.stringify(redactSensitive(error.response.data), null, 2)
           );
         }
       }
