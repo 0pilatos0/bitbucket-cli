@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.13.0
+
+### Minor Changes
+
+- [`07ff5ac`](https://github.com/0pilatos0/bitbucket-cli/commit/07ff5ac0ca025b571a84995aaf5c10f60880d9ce) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add support for Bitbucket Default Reviewers (closes #139).
+  - New `bb repo default-reviewers list|add|remove` commands to inspect and manage the default reviewers of a repository. `list` shows the effective set (repo-level plus project-inherited) by default; pass `--direct` for only repo-level entries. `remove` requires `--yes` to confirm.
+  - `bb pr create` gains opt-in support for default reviewers:
+    - `--default-reviewers` fetches and attaches the repository's effective default reviewers (matching the web UI behavior).
+    - `--reviewer <username>` (repeatable) adds explicit reviewers independent of the defaults.
+    - `--no-default-reviewers` skips defaults when the config key enables them.
+    - The PR author is automatically excluded from the reviewer list.
+  - New config key `prCreateIncludeDefaultReviewers` (boolean, default `false`) makes `--default-reviewers` the default behavior on `bb pr create`.
+
+### Patch Changes
+
+- [#156](https://github.com/0pilatos0/bitbucket-cli/pull/156) [`14e75c6`](https://github.com/0pilatos0/bitbucket-cli/commit/14e75c6af262ff1a70fe8eb095d942ec083d7abf) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Harden PR commands:
+  - `bb pr view`, `bb pr activity`, `bb pr merge`, and `bb pr checks` now validate `<id>` as an integer and fail fast with a clear `--id must be a valid integer` error instead of silently passing `NaN` to the Bitbucket API.
+  - `bb pr activity --type` now rejects unknown activity types (e.g. `--type commetn`) with a `--type must be one of: …` error instead of silently returning zero results.
+  - Removed the redundant local `--json` flag on `bb pr checks`; use the global `--json` option instead.
+
+- [#152](https://github.com/0pilatos0/bitbucket-cli/pull/152) [`153f05d`](https://github.com/0pilatos0/bitbucket-cli/commit/153f05d9513e2c8bdbaf92b8b7a6485b612ddea8) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr comments delete` now requires `--yes` to confirm deletion, matching the guardrail on other destructive commands (`bb repo delete`, `bb snippet delete`, `bb snippet comments delete`).
+
+- [#153](https://github.com/0pilatos0/bitbucket-cli/pull/153) [`15373c5`](https://github.com/0pilatos0/bitbucket-cli/commit/15373c50dd806c0f314f5191a9edf665cc2ba412) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Redact `access_token`, `refresh_token`, and other token-bearing fields from `DEBUG=true` HTTP response logs so OAuth secrets no longer leak into terminal output or CI logs when debugging.
+
+- [#155](https://github.com/0pilatos0/bitbucket-cli/pull/155) [`6a1d1e2`](https://github.com/0pilatos0/bitbucket-cli/commit/6a1d1e28a2b05d07928443d18479ea4496bf5913) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Validate `bb pr merge --strategy` locally against the allowed merge strategies (`merge_commit`, `squash`, `fast_forward`, `squash_fast_forward`, `rebase_fast_forward`, `rebase_merge`). Invalid values now fail fast with a helpful `--strategy must be one of: …` message instead of surfacing as an opaque Bitbucket API error.
+
 ## 1.12.0
 
 ### Minor Changes
