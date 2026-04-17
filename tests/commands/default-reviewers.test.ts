@@ -129,7 +129,7 @@ describe('ListDefaultReviewersCommand', () => {
     ).toBe(true);
   });
 
-  it('renders a table without Source column for --direct', async () => {
+  it('renders a table without Source column for --repo-only', async () => {
     const output = createMockOutputService();
     const cmd = new ListDefaultReviewersCommand(
       createMockService({
@@ -139,7 +139,7 @@ describe('ListDefaultReviewersCommand', () => {
       output
     );
 
-    await cmd.execute({ direct: true }, { globalOptions: {} });
+    await cmd.execute({ repoOnly: true }, { globalOptions: {} });
 
     expect(output.logs.some((l) => l === 'table:Display Name,Nickname')).toBe(
       true

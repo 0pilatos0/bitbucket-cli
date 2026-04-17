@@ -222,7 +222,7 @@ By default the **effective** reviewer list is shown — this includes reviewers 
 
 | Option | Description |
 |--------|-------------|
-| `--direct` | Only show reviewers configured on the repository (exclude project-inherited) |
+| `--repo-only` | Only show reviewers configured on the repository (exclude project-inherited) |
 | `--json` | Output as JSON |
 
 ```bash
@@ -230,7 +230,7 @@ By default the **effective** reviewer list is shown — this includes reviewers 
 bb repo default-reviewers list
 
 # Only repo-level entries
-bb repo default-reviewers list --direct
+bb repo default-reviewers list --repo-only
 
 # JSON for scripting
 bb repo default-reviewers list --json

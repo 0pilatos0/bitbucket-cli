@@ -12,7 +12,7 @@ import type { DefaultReviewerService } from '../../services/default-reviewer.ser
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListDefaultReviewersOptions extends GlobalOptions {
-  direct?: boolean;
+  repoOnly?: boolean;
 }
 
 export class ListDefaultReviewersCommand extends BaseCommand<
@@ -39,7 +39,7 @@ export class ListDefaultReviewersCommand extends BaseCommand<
       ...options,
     });
 
-    const mode = options.direct ? 'direct' : 'effective';
+    const mode = options.repoOnly ? 'direct' : 'effective';
     const reviewers = await this.defaultReviewerService.list(repoContext, mode);
 
     if (context.globalOptions.json) {

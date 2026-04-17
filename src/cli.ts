@@ -445,7 +445,7 @@ repoDefaultReviewersCmd
   .command('list')
   .description('List default reviewers for a repository')
   .option(
-    '--direct',
+    '--repo-only',
     'Only show reviewers configured on the repository (exclude project-inherited)'
   )
   .addHelpText(
@@ -453,7 +453,7 @@ repoDefaultReviewersCmd
     buildHelpText({
       examples: [
         'bb repo default-reviewers list',
-        'bb repo default-reviewers list --direct',
+        'bb repo default-reviewers list --repo-only',
         'bb repo default-reviewers list --json',
       ],
     })
