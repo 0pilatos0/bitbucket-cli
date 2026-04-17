@@ -29,6 +29,9 @@ bb pr create [options]
 | `-r, --repo <repo>` | Repository |
 | `--close-source-branch` | Close source branch after merge |
 | `--draft` | Create the pull request as draft |
+| `--reviewer <username>` | Add a reviewer by username (repeatable) |
+| `--default-reviewers` | Include the repository's default reviewers (opt-in) |
+| `--no-default-reviewers` | Skip default reviewers even when the config key enables them |
 | `--json` | Output as JSON |
 
 ### Examples
@@ -45,7 +48,32 @@ bb pr create -t "Hotfix: Critical bug" --close-source-branch
 
 # Create a draft PR
 bb pr create -t "WIP: Add feature" --draft
+
+# Auto-add the repo's default reviewers (matches the Bitbucket web UI)
+bb pr create -t "Add new feature" --default-reviewers
+
+# Add specific reviewers (repeatable)
+bb pr create -t "Add new feature" --reviewer jdoe --reviewer asmith
+
+# Combine defaults + explicit additions (duplicates are de-duped)
+bb pr create -t "Add new feature" --default-reviewers --reviewer jdoe
 ```
+
+### Reviewers
+
+By default `bb pr create` does **not** attach reviewers to the PR — this differs from the Bitbucket web UI, which auto-populates the repository's default reviewers.
+
+- `--default-reviewers` opts in per-invocation. The command fetches the repository's *effective* default reviewers (repo-level + project-inherited) and attaches them.
+- `--reviewer <username>` adds specific reviewers regardless of the defaults and can be passed multiple times.
+- The PR author is automatically excluded from the reviewer list — Bitbucket rejects PRs that list the author as a reviewer.
+- To make `--default-reviewers` the default behavior, set the config key:
+  ```bash
+  bb config set prCreateIncludeDefaultReviewers true
+  ```
+  Pass `--no-default-reviewers` to skip defaults for a single invocation when this is enabled.
+- If the default-reviewer fetch fails (network error, permission issue, etc.), the PR is still created without reviewers and a warning is printed — the failure does not block the creation.
+
+See [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers) to inspect or manage the underlying default reviewer list.
 
 ---
 

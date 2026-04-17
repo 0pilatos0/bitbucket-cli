@@ -197,3 +197,70 @@ bb repo delete myrepo -w myworkspace --yes
 :::danger
 This action is permanent and cannot be undone! All repository data, including code, issues, and pull requests will be deleted.
 :::
+
+---
+
+## `bb repo default-reviewers`
+
+Inspect and manage the default reviewers configured on a repository. Default reviewers in Bitbucket Cloud are automatically suggested when someone opens a pull request through the web UI; this command group lets you see and edit that list from the CLI.
+
+### Subcommands
+
+| Subcommand | Description |
+|------------|-------------|
+| `list` | List the default reviewers for a repository |
+| `add <username>` | Add a default reviewer |
+| `remove <username>` | Remove a default reviewer (requires `--yes`) |
+
+### `bb repo default-reviewers list`
+
+```bash
+bb repo default-reviewers list [options]
+```
+
+By default the **effective** reviewer list is shown — this includes reviewers configured directly on the repository *and* reviewers inherited from the parent project, matching what Bitbucket's web UI would auto-populate.
+
+| Option | Description |
+|--------|-------------|
+| `--direct` | Only show reviewers configured on the repository (exclude project-inherited) |
+| `--json` | Output as JSON |
+
+```bash
+# Effective list (repo + project-inherited)
+bb repo default-reviewers list
+
+# Only repo-level entries
+bb repo default-reviewers list --direct
+
+# JSON for scripting
+bb repo default-reviewers list --json
+```
+
+### `bb repo default-reviewers add`
+
+```bash
+bb repo default-reviewers add <username>
+```
+
+Adds a user as a default reviewer on the repository. Requires repository admin permission.
+
+```bash
+bb repo default-reviewers add jdoe
+```
+
+### `bb repo default-reviewers remove`
+
+```bash
+bb repo default-reviewers remove <username> --yes
+```
+
+Removes a user from the repository's default reviewers. `--yes` is required to confirm. Requires repository admin permission.
+
+```bash
+bb repo default-reviewers remove jdoe --yes
+```
+
+### Notes
+
+- Project-inherited reviewers can only be removed by editing the parent project, not the repository.
+- Related: [`bb pr create --default-reviewers`](/commands/pr/create-and-edit/) applies these reviewers when opening a pull request.

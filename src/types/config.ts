@@ -19,6 +19,7 @@ export interface BBConfig {
   lastVersionCheck?: string;
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
+  prCreateIncludeDefaultReviewers?: boolean;
 }
 
 export interface AuthCredentials {
@@ -59,6 +60,7 @@ export const CONFIG_KEYS = [
   'lastVersionCheck',
   'skipVersionCheck',
   'versionCheckInterval',
+  'prCreateIncludeDefaultReviewers',
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
 
@@ -66,6 +68,7 @@ export const SETTABLE_CONFIG_KEYS = [
   'defaultWorkspace',
   'skipVersionCheck',
   'versionCheckInterval',
+  'prCreateIncludeDefaultReviewers',
 ] as const;
 export type SettableConfigKey = (typeof SETTABLE_CONFIG_KEYS)[number];
 
@@ -74,6 +77,7 @@ export const READABLE_CONFIG_KEYS = [
   'defaultWorkspace',
   'skipVersionCheck',
   'versionCheckInterval',
+  'prCreateIncludeDefaultReviewers',
 ] as const;
 export type ReadableConfigKey = (typeof READABLE_CONFIG_KEYS)[number];
 
@@ -147,12 +151,22 @@ export function parseSettableConfigValue<K extends SettableConfigKey>(
       }
       return parsed as BBConfig[K];
     }
+    case 'prCreateIncludeDefaultReviewers': {
+      const parsed = parseBooleanLiteral(value);
+      if (parsed === undefined) {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message:
+            "Invalid value for 'prCreateIncludeDefaultReviewers'. Expected 'true' or 'false'.",
+          context: { key, value },
+        });
+      }
+      return parsed as BBConfig[K];
+    }
   }
 }
 
-export function coerceSkipVersionCheckValue(
-  value: unknown
-): boolean | undefined {
+export function coerceBooleanConfigValue(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') {
     return value;
   }
@@ -163,6 +177,8 @@ export function coerceSkipVersionCheckValue(
 
   return undefined;
 }
+
+export const coerceSkipVersionCheckValue = coerceBooleanConfigValue;
 
 export function coerceVersionCheckIntervalValue(
   value: unknown
@@ -192,7 +208,8 @@ export function normalizeReadableConfigValue(
 
   switch (key) {
     case 'skipVersionCheck':
-      return coerceSkipVersionCheckValue(value);
+    case 'prCreateIncludeDefaultReviewers':
+      return coerceBooleanConfigValue(value);
     case 'versionCheckInterval':
       return coerceVersionCheckIntervalValue(value);
     case 'username':
