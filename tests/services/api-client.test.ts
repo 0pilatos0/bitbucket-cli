@@ -629,4 +629,306 @@ describe('createApiClient - DEBUG response logging redaction', () => {
 
     expect(consoleDebugSpy).not.toHaveBeenCalled();
   });
+
+  it('handles circular references without infinite recursion', async () => {
+    process.env.DEBUG = 'true';
+
+    // Build a circular structure that the client should log without blowing
+    // up. We don't construct the cycle in the adapter response directly
+    // because JSON.stringify in the test harness would fail; instead inject
+    // one through the redact helper via the actual response logging path.
+    const cyclic: Record<string, unknown> = { name: 'root' };
+    cyclic.self = cyclic;
+
+    const mockAdapter = createMockAdapter([{ status: 200, data: cyclic }]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const output = allDebugOutput();
+    expect(output).toContain('[HTTP] Response Body:');
+    expect(output).toContain('[Circular]');
+    expect(output).toContain('root');
+  });
+
+  it('handles circular references nested inside arrays', async () => {
+    process.env.DEBUG = 'true';
+
+    const child: Record<string, unknown> = { id: 1 };
+    const parent: Record<string, unknown> = { children: [child] };
+    child.parent = parent;
+
+    const mockAdapter = createMockAdapter([{ status: 200, data: parent }]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const output = allDebugOutput();
+    expect(output).toContain('[Circular]');
+  });
+
+  it('logs request method and URL when DEBUG is set', async () => {
+    process.env.DEBUG = 'true';
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/some/resource');
+
+    const output = allDebugOutput();
+    expect(output).toContain('[HTTP] GET');
+    expect(output).toContain('/some/resource');
+  });
+});
+
+describe('createApiClient - authentication header', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('sends Basic auth header derived from username + apiToken', async () => {
+    let capturedAuth: string | undefined;
+    const adapter = (config: unknown) => {
+      capturedAuth = (
+        config as {
+          headers: { Authorization?: string };
+        }
+      ).headers.Authorization;
+      return Promise.resolve({
+        data: {},
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      });
+    };
+
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = adapter as any;
+
+    await client.get('/test');
+
+    expect(capturedAuth).toBeDefined();
+    expect(capturedAuth).toStartWith('Basic ');
+    const decoded = Buffer.from(
+      capturedAuth!.replace('Basic ', ''),
+      'base64'
+    ).toString();
+    expect(decoded).toBe('testuser:testtoken');
+  });
+
+  it('sends Bearer token from OAuth service when auth method is oauth', async () => {
+    let capturedAuth: string | undefined;
+    const adapter = (config: unknown) => {
+      capturedAuth = (
+        config as {
+          headers: { Authorization?: string };
+        }
+      ).headers.Authorization;
+      return Promise.resolve({
+        data: {},
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config,
+      });
+    };
+
+    const oauthMock = createMockOAuthService({
+      validToken: 'the-bearer-token',
+    });
+    const client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client.defaults.adapter = adapter as any;
+
+    await client.get('/test');
+
+    expect(capturedAuth).toBe('Bearer the-bearer-token');
+  });
+});
+
+describe('createApiClient - Retry-After parsing', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('uses exponential backoff when Retry-After is not set', async () => {
+    const setTimeoutCalls: number[] = [];
+    globalThis.setTimeout = ((fn: Function, ms?: number) => {
+      setTimeoutCalls.push(ms ?? 0);
+      fn();
+      return 0 as any;
+    }) as any;
+
+    const mockAdapter = createMockAdapter([
+      { status: 429, data: {} },
+      { status: 429, data: {} },
+      { status: 200, data: { ok: true } },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    // First retry: 1000ms * 2^(1-1) = 1000
+    // Second retry: 1000ms * 2^(2-1) = 2000
+    expect(setTimeoutCalls).toContain(1000);
+    expect(setTimeoutCalls).toContain(2000);
+  });
+
+  it('falls back to exponential backoff when Retry-After is non-numeric', async () => {
+    const setTimeoutCalls: number[] = [];
+    globalThis.setTimeout = ((fn: Function, ms?: number) => {
+      setTimeoutCalls.push(ms ?? 0);
+      fn();
+      return 0 as any;
+    }) as any;
+
+    const mockAdapter = createMockAdapter([
+      {
+        status: 429,
+        data: {},
+        headers: { 'retry-after': 'garbage' },
+      },
+      { status: 200, data: { ok: true } },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    expect(setTimeoutCalls).toContain(1000);
+    expect(setTimeoutCalls).not.toContain(Number.NaN);
+  });
+
+  it('does not use Retry-After delay for non-429 retryable statuses', async () => {
+    const setTimeoutCalls: number[] = [];
+    globalThis.setTimeout = ((fn: Function, ms?: number) => {
+      setTimeoutCalls.push(ms ?? 0);
+      fn();
+      return 0 as any;
+    }) as any;
+
+    const mockAdapter = createMockAdapter([
+      {
+        status: 503,
+        data: {},
+        headers: { 'retry-after': '99' },
+      },
+      { status: 200, data: { ok: true } },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    // 503 uses exponential backoff, not Retry-After.
+    expect(setTimeoutCalls).toContain(1000);
+    expect(setTimeoutCalls).not.toContain(99000);
+  });
+});
+
+describe('createApiClient - error message extraction', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('extracts nested error.message from response body', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: { error: { message: 'Bitbucket: invalid field' } },
+      },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(APIError);
+      expect((err as APIError).message).toBe('Bitbucket: invalid field');
+    }
+  });
+
+  it('falls back to top-level message field', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: { message: 'Flat error message' },
+      },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as APIError).message).toBe('Flat error message');
+    }
+  });
+
+  it('falls back to axios error.message when no body message exists', async () => {
+    const mockAdapter = createMockAdapter([{ status: 418, data: null }]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as APIError).message).toContain('418');
+    }
+  });
+
+  it('ignores error.message that is not a string', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: { error: { message: { nested: 'object' } } },
+      },
+    ]);
+    const client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(typeof (err as APIError).message).toBe('string');
+      expect((err as APIError).message).not.toBe('[object Object]');
+    }
+  });
 });

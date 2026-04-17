@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
+import chalk from 'chalk';
 import { OutputService } from '../../src/services/output.service.js';
 
 describe('OutputService', () => {
@@ -236,6 +237,175 @@ describe('OutputService', () => {
       const result = output.bold('strong');
 
       expect(result).toContain('strong');
+    });
+  });
+
+  describe('color helpers with noColor=true', () => {
+    let noColorOutput: OutputService;
+
+    beforeEach(() => {
+      noColorOutput = new OutputService({ noColor: true });
+    });
+
+    it('should pass text through each color helper unchanged', () => {
+      // Every chalk-backed helper must respect --no-color, so the contract
+      // is: when noColor is true, the input string is returned verbatim.
+      for (const helper of [
+        'dim',
+        'highlight',
+        'bold',
+        'red',
+        'green',
+        'yellow',
+        'cyan',
+        'magenta',
+        'gray',
+        'blue',
+        'underline',
+      ] as const) {
+        const result = noColorOutput[helper]('payload');
+        expect(result).toBe('payload');
+      }
+    });
+
+    it('should not emit ANSI escape codes in formatted output', () => {
+      const joined = [
+        noColorOutput.red('a'),
+        noColorOutput.green('b'),
+        noColorOutput.yellow('c'),
+        noColorOutput.cyan('d'),
+        noColorOutput.magenta('e'),
+        noColorOutput.gray('f'),
+        noColorOutput.blue('g'),
+        noColorOutput.underline('h'),
+        noColorOutput.bold('i'),
+        noColorOutput.dim('j'),
+        noColorOutput.highlight('k'),
+      ].join('');
+
+      expect(joined).toBe('abcdefghijk');
+      // Explicit ANSI-escape check
+      // eslint-disable-next-line no-control-regex
+      expect(/\u001b\[/.test(joined)).toBe(false);
+    });
+
+    it('should pass text through format() helper unchanged', () => {
+      const result = noColorOutput.format('boom', (t) => `<<${t}>>`);
+      expect(result).toBe('boom');
+    });
+  });
+
+  describe('color helpers with noColor=false', () => {
+    let colorOutput: OutputService;
+    let originalLevel: typeof chalk.level;
+
+    beforeEach(() => {
+      // Force chalk to emit ANSI codes so we can assert on them. Under Bun
+      // test runners the TTY detection may leave chalk.level at 0.
+      originalLevel = chalk.level;
+      chalk.level = 3;
+      colorOutput = new OutputService({ noColor: false });
+    });
+
+    afterEach(() => {
+      chalk.level = originalLevel;
+    });
+
+    it.each([
+      ['red', '31'],
+      ['green', '32'],
+      ['yellow', '33'],
+      ['blue', '34'],
+      ['magenta', '35'],
+      ['cyan', '36'],
+    ])(
+      '%s should wrap input text with the expected ANSI color code',
+      (helper, code) => {
+        const result = (
+          colorOutput as unknown as Record<string, (t: string) => string>
+        )[helper]('hello');
+        expect(result).toContain('hello');
+        expect(result).toContain(`\u001b[${code}m`);
+        expect(result).toContain('\u001b[39m'); // color reset
+      }
+    );
+
+    it('gray should produce ANSI output (chalk alias for blackBright)', () => {
+      const result = colorOutput.gray('hello');
+      expect(result).toContain('hello');
+      // eslint-disable-next-line no-control-regex
+      expect(/\u001b\[/.test(result)).toBe(true);
+    });
+
+    it('bold should wrap input with bold ANSI sequence', () => {
+      const result = colorOutput.bold('hello');
+      expect(result).toContain('hello');
+      expect(result).toContain('\u001b[1m');
+      expect(result).toContain('\u001b[22m');
+    });
+
+    it('dim should wrap input with dim ANSI sequence', () => {
+      const result = colorOutput.dim('hello');
+      expect(result).toContain('hello');
+      expect(result).toContain('\u001b[2m');
+    });
+
+    it('underline should wrap input with underline ANSI sequence', () => {
+      const result = colorOutput.underline('hello');
+      expect(result).toContain('hello');
+      expect(result).toContain('\u001b[4m');
+    });
+
+    it('highlight should use the cyan ANSI sequence', () => {
+      const result = colorOutput.highlight('hello');
+      expect(result).toContain('\u001b[36m');
+    });
+
+    it('format() should apply the provided formatter function', () => {
+      const result = colorOutput.format('hello', (t) => `<<${t}>>`);
+      expect(result).toBe('<<hello>>');
+    });
+  });
+
+  describe('jsonError', () => {
+    it('should serialize objects without pretty-printing', () => {
+      output.jsonError({ code: 1, nested: { ok: true } });
+
+      expect(consoleErrors[0]).toBe('{"code":1,"nested":{"ok":true}}');
+      // Pretty-printed would contain newlines / indentation.
+      expect(consoleErrors[0]).not.toContain('\n');
+    });
+  });
+
+  describe('table alignment', () => {
+    it('should pad rows based on the widest value in each column', () => {
+      output.table(
+        ['A', 'BBBB'],
+        [
+          ['1', 'x'],
+          ['22', 'yy'],
+        ]
+      );
+
+      // Header is padded to the wider column width; rows follow suit.
+      const [headerLine, separator, row1, row2] = consoleLogs;
+      expect(headerLine).toContain('A ');
+      expect(headerLine).toContain('BBBB');
+      expect(separator).toMatch(/^-+  -+$/);
+      // All rows should share the same printed length because of padding.
+      expect(row1.length).toBe(row2.length);
+    });
+  });
+
+  describe('formatDate edge cases', () => {
+    it('should produce a stable formatted string for a fixed date', () => {
+      const result = output.formatDate('2024-06-15T10:30:00Z');
+
+      // Exact format is locale-dependent but must include the pieces we ask for.
+      expect(result).toMatch(/2024/);
+      expect(result).toMatch(/Jun/);
+      expect(result).toMatch(/15/);
+      expect(result).toMatch(/:\d{2}/); // HH:MM marker
     });
   });
 });

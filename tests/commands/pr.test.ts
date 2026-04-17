@@ -871,6 +871,144 @@ describe('ViewPRCommand', () => {
       command.execute({ id: 'abc' }, { globalOptions: {} })
     ).rejects.toThrow(/--id must be a valid integer/);
   });
+
+  it('should render "No reviewers assigned" when there are no reviewer participants', async () => {
+    const prs = [{ ...mockPullRequest, participants: [] } as Pullrequest];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) => log.includes('No reviewers assigned'))
+    ).toBe(true);
+  });
+
+  it('should render approved, changes requested, and pending reviewer statuses', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        participants: [
+          {
+            role: 'REVIEWER',
+            approved: true,
+            user: { display_name: 'Alice Approver' },
+          },
+          {
+            role: 'REVIEWER',
+            approved: false,
+            state: 'changes_requested',
+            user: { display_name: 'Bob Blocker' },
+          },
+          {
+            role: 'REVIEWER',
+            approved: false,
+            user: { display_name: 'Carol Pending' },
+          },
+          // Non-reviewer participant should be filtered out.
+          {
+            role: 'PARTICIPANT',
+            approved: false,
+            user: { display_name: 'Dan Drive-by' },
+          },
+        ],
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const joined = output.logs.join('\n');
+    expect(joined).toContain('Alice Approver');
+    expect(joined).toContain('approved');
+    expect(joined).toContain('Bob Blocker');
+    expect(joined).toContain('changes requested');
+    expect(joined).toContain('Carol Pending');
+    expect(joined).toContain('pending');
+    expect(joined).not.toContain('Dan Drive-by');
+  });
+
+  it('should render merge commit hash when PR is merged', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        state: 'MERGED' as const,
+        merge_commit: { hash: '1234567abcdef' },
+        closed_by: { ...mockUser, display_name: 'Mergebot' },
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const joined = output.logs.join('\n');
+    expect(joined).toContain('1234567');
+    expect(joined).toContain('Merged:');
+    expect(joined).toContain('Mergebot');
+  });
+
+  it('should render "Closed" label when state is DECLINED and closed_by is present', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        state: 'DECLINED' as const,
+        closed_by: { ...mockUser, display_name: 'Decliner' },
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const joined = output.logs.join('\n');
+    expect(joined).toContain('Closed:');
+    expect(joined).toContain('Decliner');
+  });
+
+  it('should show "unknown" placeholder when branch info is missing', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        source: {} as unknown as typeof mockPullRequest.source,
+        destination: {} as unknown as typeof mockPullRequest.destination,
+      } as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const joined = output.logs.join('\n');
+    expect(joined).toContain('Branch:');
+    expect(joined).toContain('unknown');
+  });
 });
 
 describe('ActivityPRCommand', () => {
@@ -1927,6 +2065,221 @@ describe('DiffPRCommand', () => {
     await expect(
       command.execute({ id: '999' }, { globalOptions: {} })
     ).rejects.toThrow();
+  });
+
+  it('should reject a non-integer PR ID with VALIDATION_INVALID', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+
+    try {
+      await command.execute({ id: 'abc' }, { globalOptions: {} });
+      expect(true).toBe(false);
+    } catch (err: any) {
+      expect(err).toBeInstanceOf(BBError);
+      expect(err.code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect(err.context).toEqual({ id: 'abc' });
+    }
+  });
+
+  it('should emit diffstat JSON including totals when --stat --json', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute(
+      { id: '1', stat: true },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.mode).toBe('stat');
+    expect(parsed.pullRequestId).toBe(1);
+    expect(parsed.files).toHaveLength(2);
+    expect(parsed.filesChanged).toBe(2);
+    expect(parsed.totalAdditions).toBe(2);
+    expect(parsed.totalDeletions).toBe(2);
+  });
+
+  it('should emit name-only JSON with the list of file paths', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute(
+      { id: '1', nameOnly: true },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.mode).toBe('name-only');
+    expect(parsed.files).toEqual(['src/file.ts', 'src/newfile.ts']);
+  });
+
+  it('should emit diff JSON with the raw diff string', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute({ id: '1' }, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.mode).toBe('diff');
+    expect(parsed.diff).toContain('diff --git');
+    expect(parsed.diff).toContain('-Old content');
+    expect(parsed.diff).toContain('+New content');
+  });
+
+  it('should render a summary line with file/addition/deletion counts in stat mode', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute({ id: '1', stat: true }, { globalOptions: {} });
+
+    const summary = output.logs.find((log) => log.includes('files changed'));
+    expect(summary).toBeDefined();
+    expect(summary).toContain('2 files changed');
+    expect(summary).toContain('insertions');
+    expect(summary).toContain('deletions');
+  });
+
+  it('should use singular "file changed" for a single-file stat', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    // Override diffstat to return only one file.
+    (
+      pullrequestsApi as any
+    ).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdDiffstatGet =
+      async () =>
+        ({
+          data: {
+            values: new Set([
+              {
+                new: { path: 'only.ts' },
+                lines_added: 1,
+                lines_removed: 0,
+              },
+            ]),
+          },
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {} as any,
+        }) as any;
+
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute({ id: '1', stat: true }, { globalOptions: {} });
+
+    const summary = output.logs.find((log) => log.includes('file changed'));
+    expect(summary).toBeDefined();
+    expect(summary).toContain('1 file changed');
+  });
+
+  it('should use the PR html link when building a --web URL', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        links: {
+          html: {
+            href: 'https://bitbucket.org/workspace/repo/pull-requests/1/',
+          },
+        },
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute(
+      { id: '1', web: true },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    // Trailing slash stripped, /diff appended.
+    expect(parsed.url).toBe(
+      'https://bitbucket.org/workspace/repo/pull-requests/1/diff'
+    );
   });
 });
 

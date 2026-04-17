@@ -240,3 +240,126 @@ describe('ErrorCode', () => {
     expect(ErrorCode.UNKNOWN).toBe(9999);
   });
 });
+
+describe('APIError.statusToErrorCode mapping', () => {
+  // Exhaustive mapping table. A regression here means user-visible error
+  // codes (and therefore machine-readable behavior of `--json`) shifted,
+  // so we pin every documented status we care about.
+  const MAP: Array<[number, ErrorCode, string]> = [
+    [401, ErrorCode.AUTH_INVALID, '401 → AUTH_INVALID'],
+    [403, ErrorCode.API_FORBIDDEN, '403 → API_FORBIDDEN'],
+    [404, ErrorCode.API_NOT_FOUND, '404 → API_NOT_FOUND'],
+    [429, ErrorCode.API_RATE_LIMITED, '429 → API_RATE_LIMITED'],
+    [400, ErrorCode.API_REQUEST_FAILED, '400 → API_REQUEST_FAILED'],
+    [402, ErrorCode.API_REQUEST_FAILED, '402 → API_REQUEST_FAILED'],
+    [409, ErrorCode.API_REQUEST_FAILED, '409 → API_REQUEST_FAILED'],
+    [418, ErrorCode.API_REQUEST_FAILED, '418 → API_REQUEST_FAILED (teapot)'],
+    [500, ErrorCode.API_SERVER_ERROR, '500 → API_SERVER_ERROR'],
+    [502, ErrorCode.API_SERVER_ERROR, '502 → API_SERVER_ERROR'],
+    [503, ErrorCode.API_SERVER_ERROR, '503 → API_SERVER_ERROR'],
+    [504, ErrorCode.API_SERVER_ERROR, '504 → API_SERVER_ERROR'],
+    [599, ErrorCode.API_SERVER_ERROR, '599 → API_SERVER_ERROR'],
+  ];
+
+  it.each(MAP)('status %i maps to %i (%s)', (status, expected) => {
+    const error = new APIError('test', status);
+    expect(error.code).toBe(expected);
+    expect(error.statusCode).toBe(status);
+  });
+
+  it('preserves the response payload on the error', () => {
+    const payload = { error: { message: 'Not found', fields: ['id'] } };
+    const error = new APIError('Not found', 404, payload);
+    expect(error.response).toBe(payload);
+  });
+
+  it('is serializable via BBError.toJSON', () => {
+    const error = new APIError('boom', 500, null, { url: '/x' });
+    const json = error.toJSON();
+    expect(json.code).toBe(ErrorCode.API_SERVER_ERROR);
+    expect(json.message).toBe('boom');
+    expect(json.context).toEqual({ url: '/x' });
+    // The raw response and statusCode are intentionally not in toJSON() —
+    // pin that behavior so a future change is deliberate.
+    expect(json).not.toHaveProperty('statusCode');
+    expect(json).not.toHaveProperty('response');
+  });
+});
+
+describe('BBError serialization shape', () => {
+  it('toJSON returns exactly {name, code, message, context}', () => {
+    const error = new BBError({
+      code: ErrorCode.UNKNOWN,
+      message: 'msg',
+      context: { k: 'v' },
+    });
+    const json = error.toJSON();
+    expect(Object.keys(json).sort()).toEqual([
+      'code',
+      'context',
+      'message',
+      'name',
+    ]);
+  });
+
+  it('is an instance of Error for try/catch interop', () => {
+    const error = new BBError({
+      code: ErrorCode.UNKNOWN,
+      message: 'msg',
+    });
+    expect(error).toBeInstanceOf(Error);
+    // Error.cause must be preserved when provided.
+    const rootCause = new Error('root');
+    const wrapped = new BBError({
+      code: ErrorCode.NETWORK_ERROR,
+      message: 'wrapped',
+      cause: rootCause,
+    });
+    expect(wrapped.cause).toBe(rootCause);
+  });
+
+  it('JSON.stringify uses toJSON() for BBError instances', () => {
+    const error = new BBError({
+      code: ErrorCode.AUTH_INVALID,
+      message: 'nope',
+    });
+    const serialized = JSON.parse(JSON.stringify(error));
+    expect(serialized).toMatchObject({
+      name: 'BBError',
+      code: ErrorCode.AUTH_INVALID,
+      message: 'nope',
+    });
+  });
+});
+
+describe('Subclass identity', () => {
+  it('every subclass is also a BBError', () => {
+    expect(new AuthError('x')).toBeInstanceOf(BBError);
+    expect(new APIError('x', 500)).toBeInstanceOf(BBError);
+    expect(new GitError('x', 'git status', 1)).toBeInstanceOf(BBError);
+    expect(new ValidationError('field', 'required')).toBeInstanceOf(BBError);
+  });
+
+  it('every subclass is an Error (JS built-in)', () => {
+    expect(new AuthError('x')).toBeInstanceOf(Error);
+    expect(new APIError('x', 500)).toBeInstanceOf(Error);
+    expect(new GitError('x', 'git status', 1)).toBeInstanceOf(Error);
+    expect(new ValidationError('field', 'required')).toBeInstanceOf(Error);
+  });
+
+  it('preserves its class name after JSON round-trip', () => {
+    const cases: Array<{ instance: BBError; name: string }> = [
+      { instance: new AuthError('x'), name: 'AuthError' },
+      { instance: new APIError('x', 500), name: 'APIError' },
+      { instance: new GitError('x', 'git status', 1), name: 'GitError' },
+      {
+        instance: new ValidationError('field', 'required'),
+        name: 'ValidationError',
+      },
+    ];
+    for (const { instance, name } of cases) {
+      expect(instance.name).toBe(name);
+      expect(instance.toJSON().name).toBe(name);
+    }
+  });
+});

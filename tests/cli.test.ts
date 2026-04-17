@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
+import type { Command } from 'commander';
 import { resolveNoColorSetting, withGlobalOptions } from '../src/cli.js';
 import { cli } from '../src/cli.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
@@ -251,5 +252,311 @@ describe('CLI help text integration', () => {
     expect(output).toContain('defaultWorkspace');
     expect(output).toContain('skipVersionCheck');
     expect(output).toContain('versionCheckInterval');
+  });
+});
+
+function findCommand(...path: string[]): Command | undefined {
+  let current: Command | undefined = cli;
+  for (const name of path) {
+    current = current?.commands.find((command) => command.name() === name);
+    if (!current) {
+      return undefined;
+    }
+  }
+  return current;
+}
+
+function requireCommand(...path: string[]): Command {
+  const command = findCommand(...path);
+  if (!command) {
+    throw new Error(`Command not registered: ${['bb', ...path].join(' ')}`);
+  }
+  return command;
+}
+
+function hasOption(command: Command, long: string): boolean {
+  return command.options.some((option) => option.long === long);
+}
+
+function hasShortOption(command: Command, short: string): boolean {
+  return command.options.some((option) => option.short === short);
+}
+
+function collectLeafCommands(root: Command): Command[] {
+  const leaves: Command[] = [];
+  const queue: Command[] = [root];
+  while (queue.length > 0) {
+    const node = queue.shift()!;
+    if (node.commands.length === 0) {
+      leaves.push(node);
+    } else {
+      queue.push(...node.commands);
+    }
+  }
+  return leaves;
+}
+
+describe('CLI command registration', () => {
+  it('should register all top-level commands', () => {
+    const names = cli.commands.map((command) => command.name()).sort();
+    expect(names).toEqual([
+      'auth',
+      'completion',
+      'config',
+      'pr',
+      'repo',
+      'snippet',
+    ]);
+  });
+
+  it('should register global --workspace, --repo, --json and --no-color options on root', () => {
+    expect(hasOption(cli, '--workspace')).toBe(true);
+    expect(hasOption(cli, '--repo')).toBe(true);
+    expect(hasOption(cli, '--json')).toBe(true);
+    expect(hasOption(cli, '--no-color')).toBe(true);
+    expect(hasShortOption(cli, '-w')).toBe(true);
+    expect(hasShortOption(cli, '-r')).toBe(true);
+  });
+
+  it('should register all auth subcommands', () => {
+    const authCmd = requireCommand('auth');
+    const names = authCmd.commands.map((c) => c.name()).sort();
+    expect(names).toEqual(['login', 'logout', 'status', 'token']);
+  });
+
+  it('should register all repo subcommands (including default-reviewers)', () => {
+    const repoCmd = requireCommand('repo');
+    const names = repoCmd.commands.map((c) => c.name()).sort();
+    expect(names).toEqual([
+      'clone',
+      'create',
+      'default-reviewers',
+      'delete',
+      'list',
+      'view',
+    ]);
+
+    const drCmd = requireCommand('repo', 'default-reviewers');
+    const drNames = drCmd.commands.map((c) => c.name()).sort();
+    expect(drNames).toEqual(['add', 'list', 'remove']);
+  });
+
+  it('should register all pr subcommands (including comments and reviewers)', () => {
+    const prCmd = requireCommand('pr');
+    const names = prCmd.commands.map((c) => c.name()).sort();
+    expect(names).toEqual([
+      'activity',
+      'approve',
+      'checkout',
+      'checks',
+      'comments',
+      'create',
+      'decline',
+      'diff',
+      'edit',
+      'list',
+      'merge',
+      'ready',
+      'reviewers',
+      'view',
+    ]);
+
+    const commentsCmd = requireCommand('pr', 'comments');
+    expect(commentsCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'add',
+      'delete',
+      'edit',
+      'list',
+    ]);
+
+    const reviewersCmd = requireCommand('pr', 'reviewers');
+    expect(reviewersCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'add',
+      'list',
+      'remove',
+    ]);
+  });
+
+  it('should register all snippet subcommands (including comments)', () => {
+    const snippetCmd = requireCommand('snippet');
+    expect(snippetCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'comments',
+      'create',
+      'delete',
+      'edit',
+      'list',
+      'unwatch',
+      'view',
+      'watch',
+    ]);
+
+    const commentsCmd = requireCommand('snippet', 'comments');
+    expect(commentsCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'add',
+      'delete',
+      'edit',
+      'list',
+    ]);
+  });
+
+  it('should register all config and completion subcommands', () => {
+    const configCmd = requireCommand('config');
+    expect(configCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'get',
+      'list',
+      'set',
+    ]);
+
+    const completionCmd = requireCommand('completion');
+    expect(completionCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'install',
+      'uninstall',
+    ]);
+  });
+
+  it('should wire an action handler for every leaf command', () => {
+    const leaves = collectLeafCommands(cli);
+    // root counts as a leaf (no subcommands of its own once flattened through queues
+    // with commands), so we verify every leaf has _actionHandler.
+    for (const leaf of leaves) {
+      const handler = (leaf as unknown as { _actionHandler?: unknown })
+        ._actionHandler;
+      expect(handler).toBeDefined();
+    }
+
+    // Sanity check: we covered a reasonable number of leaves.
+    expect(leaves.length).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe('CLI leaf command options', () => {
+  it('should wire pr create reviewer flags correctly', () => {
+    const create = requireCommand('pr', 'create');
+    expect(hasOption(create, '--title')).toBe(true);
+    expect(hasOption(create, '--body')).toBe(true);
+    expect(hasOption(create, '--source')).toBe(true);
+    expect(hasOption(create, '--destination')).toBe(true);
+    expect(hasOption(create, '--draft')).toBe(true);
+    expect(hasOption(create, '--close-source-branch')).toBe(true);
+    expect(hasOption(create, '--reviewer')).toBe(true);
+    expect(hasOption(create, '--default-reviewers')).toBe(true);
+    // Commander stores --no-<opt> as a "negated" option; still discoverable via long.
+    expect(
+      create.options.some((option) => option.long === '--no-default-reviewers')
+    ).toBe(true);
+  });
+
+  it('should wire pr list filter options with defaults', () => {
+    const list = requireCommand('pr', 'list');
+    const stateOption = list.options.find(
+      (option) => option.long === '--state'
+    );
+    expect(stateOption).toBeDefined();
+    expect(stateOption?.defaultValue).toBe('OPEN');
+    expect(hasOption(list, '--limit')).toBe(true);
+    expect(hasOption(list, '--mine')).toBe(true);
+  });
+
+  it('should wire pr merge strategy and message options', () => {
+    const merge = requireCommand('pr', 'merge');
+    expect(hasOption(merge, '--strategy')).toBe(true);
+    expect(hasOption(merge, '--message')).toBe(true);
+    expect(hasOption(merge, '--close-source-branch')).toBe(true);
+  });
+
+  it('should wire pr diff color/stat/name-only/web options', () => {
+    const diff = requireCommand('pr', 'diff');
+    const colorOption = diff.options.find(
+      (option) => option.long === '--color'
+    );
+    expect(colorOption?.defaultValue).toBe('auto');
+    expect(hasOption(diff, '--name-only')).toBe(true);
+    expect(hasOption(diff, '--stat')).toBe(true);
+    expect(hasOption(diff, '--web')).toBe(true);
+  });
+
+  it('should wire pr comments add inline options', () => {
+    const add = requireCommand('pr', 'comments', 'add');
+    expect(hasOption(add, '--file')).toBe(true);
+    expect(hasOption(add, '--line-to')).toBe(true);
+    expect(hasOption(add, '--line-from')).toBe(true);
+  });
+
+  it('should gate destructive commands behind --yes', () => {
+    expect(hasOption(requireCommand('repo', 'delete'), '--yes')).toBe(true);
+    expect(hasOption(requireCommand('snippet', 'delete'), '--yes')).toBe(true);
+    expect(hasOption(requireCommand('pr', 'comments', 'delete'), '--yes')).toBe(
+      true
+    );
+    expect(
+      hasOption(requireCommand('snippet', 'comments', 'delete'), '--yes')
+    ).toBe(true);
+    expect(
+      hasOption(requireCommand('repo', 'default-reviewers', 'remove'), '--yes')
+    ).toBe(true);
+  });
+
+  it('should wire auth login OAuth override options', () => {
+    const login = requireCommand('auth', 'login');
+    expect(hasOption(login, '--username')).toBe(true);
+    expect(hasOption(login, '--password')).toBe(true);
+    expect(hasOption(login, '--app-password')).toBe(true);
+    expect(hasOption(login, '--client-id')).toBe(true);
+    expect(hasOption(login, '--client-secret')).toBe(true);
+  });
+
+  it('should wire snippet create/edit file and visibility flags', () => {
+    const create = requireCommand('snippet', 'create');
+    expect(hasOption(create, '--title')).toBe(true);
+    expect(hasOption(create, '--file')).toBe(true);
+    expect(hasOption(create, '--private')).toBe(true);
+    expect(hasOption(create, '--public')).toBe(true);
+
+    const edit = requireCommand('snippet', 'edit');
+    expect(hasOption(edit, '--title')).toBe(true);
+    expect(hasOption(edit, '--file')).toBe(true);
+    expect(hasOption(edit, '--private')).toBe(true);
+    expect(hasOption(edit, '--public')).toBe(true);
+  });
+
+  it('should declare required positional args for pr view/merge/approve', () => {
+    // Commander 11+: registeredArguments is an array with { required }.
+    function required(command: Command): string[] {
+      const args = (
+        command as unknown as {
+          registeredArguments: Array<{ name(): string; required: boolean }>;
+        }
+      ).registeredArguments;
+      return args.filter((arg) => arg.required).map((arg) => arg.name());
+    }
+
+    expect(required(requireCommand('pr', 'view'))).toEqual(['id']);
+    expect(required(requireCommand('pr', 'merge'))).toEqual(['id']);
+    expect(required(requireCommand('pr', 'approve'))).toEqual(['id']);
+    expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
+    expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
+    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
+      'id',
+      'message',
+    ]);
+    expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
+      'id',
+      'username',
+    ]);
+  });
+
+  it('should declare optional positional args for pr edit/diff', () => {
+    function optional(command: Command): string[] {
+      const args = (
+        command as unknown as {
+          registeredArguments: Array<{ name(): string; required: boolean }>;
+        }
+      ).registeredArguments;
+      return args.filter((arg) => !arg.required).map((arg) => arg.name());
+    }
+
+    expect(optional(requireCommand('pr', 'edit'))).toEqual(['id']);
+    expect(optional(requireCommand('pr', 'diff'))).toEqual(['id']);
+    expect(optional(requireCommand('repo', 'view'))).toEqual(['repository']);
   });
 });
