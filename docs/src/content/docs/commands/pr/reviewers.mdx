@@ -9,6 +9,10 @@ Manage pull request reviewers.
 
 Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
 
+:::tip[Looking for repo-level defaults?]
+This page covers reviewers on **existing** pull requests. To manage the repository's **default reviewers** — the list Bitbucket auto-suggests when someone opens a PR — see [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers). `bb pr create` can also auto-apply them via `--default-reviewers` or the `prCreateIncludeDefaultReviewers` config key.
+:::
+
 ## `bb pr reviewers`
 
 ### Subcommands

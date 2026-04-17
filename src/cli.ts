@@ -469,12 +469,17 @@ repoDefaultReviewersCmd
   });
 
 repoDefaultReviewersCmd
-  .command('add <username>')
-  .description('Add a default reviewer to a repository')
+  .command('add <user>')
+  .description(
+    'Add a default reviewer to a repository (accepts account ID or {uuid})'
+  )
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb repo default-reviewers add jdoe'],
+      examples: [
+        'bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"',
+        'bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
+      ],
     })
   )
   .action(async (username, options) => {
@@ -488,13 +493,17 @@ repoDefaultReviewersCmd
   });
 
 repoDefaultReviewersCmd
-  .command('remove <username>')
-  .description('Remove a default reviewer from a repository')
+  .command('remove <user>')
+  .description(
+    'Remove a default reviewer from a repository (accepts account ID or {uuid})'
+  )
   .option('-y, --yes', 'Skip confirmation prompt')
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb repo default-reviewers remove jdoe --yes'],
+      examples: [
+        'bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes',
+      ],
     })
   )
   .action(async (username, options) => {
@@ -524,8 +533,8 @@ prCmd
   .option('--close-source-branch', 'Close source branch after merge')
   .option('--draft', 'Create the pull request as draft')
   .option(
-    '--reviewer <username>',
-    'Add a reviewer by username (repeatable)',
+    '--reviewer <user>',
+    'Add a reviewer by account ID or {uuid} (repeatable)',
     (value: string, previous: string[]) => previous.concat([value]),
     [] as string[]
   )

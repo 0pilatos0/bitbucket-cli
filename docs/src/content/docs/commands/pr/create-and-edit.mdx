@@ -29,7 +29,7 @@ bb pr create [options]
 | `-r, --repo <repo>` | Repository |
 | `--close-source-branch` | Close source branch after merge |
 | `--draft` | Create the pull request as draft |
-| `--reviewer <username>` | Add a reviewer by username (repeatable) |
+| `--reviewer <user>` | Add a reviewer by account ID or `{uuid}` (repeatable) |
 | `--default-reviewers` | Include the repository's default reviewers (opt-in) |
 | `--no-default-reviewers` | Skip default reviewers even when the config key enables them |
 | `--json` | Output as JSON |
@@ -52,11 +52,14 @@ bb pr create -t "WIP: Add feature" --draft
 # Auto-add the repo's default reviewers (matches the Bitbucket web UI)
 bb pr create -t "Add new feature" --default-reviewers
 
-# Add specific reviewers (repeatable)
-bb pr create -t "Add new feature" --reviewer jdoe --reviewer asmith
+# Add specific reviewers (repeatable; accepts account ID or {uuid})
+bb pr create -t "Add new feature" \
+  --reviewer "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" \
+  --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 # Combine defaults + explicit additions (duplicates are de-duped)
-bb pr create -t "Add new feature" --default-reviewers --reviewer jdoe
+bb pr create -t "Add new feature" --default-reviewers \
+  --reviewer "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
 ```
 
 ### Reviewers
@@ -64,7 +67,7 @@ bb pr create -t "Add new feature" --default-reviewers --reviewer jdoe
 By default `bb pr create` does **not** attach reviewers to the PR — this differs from the Bitbucket web UI, which auto-populates the repository's default reviewers.
 
 - `--default-reviewers` opts in per-invocation. The command fetches the repository's *effective* default reviewers (repo-level + project-inherited) and attaches them.
-- `--reviewer <username>` adds specific reviewers regardless of the defaults and can be passed multiple times.
+- `--reviewer <user>` adds specific reviewers regardless of the defaults and can be passed multiple times. Accepts an **account ID** (e.g. `712020:3cfed7e0-...`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-...}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames are not accepted.
 - The PR author is automatically excluded from the reviewer list — Bitbucket rejects PRs that list the author as a reviewer.
 - To make `--default-reviewers` the default behavior, set the config key:
   ```bash

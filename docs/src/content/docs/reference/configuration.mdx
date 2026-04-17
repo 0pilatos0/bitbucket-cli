@@ -41,6 +41,7 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 | `defaultWorkspace` | string | Default workspace | `bb config set defaultWorkspace` |
 | `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
 | `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
+| `prCreateIncludeDefaultReviewers` | boolean | Auto-add the repo's default reviewers on `bb pr create` (default: false) | `bb config set` |
 | `lastVersionCheck` | string | Timestamp of last update check | Automatic |
 
 ### Example Configuration (OAuth)
@@ -113,6 +114,7 @@ Typed key validation:
 
 - `skipVersionCheck` accepts only `true` or `false`
 - `versionCheckInterval` accepts only positive integers (`>= 1`)
+- `prCreateIncludeDefaultReviewers` accepts only `true` or `false`
 
 Values are stored as native JSON types, so `bb config get <key> --json` returns booleans/numbers for these keys.
 
