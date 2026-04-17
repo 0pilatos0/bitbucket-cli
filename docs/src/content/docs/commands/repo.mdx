@@ -209,8 +209,8 @@ Inspect and manage the default reviewers configured on a repository. Default rev
 | Subcommand | Description |
 |------------|-------------|
 | `list` | List the default reviewers for a repository |
-| `add <username>` | Add a default reviewer |
-| `remove <username>` | Remove a default reviewer (requires `--yes`) |
+| `add <user>` | Add a default reviewer (accepts account ID or `{uuid}`) |
+| `remove <user>` | Remove a default reviewer (accepts account ID or `{uuid}`, requires `--yes`) |
 
 ### `bb repo default-reviewers list`
 
@@ -239,25 +239,32 @@ bb repo default-reviewers list --json
 ### `bb repo default-reviewers add`
 
 ```bash
-bb repo default-reviewers add <username>
+bb repo default-reviewers add <user>
 ```
 
 Adds a user as a default reviewer on the repository. Requires repository admin permission.
 
+The `<user>` argument accepts either an **account ID** (e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames like `jdoe` are no longer accepted.
+
+You can find a user's account ID from the Bitbucket web UI under their profile, or by running `bb pr reviewers list <pr-id> --json` on a PR they've reviewed.
+
 ```bash
-bb repo default-reviewers add jdoe
+bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 ```
 
 ### `bb repo default-reviewers remove`
 
 ```bash
-bb repo default-reviewers remove <username> --yes
+bb repo default-reviewers remove <user> --yes
 ```
 
 Removes a user from the repository's default reviewers. `--yes` is required to confirm. Requires repository admin permission.
 
+`<user>` accepts the same identifiers as `add` (account ID or `{uuid}`).
+
 ```bash
-bb repo default-reviewers remove jdoe --yes
+bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
 ```
 
 ### Notes

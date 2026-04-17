@@ -75,6 +75,8 @@ Pick your editor and paste the command:
 
     **Pull Requests:**
     - `bb pr create -t "title" -b "body"` - Create PR from current branch
+    - `bb pr create --default-reviewers` - Also attach the repo's default reviewers
+    - `bb pr create --reviewer <uuid>` - Add a specific reviewer (repeatable)
     - `bb pr list` - List open PRs (`--mine` for your reviews, `--json` for scripts)
     - `bb pr view <id>` / `bb pr diff <id>` - Inspect a PR
     - `bb pr checkout <id>` - Check out PR locally
@@ -82,10 +84,11 @@ Pick your editor and paste the command:
     - `bb pr merge <id> --strategy squash --close-source-branch` - Merge
     - `bb pr ready <id>` - Mark draft as ready
     - `bb pr comments add <id> "text"` - Add comment
-    - `bb pr reviewers add <id> <uuid>` - Add reviewer
+    - `bb pr reviewers add <id> <uuid>` - Add reviewer to an existing PR
 
     **Repositories:**
     - `bb repo list` / `bb repo view` / `bb repo clone workspace/repo`
+    - `bb repo default-reviewers list` / `add <uuid>` / `remove <uuid> --yes` - Manage repo default reviewers
 
     **Configuration:**
     - `bb config set defaultWorkspace myworkspace`
