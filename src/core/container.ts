@@ -150,6 +150,12 @@ export const ServiceTokens = {
   ListReposCommand: 'ListReposCommand',
   ViewRepoCommand: 'ViewRepoCommand',
   DeleteRepoCommand: 'DeleteRepoCommand',
+  ListDefaultReviewersCommand: 'ListDefaultReviewersCommand',
+  AddDefaultReviewerCommand: 'AddDefaultReviewerCommand',
+  RemoveDefaultReviewerCommand: 'RemoveDefaultReviewerCommand',
+
+  // Services - Default Reviewers
+  DefaultReviewerService: 'DefaultReviewerService',
 
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',

@@ -9,7 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
-  coerceSkipVersionCheckValue,
+  coerceBooleanConfigValue,
   coerceVersionCheckIntervalValue,
 } from '../../types/config.js';
 
@@ -19,6 +19,7 @@ export interface ConfigDisplay {
   apiToken?: string;
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
+  prCreateIncludeDefaultReviewers?: boolean;
 }
 
 export class ListConfigCommand extends BaseCommand<void, void> {
@@ -49,7 +50,7 @@ export class ListConfigCommand extends BaseCommand<void, void> {
       displayConfig.apiToken = '********';
     }
 
-    const skipVersionCheck = coerceSkipVersionCheckValue(
+    const skipVersionCheck = coerceBooleanConfigValue(
       config.skipVersionCheck as unknown
     );
     if (skipVersionCheck !== undefined) {
@@ -61,6 +62,14 @@ export class ListConfigCommand extends BaseCommand<void, void> {
     );
     if (versionCheckInterval !== undefined) {
       displayConfig.versionCheckInterval = versionCheckInterval;
+    }
+
+    const prCreateIncludeDefaultReviewers = coerceBooleanConfigValue(
+      config.prCreateIncludeDefaultReviewers as unknown
+    );
+    if (prCreateIncludeDefaultReviewers !== undefined) {
+      displayConfig.prCreateIncludeDefaultReviewers =
+        prCreateIncludeDefaultReviewers;
     }
 
     if (context.globalOptions.json) {

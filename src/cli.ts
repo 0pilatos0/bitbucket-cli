@@ -41,7 +41,16 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
     if (env.prev === 'auth') {
       completions.push('login', 'logout', 'status', 'token');
     } else if (env.prev === 'repo') {
-      completions.push('clone', 'create', 'list', 'view', 'delete');
+      completions.push(
+        'clone',
+        'create',
+        'list',
+        'view',
+        'delete',
+        'default-reviewers'
+      );
+    } else if (env.prev === 'default-reviewers') {
+      completions.push('list', 'add', 'remove');
     } else if (env.prev === 'pr') {
       completions.push(
         'create',
@@ -428,6 +437,78 @@ repoCmd
     );
   });
 
+const repoDefaultReviewersCmd = new Command('default-reviewers').description(
+  'Manage default reviewers for a repository'
+);
+
+repoDefaultReviewersCmd
+  .command('list')
+  .description('List default reviewers for a repository')
+  .option(
+    '--direct',
+    'Only show reviewers configured on the repository (exclude project-inherited)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo default-reviewers list',
+        'bb repo default-reviewers list --direct',
+        'bb repo default-reviewers list --json',
+      ],
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListDefaultReviewersCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+repoDefaultReviewersCmd
+  .command('add <username>')
+  .description('Add a default reviewer to a repository')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb repo default-reviewers add jdoe'],
+    })
+  )
+  .action(async (username, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.AddDefaultReviewerCommand,
+      withGlobalOptions({ username, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+repoDefaultReviewersCmd
+  .command('remove <username>')
+  .description('Remove a default reviewer from a repository')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb repo default-reviewers remove jdoe --yes'],
+    })
+  )
+  .action(async (username, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.RemoveDefaultReviewerCommand,
+      withGlobalOptions({ username, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+repoCmd.addCommand(repoDefaultReviewersCmd);
+
 cli.addCommand(repoCmd);
 
 // PR commands
@@ -442,6 +523,16 @@ prCmd
   .option('-d, --destination <branch>', 'Destination branch (default: main)')
   .option('--close-source-branch', 'Close source branch after merge')
   .option('--draft', 'Create the pull request as draft')
+  .option(
+    '--reviewer <username>',
+    'Add a reviewer by username (repeatable)',
+    (value: string, previous: string[]) => previous.concat([value]),
+    [] as string[]
+  )
+  .option(
+    '--default-reviewers',
+    "Include the repository's default reviewers (pass --no-default-reviewers to skip when the config key is enabled)"
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -450,10 +541,14 @@ prCmd
         'bb pr create -t "My PR" --draft',
         'bb pr create -t "My PR" -s feature -d develop',
         'bb pr create -t "My PR" --close-source-branch',
+        'bb pr create -t "My PR" --default-reviewers',
+        'bb pr create -t "My PR" --reviewer jdoe --reviewer asmith',
       ],
       defaults: {
         source: 'current git branch',
         destination: 'main',
+        'default-reviewers':
+          'false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)',
       },
     })
   )

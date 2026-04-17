@@ -1173,24 +1173,134 @@ describe('ChecksPRCommand', () => {
   });
 });
 
+import type { DefaultReviewerEntry } from '../../src/services/default-reviewer.service.js';
+import type { DefaultReviewerService } from '../../src/services/default-reviewer.service.js';
+import type { IConfigService } from '../../src/core/interfaces/services.js';
+import { createMockConfigService } from '../setup.js';
+
+function createMockDefaultReviewerService(
+  entries: DefaultReviewerEntry[] = [],
+  throwOnList = false
+): DefaultReviewerService {
+  const svc = {
+    async list() {
+      if (throwOnList) {
+        throw new Error('effective reviewers fetch failed');
+      }
+      return entries;
+    },
+    async add() {
+      return entries[0] ?? { uuid: '{}' };
+    },
+    async remove() {
+      // not used
+    },
+  };
+  return svc as unknown as DefaultReviewerService;
+}
+
+interface CreatePRHarnessOptions {
+  currentBranch?: string;
+  defaultReviewers?: DefaultReviewerEntry[];
+  defaultReviewersThrow?: boolean;
+  authorUuid?: string;
+  config?: Parameters<typeof createMockConfigService>[0];
+  capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
+}
+
+function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
+  command: CreatePRCommand;
+  output: ReturnType<typeof createMockOutputService>;
+  captured: { body?: import('../../src/generated/api.js').Pullrequest };
+} {
+  const captured: {
+    body?: import('../../src/generated/api.js').Pullrequest;
+  } = options.capturedBodyRef ?? {};
+
+  const basePullrequestsApi = createMockPullrequestsApi();
+  // Wrap POST so we can inspect the body on assertions.
+  const originalPost =
+    basePullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost.bind(
+      basePullrequestsApi
+    );
+  const pullrequestsApi = basePullrequestsApi as typeof basePullrequestsApi & {
+    repositoriesWorkspaceRepoSlugPullrequestsPost: (params: {
+      workspace: string;
+      repoSlug: string;
+      body: import('../../src/generated/api.js').Pullrequest;
+    }) => Promise<
+      AxiosResponse<import('../../src/generated/api.js').Pullrequest>
+    >;
+  };
+  pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost = async (
+    params
+  ) => {
+    captured.body = params.body;
+    return originalPost(params);
+  };
+
+  const authorUuid = options.authorUuid ?? '{author-uuid}';
+  const usersApi = {
+    async userGet() {
+      return {
+        data: { ...mockUser, uuid: authorUuid },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as never,
+      };
+    },
+    async usersSelectedUserGet(params: { selectedUser: string }) {
+      return {
+        data: {
+          ...mockUser,
+          uuid: `{${params.selectedUser}-uuid}`,
+          display_name: `Display ${params.selectedUser}`,
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: {} as never,
+      };
+    },
+  } as unknown as UsersApi;
+
+  const contextService = createMockContextService({
+    workspace: 'workspace',
+    repoSlug: 'repo',
+  });
+
+  const gitService = createMockGitService({
+    currentBranch: options.currentBranch ?? 'feature-branch',
+  });
+
+  const defaultReviewerService = createMockDefaultReviewerService(
+    options.defaultReviewers,
+    options.defaultReviewersThrow
+  );
+
+  const configService: IConfigService = createMockConfigService(
+    options.config ?? {}
+  );
+
+  const output = createMockOutputService();
+
+  const command = new CreatePRCommand(
+    pullrequestsApi,
+    usersApi,
+    contextService,
+    gitService,
+    defaultReviewerService,
+    configService,
+    output
+  );
+
+  return { command, output, captured };
+}
+
 describe('CreatePRCommand', () => {
   it('should create pull request with title', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
+    const { command, output } = buildCreatePRCommand();
     await command.execute({ title: 'My PR' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
@@ -1200,157 +1310,169 @@ describe('CreatePRCommand', () => {
   });
 
   it('should fail when title not provided', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService();
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
-
+    const { command, output } = buildCreatePRCommand();
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
     expect(output.logs.some((log) => log.includes('title'))).toBe(true);
   });
 
   it('should use current branch as source', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
+    const { command, output } = buildCreatePRCommand({
+      currentBranch: 'my-feature',
     });
-    const gitService = createMockGitService({ currentBranch: 'my-feature' });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
     await command.execute({ title: 'My PR' }, { globalOptions: {} });
-
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
   it('should use explicit source branch', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService();
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
+    const { command, output } = buildCreatePRCommand();
     await command.execute(
       { title: 'My PR', source: 'explicit-branch' },
       { globalOptions: {} }
     );
-
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
   it('should use main as default destination', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
+    const { command, output } = buildCreatePRCommand({
+      currentBranch: 'feature',
     });
-    const gitService = createMockGitService({ currentBranch: 'feature' });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
     await command.execute({ title: 'My PR' }, { globalOptions: {} });
-
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
   it('should use explicit destination branch', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
+    const { command, output } = buildCreatePRCommand({
+      currentBranch: 'feature',
     });
-    const gitService = createMockGitService({ currentBranch: 'feature' });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
     await command.execute(
       { title: 'My PR', destination: 'develop' },
       { globalOptions: {} }
     );
-
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
   it('should create draft pull request when flag is set', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
+    const { command, output } = buildCreatePRCommand({
+      currentBranch: 'feature',
     });
-    const gitService = createMockGitService({ currentBranch: 'feature' });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
     await command.execute(
       { title: 'Draft PR', draft: true },
       { globalOptions: {} }
     );
-
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
   it('should output json when requested', async () => {
-    const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new CreatePRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
+    const { command, output } = buildCreatePRCommand();
     await command.execute(
       { title: 'My PR' },
       { globalOptions: { json: true } }
     );
-
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
+  });
+
+  it('should not include reviewers by default', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      defaultReviewers: [
+        { uuid: '{r1}', displayName: 'R One' },
+        { uuid: '{r2}', displayName: 'R Two' },
+      ],
+    });
+    await command.execute({ title: 'My PR' }, { globalOptions: {} });
+    expect(captured.body?.reviewers).toBeUndefined();
+  });
+
+  it('should include default reviewers when --default-reviewers is set', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      defaultReviewers: [
+        { uuid: '{r1}', displayName: 'R One' },
+        { uuid: '{r2}', displayName: 'R Two' },
+      ],
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute(
+      { title: 'My PR', defaultReviewers: true },
+      { globalOptions: {} }
+    );
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    expect(uuids).toEqual(['{r1}', '{r2}']);
+    expect(output.logs.some((log) => log.includes('Reviewers:'))).toBe(true);
+  });
+
+  it('should include explicit --reviewer values and dedupe with defaults', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      defaultReviewers: [{ uuid: '{r1}', displayName: 'R One' }],
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute(
+      {
+        title: 'My PR',
+        defaultReviewers: true,
+        reviewer: ['r1', 'r3'],
+      },
+      { globalOptions: {} }
+    );
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    // Default {r1} + explicit {r1-uuid} + explicit {r3-uuid}, de-duped
+    expect(uuids).toContain('{r1}');
+    expect(uuids).toContain('{r1-uuid}');
+    expect(uuids).toContain('{r3-uuid}');
+  });
+
+  it('should filter out the author from the reviewer list', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      defaultReviewers: [
+        { uuid: '{author-uuid}', displayName: 'Me' },
+        { uuid: '{r1}', displayName: 'R One' },
+      ],
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute(
+      { title: 'My PR', defaultReviewers: true },
+      { globalOptions: {} }
+    );
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    expect(uuids).toEqual(['{r1}']);
+  });
+
+  it('should respect --no-default-reviewers even when config enables it', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      defaultReviewers: [{ uuid: '{r1}', displayName: 'R One' }],
+      config: { prCreateIncludeDefaultReviewers: true },
+    });
+    await command.execute(
+      { title: 'My PR', defaultReviewers: false },
+      { globalOptions: {} }
+    );
+    expect(captured.body?.reviewers).toBeUndefined();
+  });
+
+  it('should include defaults when config enables it and no flag is passed', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      defaultReviewers: [{ uuid: '{r1}', displayName: 'R One' }],
+      config: { prCreateIncludeDefaultReviewers: true },
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute({ title: 'My PR' }, { globalOptions: {} });
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    expect(uuids).toEqual(['{r1}']);
+  });
+
+  it('should warn and continue when the default-reviewer fetch fails', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      defaultReviewersThrow: true,
+    });
+    await command.execute(
+      { title: 'My PR', defaultReviewers: true },
+      { globalOptions: {} }
+    );
+    expect(captured.body?.reviewers).toBeUndefined();
+    expect(
+      output.logs.some(
+        (log) => log.startsWith('warning:') && log.includes('default reviewers')
+      )
+    ).toBe(true);
+    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 });
 

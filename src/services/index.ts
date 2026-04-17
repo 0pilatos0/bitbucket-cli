@@ -16,3 +16,8 @@ export {
   buildReviewersUpdateBody,
   updatePullRequestReviewers,
 } from './reviewer.service.js';
+export { DefaultReviewerService } from './default-reviewer.service.js';
+export type {
+  DefaultReviewerEntry,
+  DefaultReviewerMode,
+} from './default-reviewer.service.js';

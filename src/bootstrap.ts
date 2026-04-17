@@ -12,6 +12,7 @@ import {
   OAuthService,
   createApiClient,
   SnippetFilesService,
+  DefaultReviewerService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
 import { createRequire } from 'node:module';
@@ -40,6 +41,9 @@ import { CreateRepoCommand } from './commands/repo/create.command.js';
 import { ListReposCommand } from './commands/repo/list.command.js';
 import { ViewRepoCommand } from './commands/repo/view.command.js';
 import { DeleteRepoCommand } from './commands/repo/delete.command.js';
+import { ListDefaultReviewersCommand } from './commands/repo/default-reviewers.list.command.js';
+import { AddDefaultReviewerCommand } from './commands/repo/default-reviewers.add.command.js';
+import { RemoveDefaultReviewerCommand } from './commands/repo/default-reviewers.remove.command.js';
 
 // PR commands
 import { CreatePRCommand } from './commands/pr/create.command.js';
@@ -300,22 +304,79 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     return new DeleteRepoCommand(repositoriesApi, contextService, output);
   });
 
+  // Register default reviewer service
+  container.register(ServiceTokens.DefaultReviewerService, () => {
+    const pullrequestsApi = container.resolve<PullrequestsApi>(
+      ServiceTokens.PullrequestsApi
+    );
+    return new DefaultReviewerService(pullrequestsApi);
+  });
+
+  container.register(ServiceTokens.ListDefaultReviewersCommand, () => {
+    const service = container.resolve<DefaultReviewerService>(
+      ServiceTokens.DefaultReviewerService
+    );
+    const contextService = container.resolve<ContextService>(
+      ServiceTokens.ContextService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new ListDefaultReviewersCommand(service, contextService, output);
+  });
+
+  container.register(ServiceTokens.AddDefaultReviewerCommand, () => {
+    const service = container.resolve<DefaultReviewerService>(
+      ServiceTokens.DefaultReviewerService
+    );
+    const contextService = container.resolve<ContextService>(
+      ServiceTokens.ContextService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new AddDefaultReviewerCommand(service, contextService, output);
+  });
+
+  container.register(ServiceTokens.RemoveDefaultReviewerCommand, () => {
+    const service = container.resolve<DefaultReviewerService>(
+      ServiceTokens.DefaultReviewerService
+    );
+    const contextService = container.resolve<ContextService>(
+      ServiceTokens.ContextService
+    );
+    const output = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return new RemoveDefaultReviewerCommand(service, contextService, output);
+  });
+
   // Register PR commands
   container.register(ServiceTokens.CreatePRCommand, () => {
     const pullrequestsApi = container.resolve<PullrequestsApi>(
       ServiceTokens.PullrequestsApi
     );
+    const usersApi = container.resolve<UsersApi>(ServiceTokens.UsersApi);
     const contextService = container.resolve<ContextService>(
       ServiceTokens.ContextService
     );
     const gitService = container.resolve<GitService>(ServiceTokens.GitService);
+    const defaultReviewerService = container.resolve<DefaultReviewerService>(
+      ServiceTokens.DefaultReviewerService
+    );
+    const configService = container.resolve<ConfigService>(
+      ServiceTokens.ConfigService
+    );
     const output = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
     return new CreatePRCommand(
       pullrequestsApi,
+      usersApi,
       contextService,
       gitService,
+      defaultReviewerService,
+      configService,
       output
     );
   });

@@ -25,6 +25,7 @@ The configuration file stores your CLI settings and authentication credentials.
 | `defaultWorkspace` | Default workspace for commands |
 | `skipVersionCheck` | Disable update notifications (default: false) |
 | `versionCheckInterval` | Days between update checks (default: 1) |
+| `prCreateIncludeDefaultReviewers` | Auto-add the repo's default reviewers on `bb pr create` (default: false) |
 
 ### Configuration File Format
 
@@ -36,7 +37,8 @@ The config file is stored as JSON:
   "apiToken": "***",
   "defaultWorkspace": "myworkspace",
   "skipVersionCheck": false,
-  "versionCheckInterval": 1
+  "versionCheckInterval": 1,
+  "prCreateIncludeDefaultReviewers": false
 }
 ```
 
@@ -103,6 +105,7 @@ bb config set <key> <value>
 | `defaultWorkspace` | Any string | string |
 | `skipVersionCheck` | `true` or `false` | boolean |
 | `versionCheckInterval` | Positive integer (`>= 1`) | number |
+| `prCreateIncludeDefaultReviewers` | `true` or `false` | boolean |
 
 ### Examples
 
