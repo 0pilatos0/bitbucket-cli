@@ -17,6 +17,19 @@ import {
   type PullrequestActivity,
 } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
+
+const VALID_ACTIVITY_TYPES = [
+  'comment',
+  'approval',
+  'changes_requested',
+  'merge',
+  'decline',
+  'commit',
+  'update',
+] as const;
+
+type ActivityType = (typeof VALID_ACTIVITY_TYPES)[number];
 
 export interface ActivityPROptions extends GlobalOptions {
   limit?: string;
@@ -47,7 +60,7 @@ export class ActivityPRCommand extends BaseCommand<
       ...options,
     });
 
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parseIntOption(options.id, 'id');
     const filterTypes = this.parseTypeFilter(options.type);
     const limit = parseLimit(options.limit);
 
@@ -74,7 +87,9 @@ export class ActivityPRCommand extends BaseCommand<
           return true;
         }
 
-        return filterTypes.includes(this.getActivityType(activity));
+        return (filterTypes as readonly string[]).includes(
+          this.getActivityType(activity)
+        );
       },
     });
 
@@ -114,15 +129,29 @@ export class ActivityPRCommand extends BaseCommand<
     this.output.table(['TYPE', 'ACTOR', 'DATE', 'DETAILS'], rows);
   }
 
-  private parseTypeFilter(typeOption?: string): string[] {
+  private parseTypeFilter(typeOption?: string): ActivityType[] {
     if (!typeOption) {
       return [];
     }
 
-    return typeOption
+    const requested = typeOption
       .split(',')
       .map((type) => type.trim().toLowerCase())
       .filter((type) => type.length > 0);
+
+    const invalid = requested.filter(
+      (type) => !VALID_ACTIVITY_TYPES.includes(type as ActivityType)
+    );
+
+    if (invalid.length > 0) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: `--type must be one of: ${VALID_ACTIVITY_TYPES.join(', ')}`,
+        context: { invalid },
+      });
+    }
+
+    return requested as ActivityType[];
   }
 
   private getActivityType(activity: PullrequestActivity): string {

@@ -561,7 +561,6 @@ prCmd
 prCmd
   .command('checks <id>')
   .description('Show CI/CD checks and build status for a pull request')
-  .option('--json', 'Output as JSON')
   .addHelpText(
     'after',
     buildHelpText({
