@@ -856,6 +856,21 @@ describe('ViewPRCommand', () => {
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
+
+  it('should reject a non-integer --id', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+
+    await expect(
+      command.execute({ id: 'abc' }, { globalOptions: {} })
+    ).rejects.toThrow(/--id must be a valid integer/);
+  });
 });
 
 describe('ActivityPRCommand', () => {
@@ -991,6 +1006,44 @@ describe('ActivityPRCommand', () => {
     const rows = getTableRows(output.logs);
     expect(rows).toHaveLength(1);
     expect(requestedPages).toEqual([1, 2]);
+  });
+
+  it('should reject a non-integer --id', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ id: 'abc' }, { globalOptions: {} })
+    ).rejects.toThrow(/--id must be a valid integer/);
+  });
+
+  it('should reject an invalid --type value', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ id: '1', type: 'commetn' }, { globalOptions: {} })
+    ).rejects.toThrow(/--type must be one of/);
   });
 });
 
@@ -1145,7 +1198,7 @@ describe('ChecksPRCommand', () => {
       contextService,
       output
     );
-    await command.execute({ id: '1', json: true }, { globalOptions: {} });
+    await command.execute({ id: '1' }, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
@@ -1415,6 +1468,21 @@ describe('MergePRCommand', () => {
     );
 
     expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
+  });
+
+  it('should reject a non-integer --id', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+
+    await expect(
+      command.execute({ id: 'abc' }, { globalOptions: {} })
+    ).rejects.toThrow(/--id must be a valid integer/);
   });
 });
 

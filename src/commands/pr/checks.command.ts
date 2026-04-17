@@ -11,9 +11,7 @@ import type {
 import type { CommitStatusesApi, Commitstatus } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
 
-export interface ChecksPROptions extends GlobalOptions {
-  json?: boolean;
-}
+export interface ChecksPROptions extends GlobalOptions {}
 
 export class ChecksPRCommand extends BaseCommand<
   { id: string } & ChecksPROptions,
@@ -40,7 +38,7 @@ export class ChecksPRCommand extends BaseCommand<
       ...options,
     });
 
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parseIntOption(options.id, 'id');
 
     const response =
       await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(
@@ -55,9 +53,7 @@ export class ChecksPRCommand extends BaseCommand<
     const statuses = data?.values ? Array.from(data.values) : [];
     const summary = this.getSummary(statuses);
 
-    const useJson = options.json || context.globalOptions.json;
-
-    if (useJson) {
+    if (context.globalOptions.json) {
       this.output.json({
         pullRequestId: prId,
         workspace: repoContext.workspace,
