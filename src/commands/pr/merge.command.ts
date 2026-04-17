@@ -8,11 +8,15 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type {
-  PullrequestsApi,
+import {
   PullrequestMergeParametersMergeStrategyEnum,
+  type PullrequestsApi,
 } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+
+const VALID_STRATEGIES = Object.values(
+  PullrequestMergeParametersMergeStrategyEnum
+) as readonly PullrequestMergeParametersMergeStrategyEnum[];
 
 export interface MergePROptions extends GlobalOptions {
   message?: string;
@@ -64,8 +68,11 @@ export class MergePRCommand extends BaseCommand<
     }
 
     if (options.strategy) {
-      request.merge_strategy =
-        options.strategy as PullrequestMergeParametersMergeStrategyEnum;
+      request.merge_strategy = this.parseEnumOption(
+        options.strategy,
+        'strategy',
+        VALID_STRATEGIES
+      );
     }
 
     const response =

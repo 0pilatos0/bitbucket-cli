@@ -1384,6 +1384,38 @@ describe('MergePRCommand', () => {
       command.execute({ id: '999' }, { globalOptions: {} })
     ).rejects.toThrow();
   });
+
+  it('should reject an invalid --strategy value', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+
+    await expect(
+      command.execute({ id: '1', strategy: 'bogus' }, { globalOptions: {} })
+    ).rejects.toThrow(/--strategy must be one of/);
+  });
+
+  it('should accept a valid --strategy value', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    await command.execute(
+      { id: '1', strategy: 'squash' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
+  });
 });
 
 describe('ApprovePRCommand', () => {
