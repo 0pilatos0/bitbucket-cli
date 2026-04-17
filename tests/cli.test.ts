@@ -191,6 +191,18 @@ describe('CLI option wiring', () => {
   });
 });
 
+// Matches CSI ANSI escape sequences (colors, formatting). Chalk emits these
+// whenever the local `new Chalk({ level: 1 })` in help-text.ts is active —
+// i.e. whenever the CLI is built with noColor=false, which is the default
+// under `bun test` in a TTY. Strip them so help-text assertions work in
+// both piped and interactive runs.
+// eslint-disable-next-line no-control-regex
+const ANSI_PATTERN = /\u001B\[[0-9;]*m/g;
+
+function stripAnsi(input: string): string {
+  return input.replace(ANSI_PATTERN, '');
+}
+
 function captureHelp(
   cmd: InstanceType<typeof import('commander').Command>
 ): string {
@@ -201,7 +213,7 @@ function captureHelp(
     },
   });
   cmd.outputHelp();
-  return output;
+  return stripAnsi(output);
 }
 
 describe('CLI help text integration', () => {
