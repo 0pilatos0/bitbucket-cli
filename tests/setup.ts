@@ -7,6 +7,7 @@ import { Container } from '../src/core/container.js';
 import { ContextService } from '../src/services/context.service.js';
 import type {
   IConfigService,
+  ICredentialStore,
   IGitService,
   IContextService,
   IOutputService,
@@ -43,15 +44,21 @@ afterEach(() => {
  * Mock factories
  */
 
-export function createMockConfigService(config: BBConfig = {}): IConfigService {
+/**
+ * Returns an object satisfying both `IConfigService` and `ICredentialStore`
+ * with shared in-memory state, mirroring the production `ConfigService` class
+ * that backs both interfaces. Tests that only need one interface can still
+ * pass this (widening is fine); tests that want a narrower mock should reach
+ * for `createMockConfigServiceOnly` or `createMockCredentialStoreOnly`.
+ */
+export function createMockConfigService(
+  config: BBConfig = {}
+): IConfigService & ICredentialStore {
   let currentConfig = { ...config };
 
   return {
     async getConfig() {
       return currentConfig;
-    },
-    async setConfig(newConfig: BBConfig) {
-      currentConfig = newConfig;
     },
     async getCredentials(): Promise<AuthCredentials> {
       if (!currentConfig.username || !currentConfig.apiToken) {
@@ -135,6 +142,47 @@ export function createMockConfigService(config: BBConfig = {}): IConfigService {
       if (!currentConfig.oauthExpiresAt) return true;
       return Date.now() >= (currentConfig.oauthExpiresAt - 60) * 1000;
     },
+  };
+}
+
+/**
+ * Narrow factory returning only the app-config surface. Prefer this in tests
+ * that don't touch credentials — it documents the dependency more precisely
+ * and won't satisfy code that wrongly reaches for credential methods.
+ */
+export function createMockConfigServiceOnly(
+  config: BBConfig = {}
+): IConfigService {
+  const { getConfig, clearConfig, getValue, setValue, getConfigPath } =
+    createMockConfigService(config);
+  return { getConfig, clearConfig, getValue, setValue, getConfigPath };
+}
+
+/**
+ * Narrow factory returning only the credential-store surface.
+ */
+export function createMockCredentialStoreOnly(
+  config: BBConfig = {}
+): ICredentialStore {
+  const {
+    getAuthMethod,
+    getCredentials,
+    setCredentials,
+    clearCredentials,
+    getOAuthCredentials,
+    setOAuthCredentials,
+    clearOAuthCredentials,
+    isOAuthTokenExpired,
+  } = createMockConfigService(config);
+  return {
+    getAuthMethod,
+    getCredentials,
+    setCredentials,
+    clearCredentials,
+    getOAuthCredentials,
+    setOAuthCredentials,
+    clearOAuthCredentials,
+    isOAuthTokenExpired,
   };
 }
 

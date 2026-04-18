@@ -111,13 +111,13 @@ function registerApiClient<T>(
   ctor: ApiClientCtor<T>
 ): void {
   container.register(token, () => {
-    const configService = container.resolve<ConfigService>(
-      ServiceTokens.ConfigService
+    const credentialStore = container.resolve<ConfigService>(
+      ServiceTokens.CredentialStore
     );
     const oauthService = container.resolve<OAuthService>(
       ServiceTokens.OAuthService
     );
-    const axiosInstance = createApiClient(configService, oauthService);
+    const axiosInstance = createApiClient(credentialStore, oauthService);
     return new ctor(undefined, undefined, axiosInstance);
   });
 }
@@ -141,8 +141,14 @@ function registerCommand<T>(
 export function bootstrap(options: BootstrapOptions = {}): Container {
   const container = Container.getInstance();
 
-  // Core services
+  // Core services. ConfigService backs both IConfigService (app config) and
+  // ICredentialStore (basic + OAuth credentials); the CredentialStore token
+  // resolves to the same singleton so storage stays in one JSON file while
+  // consumers depend on narrower interfaces.
   container.register(ServiceTokens.ConfigService, () => new ConfigService());
+  container.register(ServiceTokens.CredentialStore, () =>
+    container.resolve<ConfigService>(ServiceTokens.ConfigService)
+  );
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
     ServiceTokens.OutputService,
@@ -150,6 +156,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   );
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
   ]);
   registerCommand(container, ServiceTokens.ContextService, ContextService, [
     ServiceTokens.GitService,
@@ -169,13 +176,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // Snippets share one axios instance between the generated API and the
   // raw-file helper service, so they register the axios separately.
   container.register(ServiceTokens.SnippetsAxios, () => {
-    const configService = container.resolve<ConfigService>(
-      ServiceTokens.ConfigService
+    const credentialStore = container.resolve<ConfigService>(
+      ServiceTokens.CredentialStore
     );
     const oauthService = container.resolve<OAuthService>(
       ServiceTokens.OAuthService
     );
-    return createApiClient(configService, oauthService);
+    return createApiClient(credentialStore, oauthService);
   });
   container.register(ServiceTokens.SnippetsApi, () => {
     const axiosInstance = container.resolve<AxiosInstance>(
@@ -199,23 +206,24 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
 
   // Auth commands
   registerCommand(container, ServiceTokens.LoginCommand, LoginCommand, [
-    ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.UsersApi,
     ServiceTokens.OAuthService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.LogoutCommand, LogoutCommand, [
-    ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OAuthService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.StatusCommand, StatusCommand, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.UsersApi,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.TokenCommand, TokenCommand, [
-    ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OAuthService,
     ServiceTokens.OutputService,
   ]);

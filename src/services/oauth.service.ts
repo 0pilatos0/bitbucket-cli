@@ -4,7 +4,10 @@
 
 import { createServer, type Server } from 'node:http';
 import { randomBytes } from 'node:crypto';
-import type { IConfigService } from '../core/interfaces/services.js';
+import type {
+  IConfigService,
+  ICredentialStore,
+} from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 
 const BITBUCKET_AUTHORIZE_URL = 'https://bitbucket.org/site/oauth2/authorize';
@@ -46,7 +49,10 @@ function generateState(): string {
 }
 
 export class OAuthService {
-  constructor(private readonly configService: IConfigService) {}
+  constructor(
+    private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore
+  ) {}
 
   /**
    * Start the OAuth authorization flow: open browser, wait for callback, exchange code for tokens
@@ -76,7 +82,7 @@ export class OAuthService {
 
     // Store tokens
     const expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expires_in;
-    await this.configService.setOAuthCredentials({
+    await this.credentialStore.setOAuthCredentials({
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
       expiresAt,
@@ -99,7 +105,7 @@ export class OAuthService {
    * Refresh the access token using the refresh token
    */
   public async refreshAccessToken(): Promise<string> {
-    const credentials = await this.configService.getOAuthCredentials();
+    const credentials = await this.credentialStore.getOAuthCredentials();
     const clientId = await this.getClientId();
 
     const clientSecret = await this.getClientSecret();
@@ -129,7 +135,7 @@ export class OAuthService {
     const tokenResponse = (await response.json()) as TokenResponse;
     const expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expires_in;
 
-    await this.configService.setOAuthCredentials({
+    await this.credentialStore.setOAuthCredentials({
       accessToken: tokenResponse.access_token,
       refreshToken: tokenResponse.refresh_token,
       expiresAt,
@@ -143,7 +149,7 @@ export class OAuthService {
    */
   public async revokeToken(): Promise<void> {
     try {
-      const credentials = await this.configService.getOAuthCredentials();
+      const credentials = await this.credentialStore.getOAuthCredentials();
       const clientId = await this.getClientId();
 
       const clientSecret = await this.getClientSecret();
@@ -168,11 +174,11 @@ export class OAuthService {
    * Get a valid access token, refreshing if needed
    */
   public async getValidAccessToken(): Promise<string> {
-    const isExpired = await this.configService.isOAuthTokenExpired();
+    const isExpired = await this.credentialStore.isOAuthTokenExpired();
     if (isExpired) {
       return this.refreshAccessToken();
     }
-    const credentials = await this.configService.getOAuthCredentials();
+    const credentials = await this.credentialStore.getOAuthCredentials();
     return credentials.accessToken;
   }
 

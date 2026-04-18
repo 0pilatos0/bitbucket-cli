@@ -7,7 +7,7 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import type { IConfigService } from '../core/interfaces/services.js';
+import type { ICredentialStore } from '../core/interfaces/services.js';
 import type { OAuthService } from './oauth.service.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
@@ -79,7 +79,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 export function createApiClient(
-  configService: IConfigService,
+  credentialStore: ICredentialStore,
   oauthService?: OAuthService
 ): AxiosInstance {
   const instance = axios.create({
@@ -97,14 +97,14 @@ export function createApiClient(
         console.debug(`[HTTP] ${config.method?.toUpperCase()} ${config.url}`);
       }
 
-      const authMethod = await configService.getAuthMethod();
+      const authMethod = await credentialStore.getAuthMethod();
 
       if (authMethod === 'oauth' && oauthService) {
         // Proactive refresh: get a valid token (refreshes if expired)
         const accessToken = await oauthService.getValidAccessToken();
         config.headers.Authorization = `Bearer ${accessToken}`;
       } else {
-        const credentials = await configService.getCredentials();
+        const credentials = await credentialStore.getCredentials();
         const authString = Buffer.from(
           `${credentials.username}:${credentials.apiToken}`
         ).toString('base64');
@@ -143,7 +143,7 @@ export function createApiClient(
       if (error.response?.status === 401 && oauthService) {
         const config = error.config as RetryableConfig | undefined;
         if (config && !config.__tokenRefreshed) {
-          const authMethod = await configService.getAuthMethod();
+          const authMethod = await credentialStore.getAuthMethod();
           if (authMethod === 'oauth') {
             try {
               config.__tokenRefreshed = true;
