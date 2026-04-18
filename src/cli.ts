@@ -106,7 +106,12 @@ const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
   ['completion', ['install', 'uninstall']],
 ]);
 
-const COMMENTS_SUBCOMMANDS: readonly string[] = ['list', 'add', 'edit', 'delete'];
+const COMMENTS_SUBCOMMANDS: readonly string[] = [
+  'list',
+  'add',
+  'edit',
+  'delete',
+];
 
 // Handle tabtab completion
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
