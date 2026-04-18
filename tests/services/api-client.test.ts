@@ -13,43 +13,23 @@ import {
 } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
-import type { IConfigService } from '../../src/core/interfaces/services.js';
+import { createMockConfigService } from '../setup.js';
 import type { AxiosInstance } from 'axios';
 
-/**
- * Creates a mock config service with valid credentials.
- */
-function mockConfigService(): IConfigService {
-  return {
-    async getConfig() {
-      return { username: 'testuser', apiToken: 'testtoken' };
-    },
-    async setConfig() {},
-    async getCredentials() {
-      return { username: 'testuser', apiToken: 'testtoken' };
-    },
-    async setCredentials() {},
-    async clearCredentials() {},
-    async clearConfig() {},
-    async getValue() {
-      return undefined;
-    },
-    async setValue() {},
-    getConfigPath() {
-      return '/tmp/test-config.json';
-    },
-    async getAuthMethod() {
-      return 'basic' as const;
-    },
-    async getOAuthCredentials() {
-      throw new Error('No OAuth credentials');
-    },
-    async setOAuthCredentials() {},
-    async clearOAuthCredentials() {},
-    async isOAuthTokenExpired() {
-      return true;
-    },
-  };
+function mockConfigService() {
+  return createMockConfigService({
+    username: 'testuser',
+    apiToken: 'testtoken',
+  });
+}
+
+function mockOAuthConfigService() {
+  return createMockConfigService({
+    authMethod: 'oauth',
+    oauthAccessToken: 'oauth-access-token',
+    oauthRefreshToken: 'oauth-refresh-token',
+    oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+  });
 }
 
 /**
@@ -120,51 +100,6 @@ function createNetworkErrorAdapter() {
 
 // Speed up the sleep() calls by overriding global setTimeout
 const originalSetTimeout = globalThis.setTimeout;
-
-/**
- * Creates a mock config service that uses OAuth.
- */
-function mockOAuthConfigService(): IConfigService {
-  return {
-    async getConfig() {
-      return {
-        authMethod: 'oauth' as const,
-        oauthAccessToken: 'oauth-access-token',
-        oauthRefreshToken: 'oauth-refresh-token',
-        oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
-      };
-    },
-    async setConfig() {},
-    async getCredentials() {
-      throw new Error('No basic credentials');
-    },
-    async setCredentials() {},
-    async clearCredentials() {},
-    async clearConfig() {},
-    async getValue() {
-      return undefined;
-    },
-    async setValue() {},
-    getConfigPath() {
-      return '/tmp/test-config.json';
-    },
-    async getAuthMethod() {
-      return 'oauth' as const;
-    },
-    async getOAuthCredentials() {
-      return {
-        accessToken: 'oauth-access-token',
-        refreshToken: 'oauth-refresh-token',
-        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-      };
-    },
-    async setOAuthCredentials() {},
-    async clearOAuthCredentials() {},
-    async isOAuthTokenExpired() {
-      return false;
-    },
-  };
-}
 
 /**
  * Creates a mock OAuthService.
