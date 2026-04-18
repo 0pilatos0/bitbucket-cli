@@ -13,6 +13,8 @@ import { bootstrap } from '../../src/bootstrap.js';
 import { Container, ServiceTokens } from '../../src/core/container.js';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
+import { ViewRepoCommand } from '../../src/commands/repo/view.command.js';
+import { CreatePRCommand } from '../../src/commands/pr/create.command.js';
 
 describe('bootstrap()', () => {
   it('returns a Container with every registered service token wired up', () => {
@@ -90,6 +92,31 @@ describe('bootstrap()', () => {
     const second = bootstrap();
     // Container is itself a singleton, so both returns are the same object.
     expect(first).toBe(second);
+  });
+
+  it('resolves a command end-to-end with its dependencies wired in constructor order', () => {
+    Container.reset();
+    const container = bootstrap();
+
+    // A simple 3-dep command: RepositoriesApi, ContextService, OutputService
+    const viewRepo = container.resolve<ViewRepoCommand>(
+      ServiceTokens.ViewRepoCommand
+    );
+    expect(viewRepo).toBeInstanceOf(ViewRepoCommand);
+    expect(viewRepo.name).toBe('view');
+
+    // A dense 7-dep command exercises the deps-array path more thoroughly.
+    const createPR = container.resolve<CreatePRCommand>(
+      ServiceTokens.CreatePRCommand
+    );
+    expect(createPR).toBeInstanceOf(CreatePRCommand);
+    expect(createPR.name).toBe('create');
+
+    // Both commands share the same OutputService singleton, proving the
+    // helpers resolve from the same container rather than re-instantiating.
+    const output = container.resolve(ServiceTokens.OutputService);
+    expect((viewRepo as unknown as { output: unknown }).output).toBe(output);
+    expect((createPR as unknown as { output: unknown }).output).toBe(output);
   });
 
   it('every command exposes the required public shape (name, description, run)', () => {
