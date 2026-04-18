@@ -18,6 +18,33 @@ const pkg = require('../package.json');
 
 import tabtab from 'tabtab';
 
+/**
+ * Walk a tokenized completion line to find the nearest non-flag token
+ * preceding `word`. Used to disambiguate nested subcommands that share a
+ * name (e.g. `bb pr comments` vs `bb snippet comments`) without resorting
+ * to fragile substring matching on the raw line.
+ */
+export function getCompletionParent(
+  line: string | undefined,
+  word: string
+): string | undefined {
+  if (typeof line !== 'string') {
+    return undefined;
+  }
+  const tokens = line.split(/\s+/).filter(Boolean);
+  const idx = tokens.lastIndexOf(word);
+  if (idx <= 0) {
+    return undefined;
+  }
+  for (let i = idx - 1; i >= 0; i--) {
+    const token = tokens[i];
+    if (token && !token.startsWith('-')) {
+      return token;
+    }
+  }
+  return undefined;
+}
+
 // Handle tabtab completion
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   const env = tabtab.parseEnv(process.env);
@@ -81,12 +108,11 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
         'unwatch',
         'comments'
       );
-    } else if (
-      env.prev === 'comments' &&
-      typeof env.line === 'string' &&
-      env.line.includes(' snippet ')
-    ) {
-      completions.push('list', 'add', 'edit', 'delete');
+    } else if (env.prev === 'comments') {
+      const parent = getCompletionParent(env.line, 'comments');
+      if (parent === 'snippet' || parent === 'pr') {
+        completions.push('list', 'add', 'edit', 'delete');
+      }
     } else if (env.prev === 'config') {
       completions.push('get', 'set', 'list');
     } else if (env.prev === 'completion') {
