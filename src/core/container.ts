@@ -125,6 +125,7 @@ export class Container {
 export const ServiceTokens = {
   // Core services
   ConfigService: 'ConfigService',
+  CredentialStore: 'CredentialStore',
   GitService: 'GitService',
   ContextService: 'ContextService',
   OutputService: 'OutputService',

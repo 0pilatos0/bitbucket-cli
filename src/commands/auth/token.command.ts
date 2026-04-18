@@ -5,7 +5,7 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { OAuthService } from '../../services/oauth.service.js';
@@ -16,7 +16,7 @@ export class TokenCommand extends BaseCommand<void, void> {
   public readonly description = 'Print the current access token';
 
   constructor(
-    private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     private readonly oauthService: OAuthService,
     output: IOutputService
   ) {
@@ -24,7 +24,7 @@ export class TokenCommand extends BaseCommand<void, void> {
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
-    const authMethod = await this.configService.getAuthMethod();
+    const authMethod = await this.credentialStore.getAuthMethod();
 
     if (authMethod === 'oauth') {
       const accessToken = await this.oauthService.getValidAccessToken();
@@ -38,7 +38,7 @@ export class TokenCommand extends BaseCommand<void, void> {
       return;
     }
 
-    const credentials = await this.configService.getCredentials();
+    const credentials = await this.credentialStore.getCredentials();
 
     if (!credentials.username || !credentials.apiToken) {
       throw new BBError({

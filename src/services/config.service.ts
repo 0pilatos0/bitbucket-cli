@@ -4,7 +4,10 @@
 
 import { join, win32 } from 'node:path';
 import { homedir } from 'node:os';
-import type { IConfigService } from '../core/interfaces/services.js';
+import type {
+  IConfigService,
+  ICredentialStore,
+} from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import type {
   BBConfig,
@@ -19,7 +22,7 @@ interface ConfigServicePathOptions {
   homeDir?: string;
 }
 
-export class ConfigService implements IConfigService {
+export class ConfigService implements IConfigService, ICredentialStore {
   private readonly configDir: string;
   private readonly configFile: string;
   private configCache: BBConfig | null = null;

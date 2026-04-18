@@ -5,7 +5,7 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { OAuthService } from '../../services/oauth.service.js';
@@ -15,7 +15,7 @@ export class LogoutCommand extends BaseCommand<void, void> {
   public readonly description = 'Log out of Bitbucket';
 
   constructor(
-    private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     private readonly oauthService: OAuthService,
     output: IOutputService
   ) {
@@ -23,13 +23,13 @@ export class LogoutCommand extends BaseCommand<void, void> {
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
-    const authMethod = await this.configService.getAuthMethod();
+    const authMethod = await this.credentialStore.getAuthMethod();
 
     if (authMethod === 'oauth') {
       await this.oauthService.revokeToken();
-      await this.configService.clearOAuthCredentials();
+      await this.credentialStore.clearOAuthCredentials();
     } else {
-      await this.configService.clearCredentials();
+      await this.credentialStore.clearCredentials();
     }
 
     if (context.globalOptions.json) {

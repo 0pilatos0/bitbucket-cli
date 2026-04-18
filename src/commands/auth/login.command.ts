@@ -5,7 +5,7 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
@@ -25,7 +25,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
   public readonly description = 'Authenticate with Bitbucket';
 
   constructor(
-    private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     private readonly usersApi: UsersApi,
     private readonly oauthService: OAuthService,
     output: IOutputService
@@ -79,7 +79,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
         `Logged in as ${userInfo.displayName} (${userInfo.username})`
       );
     } catch (error) {
-      await this.configService.clearOAuthCredentials();
+      await this.credentialStore.clearOAuthCredentials();
       throw error;
     }
   }
@@ -108,8 +108,8 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     }
 
     // Clear any existing OAuth credentials first
-    await this.configService.clearOAuthCredentials();
-    await this.configService.setCredentials({ username, apiToken });
+    await this.credentialStore.clearOAuthCredentials();
+    await this.credentialStore.setCredentials({ username, apiToken });
 
     try {
       const response = await this.usersApi.userGet();
@@ -132,7 +132,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
         `Logged in as ${user.display_name} (${user.username})`
       );
     } catch (error) {
-      await this.configService.clearCredentials();
+      await this.credentialStore.clearCredentials();
       throw new BBError({
         code: ErrorCode.AUTH_INVALID,
         message: `Authentication failed: ${error instanceof Error ? error.message : String(error)}`,

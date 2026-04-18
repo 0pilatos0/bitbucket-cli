@@ -4,6 +4,10 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { ConfigService } from '../../src/services/config.service.js';
+import type {
+  IConfigService,
+  ICredentialStore,
+} from '../../src/core/interfaces/services.js';
 import { ErrorCode } from '../../src/types/errors.js';
 import { mkdir, rm, readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
@@ -575,5 +579,92 @@ describe('ConfigService', () => {
       config = await configService.getConfig();
       expect(config.username).toBe('modified');
     });
+  });
+});
+
+describe('ConfigService split interfaces', () => {
+  // Exercises the class through each narrower interface in isolation to
+  // confirm IConfigService and ICredentialStore can round-trip their own
+  // state without touching the other surface.
+  const testConfigDir = join('/tmp', `bb-split-${Date.now()}`);
+
+  afterEach(async () => {
+    try {
+      await rm(testConfigDir, { recursive: true, force: true });
+    } catch {
+      // ignore
+    }
+  });
+
+  it('IConfigService: round-trips app config via getValue/setValue without credentials methods', async () => {
+    const configService: IConfigService = new ConfigService(testConfigDir);
+
+    await configService.setValue('defaultWorkspace', 'acme');
+    await configService.setValue('skipVersionCheck', true);
+
+    expect(await configService.getValue('defaultWorkspace')).toBe('acme');
+    expect(await configService.getValue('skipVersionCheck')).toBe(true);
+    expect((await configService.getConfig()).defaultWorkspace).toBe('acme');
+
+    await configService.clearConfig();
+    expect(await configService.getConfig()).toEqual({});
+  });
+
+  it('ICredentialStore: round-trips basic auth credentials without app-config methods', async () => {
+    const credentialStore: ICredentialStore = new ConfigService(testConfigDir);
+
+    expect(await credentialStore.getAuthMethod()).toBe('basic');
+
+    await credentialStore.setCredentials({ username: 'alice', apiToken: 't' });
+    const creds = await credentialStore.getCredentials();
+    expect(creds.username).toBe('alice');
+    expect(creds.apiToken).toBe('t');
+    expect(await credentialStore.getAuthMethod()).toBe('basic');
+
+    await credentialStore.clearCredentials();
+    await expect(credentialStore.getCredentials()).rejects.toMatchObject({
+      code: ErrorCode.AUTH_REQUIRED,
+    });
+  });
+
+  it('ICredentialStore: round-trips OAuth tokens and expiry independently', async () => {
+    const credentialStore: ICredentialStore = new ConfigService(testConfigDir);
+
+    await credentialStore.setOAuthCredentials({
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+
+    expect(await credentialStore.getAuthMethod()).toBe('oauth');
+    expect(await credentialStore.isOAuthTokenExpired()).toBe(false);
+    const oauth = await credentialStore.getOAuthCredentials();
+    expect(oauth.accessToken).toBe('access');
+
+    await credentialStore.clearOAuthCredentials();
+    await expect(credentialStore.getOAuthCredentials()).rejects.toMatchObject({
+      code: ErrorCode.AUTH_REQUIRED,
+    });
+  });
+
+  it('shared storage: writes via IConfigService are visible to ICredentialStore and vice versa', async () => {
+    // Single concrete instance exposed through both narrow interfaces — mirrors
+    // the bootstrap wiring where CredentialStore is an alias of ConfigService.
+    const instance = new ConfigService(testConfigDir);
+    const configService: IConfigService = instance;
+    const credentialStore: ICredentialStore = instance;
+
+    await configService.setValue('defaultWorkspace', 'shared');
+    await credentialStore.setCredentials({ username: 'u', apiToken: 't' });
+
+    // Each side sees its own write
+    expect(await configService.getValue('defaultWorkspace')).toBe('shared');
+    const creds = await credentialStore.getCredentials();
+    expect(creds.username).toBe('u');
+
+    // And the cross-interface read still works because storage is shared
+    const config = await configService.getConfig();
+    expect(config.username).toBe('u');
+    expect(config.defaultWorkspace).toBe('shared');
   });
 });

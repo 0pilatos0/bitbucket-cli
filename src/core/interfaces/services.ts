@@ -12,21 +12,34 @@ import type {
 } from '../../types/config.js';
 
 /**
- * Configuration service interface
+ * Application config interface — reading and writing general settings
+ * (default workspace, version-check preferences, OAuth client id/secret, etc.)
+ * stored in the on-disk config file. Does NOT include any credential methods;
+ * those live on `ICredentialStore`.
  */
 export interface IConfigService {
   getConfig(): Promise<BBConfig>;
-  setConfig(config: BBConfig): Promise<void>;
-  getCredentials(): Promise<AuthCredentials>;
-  setCredentials(credentials: AuthCredentials): Promise<void>;
-  clearCredentials(): Promise<void>;
   clearConfig(): Promise<void>;
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
   getConfigPath(): string;
+}
 
-  // OAuth support
+/**
+ * Credential storage interface — basic auth credentials and OAuth token state.
+ * Backed by the same on-disk config today, but isolated behind this interface
+ * so that an alternative store (e.g. OS keychain) can be introduced without
+ * touching non-auth consumers.
+ */
+export interface ICredentialStore {
   getAuthMethod(): Promise<AuthMethod>;
+
+  // Basic auth
+  getCredentials(): Promise<AuthCredentials>;
+  setCredentials(credentials: AuthCredentials): Promise<void>;
+  clearCredentials(): Promise<void>;
+
+  // OAuth
   getOAuthCredentials(): Promise<OAuthCredentials>;
   setOAuthCredentials(credentials: OAuthCredentials): Promise<void>;
   clearOAuthCredentials(): Promise<void>;
