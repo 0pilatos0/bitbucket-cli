@@ -1,5 +1,91 @@
 # Changelog
 
+## 1.13.2
+
+### Patch Changes
+
+- [#169](https://github.com/0pilatos0/bitbucket-cli/pull/169) [`e359340`](https://github.com/0pilatos0/bitbucket-cli/commit/e35934022a4ff7b27a65f6f78e5b04a8bd74d602) Thanks [@0pilatos0](https://github.com/0pilatos0)! - ci: harden workflows and unblock Windows contributors
+
+  Pins Bun and every GitHub Action to explicit versions/SHAs, caches the Bun install directory, adds cancel-in-progress for PR runs, and drops the `grep "0 fail"` hack that could mask real test output. Release no longer tags or publishes until lint, format, and tests all pass, and stops swallowing GitHub Packages publish failures. CI now runs the full test + build on ubuntu, macos, and windows.
+
+  Surface fix while adding the matrix: `ConfigService.getConfigPath()` now uses `posix.join` on simulated non-Windows platforms so path resolution is correct when developers run the tests on Windows.
+
+- [`afa554e`](https://github.com/0pilatos0/bitbucket-cli/commit/afa554e2e2f849aa7475cb0feba57b018523618d) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(cli): extract PR states constant and collapse completion if/else into a map
+
+  Internal-only change — no user-facing behavior change.
+  - **`PR_STATES` constant**: The literal list `['OPEN', 'MERGED', 'DECLINED', 'SUPERSEDED']` was written out three times — once in `pr/list.command.ts` as the option validator, once in `cli.ts` as the `--state` description, and once in the help text's `Valid states`. Lifted to a new `src/types/pr.ts` export so future additions only touch one place.
+  - **Tabtab completion**: The `env.prev` dispatch in `cli.ts` was an eight-branch if/else chain hand-maintained next to Commander's command tree. Replaced with a single `ReadonlyMap<parent, subcommands>` table, keeping the special-case `comments` disambiguation (its parent can be `pr` or `snippet`) separate. Same completions, fewer branches to keep in sync.
+
+- [#168](https://github.com/0pilatos0/bitbucket-cli/pull/168) [`9d1122b`](https://github.com/0pilatos0/bitbucket-cli/commit/9d1122b3ae205d96158bb52d56f6457cd9d277e1) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(context): consolidate workspace resolution onto `ContextService`
+
+  Internal cleanup — no behavior change. The standalone `resolveWorkspace()` helper is folded into `IContextService.requireWorkspace()`, so every command that needs workspace-or-repo context now depends on the same service. Snippet and workspace-only repo commands (`repo list` / `repo create` / `repo clone`) are migrated to inject `ContextService` instead of `ConfigService`, and `src/services/workspace-resolver.ts` is removed. Resolves [#146](https://github.com/0pilatos0/bitbucket-cli/issues/146).
+
+- [`7da1646`](https://github.com/0pilatos0/bitbucket-cli/commit/7da1646c1aee8d6503ed2625d18a75688077faca) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(context): drop pointless `new RegExp(/literal/)` wrapping in remote URL parser
+
+  Internal-only change — no behavior change. `ContextService.parseRemoteUrl` constructed its SSH and HTTPS regexes as `new RegExp(/.../).exec(url)`, which wraps an already-compiled regex literal in a second `RegExp` constructor call. Replaced with direct `/regex/.exec(url)` calls.
+
+- [`b525659`](https://github.com/0pilatos0/bitbucket-cli/commit/b5256594b2114e3bd46948db00846b6efc5a7a1a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(services): drop duplicate types and unnecessary casts
+
+  Internal-only change — no user-facing behavior change. Three small cleanups in `src/services/`:
+  - `reviewer.service.ts` redefined its own `RepoContext` interface identical to the canonical one in `src/types/config.ts`. Removed the duplicate and imported the shared type.
+  - `extractReviewerUuids` and `buildReviewersUpdateBody` were re-exported from `src/services/index.ts` but only consumed inside `reviewer.service.ts` itself (and the colocated tests, which already import from the module directly). Narrowed the barrel to just `updatePullRequestReviewers`.
+  - `coerceVersionCheckIntervalValue(intervalDays as unknown)` in `version.service.ts` cast the argument to `unknown` unnecessarily — the coerce function accepts `unknown` already, and `IConfigService.getValue` returns a typed value.
+
+- [#160](https://github.com/0pilatos0/bitbucket-cli/pull/160) [`20cc179`](https://github.com/0pilatos0/bitbucket-cli/commit/20cc1792145b35d48478251d7a9c9340e0aa8795) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Housekeeping bundle ([#150](https://github.com/0pilatos0/bitbucket-cli/issues/150)):
+  - Document why the OAuth default client credentials shipped in the CLI are not a secret leak, so future readers don't rotate them thinking they were exposed.
+  - Add a `.npmignore` as belt-and-suspenders alongside the existing `files` whitelist in `package.json`.
+  - Replace the fragile substring check that disambiguated `bb snippet comments` from `bb pr comments` during tab completion with a tokenized parent-command lookup. Also enables `list / add / edit / delete` completions for `bb pr comments <TAB>`, which previously offered none.
+
+- [#166](https://github.com/0pilatos0/bitbucket-cli/pull/166) [`d2ffe97`](https://github.com/0pilatos0/bitbucket-cli/commit/d2ffe97b02d1997b0f8f10dd2c6f9ec8ebd0aaa2) Thanks [@0pilatos0](https://github.com/0pilatos0)! - fix(pagination): reject `--limit 0` and other non-positive values instead of silently returning no results
+
+  `parseLimit` previously fell back to the default limit when given `0`, a negative number, or a non-numeric string — except for `collectPages`, which honored `0` by returning an empty array. A user passing `--limit 0` got zero results with no feedback. `parseLimit` now throws a `VALIDATION_INVALID` `BBError` (`--limit must be a positive integer`) for any explicit non-positive or non-finite value. A missing option still returns the fallback. Adds a dedicated `tests/services/pagination.test.ts` covering `parseLimit` and `collectPages`. Resolves [#145](https://github.com/0pilatos0/bitbucket-cli/issues/145).
+
+- [#162](https://github.com/0pilatos0/bitbucket-cli/pull/162) [`a078adc`](https://github.com/0pilatos0/bitbucket-cli/commit/a078adc0b8bc579aeac1cebec03db3e50cfbcb3e) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(bootstrap): collapse DI registrations behind `registerApiClient` and `registerCommand` helpers
+
+  Internal cleanup — no behavior change. `bootstrap.ts` shrinks from ~874 to ~591 lines by extracting two local helpers:
+  - `registerApiClient(container, token, ctor)` for generated OpenAPI clients (ConfigService + OAuthService + axios wiring).
+  - `registerCommand(container, token, ctor, deps)` for the ~40 commands (and simple services) whose factory is just `resolve → resolve → new Cmd(...)`.
+
+  Adding a new command is now a 3–8 line registration instead of a ~10 line boilerplate block. Resolves [#147](https://github.com/0pilatos0/bitbucket-cli/issues/147).
+
+- [`0ed48dd`](https://github.com/0pilatos0/bitbucket-cli/commit/0ed48dd0d13cfa0a21ce783f0cab5656686adc9c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - fix(snippet): replace `as unknown as` casts in snippet comment commands with real types
+
+  Internal-only change — no user-facing behavior change. The generated `SnippetComment` extends `ModelObject` which carries an `[key: string]: any` index signature, so the surrounding `as unknown as SnippetComment` / `as unknown as Record<string, unknown>` casts in `comments.add`, `comments.edit`, and `comments.list` were load-bearing only because nobody had tried the direct typing. Constructing the request bodies as `SnippetComment` directly and reading response fields without the intermediate record cast keeps the same runtime behaviour while narrowing the places TypeScript is told to look the other way.
+
+- [#167](https://github.com/0pilatos0/bitbucket-cli/pull/167) [`d99b276`](https://github.com/0pilatos0/bitbucket-cli/commit/d99b2768fcb5788c812625ae6212ace3d0470fbb) Thanks [@0pilatos0](https://github.com/0pilatos0)! - refactor(config): split `IConfigService` into `IConfigService` + `ICredentialStore`
+
+  Internal-only change — no user-facing behavior or on-disk format changes. The old `IConfigService` mixed three concerns (app config, basic auth credentials, OAuth token state), forcing every consumer and test mock to depend on the full surface even when they only needed one piece.
+  - `IConfigService` now covers app config only: `getConfig`, `getValue`, `setValue`, `getConfigPath`, `clearConfig`.
+  - New `ICredentialStore` covers basic + OAuth credentials: `getAuthMethod`, `get/set/clearCredentials`, `get/set/clearOAuthCredentials`, `isOAuthTokenExpired`.
+  - `ConfigService` keeps implementing both, so the same JSON file backs both interfaces. A `ServiceTokens.CredentialStore` registration is added as an alias resolving the same singleton, leaving an opening for a future alternative store (e.g. OS keychain) without touching non-auth consumers.
+  - Commands and services now inject the narrower dependency they actually use. Test mocks gain `createMockConfigServiceOnly` and `createMockCredentialStoreOnly` factories for tests that only exercise one surface.
+
+  Resolves [#148](https://github.com/0pilatos0/bitbucket-cli/issues/148).
+
+- [#161](https://github.com/0pilatos0/bitbucket-cli/pull/161) [`14f768c`](https://github.com/0pilatos0/bitbucket-cli/commit/14f768c7cca5005173b5ae6dea53e2739bc13a7c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Test infrastructure cleanup ([#149](https://github.com/0pilatos0/bitbucket-cli/issues/149)):
+  - Centralize the OAuth-capable mock config service in `tests/setup.ts`; `tests/services/api-client.test.ts` now reuses `createMockConfigService` instead of rolling its own duplicate factories.
+  - Track temp dirs created by `tests/services/snippet-files.service.test.ts` and remove them in `afterEach` so `bb-snippet-*` dirs no longer accumulate under `$TMPDIR` across test runs.
+
+- [#165](https://github.com/0pilatos0/bitbucket-cli/pull/165) [`8170770`](https://github.com/0pilatos0/bitbucket-cli/commit/8170770004d69d50410776cc9327380ef3f32725) Thanks [@0pilatos0](https://github.com/0pilatos0)! - chore(tsconfig): tighten type-checking for TypeScript 6
+  - Enable `verbatimModuleSyntax`, `isolatedModules`, and `noUncheckedIndexedAccess` for stricter, Bun-aligned type-checking.
+  - Replace legacy `bun-types` entry with `bun` (matches the `@types/bun` dependency).
+  - Drop `declaration`, `outDir`, and `rootDir` — no-ops under `noEmit: true`, since builds go through `bun build`.
+
+  No runtime behavior change. A handful of internal `string | undefined` sites from regex captures and guaranteed-index array access were narrowed with non-null assertions.
+
+- [#164](https://github.com/0pilatos0/bitbucket-cli/pull/164) [`73e2b24`](https://github.com/0pilatos0/bitbucket-cli/commit/73e2b2433d33f170fee63e75c5fb797d894bb7fd) Thanks [@0pilatos0](https://github.com/0pilatos0)! - chore(deps): upgrade dependencies
+  - `axios` 1.13.2 → 1.15.0
+  - `commander` 14.0.2 → 14.0.3
+  - `@changesets/cli` 2.29.8 → 2.31.0
+  - `@changesets/changelog-github` 0.5.2 → 0.6.0
+  - `@openapitools/openapi-generator-cli` 2.28.0 → 2.31.1
+  - `@types/bun` 1.3.5 → 1.3.12
+  - `@types/node` 25.1.0 → 25.6.0
+  - `prettier` 3.8.1 → 3.8.3
+  - `typescript` 5.9.3 → 6.0.3
+
+  TypeScript 6 migration verified: project already uses `moduleResolution: bundler`, strict mode, and ESM — none of the removed legacy flags or the dropped `node` resolution are in use. `tsc --noEmit`, full test suite (788 tests), and `bun build` all pass.
+
 ## 1.13.1
 
 ### Patch Changes
