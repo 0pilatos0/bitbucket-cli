@@ -4,12 +4,23 @@
  * raw text for file content) without talking to Bitbucket.
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import axios from 'axios';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SnippetFilesService } from '../../src/services/snippet-files.service.js';
+
+const tempDirs: string[] = [];
+
+afterEach(() => {
+  while (tempDirs.length > 0) {
+    const dir = tempDirs.pop();
+    if (dir) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
+});
 
 interface CapturedRequest {
   url?: string;
@@ -47,6 +58,7 @@ function createStubAxios(
 
 function writeTempFile(name: string, contents: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bb-snippet-'));
+  tempDirs.push(dir);
   const filePath = path.join(dir, name);
   fs.writeFileSync(filePath, contents);
   return filePath;
