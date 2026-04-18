@@ -44,12 +44,12 @@ export class AddSnippetCommentCommand extends BaseCommand<
       'Comment message is required. Use --message option.'
     );
 
-    const body = {
+    const body: SnippetComment = {
       type: 'snippet_comment',
       content: {
         raw: message,
       },
-    } as unknown as SnippetComment;
+    };
 
     const response =
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsPost({
@@ -59,7 +59,7 @@ export class AddSnippetCommentCommand extends BaseCommand<
       });
 
     const comment = response.data;
-    const commentId = (comment as unknown as Record<string, unknown>).id;
+    const commentId = comment.id;
 
     if (context.globalOptions.json) {
       this.output.json({

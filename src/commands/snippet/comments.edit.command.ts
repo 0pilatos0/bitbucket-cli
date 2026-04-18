@@ -47,12 +47,12 @@ export class EditSnippetCommentCommand extends BaseCommand<
 
     const commentId = this.parseIntOption(options.commentId, 'comment-id');
 
-    const body = {
+    const body: SnippetComment = {
       type: 'snippet_comment',
       content: {
         raw: options.message,
       },
-    } as unknown as SnippetComment;
+    };
 
     const response =
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdPut({
