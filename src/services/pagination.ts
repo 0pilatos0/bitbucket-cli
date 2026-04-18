@@ -2,6 +2,8 @@
  * Pagination helpers for Bitbucket paginated endpoints.
  */
 
+import { BBError, ErrorCode } from '../types/errors.js';
+
 export interface PaginatedCollection<T> {
   values?: Iterable<T>;
   next?: string;
@@ -21,13 +23,16 @@ export function parseLimit(
   limit?: string,
   fallback: number = DEFAULT_LIMIT
 ): number {
-  if (!limit) {
+  if (limit === undefined || limit === '') {
     return fallback;
   }
 
   const parsed = Number.parseInt(limit, 10);
-  if (Number.isNaN(parsed) || parsed <= 0) {
-    return fallback;
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new BBError({
+      code: ErrorCode.VALIDATION_INVALID,
+      message: '--limit must be a positive integer',
+    });
   }
 
   return parsed;
