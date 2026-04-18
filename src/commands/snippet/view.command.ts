@@ -96,7 +96,7 @@ export class ViewSnippetCommand extends BaseCommand<
       for (const name of fileNames) {
         this.output.text('');
         this.output.text(this.output.bold(`── ${name} ──`));
-        this.output.text(contents[name]);
+        this.output.text(contents[name] ?? '');
       }
       return;
     }

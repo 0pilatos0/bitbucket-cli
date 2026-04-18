@@ -27,8 +27,8 @@ export class ContextService implements IContextService {
     ).exec(url);
     if (sshMatch) {
       return {
-        workspace: sshMatch[1],
-        repoSlug: sshMatch[2],
+        workspace: sshMatch[1]!,
+        repoSlug: sshMatch[2]!,
       };
     }
 
@@ -39,8 +39,8 @@ export class ContextService implements IContextService {
     ).exec(url);
     if (httpsMatch) {
       return {
-        workspace: httpsMatch[1],
-        repoSlug: httpsMatch[2],
+        workspace: httpsMatch[1]!,
+        repoSlug: httpsMatch[2]!,
       };
     }
 
