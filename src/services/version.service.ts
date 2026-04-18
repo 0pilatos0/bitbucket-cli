@@ -92,7 +92,7 @@ export class VersionService {
     const intervalDays = await this.configService.getValue(
       'versionCheckInterval'
     );
-    const days = coerceVersionCheckIntervalValue(intervalDays as unknown) ?? 1;
+    const days = coerceVersionCheckIntervalValue(intervalDays) ?? 1;
 
     const intervalMs = days * 24 * 60 * 60 * 1000;
 

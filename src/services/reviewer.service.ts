@@ -7,11 +7,7 @@ import type {
   Pullrequest,
   PullrequestsApi,
 } from '../generated/api.js';
-
-export interface RepoContext {
-  workspace: string;
-  repoSlug: string;
-}
+import type { RepoContext } from '../types/config.js';
 
 /**
  * Extract UUIDs from a reviewer collection in a type-safe way.
