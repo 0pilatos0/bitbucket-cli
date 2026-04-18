@@ -93,14 +93,14 @@ let commit: string; //The commit\'s SHA1. (default to undefined)
 let key: string; //The build status\' unique key (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Commitstatus; //The updated build status object (optional)
+let commitstatus: Commitstatus; //The updated build status object (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(
     commit,
     key,
     repoSlug,
     workspace,
-    body
+    commitstatus
 );
 ```
 
@@ -108,7 +108,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Commitstatus**| The updated build status object | |
+| **commitstatus** | **Commitstatus**| The updated build status object | |
 | **commit** | [**string**] | The commit\&#39;s SHA1. | defaults to undefined|
 | **key** | [**string**] | The build status\&#39; unique key | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
@@ -158,13 +158,13 @@ const apiInstance = new CommitStatusesApi(configuration);
 let commit: string; //The commit\'s SHA1. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Commitstatus; //The new commit status object. (optional)
+let commitstatus: Commitstatus; //The new commit status object. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(
     commit,
     repoSlug,
     workspace,
-    body
+    commitstatus
 );
 ```
 
@@ -172,7 +172,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Commitstatus**| The new commit status object. | |
+| **commitstatus** | **Commitstatus**| The new commit status object. | |
 | **commit** | [**string**] | The commit\&#39;s SHA1. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|

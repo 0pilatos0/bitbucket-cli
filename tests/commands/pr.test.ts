@@ -221,20 +221,21 @@ function createMockPullrequestsApi(
     },
 
     async repositoriesWorkspaceRepoSlugPullrequestsPost(params: {
-      body: Pullrequest;
+      pullrequest: Pullrequest;
     }) {
       if (options.throwOnCreate) {
         throw new Error('API Error');
       }
+      const body = params.pullrequest;
       const newPr: Pullrequest = {
         ...mockPullRequest,
         id: 2,
-        title: params.body.title ?? 'New PR',
-        description: params.body.description,
-        draft: params.body.draft ?? false,
-        source: params.body.source ?? mockPullRequest.source,
-        destination: params.body.destination ?? mockPullRequest.destination,
-        close_source_branch: params.body.close_source_branch ?? false,
+        title: body.title ?? 'New PR',
+        description: body.description,
+        draft: body.draft ?? false,
+        source: body.source ?? mockPullRequest.source,
+        destination: body.destination ?? mockPullRequest.destination,
+        close_source_branch: body.close_source_branch ?? false,
       };
       return createAxiosResponse(newPr);
     },
@@ -288,7 +289,7 @@ function createMockPullrequestsApi(
 
     async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(params: {
       pullRequestId: number;
-      body: Pullrequest;
+      pullrequest: Pullrequest;
     }) {
       if (options.throwOnUpdate) {
         throw new Error('API Error');
@@ -297,11 +298,12 @@ function createMockPullrequestsApi(
       if (!pr) {
         throw new Error('Not found');
       }
+      const body = params.pullrequest;
       return createAxiosResponse({
         ...pr,
-        title: params.body.title ?? pr.title,
-        description: params.body.description ?? pr.description,
-        draft: params.body.draft ?? pr.draft,
+        title: body.title ?? pr.title,
+        description: body.description ?? pr.description,
+        draft: body.draft ?? pr.draft,
       });
     },
 
@@ -429,17 +431,18 @@ function createMockPullrequestsApi(
       workspace: string;
       repoSlug: string;
       pullRequestId: number;
-      body: Record<string, unknown>;
+      pullrequestComment: Record<string, unknown>;
     }) {
       if (options.throwOnComment) {
         throw new Error('API Error');
       }
-      mockApi.lastCommentBody = params.body;
+      const body = params.pullrequestComment;
+      mockApi.lastCommentBody = body;
       return createAxiosResponse({
         id: 201,
         type: 'pullrequest_comment',
-        content: params.body.content,
-        inline: params.body.inline,
+        content: body.content,
+        inline: body.inline,
       });
     },
 
@@ -460,7 +463,7 @@ function createMockPullrequestsApi(
       repoSlug: string;
       pullRequestId: number;
       commentId: number;
-      body: Record<string, unknown>;
+      pullrequestComment: Record<string, unknown>;
     }) {
       if (options.throwOnCommentEdit) {
         throw new Error('API Error');
@@ -468,7 +471,7 @@ function createMockPullrequestsApi(
       return createAxiosResponse({
         id: params.commentId,
         type: 'pullrequest_comment',
-        content: params.body.content,
+        content: params.pullrequestComment.content,
       });
     },
   };
@@ -1418,7 +1421,7 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     repositoriesWorkspaceRepoSlugPullrequestsPost: (params: {
       workspace: string;
       repoSlug: string;
-      body: import('../../src/generated/api.js').Pullrequest;
+      pullrequest: import('../../src/generated/api.js').Pullrequest;
     }) => Promise<
       AxiosResponse<import('../../src/generated/api.js').Pullrequest>
     >;
@@ -1426,7 +1429,7 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
   pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost = async (
     params
   ) => {
-    captured.body = params.body;
+    captured.body = params.pullrequest;
     return originalPost(params);
   };
 

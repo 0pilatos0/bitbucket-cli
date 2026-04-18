@@ -33,11 +33,12 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**repositoriesWorkspaceRepoSlugSrcPost**](#repositoriesworkspacereposlugsrcpost) | **POST** /repositories/{workspace}/{repo_slug}/src | Create a commit by uploading a file|
 |[**repositoriesWorkspaceRepoSlugWatchersGet**](#repositoriesworkspacereposlugwatchersget) | **GET** /repositories/{workspace}/{repo_slug}/watchers | List repositories watchers|
 |[**userPermissionsRepositoriesGet**](#userpermissionsrepositoriesget) | **GET** /user/permissions/repositories | List repository permissions for a user|
+|[**userWorkspacesWorkspacePermissionsRepositoriesGet**](#userworkspacesworkspacepermissionsrepositoriesget) | **GET** /user/workspaces/{workspace}/permissions/repositories | List repository permissions in a workspace for a user|
 
 # **repositoriesGet**
 > PaginatedRepositories repositoriesGet()
 
-Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+**This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
 
 ### Example
 
@@ -367,12 +368,12 @@ const apiInstance = new RepositoriesApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Repository; //A repository object. This can be left blank. (optional)
+let repository: Repository; //A repository object. This can be left blank. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugForksPost(
     repoSlug,
     workspace,
-    body
+    repository
 );
 ```
 
@@ -380,7 +381,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugForksPos
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Repository**| A repository object. This can be left blank. | |
+| **repository** | **Repository**| A repository object. This can be left blank. | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -754,6 +755,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksUid
 > RepositoryInheritanceState repositoriesWorkspaceRepoSlugOverrideSettingsGet()
 
 
+
 ### Example
 
 ```typescript
@@ -806,6 +808,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugOverride
 
 # **repositoriesWorkspaceRepoSlugOverrideSettingsPut**
 > repositoriesWorkspaceRepoSlugOverrideSettingsPut()
+
 
 
 ### Example
@@ -1036,7 +1039,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissi
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut**
-> RepositoryGroupPermission repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(body)
+> RepositoryGroupPermission repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema)
 
 Updates the group permission, or grants a new permission if one does not already exist.  Only users with admin permission for the repository may access this resource.  The only authentication method supported for this endpoint is via app passwords.  Permissions can be:  * `admin` * `write` * `read`
 
@@ -1055,13 +1058,13 @@ const apiInstance = new RepositoriesApi(configuration);
 let groupSlug: string; //Slug of the requested group. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema; //The permission to grant
+let bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema; //The permission to grant
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(
     groupSlug,
     repoSlug,
     workspace,
-    body
+    bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
 );
 ```
 
@@ -1069,7 +1072,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissi
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema**| The permission to grant | |
+| **bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema** | **BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema**| The permission to grant | |
 | **groupSlug** | [**string**] | Slug of the requested group. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1279,7 +1282,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissi
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut**
-> RepositoryUserPermission repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(body)
+> RepositoryUserPermission repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema)
 
 Updates the explicit user permission for a given user and repository. The selected user must be a member of the workspace, and cannot be the workspace owner. Only users with admin permission for the repository may access this resource.  The only authentication method for this endpoint is via app passwords.  Permissions can be:  * `admin` * `write` * `read`
 
@@ -1298,13 +1301,13 @@ const apiInstance = new RepositoriesApi(configuration);
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let selectedUserId: string; //This can either be the UUID of the account, surrounded by curly-braces, for example: `{account UUID}`, OR an Atlassian Account ID.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema; //The permission to grant
+let bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema; //The permission to grant
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(
     repoSlug,
     selectedUserId,
     workspace,
-    body
+    bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
 );
 ```
 
@@ -1312,7 +1315,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPermissi
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema**| The permission to grant | |
+| **bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema** | **BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema**| The permission to grant | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **selectedUserId** | [**string**] | This can either be the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1363,12 +1366,12 @@ const apiInstance = new RepositoriesApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Repository; //The repository that is to be created. Note that most object elements are optional. Elements \"owner\" and \"full_name\" are ignored as the URL implies them. (optional)
+let repository: Repository; //The repository that is to be created. Note that most object elements are optional. Elements \"owner\" and \"full_name\" are ignored as the URL implies them. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPost(
     repoSlug,
     workspace,
-    body
+    repository
 );
 ```
 
@@ -1376,7 +1379,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Repository**| The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them. | |
+| **repository** | **Repository**| The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them. | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -1423,12 +1426,12 @@ const apiInstance = new RepositoriesApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Repository; //The repository that is to be updated.  Note that the elements \"owner\" and \"full_name\" are ignored since the URL implies them.  (optional)
+let repository: Repository; //The repository that is to be updated.  Note that the elements \"owner\" and \"full_name\" are ignored since the URL implies them.  (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPut(
     repoSlug,
     workspace,
-    body
+    repository
 );
 ```
 
@@ -1436,7 +1439,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPut(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Repository**| The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them.  | |
+| **repository** | **Repository**| The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them.  | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -1725,7 +1728,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugWatchers
 # **userPermissionsRepositoriesGet**
 > PaginatedRepositoryPermissions userPermissionsRepositoriesGet()
 
-Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+**This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
 
 ### Example
 
@@ -1773,6 +1776,66 @@ const { status, data } = await apiInstance.userPermissionsRepositoriesGet(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | Repository permissions for the repositories a caller has explicit access to. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **userWorkspacesWorkspacePermissionsRepositoriesGet**
+> PaginatedRepositoryPermissions userWorkspacesWorkspacePermissionsRepositoriesGet()
+
+Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+
+### Example
+
+```typescript
+import {
+    RepositoriesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new RepositoriesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+let q: string; // Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). (optional) (default to undefined)
+let sort: string; // Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). (optional) (default to undefined)
+
+const { status, data } = await apiInstance.userWorkspacesWorkspacePermissionsRepositoriesGet(
+    workspace,
+    q,
+    sort
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
+| **q** | [**string**] |  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). | (optional) defaults to undefined|
+| **sort** | [**string**] |  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). | (optional) defaults to undefined|
+
+
+### Return type
+
+**PaginatedRepositoryPermissions**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The list of repository permissions for the authenticated user in the specified workspace. |  -  |
+|**400** | The request was invalid. |  -  |
+|**401** | The request wasn\&#39;t authenticated. |  -  |
+|**403** | The requesting user does not have access to the workspace. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

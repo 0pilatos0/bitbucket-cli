@@ -195,12 +195,12 @@ const apiInstance = new SSHApi(configuration);
 
 let keyId: string; //The SSH key\'s UUID value. (default to undefined)
 let selectedUser: string; //This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: `{account UUID}`.  (default to undefined)
-let body: SshAccountKey; //The updated SSH key object (optional)
+let sshAccountKey: SshAccountKey; //The updated SSH key object (optional)
 
 const { status, data } = await apiInstance.usersSelectedUserSshKeysKeyIdPut(
     keyId,
     selectedUser,
-    body
+    sshAccountKey
 );
 ```
 
@@ -208,7 +208,7 @@ const { status, data } = await apiInstance.usersSelectedUserSshKeysKeyIdPut(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **SshAccountKey**| The updated SSH key object | |
+| **sshAccountKey** | **SshAccountKey**| The updated SSH key object | |
 | **keyId** | [**string**] | The SSH key\&#39;s UUID value. | defaults to undefined|
 | **selectedUser** | [**string**] | This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;.  | defaults to undefined|
 
@@ -256,12 +256,12 @@ const apiInstance = new SSHApi(configuration);
 
 let selectedUser: string; //This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: `{account UUID}`.  (default to undefined)
 let expiresOn: string; //The date or date-time of when the key will expire, in [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) format. Example: `YYYY-MM-DDTHH:mm:ss.sssZ` (optional) (default to undefined)
-let body: SshAccountKey; //The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis). (optional)
+let sshAccountKey: SshAccountKey; //The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis). (optional)
 
 const { status, data } = await apiInstance.usersSelectedUserSshKeysPost(
     selectedUser,
     expiresOn,
-    body
+    sshAccountKey
 );
 ```
 
@@ -269,7 +269,7 @@ const { status, data } = await apiInstance.usersSelectedUserSshKeysPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **SshAccountKey**| The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis). | |
+| **sshAccountKey** | **SshAccountKey**| The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis). | |
 | **selectedUser** | [**string**] | This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;.  | defaults to undefined|
 | **expiresOn** | [**string**] | The date or date-time of when the key will expire, in [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) format. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60; | (optional) defaults to undefined|
 

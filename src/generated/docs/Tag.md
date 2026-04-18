@@ -6,7 +6,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**RefLinks**](RefLinks.md) |  | [optional] [default to undefined]
 **name** | **string** | The name of the ref. | [optional] [default to undefined]
 **target** | [**Commit**](Commit.md) |  | [optional] [default to undefined]
 **message** | **string** | The message associated with the tag, if available. | [optional] [default to undefined]

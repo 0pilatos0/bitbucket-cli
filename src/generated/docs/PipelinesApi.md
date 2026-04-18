@@ -12,6 +12,8 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**createRepositoryPipelineKnownHost**](#createrepositorypipelineknownhost) | **POST** /repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts | Create a known host|
 |[**createRepositoryPipelineSchedule**](#createrepositorypipelineschedule) | **POST** /repositories/{workspace}/{repo_slug}/pipelines_config/schedules | Create a schedule|
 |[**createRepositoryPipelineVariable**](#createrepositorypipelinevariable) | **POST** /repositories/{workspace}/{repo_slug}/pipelines_config/variables | Create a variable for a repository|
+|[**createRepositoryRunner**](#createrepositoryrunner) | **POST** /repositories/{workspace}/{repo_slug}/pipelines-config/runners | Create repository runner|
+|[**createWorkspaceRunner**](#createworkspacerunner) | **POST** /workspaces/{workspace}/pipelines-config/runners | Create workspace runner|
 |[**deleteDeploymentVariable**](#deletedeploymentvariable) | **DELETE** /repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables/{variable_uuid} | Delete a variable for an environment|
 |[**deletePipelineVariableForTeam**](#deletepipelinevariableforteam) | **DELETE** /teams/{username}/pipelines_config/variables/{variable_uuid} | Delete a variable for a team|
 |[**deletePipelineVariableForUser**](#deletepipelinevariableforuser) | **DELETE** /users/{selected_user}/pipelines_config/variables/{variable_uuid} | Delete a variable for a user|
@@ -22,6 +24,8 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**deleteRepositoryPipelineKnownHost**](#deleterepositorypipelineknownhost) | **DELETE** /repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts/{known_host_uuid} | Delete a known host|
 |[**deleteRepositoryPipelineSchedule**](#deleterepositorypipelineschedule) | **DELETE** /repositories/{workspace}/{repo_slug}/pipelines_config/schedules/{schedule_uuid} | Delete a schedule|
 |[**deleteRepositoryPipelineVariable**](#deleterepositorypipelinevariable) | **DELETE** /repositories/{workspace}/{repo_slug}/pipelines_config/variables/{variable_uuid} | Delete a variable for a repository|
+|[**deleteRepositoryRunner**](#deleterepositoryrunner) | **DELETE** /repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid} | Delete repository runner|
+|[**deleteWorkspaceRunner**](#deleteworkspacerunner) | **DELETE** /workspaces/{workspace}/pipelines-config/runners/{runner_uuid} | Delete workspace runner|
 |[**getDeploymentVariables**](#getdeploymentvariables) | **GET** /repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables | List variables for an environment|
 |[**getOIDCConfiguration**](#getoidcconfiguration) | **GET** /workspaces/{workspace}/pipelines-config/identity/oidc/.well-known/openid-configuration | Get OpenID configuration for OIDC in Pipelines|
 |[**getOIDCKeys**](#getoidckeys) | **GET** /workspaces/{workspace}/pipelines-config/identity/oidc/keys.json | Get keys for OIDC in Pipelines|
@@ -51,6 +55,10 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**getRepositoryPipelineSshKeyPair**](#getrepositorypipelinesshkeypair) | **GET** /repositories/{workspace}/{repo_slug}/pipelines_config/ssh/key_pair | Get SSH key pair|
 |[**getRepositoryPipelineVariable**](#getrepositorypipelinevariable) | **GET** /repositories/{workspace}/{repo_slug}/pipelines_config/variables/{variable_uuid} | Get a variable for a repository|
 |[**getRepositoryPipelineVariables**](#getrepositorypipelinevariables) | **GET** /repositories/{workspace}/{repo_slug}/pipelines_config/variables | List variables for a repository|
+|[**getRepositoryRunner**](#getrepositoryrunner) | **GET** /repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid} | Get repository runner|
+|[**getRepositoryRunners**](#getrepositoryrunners) | **GET** /repositories/{workspace}/{repo_slug}/pipelines-config/runners | Get repository runners|
+|[**getWorkspaceRunner**](#getworkspacerunner) | **GET** /workspaces/{workspace}/pipelines-config/runners/{runner_uuid} | Get workspace runner|
+|[**getWorkspaceRunners**](#getworkspacerunners) | **GET** /workspaces/{workspace}/pipelines-config/runners | Get workspace runners|
 |[**stopPipeline**](#stoppipeline) | **POST** /repositories/{workspace}/{repo_slug}/pipelines/{pipeline_uuid}/stopPipeline | Stop a pipeline|
 |[**updateDeploymentVariable**](#updatedeploymentvariable) | **PUT** /repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables/{variable_uuid} | Update a variable for an environment|
 |[**updatePipelineVariableForTeam**](#updatepipelinevariableforteam) | **PUT** /teams/{username}/pipelines_config/variables/{variable_uuid} | Update a variable for a team|
@@ -62,9 +70,11 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**updateRepositoryPipelineKnownHost**](#updaterepositorypipelineknownhost) | **PUT** /repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts/{known_host_uuid} | Update a known host|
 |[**updateRepositoryPipelineSchedule**](#updaterepositorypipelineschedule) | **PUT** /repositories/{workspace}/{repo_slug}/pipelines_config/schedules/{schedule_uuid} | Update a schedule|
 |[**updateRepositoryPipelineVariable**](#updaterepositorypipelinevariable) | **PUT** /repositories/{workspace}/{repo_slug}/pipelines_config/variables/{variable_uuid} | Update a variable for a repository|
+|[**updateRepositoryRunner**](#updaterepositoryrunner) | **PUT** /repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid} | Update repository runner|
+|[**updateWorkspaceRunner**](#updateworkspacerunner) | **PUT** /workspaces/{workspace}/pipelines-config/runners/{runner_uuid} | Update workspace runner|
 
 # **createDeploymentVariable**
-> DeploymentVariable createDeploymentVariable(body)
+> DeploymentVariable createDeploymentVariable(deploymentVariable)
 
 Create a deployment environment level variable.
 
@@ -83,13 +93,13 @@ const apiInstance = new PipelinesApi(configuration);
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
 let environmentUuid: string; //The environment. (default to undefined)
-let body: DeploymentVariable; //The variable to create
+let deploymentVariable: DeploymentVariable; //The variable to create
 
 const { status, data } = await apiInstance.createDeploymentVariable(
     workspace,
     repoSlug,
     environmentUuid,
-    body
+    deploymentVariable
 );
 ```
 
@@ -97,7 +107,7 @@ const { status, data } = await apiInstance.createDeploymentVariable(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **DeploymentVariable**| The variable to create | |
+| **deploymentVariable** | **DeploymentVariable**| The variable to create | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **environmentUuid** | [**string**] | The environment. | defaults to undefined|
@@ -127,9 +137,9 @@ const { status, data } = await apiInstance.createDeploymentVariable(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createPipelineForRepository**
-> Pipeline createPipelineForRepository(body)
+> Pipeline createPipelineForRepository(pipeline)
 
-Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
 
 ### Example
 
@@ -145,12 +155,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: Pipeline; //The pipeline to initiate.
+let pipeline: Pipeline; //The pipeline to initiate.
 
 const { status, data } = await apiInstance.createPipelineForRepository(
     workspace,
     repoSlug,
-    body
+    pipeline
 );
 ```
 
@@ -158,7 +168,7 @@ const { status, data } = await apiInstance.createPipelineForRepository(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Pipeline**| The pipeline to initiate. | |
+| **pipeline** | **Pipeline**| The pipeline to initiate. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -204,11 +214,11 @@ const configuration = new Configuration();
 const apiInstance = new PipelinesApi(configuration);
 
 let username: string; //The account. (default to undefined)
-let body: PipelineVariable; //The variable to create. (optional)
+let pipelineVariable: PipelineVariable; //The variable to create. (optional)
 
 const { status, data } = await apiInstance.createPipelineVariableForTeam(
     username,
-    body
+    pipelineVariable
 );
 ```
 
@@ -216,7 +226,7 @@ const { status, data } = await apiInstance.createPipelineVariableForTeam(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The variable to create. | |
+| **pipelineVariable** | **PipelineVariable**| The variable to create. | |
 | **username** | [**string**] | The account. | defaults to undefined|
 
 
@@ -261,11 +271,11 @@ const configuration = new Configuration();
 const apiInstance = new PipelinesApi(configuration);
 
 let selectedUser: string; //Either the UUID of the account surrounded by curly-braces, for example `{account UUID}`, OR an Atlassian Account ID. (default to undefined)
-let body: PipelineVariable; //The variable to create. (optional)
+let pipelineVariable: PipelineVariable; //The variable to create. (optional)
 
 const { status, data } = await apiInstance.createPipelineVariableForUser(
     selectedUser,
-    body
+    pipelineVariable
 );
 ```
 
@@ -273,7 +283,7 @@ const { status, data } = await apiInstance.createPipelineVariableForUser(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The variable to create. | |
+| **pipelineVariable** | **PipelineVariable**| The variable to create. | |
 | **selectedUser** | [**string**] | Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID. | defaults to undefined|
 
 
@@ -318,11 +328,11 @@ const configuration = new Configuration();
 const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
-let body: PipelineVariable; //The variable to create. (optional)
+let pipelineVariable: PipelineVariable; //The variable to create. (optional)
 
 const { status, data } = await apiInstance.createPipelineVariableForWorkspace(
     workspace,
-    body
+    pipelineVariable
 );
 ```
 
@@ -330,7 +340,7 @@ const { status, data } = await apiInstance.createPipelineVariableForWorkspace(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The variable to create. | |
+| **pipelineVariable** | **PipelineVariable**| The variable to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 
 
@@ -358,7 +368,7 @@ const { status, data } = await apiInstance.createPipelineVariableForWorkspace(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createRepositoryPipelineKnownHost**
-> PipelineKnownHost createRepositoryPipelineKnownHost(body)
+> PipelineKnownHost createRepositoryPipelineKnownHost(pipelineKnownHost)
 
 Create a repository level known host.
 
@@ -376,12 +386,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelineKnownHost; //The known host to create.
+let pipelineKnownHost: PipelineKnownHost; //The known host to create.
 
 const { status, data } = await apiInstance.createRepositoryPipelineKnownHost(
     workspace,
     repoSlug,
-    body
+    pipelineKnownHost
 );
 ```
 
@@ -389,7 +399,7 @@ const { status, data } = await apiInstance.createRepositoryPipelineKnownHost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineKnownHost**| The known host to create. | |
+| **pipelineKnownHost** | **PipelineKnownHost**| The known host to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -418,7 +428,7 @@ const { status, data } = await apiInstance.createRepositoryPipelineKnownHost(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createRepositoryPipelineSchedule**
-> PipelineSchedule createRepositoryPipelineSchedule(body)
+> PipelineSchedule createRepositoryPipelineSchedule(pipelineSchedulePostRequestBody)
 
 Create a schedule for the given repository.
 
@@ -436,12 +446,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelineSchedulePostRequestBody; //The schedule to create.
+let pipelineSchedulePostRequestBody: PipelineSchedulePostRequestBody; //The schedule to create.
 
 const { status, data } = await apiInstance.createRepositoryPipelineSchedule(
     workspace,
     repoSlug,
-    body
+    pipelineSchedulePostRequestBody
 );
 ```
 
@@ -449,7 +459,7 @@ const { status, data } = await apiInstance.createRepositoryPipelineSchedule(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineSchedulePostRequestBody**| The schedule to create. | |
+| **pipelineSchedulePostRequestBody** | **PipelineSchedulePostRequestBody**| The schedule to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -479,7 +489,7 @@ const { status, data } = await apiInstance.createRepositoryPipelineSchedule(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createRepositoryPipelineVariable**
-> PipelineVariable createRepositoryPipelineVariable(body)
+> PipelineVariable createRepositoryPipelineVariable(pipelineVariable)
 
 Create a repository level variable.
 
@@ -497,12 +507,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelineVariable; //The variable to create.
+let pipelineVariable: PipelineVariable; //The variable to create.
 
 const { status, data } = await apiInstance.createRepositoryPipelineVariable(
     workspace,
     repoSlug,
-    body
+    pipelineVariable
 );
 ```
 
@@ -510,7 +520,7 @@ const { status, data } = await apiInstance.createRepositoryPipelineVariable(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The variable to create. | |
+| **pipelineVariable** | **PipelineVariable**| The variable to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -535,6 +545,115 @@ const { status, data } = await apiInstance.createRepositoryPipelineVariable(
 |**201** | The variable was created. |  * Location - The location of the project. This header is only provided when the project key is updated. <br>  |
 |**404** | The account or repository does not exist. |  -  |
 |**409** | A variable with the provided key already exists. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createRepositoryRunner**
+> PipelineRunner createRepositoryRunner()
+
+Create repository runner.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let repoSlug: string; //The repository. (default to undefined)
+
+const { status, data } = await apiInstance.createRepositoryRunner(
+    workspace,
+    repoSlug
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **repoSlug** | [**string**] | The repository. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The repository runner. |  -  |
+|**400** | The request body contained invalid properties or runner limit exceeded. |  -  |
+|**409** | The repository runner with the provided UUID already exists. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **createWorkspaceRunner**
+> PipelineRunner createWorkspaceRunner()
+
+Create workspace runner.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+
+const { status, data } = await apiInstance.createWorkspaceRunner(
+    workspace
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The workspace runner. |  -  |
+|**400** | The request body contained invalid properties or runner limit exceeded. |  -  |
+|**409** | The workspace runner with the provided UUID already exists. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1106,6 +1225,119 @@ void (empty response body)
 |-------------|-------------|------------------|
 |**204** | The variable was deleted. |  -  |
 |**404** | The account, repository or variable with given UUID was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteRepositoryRunner**
+> deleteRepositoryRunner()
+
+Delete repository runner by uuid.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let repoSlug: string; //The repository. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.deleteRepositoryRunner(
+    workspace,
+    repoSlug,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **repoSlug** | [**string**] | The repository. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**204** | The repository runner was deleted. |  -  |
+|**404** | The repository runner was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **deleteWorkspaceRunner**
+> deleteWorkspaceRunner()
+
+Delete workspace runner by uuid.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.deleteWorkspaceRunner(
+    workspace,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**204** | The workspace runner was deleted. |  -  |
+|**404** | The workspace runner was not found. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -2786,6 +3018,224 @@ const { status, data } = await apiInstance.getRepositoryPipelineVariables(
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **getRepositoryRunner**
+> PipelineRunner getRepositoryRunner()
+
+Retrieve repository runner by uuid.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let repoSlug: string; //The repository. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.getRepositoryRunner(
+    workspace,
+    repoSlug,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **repoSlug** | [**string**] | The repository. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The repository runner. |  -  |
+|**404** | The repository runner was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getRepositoryRunners**
+> PaginatedPipelineRunners getRepositoryRunners()
+
+Retrieve repository runners.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let repoSlug: string; //The repository. (default to undefined)
+
+const { status, data } = await apiInstance.getRepositoryRunners(
+    workspace,
+    repoSlug
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **repoSlug** | [**string**] | The repository. | defaults to undefined|
+
+
+### Return type
+
+**PaginatedPipelineRunners**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The repository runners. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getWorkspaceRunner**
+> PipelineRunner getWorkspaceRunner()
+
+Get workspace runner by uuid.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.getWorkspaceRunner(
+    workspace,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The workspace runner. |  -  |
+|**404** | The workspace runner was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **getWorkspaceRunners**
+> PaginatedPipelineRunners getWorkspaceRunners()
+
+Retrieve workspace runners.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+
+const { status, data } = await apiInstance.getWorkspaceRunners(
+    workspace
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+
+
+### Return type
+
+**PaginatedPipelineRunners**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The workspace runners. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **stopPipeline**
 > stopPipeline()
 
@@ -2840,13 +3290,13 @@ void (empty response body)
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**204** | The pipeline has been signaled to stop. |  -  |
-|**404** | Either the account, repository or pipeline with the given UUID does not exist. |  -  |
 |**400** | The specified pipeline has already completed. |  -  |
+|**404** | Either the account, repository or pipeline with the given UUID does not exist. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateDeploymentVariable**
-> DeploymentVariable updateDeploymentVariable(body)
+> DeploymentVariable updateDeploymentVariable(deploymentVariable)
 
 Update a deployment environment level variable.
 
@@ -2866,14 +3316,14 @@ let workspace: string; //This can either be the workspace ID (slug) or the works
 let repoSlug: string; //The repository. (default to undefined)
 let environmentUuid: string; //The environment. (default to undefined)
 let variableUuid: string; //The UUID of the variable to update. (default to undefined)
-let body: DeploymentVariable; //The updated deployment variable.
+let deploymentVariable: DeploymentVariable; //The updated deployment variable.
 
 const { status, data } = await apiInstance.updateDeploymentVariable(
     workspace,
     repoSlug,
     environmentUuid,
     variableUuid,
-    body
+    deploymentVariable
 );
 ```
 
@@ -2881,7 +3331,7 @@ const { status, data } = await apiInstance.updateDeploymentVariable(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **DeploymentVariable**| The updated deployment variable. | |
+| **deploymentVariable** | **DeploymentVariable**| The updated deployment variable. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **environmentUuid** | [**string**] | The environment. | defaults to undefined|
@@ -2911,7 +3361,7 @@ const { status, data } = await apiInstance.updateDeploymentVariable(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updatePipelineVariableForTeam**
-> PipelineVariable updatePipelineVariableForTeam(body)
+> PipelineVariable updatePipelineVariableForTeam(pipelineVariable)
 
 Update a team level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
 
@@ -2929,12 +3379,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let username: string; //The account. (default to undefined)
 let variableUuid: string; //The UUID of the variable. (default to undefined)
-let body: PipelineVariable; //The updated variable.
+let pipelineVariable: PipelineVariable; //The updated variable.
 
 const { status, data } = await apiInstance.updatePipelineVariableForTeam(
     username,
     variableUuid,
-    body
+    pipelineVariable
 );
 ```
 
@@ -2942,7 +3392,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForTeam(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The updated variable. | |
+| **pipelineVariable** | **PipelineVariable**| The updated variable. | |
 | **username** | [**string**] | The account. | defaults to undefined|
 | **variableUuid** | [**string**] | The UUID of the variable. | defaults to undefined|
 
@@ -2970,7 +3420,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForTeam(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updatePipelineVariableForUser**
-> PipelineVariable updatePipelineVariableForUser(body)
+> PipelineVariable updatePipelineVariableForUser(pipelineVariable)
 
 Update a user level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
 
@@ -2988,12 +3438,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let selectedUser: string; //Either the UUID of the account surrounded by curly-braces, for example `{account UUID}`, OR an Atlassian Account ID. (default to undefined)
 let variableUuid: string; //The UUID of the variable. (default to undefined)
-let body: PipelineVariable; //The updated variable.
+let pipelineVariable: PipelineVariable; //The updated variable.
 
 const { status, data } = await apiInstance.updatePipelineVariableForUser(
     selectedUser,
     variableUuid,
-    body
+    pipelineVariable
 );
 ```
 
@@ -3001,7 +3451,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForUser(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The updated variable. | |
+| **pipelineVariable** | **PipelineVariable**| The updated variable. | |
 | **selectedUser** | [**string**] | Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID. | defaults to undefined|
 | **variableUuid** | [**string**] | The UUID of the variable. | defaults to undefined|
 
@@ -3029,7 +3479,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForUser(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updatePipelineVariableForWorkspace**
-> PipelineVariable updatePipelineVariableForWorkspace(body)
+> PipelineVariable updatePipelineVariableForWorkspace(pipelineVariable)
 
 Update a workspace level variable.
 
@@ -3047,12 +3497,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let variableUuid: string; //The UUID of the variable. (default to undefined)
-let body: PipelineVariable; //The updated variable.
+let pipelineVariable: PipelineVariable; //The updated variable.
 
 const { status, data } = await apiInstance.updatePipelineVariableForWorkspace(
     workspace,
     variableUuid,
-    body
+    pipelineVariable
 );
 ```
 
@@ -3060,7 +3510,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForWorkspace(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The updated variable. | |
+| **pipelineVariable** | **PipelineVariable**| The updated variable. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **variableUuid** | [**string**] | The UUID of the variable. | defaults to undefined|
 
@@ -3088,7 +3538,7 @@ const { status, data } = await apiInstance.updatePipelineVariableForWorkspace(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryBuildNumber**
-> PipelineBuildNumber updateRepositoryBuildNumber(body)
+> PipelineBuildNumber updateRepositoryBuildNumber(pipelineBuildNumber)
 
 Update the next build number that should be assigned to a pipeline. The next build number that will be configured has to be strictly higher than the current latest build number for this repository.
 
@@ -3106,12 +3556,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelineBuildNumber; //The build number to update.
+let pipelineBuildNumber: PipelineBuildNumber; //The build number to update.
 
 const { status, data } = await apiInstance.updateRepositoryBuildNumber(
     workspace,
     repoSlug,
-    body
+    pipelineBuildNumber
 );
 ```
 
@@ -3119,7 +3569,7 @@ const { status, data } = await apiInstance.updateRepositoryBuildNumber(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineBuildNumber**| The build number to update. | |
+| **pipelineBuildNumber** | **PipelineBuildNumber**| The build number to update. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -3142,13 +3592,13 @@ const { status, data } = await apiInstance.updateRepositoryBuildNumber(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | The build number has been configured. |  -  |
-|**404** | The account or repository was not found. |  -  |
 |**400** | The update failed because the next number was invalid (it should be higher than the current number). |  -  |
+|**404** | The account or repository was not found. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryPipelineConfig**
-> PipelinesConfig updateRepositoryPipelineConfig(body)
+> PipelinesConfig updateRepositoryPipelineConfig(pipelinesConfig)
 
 Update the pipelines configuration for a repository.
 
@@ -3166,12 +3616,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelinesConfig; //The updated repository pipelines configuration.
+let pipelinesConfig: PipelinesConfig; //The updated repository pipelines configuration.
 
 const { status, data } = await apiInstance.updateRepositoryPipelineConfig(
     workspace,
     repoSlug,
-    body
+    pipelinesConfig
 );
 ```
 
@@ -3179,7 +3629,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineConfig(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelinesConfig**| The updated repository pipelines configuration. | |
+| **pipelinesConfig** | **PipelinesConfig**| The updated repository pipelines configuration. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -3206,7 +3656,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineConfig(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryPipelineKeyPair**
-> PipelineSshKeyPair updateRepositoryPipelineKeyPair(body)
+> PipelineSshKeyPair updateRepositoryPipelineKeyPair(pipelineSshKeyPair)
 
 Create or update the repository SSH key pair. The private key will be set as a default SSH identity in your build container.
 
@@ -3224,12 +3674,12 @@ const apiInstance = new PipelinesApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: PipelineSshKeyPair; //The created or updated SSH key pair.
+let pipelineSshKeyPair: PipelineSshKeyPair; //The created or updated SSH key pair.
 
 const { status, data } = await apiInstance.updateRepositoryPipelineKeyPair(
     workspace,
     repoSlug,
-    body
+    pipelineSshKeyPair
 );
 ```
 
@@ -3237,7 +3687,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineKeyPair(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineSshKeyPair**| The created or updated SSH key pair. | |
+| **pipelineSshKeyPair** | **PipelineSshKeyPair**| The created or updated SSH key pair. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -3265,7 +3715,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineKeyPair(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryPipelineKnownHost**
-> PipelineKnownHost updateRepositoryPipelineKnownHost(body)
+> PipelineKnownHost updateRepositoryPipelineKnownHost(pipelineKnownHost)
 
 Update a repository level known host.
 
@@ -3284,13 +3734,13 @@ const apiInstance = new PipelinesApi(configuration);
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
 let knownHostUuid: string; //The UUID of the known host to update. (default to undefined)
-let body: PipelineKnownHost; //The updated known host.
+let pipelineKnownHost: PipelineKnownHost; //The updated known host.
 
 const { status, data } = await apiInstance.updateRepositoryPipelineKnownHost(
     workspace,
     repoSlug,
     knownHostUuid,
-    body
+    pipelineKnownHost
 );
 ```
 
@@ -3298,7 +3748,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineKnownHost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineKnownHost**| The updated known host. | |
+| **pipelineKnownHost** | **PipelineKnownHost**| The updated known host. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **knownHostUuid** | [**string**] | The UUID of the known host to update. | defaults to undefined|
@@ -3327,7 +3777,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineKnownHost(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryPipelineSchedule**
-> PipelineSchedule updateRepositoryPipelineSchedule(body)
+> PipelineSchedule updateRepositoryPipelineSchedule(pipelineSchedulePutRequestBody)
 
 Update a schedule.
 
@@ -3346,13 +3796,13 @@ const apiInstance = new PipelinesApi(configuration);
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
 let scheduleUuid: string; //The uuid of the schedule. (default to undefined)
-let body: PipelineSchedulePutRequestBody; //The schedule to update.
+let pipelineSchedulePutRequestBody: PipelineSchedulePutRequestBody; //The schedule to update.
 
 const { status, data } = await apiInstance.updateRepositoryPipelineSchedule(
     workspace,
     repoSlug,
     scheduleUuid,
-    body
+    pipelineSchedulePutRequestBody
 );
 ```
 
@@ -3360,7 +3810,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineSchedule(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineSchedulePutRequestBody**| The schedule to update. | |
+| **pipelineSchedulePutRequestBody** | **PipelineSchedulePutRequestBody**| The schedule to update. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **scheduleUuid** | [**string**] | The uuid of the schedule. | defaults to undefined|
@@ -3389,7 +3839,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineSchedule(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryPipelineVariable**
-> PipelineVariable updateRepositoryPipelineVariable(body)
+> PipelineVariable updateRepositoryPipelineVariable(pipelineVariable)
 
 Update a repository level variable.
 
@@ -3408,13 +3858,13 @@ const apiInstance = new PipelinesApi(configuration);
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
 let variableUuid: string; //The UUID of the variable to update. (default to undefined)
-let body: PipelineVariable; //The updated variable
+let pipelineVariable: PipelineVariable; //The updated variable
 
 const { status, data } = await apiInstance.updateRepositoryPipelineVariable(
     workspace,
     repoSlug,
     variableUuid,
-    body
+    pipelineVariable
 );
 ```
 
@@ -3422,7 +3872,7 @@ const { status, data } = await apiInstance.updateRepositoryPipelineVariable(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PipelineVariable**| The updated variable | |
+| **pipelineVariable** | **PipelineVariable**| The updated variable | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **variableUuid** | [**string**] | The UUID of the variable to update. | defaults to undefined|
@@ -3447,6 +3897,119 @@ const { status, data } = await apiInstance.updateRepositoryPipelineVariable(
 |-------------|-------------|------------------|
 |**200** | The variable was updated. |  -  |
 |**404** | The account, repository or variable with the given UUID was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateRepositoryRunner**
+> PipelineRunner updateRepositoryRunner()
+
+Update repository runner.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let repoSlug: string; //The repository. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.updateRepositoryRunner(
+    workspace,
+    repoSlug,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **repoSlug** | [**string**] | The repository. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The repository runner. |  -  |
+|**404** | The repository runner was not found. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **updateWorkspaceRunner**
+> PipelineRunner updateWorkspaceRunner()
+
+Update workspace runner.
+
+### Example
+
+```typescript
+import {
+    PipelinesApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PipelinesApi(configuration);
+
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
+let runnerUuid: string; //The runner uuid. (default to undefined)
+
+const { status, data } = await apiInstance.updateWorkspaceRunner(
+    workspace,
+    runnerUuid
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **runnerUuid** | [**string**] | The runner uuid. | defaults to undefined|
+
+
+### Return type
+
+**PipelineRunner**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The workspace runner. |  -  |
+|**404** | The workspace runner was not found. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

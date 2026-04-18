@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**SnippetCommitLinks**](SnippetCommitLinks.md) |  | [optional] [default to undefined]
 **snippet** | [**Snippet**](Snippet.md) |  | [optional] [default to undefined]
 
 ## Example

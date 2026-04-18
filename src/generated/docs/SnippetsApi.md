@@ -33,7 +33,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 # **snippetsGet**
 > PaginatedSnippets snippetsGet()
 
-Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+**This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
 
 ### Example
 
@@ -83,7 +83,7 @@ const { status, data } = await apiInstance.snippetsGet(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **snippetsPost**
-> Snippet snippetsPost(body)
+> Snippet snippetsPost(snippet)
 
 Creates a new snippet under the authenticated user\'s account.  Snippets can contain multiple files. Both text and binary files are supported.  The simplest way to create a new snippet from a local file:      $ curl -u username:password -X POST https://api.bitbucket.org/2.0/snippets               -F file=@image.png  Creating snippets through curl has a few limitations and so let\'s look at a more complicated scenario.  Snippets are created with a multipart POST. Both `multipart/form-data` and `multipart/related` are supported. Both allow the creation of snippets with both meta data (title, etc), as well as multiple text and binary files.  The main difference is that `multipart/related` can use rich encoding for the meta data (currently JSON).   multipart/related (RFC-2387) ----------------------------  This is the most advanced and efficient way to create a paste.      POST /2.0/snippets/evzijst HTTP/1.1     Content-Length: 1188     Content-Type: multipart/related; start=\"snippet\"; boundary=\"===============1438169132528273974==\"     MIME-Version: 1.0      --===============1438169132528273974==     Content-Type: application/json; charset=\"utf-8\"     MIME-Version: 1.0     Content-ID: snippet      {       \"title\": \"My snippet\",       \"is_private\": true,       \"scm\": \"git\",       \"files\": {           \"foo.txt\": {},           \"image.png\": {}         }     }      --===============1438169132528273974==     Content-Type: text/plain; charset=\"us-ascii\"     MIME-Version: 1.0     Content-Transfer-Encoding: 7bit     Content-ID: \"foo.txt\"     Content-Disposition: attachment; filename=\"foo.txt\"      foo      --===============1438169132528273974==     Content-Type: image/png     MIME-Version: 1.0     Content-Transfer-Encoding: base64     Content-ID: \"image.png\"     Content-Disposition: attachment; filename=\"image.png\"      iVBORw0KGgoAAAANSUhEUgAAABQAAAAoCAYAAAD+MdrbAAABD0lEQVR4Ae3VMUoDQRTG8ccUaW2m     TKONFxArJYJamCvkCnZTaa+VnQdJSBFl2SMsLFrEWNjZBZs0JgiL/+KrhhVmJRbCLPx4O+/DT2TB     cbblJxf+UWFVVRNsEGAtgvJxnLm2H+A5RQ93uIl+3632PZyl/skjfOn9Gvdwmlcw5aPUwimG+NT5     EnNN036IaZePUuIcK533NVfal7/5yjWeot2z9ta1cAczHEf7I+3J0ws9Cgx0fsOFpmlfwKcWPuBQ     73Oc4FHzBaZ8llq4q1mr5B2mOUCt815qYR8eB1hG2VJ7j35q4RofaH7IG+Xrf/PfJhfmwtfFYoIN     AqxFUD6OMxcvkO+UfKfkOyXfKdsv/AYCHMLVkHAFWgAAAABJRU5ErkJggg==     --===============1438169132528273974==--  The request contains multiple parts and is structured as follows.  The first part is the JSON document that describes the snippet\'s properties or meta data. It either has to be the first part, or the request\'s `Content-Type` header must contain the `start` parameter to point to it.  The remaining parts are the files of which there can be zero or more. Each file part should contain the `Content-ID` MIME header through which the JSON meta data\'s `files` element addresses it. The value should be the name of the file.  `Content-Disposition` is an optional MIME header. The header\'s optional `filename` parameter can be used to specify the file name that Bitbucket should use when writing the file to disk. When present, `filename` takes precedence over the value of `Content-ID`.  When the JSON body omits the `files` element, the remaining parts are not ignored. Instead, each file is added to the new snippet as if its name was explicitly linked (the use of the `files` elements is mandatory for some operations like deleting or renaming files).   multipart/form-data -------------------  The use of JSON for the snippet\'s meta data is optional. Meta data can also be supplied as regular form fields in a more conventional `multipart/form-data` request:      $ curl -X POST -u credentials https://api.bitbucket.org/2.0/snippets               -F title=\"My snippet\"               -F file=@foo.txt -F file=@image.png      POST /2.0/snippets HTTP/1.1     Content-Length: 951     Content-Type: multipart/form-data; boundary=----------------------------63a4b224c59f      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"     Content-Type: text/plain      foo      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"image.png\"     Content-Type: application/octet-stream      ?PNG      IHDR?1??I.....     ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"title\"      My snippet     ------------------------------63a4b224c59f--  Here the meta data properties are included as flat, top-level form fields. The file attachments use the `file` field name. To attach multiple files, simply repeat the field.  The advantage of `multipart/form-data` over `multipart/related` is that it can be easier to build clients.  Essentially all properties are optional, `title` and `files` included.   Sharing and Visibility ----------------------  Snippets can be either public (visible to anyone on Bitbucket, as well as anonymous users), or private (visible only to members of the workspace). This is controlled through the snippet\'s `is_private` element:  * **is_private=false** -- everyone, including anonymous users can view   the snippet * **is_private=true** -- only workspace members can view the snippet  To create the snippet under a workspace, just append the workspace ID to the URL. See [`/2.0/snippets/{workspace}`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-post).
 
@@ -99,10 +99,10 @@ import {
 const configuration = new Configuration();
 const apiInstance = new SnippetsApi(configuration);
 
-let body: Snippet; //The new snippet object.
+let snippet: Snippet; //The new snippet object.
 
 const { status, data } = await apiInstance.snippetsPost(
-    body
+    snippet
 );
 ```
 
@@ -110,7 +110,7 @@ const { status, data } = await apiInstance.snippetsPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Snippet**| The new snippet object. | |
+| **snippet** | **Snippet**| The new snippet object. | |
 
 
 ### Return type
@@ -254,7 +254,7 @@ const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsCom
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **snippetsWorkspaceEncodedIdCommentsCommentIdPut**
-> SnippetComment snippetsWorkspaceEncodedIdCommentsCommentIdPut(body)
+> SnippetComment snippetsWorkspaceEncodedIdCommentsCommentIdPut(snippetComment)
 
 Updates a comment.  The only required field in the body is `content.raw`.  Comments can only be updated by their author.
 
@@ -273,13 +273,13 @@ const apiInstance = new SnippetsApi(configuration);
 let commentId: number; //The id of the comment. (default to undefined)
 let encodedId: string; //The snippet id. (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: SnippetComment; //The contents to update the comment to.
+let snippetComment: SnippetComment; //The contents to update the comment to.
 
 const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsCommentIdPut(
     commentId,
     encodedId,
     workspace,
-    body
+    snippetComment
 );
 ```
 
@@ -287,7 +287,7 @@ const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsCom
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **SnippetComment**| The contents to update the comment to. | |
+| **snippetComment** | **SnippetComment**| The contents to update the comment to. | |
 | **commentId** | [**number**] | The id of the comment. | defaults to undefined|
 | **encodedId** | [**string**] | The snippet id. | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -373,7 +373,7 @@ const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsGet
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **snippetsWorkspaceEncodedIdCommentsPost**
-> SnippetComment snippetsWorkspaceEncodedIdCommentsPost(body)
+> SnippetComment snippetsWorkspaceEncodedIdCommentsPost(snippetComment)
 
 Creates a new comment.  The only required field in the body is `content.raw`.  To create a threaded reply to an existing comment, include `parent.id`.
 
@@ -391,12 +391,12 @@ const apiInstance = new SnippetsApi(configuration);
 
 let encodedId: string; //The snippet id. (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: SnippetComment; //The contents of the new comment.
+let snippetComment: SnippetComment; //The contents of the new comment.
 
 const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsPost(
     encodedId,
     workspace,
-    body
+    snippetComment
 );
 ```
 
@@ -404,7 +404,7 @@ const { status, data } = await apiInstance.snippetsWorkspaceEncodedIdCommentsPos
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **SnippetComment**| The contents of the new comment. | |
+| **snippetComment** | **SnippetComment**| The contents of the new comment. | |
 | **encodedId** | [**string**] | The snippet id. | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -838,7 +838,7 @@ void (empty response body)
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-|**200** | Returns the contents of the specified file. |  * Content-Disposition - attachment <br>  * Content-Type - The mime type as derived from the filename <br>  |
+|**200** | Returns the contents of the specified file. |  * Content-Type - The mime type as derived from the filename <br>  * Content-Disposition - attachment <br>  |
 |**403** | If the authenticated user does not have access to the snippet. |  -  |
 |**404** | If the file or snippet does not exist. |  -  |
 
@@ -1421,7 +1421,7 @@ const { status, data } = await apiInstance.snippetsWorkspaceGet(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **snippetsWorkspacePost**
-> Snippet snippetsWorkspacePost(body)
+> Snippet snippetsWorkspacePost(snippet)
 
 Identical to [`/snippets`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-post), except that the new snippet will be created under the workspace specified in the path parameter `{workspace}`.
 
@@ -1438,11 +1438,11 @@ const configuration = new Configuration();
 const apiInstance = new SnippetsApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Snippet; //The new snippet object.
+let snippet: Snippet; //The new snippet object.
 
 const { status, data } = await apiInstance.snippetsWorkspacePost(
     workspace,
-    body
+    snippet
 );
 ```
 
@@ -1450,7 +1450,7 @@ const { status, data } = await apiInstance.snippetsWorkspacePost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Snippet**| The new snippet object. | |
+| **snippet** | **Snippet**| The new snippet object. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
 

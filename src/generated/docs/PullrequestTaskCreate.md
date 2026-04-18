@@ -6,7 +6,7 @@ A pullrequest task create
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**content** | **object** | task raw content | [default to undefined]
+**content** | [**TaskRawContent**](TaskRawContent.md) |  | [default to undefined]
 **comment** | [**Comment**](Comment.md) |  | [optional] [default to undefined]
 **pending** | **boolean** |  | [optional] [default to undefined]
 

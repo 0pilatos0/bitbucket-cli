@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**ProjectLinks**](ProjectLinks.md) |  | [optional] [default to undefined]
 **uuid** | **string** | The project\&#39;s immutable id. | [optional] [default to undefined]
 **key** | **string** | The project\&#39;s key. | [optional] [default to undefined]
 **owner** | [**Team**](Team.md) |  | [optional] [default to undefined]

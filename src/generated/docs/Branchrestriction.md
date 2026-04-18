@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
 **id** | **number** | The branch restriction status\&#39; id. | [optional] [default to undefined]
 **kind** | **string** | The type of restriction that is being applied. | [default to undefined]
 **branch_match_kind** | **string** | Indicates how the restriction is matched against a branch. The default is &#x60;glob&#x60;. | [default to undefined]

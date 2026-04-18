@@ -493,9 +493,9 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugRefsTags
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugRefsTagsPost**
-> Tag repositoriesWorkspaceRepoSlugRefsTagsPost(body)
+> Tag repositoriesWorkspaceRepoSlugRefsTagsPost(tag)
 
-Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
 
 ### Example
 
@@ -511,12 +511,12 @@ const apiInstance = new RefsApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Tag; //
+let tag: Tag; //
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugRefsTagsPost(
     repoSlug,
     workspace,
-    body
+    tag
 );
 ```
 
@@ -524,7 +524,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugRefsTags
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Tag**|  | |
+| **tag** | **Tag**|  | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 

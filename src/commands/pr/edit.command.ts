@@ -126,7 +126,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
-          body: request,
+          pullrequest: request,
         }
       );
 

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**IssueLinks**](IssueLinks.md) |  | [optional] [default to undefined]
 **id** | **number** |  | [optional] [default to undefined]
 **repository** | [**Repository**](Repository.md) |  | [optional] [default to undefined]
 **title** | **string** |  | [optional] [default to undefined]
@@ -21,7 +21,7 @@ Name | Type | Description | Notes
 **version** | [**Version**](Version.md) |  | [optional] [default to undefined]
 **component** | [**Component**](Component.md) |  | [optional] [default to undefined]
 **votes** | **number** |  | [optional] [default to undefined]
-**content** | **object** |  | [optional] [default to undefined]
+**content** | [**CommentContent**](CommentContent.md) |  | [optional] [default to undefined]
 
 ## Example
 

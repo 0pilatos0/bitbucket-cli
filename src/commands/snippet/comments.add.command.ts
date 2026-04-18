@@ -57,7 +57,7 @@ export class AddSnippetCommentCommand extends BaseCommand<
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsPost({
         workspace,
         encodedId: options.id,
-        body,
+        snippetComment: body,
       });
 
     const comment = response.data;

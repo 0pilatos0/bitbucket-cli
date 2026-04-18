@@ -22,7 +22,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**workspacesWorkspaceProjectsProjectKeyDeployKeysPost**](#workspacesworkspaceprojectsprojectkeydeploykeyspost) | **POST** /workspaces/{workspace}/projects/{project_key}/deploy-keys | Create a project deploy key|
 
 # **createEnvironment**
-> DeploymentEnvironment createEnvironment(body)
+> DeploymentEnvironment createEnvironment(deploymentEnvironment)
 
 Create an environment.
 
@@ -40,12 +40,12 @@ const apiInstance = new DeploymentsApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let body: DeploymentEnvironment; //The environment to create.
+let deploymentEnvironment: DeploymentEnvironment; //The environment to create.
 
 const { status, data } = await apiInstance.createEnvironment(
     workspace,
     repoSlug,
-    body
+    deploymentEnvironment
 );
 ```
 
@@ -53,7 +53,7 @@ const { status, data } = await apiInstance.createEnvironment(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **DeploymentEnvironment**| The environment to create. | |
+| **deploymentEnvironment** | **DeploymentEnvironment**| The environment to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 

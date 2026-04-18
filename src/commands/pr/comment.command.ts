@@ -109,7 +109,7 @@ export class CommentPRCommand extends BaseCommand<
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
-          body,
+          pullrequestComment: body,
         }
       );
 

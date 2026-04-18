@@ -6,7 +6,7 @@ A pullrequest task update
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**content** | **object** | task raw content | [optional] [default to undefined]
+**content** | [**TaskRawContent**](TaskRawContent.md) |  | [optional] [default to undefined]
 **state** | **string** |  | [optional] [default to undefined]
 
 ## Example

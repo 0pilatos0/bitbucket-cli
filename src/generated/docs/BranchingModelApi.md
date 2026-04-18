@@ -188,6 +188,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchin
 > EffectiveRepoBranchingModel repositoriesWorkspaceRepoSlugEffectiveBranchingModelGet()
 
 
+
 ### Example
 
 ```typescript
