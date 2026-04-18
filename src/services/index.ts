@@ -10,11 +10,7 @@ export { VersionService } from './version.service.js';
 export { createApiClient } from './api-client.service.js';
 export { OAuthService } from './oauth.service.js';
 export { SnippetFilesService } from './snippet-files.service.js';
-export {
-  extractReviewerUuids,
-  buildReviewersUpdateBody,
-  updatePullRequestReviewers,
-} from './reviewer.service.js';
+export { updatePullRequestReviewers } from './reviewer.service.js';
 export { DefaultReviewerService } from './default-reviewer.service.js';
 export type {
   DefaultReviewerEntry,
