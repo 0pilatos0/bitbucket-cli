@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.1
+
+### Patch Changes
+
+- [`071fb12`](https://github.com/0pilatos0/bitbucket-cli/commit/071fb12b248d82dccd10a19972f122f47df031b8) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the generated Bitbucket Cloud API client from the latest spec. Adds a post-generation patch script that dedupes duplicate enum declarations and corrects `PipelineSelector.type` optionality so the generated output type-checks. Call-site adjustments only (no user-facing behavior change): the renamed OpenAPI request-body parameters (`body` → `pullrequest` / `pullrequestComment` / `pullrequestMergeParameters` / `repository` / `snippetComment`) are now used, and `Participant.state`'s new nullable type is coerced where consumed.
+
 ## 1.13.0
 
 ### Minor Changes
