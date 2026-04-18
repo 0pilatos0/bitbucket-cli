@@ -15,6 +15,7 @@ import type {
 } from '../../generated/api.js';
 import { collectPages, parseLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { PR_STATES } from '../../types/pr.js';
 
 export interface ListPRsOptions extends GlobalOptions {
   state?: string;
@@ -44,14 +45,8 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       ...options,
     });
 
-    const ALLOWED_STATES = [
-      'OPEN',
-      'MERGED',
-      'DECLINED',
-      'SUPERSEDED',
-    ] as const;
     const state = options.state
-      ? this.parseEnumOption(options.state, 'state', ALLOWED_STATES)
+      ? this.parseEnumOption(options.state, 'state', PR_STATES)
       : 'OPEN';
     const limit = parseLimit(options.limit);
     const reviewerQuery = options.mine

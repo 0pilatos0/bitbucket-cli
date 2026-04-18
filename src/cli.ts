@@ -12,6 +12,7 @@ import type { BaseCommand } from './core/base-command.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type { IOutputService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
+import { PR_STATES } from './types/pr.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -45,78 +46,89 @@ export function getCompletionParent(
   return undefined;
 }
 
+/**
+ * Subcommands keyed by their direct parent. `comments` is handled
+ * specially because it appears under both `pr` and `snippet`.
+ */
+const ROOT_COMPLETIONS: readonly string[] = [
+  'auth',
+  'repo',
+  'pr',
+  'snippet',
+  'config',
+  'completion',
+  '--help',
+  '--version',
+  '--json',
+  '--no-color',
+  '--workspace',
+  '--repo',
+];
+
+const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
+  ['auth', ['login', 'logout', 'status', 'token']],
+  ['repo', ['clone', 'create', 'list', 'view', 'delete', 'default-reviewers']],
+  ['default-reviewers', ['list', 'add', 'remove']],
+  [
+    'pr',
+    [
+      'create',
+      'list',
+      'view',
+      'activity',
+      'checks',
+      'edit',
+      'merge',
+      'approve',
+      'decline',
+      'ready',
+      'checkout',
+      'diff',
+      'comments',
+      'reviewers',
+    ],
+  ],
+  ['reviewers', ['list', 'add', 'remove']],
+  [
+    'snippet',
+    [
+      'list',
+      'view',
+      'create',
+      'edit',
+      'delete',
+      'watch',
+      'unwatch',
+      'comments',
+    ],
+  ],
+  ['config', ['get', 'set', 'list']],
+  ['completion', ['install', 'uninstall']],
+]);
+
+const COMMENTS_SUBCOMMANDS: readonly string[] = [
+  'list',
+  'add',
+  'edit',
+  'delete',
+];
+
 // Handle tabtab completion
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
-    const completions = [
-      'auth',
-      'repo',
-      'pr',
-      'snippet',
-      'config',
-      'completion',
-      '--help',
-      '--version',
-      '--json',
-      '--no-color',
-      '--workspace',
-      '--repo',
-    ];
+    const completions = [...ROOT_COMPLETIONS];
 
-    // Add subcommands based on current command
-    if (env.prev === 'auth') {
-      completions.push('login', 'logout', 'status', 'token');
-    } else if (env.prev === 'repo') {
-      completions.push(
-        'clone',
-        'create',
-        'list',
-        'view',
-        'delete',
-        'default-reviewers'
-      );
-    } else if (env.prev === 'default-reviewers') {
-      completions.push('list', 'add', 'remove');
-    } else if (env.prev === 'pr') {
-      completions.push(
-        'create',
-        'list',
-        'view',
-        'activity',
-        'checks',
-        'edit',
-        'merge',
-        'approve',
-        'decline',
-        'ready',
-        'checkout',
-        'diff',
-        'comments',
-        'reviewers'
-      );
-    } else if (env.prev === 'reviewers') {
-      completions.push('list', 'add', 'remove');
-    } else if (env.prev === 'snippet') {
-      completions.push(
-        'list',
-        'view',
-        'create',
-        'edit',
-        'delete',
-        'watch',
-        'unwatch',
-        'comments'
-      );
-    } else if (env.prev === 'comments') {
+    if (env.prev === 'comments') {
       const parent = getCompletionParent(env.line, 'comments');
       if (parent === 'snippet' || parent === 'pr') {
-        completions.push('list', 'add', 'edit', 'delete');
+        completions.push(...COMMENTS_SUBCOMMANDS);
       }
-    } else if (env.prev === 'config') {
-      completions.push('get', 'set', 'list');
-    } else if (env.prev === 'completion') {
-      completions.push('install', 'uninstall');
+    } else {
+      const subcommands = SUBCOMMAND_COMPLETIONS.get(env.prev);
+      if (subcommands) {
+        completions.push(...subcommands);
+      }
     }
 
     tabtab.log(completions);
@@ -603,7 +615,7 @@ prCmd
   .description('List pull requests')
   .option(
     '-s, --state <state>',
-    'Filter by state (OPEN, MERGED, DECLINED, SUPERSEDED)',
+    `Filter by state (${PR_STATES.join(', ')})`,
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
@@ -618,7 +630,7 @@ prCmd
         'bb pr list --json',
       ],
       validValues: {
-        'Valid states': ['OPEN', 'MERGED', 'DECLINED', 'SUPERSEDED'],
+        'Valid states': [...PR_STATES],
       },
       defaults: { state: 'OPEN', limit: '25' },
     })
