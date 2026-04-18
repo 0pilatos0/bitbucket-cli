@@ -77,13 +77,12 @@ export class ListSnippetCommentsCommand extends BaseCommand<
       return;
     }
 
-    const record = comments as unknown as Record<string, unknown>[];
-    const rows = record.map((comment) => {
+    const rows = comments.map((comment) => {
       const content = getRawContent(comment.content) ?? '';
       return [
-        String((comment.id as number) ?? ''),
+        String(comment.id ?? ''),
         getUserDisplayName(comment.user) ?? 'Unknown',
-        this.output.formatDate((comment.created_on as string) ?? ''),
+        this.output.formatDate(comment.created_on ?? ''),
         content.slice(0, 60) + (content.length > 60 ? '...' : ''),
       ];
     });
