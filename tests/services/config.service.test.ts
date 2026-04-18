@@ -10,10 +10,11 @@ import type {
 } from '../../src/core/interfaces/services.js';
 import { ErrorCode } from '../../src/types/errors.js';
 import { mkdir, rm, readFile, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 describe('ConfigService', () => {
-  const testConfigDir = join('/tmp', `bb-test-${Date.now()}`);
+  const testConfigDir = join(tmpdir(), `bb-test-${Date.now()}`);
   let configService: ConfigService;
 
   beforeEach(async () => {

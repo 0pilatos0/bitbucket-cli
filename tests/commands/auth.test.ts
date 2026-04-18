@@ -30,6 +30,17 @@ function createMockUsersApiError(message: string): UsersApi {
   } as unknown as UsersApi;
 }
 
+// Restore an env var, deleting it if the original was unset. Plain assignment
+// of `undefined` stringifies to "undefined" on Bun/Windows, which then leaks
+// into later tests as a defined-but-bogus value.
+function restoreEnv(key: string, original: string | undefined): void {
+  if (original === undefined) {
+    delete process.env[key];
+  } else {
+    process.env[key] = original;
+  }
+}
+
 function createMockOAuthService(): OAuthService {
   return {
     authorize: async () => ({
@@ -134,8 +145,8 @@ describe('LoginCommand', () => {
       const creds = await configService.getCredentials();
       expect(creds.username).toBe('envuser');
     } finally {
-      process.env.BB_USERNAME = originalUsername;
-      process.env.BB_API_TOKEN = originalPassword;
+      restoreEnv('BB_USERNAME', originalUsername);
+      restoreEnv('BB_API_TOKEN', originalPassword);
     }
   });
 
@@ -259,8 +270,8 @@ describe('LoginCommand', () => {
       expect(creds.username).toBe('env-user');
       expect(creds.apiToken).toBe('env-token');
     } finally {
-      process.env.BB_API_TOKEN = originalToken;
-      process.env.BB_USERNAME = originalUsername;
+      restoreEnv('BB_API_TOKEN', originalToken);
+      restoreEnv('BB_USERNAME', originalUsername);
     }
   });
 

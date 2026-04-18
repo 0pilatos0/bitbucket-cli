@@ -6,10 +6,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { GitService } from '../../src/services/git.service.js';
 import { ErrorCode } from '../../src/types/errors.js';
 import { mkdir, rm, writeFile } from 'fs/promises';
+import { tmpdir } from 'os';
 import { join } from 'path';
 
 describe('GitService', () => {
-  const testDir = join('/tmp', `bb-git-test-${Date.now()}`);
+  const testDir = join(tmpdir(), `bb-git-test-${Date.now()}`);
   let gitService: GitService;
 
   beforeEach(async () => {
