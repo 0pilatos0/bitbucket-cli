@@ -2,7 +2,7 @@
  * Configuration service implementation
  */
 
-import { join, win32 } from 'node:path';
+import { posix, win32 } from 'node:path';
 import { homedir } from 'node:os';
 import type { IConfigService } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
@@ -26,7 +26,7 @@ export class ConfigService implements IConfigService {
 
   constructor(configDir?: string, options: ConfigServicePathOptions = {}) {
     const platform = options.platform ?? process.platform;
-    const joinPath = platform === 'win32' ? win32.join : join;
+    const joinPath = platform === 'win32' ? win32.join : posix.join;
 
     this.configDir =
       configDir ?? this.resolveDefaultConfigDir({ ...options, platform });
@@ -35,9 +35,14 @@ export class ConfigService implements IConfigService {
 
   private resolveDefaultConfigDir(options: ConfigServicePathOptions): string {
     const platform = options.platform ?? process.platform;
+    // When a caller simulates a platform (e.g. tests), don't leak the real
+    // process env — they must supply any env-derived paths explicitly.
+    const isSimulatedPlatform = options.platform !== undefined;
 
     if (platform === 'win32') {
-      const appDataDir = options.appData ?? process.env.APPDATA;
+      const appDataDir =
+        options.appData ??
+        (isSimulatedPlatform ? undefined : process.env.APPDATA);
       if (appDataDir) {
         return win32.join(appDataDir, 'bb');
       }
@@ -47,7 +52,7 @@ export class ConfigService implements IConfigService {
     }
 
     const homeDir = options.homeDir ?? homedir();
-    return join(homeDir, '.config', 'bb');
+    return posix.join(homeDir, '.config', 'bb');
   }
 
   private async ensureConfigDir(): Promise<void> {
