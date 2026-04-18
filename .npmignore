@@ -1,0 +1,28 @@
+# Belt-and-suspenders alongside the `files` whitelist in package.json.
+# Only `dist/`, `README.md`, and `LICENSE` should ship to the registry.
+
+src/
+tests/
+docs/
+scripts/
+.changeset/
+.claude/
+.github/
+.intent/
+coverage/
+
+.env
+.env.*
+.env.example
+.prettierrc
+.prettierignore
+.gitignore
+tsconfig.json
+openapitools.json
+bun.lock
+bun.lockb
+
+AGENTS.md
+CLAUDE.md
+CONTRIBUTING.md
+CHANGELOG.md

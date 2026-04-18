@@ -15,7 +15,13 @@ const CALLBACK_PATH = '/callback';
 const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`;
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
-// Default OAuth consumer credentials — users can override client ID with --client-id
+// Default OAuth consumer credentials for the CLI. These ship with every copy
+// of the binary and are NOT secret — this is the standard pattern for public
+// OAuth clients (CLIs, native apps) where there is no trusted server to hold a
+// secret. User authentication still happens through the authorization-code
+// redirect flow below, so possession of the client secret alone grants nothing.
+// Do not rotate these thinking they are leaked; users can override via
+// --client-id / --client-secret on `bb auth login`.
 const DEFAULT_CLIENT_ID = 'ErUBvNmdYtfVHgW6J4';
 const DEFAULT_CLIENT_SECRET = 'QnrWypuKXv7YvU7WJwQRza2n2QfHCEw5';
 
