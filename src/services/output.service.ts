@@ -35,7 +35,7 @@ export class OutputService implements IOutputService {
 
     // Print header
     const headerRow = headers
-      .map((header, index) => header.padEnd(widths[index]))
+      .map((header, index) => header.padEnd(widths[index]!))
       .join('  ');
 
     console.log(this.format(headerRow, chalk.bold));
@@ -46,7 +46,7 @@ export class OutputService implements IOutputService {
     // Print rows
     for (const row of rows) {
       const formattedRow = row
-        .map((cell, index) => (cell || '').padEnd(widths[index]))
+        .map((cell, index) => (cell || '').padEnd(widths[index]!))
         .join('  ');
       console.log(formattedRow);
     }

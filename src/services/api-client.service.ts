@@ -3,8 +3,8 @@
  */
 
 import axios, {
-  AxiosInstance,
-  AxiosError,
+  type AxiosInstance,
+  type AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
 import type { ICredentialStore } from '../core/interfaces/services.js';
