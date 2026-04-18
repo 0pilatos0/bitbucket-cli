@@ -22,9 +22,7 @@ export class ContextService implements IContextService {
    */
   public parseRemoteUrl(url: string): RepoContext | null {
     // SSH format: git@bitbucket.org:workspace/repo.git
-    const sshMatch = new RegExp(
-      /git@bitbucket\.org:([^/]+)\/([^.]+)(?:\.git)?/
-    ).exec(url);
+    const sshMatch = /git@bitbucket\.org:([^/]+)\/([^.]+)(?:\.git)?/.exec(url);
     if (sshMatch) {
       return {
         workspace: sshMatch[1]!,
@@ -34,9 +32,10 @@ export class ContextService implements IContextService {
 
     // HTTPS format: https://bitbucket.org/workspace/repo.git
     // or: https://username@bitbucket.org/workspace/repo.git
-    const httpsMatch = new RegExp(
-      /https?:\/\/(?:[^@]+@)?bitbucket\.org\/([^/]+)\/([^/.]+)(?:\.git)?/
-    ).exec(url);
+    const httpsMatch =
+      /https?:\/\/(?:[^@]+@)?bitbucket\.org\/([^/]+)\/([^/.]+)(?:\.git)?/.exec(
+        url
+      );
     if (httpsMatch) {
       return {
         workspace: httpsMatch[1]!,
