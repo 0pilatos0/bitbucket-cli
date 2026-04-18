@@ -231,7 +231,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // Repo commands
   registerCommand(container, ServiceTokens.CloneCommand, CloneCommand, [
     ServiceTokens.GitService,
-    ServiceTokens.ConfigService,
+    ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
@@ -240,13 +240,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     CreateRepoCommand,
     [
       ServiceTokens.RepositoriesApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
   registerCommand(container, ServiceTokens.ListReposCommand, ListReposCommand, [
     ServiceTokens.RepositoriesApi,
-    ServiceTokens.ConfigService,
+    ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.ViewRepoCommand, ViewRepoCommand, [
@@ -451,7 +451,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ListSnippetsCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -462,7 +462,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.SnippetsApi,
       ServiceTokens.SnippetFilesService,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -472,7 +472,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     CreateSnippetCommand,
     [
       ServiceTokens.SnippetFilesService,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -482,7 +482,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     EditSnippetCommand,
     [
       ServiceTokens.SnippetFilesService,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -492,7 +492,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     DeleteSnippetCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -502,7 +502,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     WatchSnippetCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -512,7 +512,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     UnwatchSnippetCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -522,7 +522,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ListSnippetCommentsCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -532,7 +532,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     AddSnippetCommentCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -542,7 +542,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     EditSnippetCommentCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );
@@ -552,7 +552,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     DeleteSnippetCommentCommand,
     [
       ServiceTokens.SnippetsApi,
-      ServiceTokens.ConfigService,
+      ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
   );

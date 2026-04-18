@@ -23,12 +23,12 @@ import { RemoveReviewerPRCommand } from '../../src/commands/pr/reviewers.remove.
 import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
 import { CommentPRCommand } from '../../src/commands/pr/comment.command.js';
 import {
+  createMockContextService,
   createMockOutputService,
   createMockGitService,
   mockPullRequest,
   mockUser,
 } from '../setup.js';
-import type { IContextService } from '../../src/core/interfaces/services.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type {
   Pullrequest,
@@ -541,52 +541,6 @@ function createMockUsersApi(
   };
 
   return mockApi as unknown as UsersApi;
-}
-
-function createMockContextService(context?: {
-  workspace?: string;
-  repoSlug?: string;
-}): IContextService {
-  return {
-    parseRemoteUrl() {
-      return null;
-    },
-    async getRepoContextFromGit() {
-      return null;
-    },
-    async getRepoContext(options) {
-      // Options take priority
-      if (options?.workspace && options?.repo) {
-        return {
-          workspace: options.workspace,
-          repoSlug: options.repo,
-        };
-      }
-      if (context?.workspace && context?.repoSlug) {
-        return {
-          workspace: context.workspace,
-          repoSlug: context.repoSlug,
-        };
-      }
-      return null;
-    },
-    async requireRepoContext(options) {
-      // Options take priority
-      if (options?.workspace && options?.repo) {
-        return {
-          workspace: options.workspace,
-          repoSlug: options.repo,
-        };
-      }
-      if (context?.workspace && context?.repoSlug) {
-        return {
-          workspace: context.workspace,
-          repoSlug: context.repoSlug,
-        };
-      }
-      throw { code: 6001, message: 'No repo context' } as BBError;
-    },
-  };
 }
 
 describe('ListPRsCommand', () => {

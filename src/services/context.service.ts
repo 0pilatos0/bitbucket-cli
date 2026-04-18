@@ -128,4 +128,26 @@ export class ContextService implements IContextService {
 
     return context;
   }
+
+  /**
+   * Resolve workspace for workspace-only commands (e.g. snippets, repo list).
+   * Prefers the explicit value, falls back to `config.defaultWorkspace`, and
+   * throws when neither is set.
+   */
+  public async requireWorkspace(explicit?: string): Promise<string> {
+    if (explicit && explicit.length > 0) {
+      return explicit;
+    }
+
+    const config = await this.configService.getConfig();
+    if (config.defaultWorkspace && config.defaultWorkspace.length > 0) {
+      return config.defaultWorkspace;
+    }
+
+    throw new BBError({
+      code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
+      message:
+        'No workspace specified. Use --workspace option or set a default workspace with `bb config set defaultWorkspace <name>`.',
+    });
+  }
 }

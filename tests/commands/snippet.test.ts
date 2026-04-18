@@ -15,7 +15,7 @@ import { AddSnippetCommentCommand } from '../../src/commands/snippet/comments.ad
 import { EditSnippetCommentCommand } from '../../src/commands/snippet/comments.edit.command.js';
 import { DeleteSnippetCommentCommand } from '../../src/commands/snippet/comments.delete.command.js';
 import {
-  createMockConfigService,
+  createMockContextService,
   createMockOutputService,
   mockUser,
 } from '../setup.js';
@@ -226,11 +226,11 @@ function makeContext(json = false): CommandContext {
 describe('ListSnippetsCommand', () => {
   it('should list snippets as table', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await cmd.run({ workspace: 'workspace' }, makeContext());
 
@@ -241,11 +241,11 @@ describe('ListSnippetsCommand', () => {
 
   it('should list snippets as JSON', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await cmd.run({ workspace: 'workspace' }, makeContext(true));
 
@@ -257,11 +257,11 @@ describe('ListSnippetsCommand', () => {
 
   it('should show empty message when no snippets found', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi([]);
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await cmd.run({ workspace: 'workspace' }, makeContext());
 
@@ -272,11 +272,11 @@ describe('ListSnippetsCommand', () => {
 
   it('should resolve workspace from config when not provided', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'my-ws',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await cmd.run({}, { globalOptions: { json: true } });
 
@@ -287,9 +287,9 @@ describe('ListSnippetsCommand', () => {
 
   it('should throw when no workspace available', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({});
+    const contextService = createMockContextService({});
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await expect(cmd.run({}, { globalOptions: {} })).rejects.toThrow(
       'No workspace specified'
@@ -298,11 +298,11 @@ describe('ListSnippetsCommand', () => {
 
   it('should reject invalid role', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await expect(cmd.run({ role: 'invalid' }, makeContext())).rejects.toThrow(
       '--role must be one of'
@@ -312,11 +312,11 @@ describe('ListSnippetsCommand', () => {
   it('should accept all three API-valid roles', async () => {
     for (const role of ['owner', 'contributor', 'member']) {
       const output = createMockOutputService();
-      const configService = createMockConfigService({
+      const contextService = createMockContextService({
         defaultWorkspace: 'workspace',
       });
       const api = createMockSnippetsApi();
-      const cmd = new ListSnippetsCommand(api, configService, output);
+      const cmd = new ListSnippetsCommand(api, contextService, output);
       await cmd.run({ role, workspace: 'workspace' }, makeContext(true));
       const jsonLog = output.logs.find((log) => log.startsWith('json:'));
       expect(jsonLog).toBeDefined();
@@ -330,11 +330,11 @@ describe('ListSnippetsCommand', () => {
       title: `Snippet ${i}`,
     }));
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi(many);
-    const cmd = new ListSnippetsCommand(api, configService, output);
+    const cmd = new ListSnippetsCommand(api, contextService, output);
 
     await cmd.run({ limit: '3', workspace: 'workspace' }, makeContext(true));
 
@@ -349,12 +349,12 @@ describe('ListSnippetsCommand', () => {
 describe('ViewSnippetCommand', () => {
   it('should display snippet details as text with URL', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
     const { service } = createMockSnippetFilesService();
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -369,12 +369,12 @@ describe('ViewSnippetCommand', () => {
 
   it('should display snippet as JSON', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
     const { service } = createMockSnippetFilesService();
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext(true));
 
@@ -389,7 +389,7 @@ describe('ViewSnippetCommand', () => {
       links: { self: { href: 'https://api.example/selfonly' } },
     };
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = {
@@ -397,7 +397,7 @@ describe('ViewSnippetCommand', () => {
       snippetsWorkspaceEncodedIdGet: async () => ({ data: snippetNoHtml }),
     } as unknown as SnippetsApi;
     const { service } = createMockSnippetFilesService();
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -408,12 +408,12 @@ describe('ViewSnippetCommand', () => {
 
   it('should print a single file with --file', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
     const { service, record } = createMockSnippetFilesService('hello content');
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await cmd.run(
       { id: 'kypj', workspace: 'workspace', file: 'foo.txt' },
@@ -426,12 +426,12 @@ describe('ViewSnippetCommand', () => {
 
   it('should reject --file when file is not in snippet', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
     const { service } = createMockSnippetFilesService();
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await expect(
       cmd.run(
@@ -443,12 +443,12 @@ describe('ViewSnippetCommand', () => {
 
   it('should print all files with --files', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
     const { service, record } = createMockSnippetFilesService('aaa');
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await cmd.run(
       { id: 'kypj', workspace: 'workspace', files: true },
@@ -461,10 +461,10 @@ describe('ViewSnippetCommand', () => {
 
   it('should throw when no workspace available', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({});
+    const contextService = createMockContextService({});
     const api = createMockSnippetsApi();
     const { service } = createMockSnippetFilesService();
-    const cmd = new ViewSnippetCommand(api, service, configService, output);
+    const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
     await expect(
       cmd.run({ id: 'kypj' }, { globalOptions: {} })
@@ -477,11 +477,11 @@ describe('ViewSnippetCommand', () => {
 describe('CreateSnippetCommand', () => {
   it('should create snippet via multipart with files and metadata', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service, record } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await cmd.run(
       {
@@ -504,11 +504,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should send is_private=false when --public is set', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service, record } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await cmd.run(
       {
@@ -525,11 +525,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should output JSON when --json set', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await cmd.run(
       { title: 'X', file: ['package.json'], workspace: 'workspace' },
@@ -542,11 +542,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should throw when title is missing', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run({ file: ['file.txt'] }, makeContext())
@@ -555,11 +555,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should throw when no files provided', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await expect(cmd.run({ title: 'Test' }, makeContext())).rejects.toThrow(
       'At least one file is required'
@@ -568,11 +568,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should throw when file does not exist', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run(
@@ -584,11 +584,11 @@ describe('CreateSnippetCommand', () => {
 
   it('should reject --public and --private together', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new CreateSnippetCommand(service, configService, output);
+    const cmd = new CreateSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run(
@@ -610,11 +610,11 @@ describe('CreateSnippetCommand', () => {
 describe('EditSnippetCommand', () => {
   it('should edit metadata (title) via JSON path', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service, record } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await cmd.run(
       { id: 'kypj', title: 'New title', workspace: 'workspace' },
@@ -635,11 +635,11 @@ describe('EditSnippetCommand', () => {
 
   it('should send is_private=true when --private', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service, record } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await cmd.run(
       { id: 'kypj', private: true, workspace: 'workspace' },
@@ -651,11 +651,11 @@ describe('EditSnippetCommand', () => {
 
   it('should route to multipart when --file is provided', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service, record } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await cmd.run(
       {
@@ -674,11 +674,11 @@ describe('EditSnippetCommand', () => {
 
   it('should throw when no edit options provided', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
@@ -687,11 +687,11 @@ describe('EditSnippetCommand', () => {
 
   it('should reject --public and --private together', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run(
@@ -703,11 +703,11 @@ describe('EditSnippetCommand', () => {
 
   it('should reject --file pointing to missing file', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const { service } = createMockSnippetFilesService();
-    const cmd = new EditSnippetCommand(service, configService, output);
+    const cmd = new EditSnippetCommand(service, contextService, output);
 
     await expect(
       cmd.run(
@@ -727,7 +727,7 @@ describe('EditSnippetCommand', () => {
 describe('DeleteSnippetCommand', () => {
   it('should delete snippet with --yes flag', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     let deletedId: string | undefined;
@@ -736,7 +736,7 @@ describe('DeleteSnippetCommand', () => {
         deletedId = (req as { encodedId: string }).encodedId;
       },
     });
-    const cmd = new DeleteSnippetCommand(api, configService, output);
+    const cmd = new DeleteSnippetCommand(api, contextService, output);
 
     await cmd.run(
       { id: 'kypj', yes: true, workspace: 'workspace' },
@@ -751,11 +751,11 @@ describe('DeleteSnippetCommand', () => {
 
   it('should throw without --yes flag', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommand(api, configService, output);
+    const cmd = new DeleteSnippetCommand(api, contextService, output);
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
@@ -768,11 +768,11 @@ describe('DeleteSnippetCommand', () => {
 describe('WatchSnippetCommand', () => {
   it('should watch a snippet', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new WatchSnippetCommand(api, configService, output);
+    const cmd = new WatchSnippetCommand(api, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -785,11 +785,11 @@ describe('WatchSnippetCommand', () => {
 describe('UnwatchSnippetCommand', () => {
   it('should unwatch a snippet', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new UnwatchSnippetCommand(api, configService, output);
+    const cmd = new UnwatchSnippetCommand(api, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -804,11 +804,11 @@ describe('UnwatchSnippetCommand', () => {
 describe('ListSnippetCommentsCommand', () => {
   it('should list comments as table', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new ListSnippetCommentsCommand(api, configService, output);
+    const cmd = new ListSnippetCommentsCommand(api, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -822,11 +822,11 @@ describe('ListSnippetCommentsCommand', () => {
       id: i + 1,
     }));
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi([mockSnippet], many);
-    const cmd = new ListSnippetCommentsCommand(api, configService, output);
+    const cmd = new ListSnippetCommentsCommand(api, contextService, output);
 
     await cmd.run(
       { id: 'kypj', limit: '5', workspace: 'workspace' },
@@ -840,11 +840,11 @@ describe('ListSnippetCommentsCommand', () => {
 
   it('should show empty message when no comments', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi([mockSnippet], []);
-    const cmd = new ListSnippetCommentsCommand(api, configService, output);
+    const cmd = new ListSnippetCommentsCommand(api, contextService, output);
 
     await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
 
@@ -857,11 +857,11 @@ describe('ListSnippetCommentsCommand', () => {
 describe('AddSnippetCommentCommand', () => {
   it('should add a comment', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new AddSnippetCommentCommand(api, configService, output);
+    const cmd = new AddSnippetCommentCommand(api, contextService, output);
 
     await cmd.run(
       { id: 'kypj', message: 'Great!', workspace: 'workspace' },
@@ -873,11 +873,11 @@ describe('AddSnippetCommentCommand', () => {
 
   it('should throw when message is missing', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new AddSnippetCommentCommand(api, configService, output);
+    const cmd = new AddSnippetCommentCommand(api, contextService, output);
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
@@ -888,11 +888,11 @@ describe('AddSnippetCommentCommand', () => {
 describe('EditSnippetCommentCommand', () => {
   it('should edit a comment', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommentCommand(api, configService, output);
+    const cmd = new EditSnippetCommentCommand(api, contextService, output);
 
     await cmd.run(
       {
@@ -911,11 +911,11 @@ describe('EditSnippetCommentCommand', () => {
 
   it('should throw for invalid comment ID', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new EditSnippetCommentCommand(api, configService, output);
+    const cmd = new EditSnippetCommentCommand(api, contextService, output);
 
     await expect(
       cmd.run(
@@ -934,11 +934,11 @@ describe('EditSnippetCommentCommand', () => {
 describe('DeleteSnippetCommentCommand', () => {
   it('should delete a comment with --yes flag', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, configService, output);
+    const cmd = new DeleteSnippetCommentCommand(api, contextService, output);
 
     await cmd.run(
       {
@@ -957,11 +957,11 @@ describe('DeleteSnippetCommentCommand', () => {
 
   it('should throw without --yes flag', async () => {
     const output = createMockOutputService();
-    const configService = createMockConfigService({
+    const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, configService, output);
+    const cmd = new DeleteSnippetCommentCommand(api, contextService, output);
 
     await expect(
       cmd.run(

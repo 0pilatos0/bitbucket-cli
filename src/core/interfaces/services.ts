@@ -67,6 +67,7 @@ export interface IContextService {
   getRepoContextFromGit(): Promise<RepoContext | null>;
   getRepoContext(options: GlobalOptions): Promise<RepoContext | null>;
   requireRepoContext(options: GlobalOptions): Promise<RepoContext>;
+  requireWorkspace(explicit?: string): Promise<string>;
 }
 
 /**
