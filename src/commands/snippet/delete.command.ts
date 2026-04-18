@@ -5,11 +5,10 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { SnippetsApi } from '../../generated/api.js';
-import { resolveWorkspace } from '../../services/workspace-resolver.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface DeleteSnippetOptions {
@@ -26,7 +25,7 @@ export class DeleteSnippetCommand extends BaseCommand<
 
   constructor(
     private readonly snippetsApi: SnippetsApi,
-    private readonly configService: IConfigService,
+    private readonly contextService: IContextService,
     output: IOutputService
   ) {
     super(output);
@@ -36,8 +35,7 @@ export class DeleteSnippetCommand extends BaseCommand<
     options: { id: string } & DeleteSnippetOptions,
     context: CommandContext
   ): Promise<void> {
-    const workspace = await resolveWorkspace(
-      this.configService,
+    const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
 

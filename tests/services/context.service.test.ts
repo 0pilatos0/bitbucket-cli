@@ -205,4 +205,43 @@ describe('ContextService', () => {
       });
     });
   });
+
+  describe('requireWorkspace', () => {
+    it('returns the explicit value when provided', async () => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService({ defaultWorkspace: 'fallback' })
+      );
+      const result = await service.requireWorkspace('explicit');
+      expect(result).toBe('explicit');
+    });
+
+    it('falls back to config.defaultWorkspace when explicit is omitted', async () => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService({ defaultWorkspace: 'fallback' })
+      );
+      const result = await service.requireWorkspace();
+      expect(result).toBe('fallback');
+    });
+
+    it('ignores an empty explicit value and falls back', async () => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService({ defaultWorkspace: 'cfg' })
+      );
+      const result = await service.requireWorkspace('');
+      expect(result).toBe('cfg');
+    });
+
+    it('throws CONTEXT_WORKSPACE_NOT_FOUND when neither is set', async () => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService({})
+      );
+      await expect(service.requireWorkspace()).rejects.toMatchObject({
+        code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND,
+      });
+    });
+  });
 });

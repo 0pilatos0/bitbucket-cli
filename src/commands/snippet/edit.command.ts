@@ -11,11 +11,10 @@ import fs from 'node:fs';
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  IContextService,
   IOutputService,
   ISnippetFilesService,
 } from '../../core/interfaces/services.js';
-import { resolveWorkspace } from '../../services/workspace-resolver.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface EditSnippetOptions {
@@ -35,7 +34,7 @@ export class EditSnippetCommand extends BaseCommand<
 
   constructor(
     private readonly snippetFilesService: ISnippetFilesService,
-    private readonly configService: IConfigService,
+    private readonly contextService: IContextService,
     output: IOutputService
   ) {
     super(output);
@@ -45,8 +44,7 @@ export class EditSnippetCommand extends BaseCommand<
     options: { id: string } & EditSnippetOptions,
     context: CommandContext
   ): Promise<void> {
-    const workspace = await resolveWorkspace(
-      this.configService,
+    const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
 

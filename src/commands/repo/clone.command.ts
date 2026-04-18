@@ -6,10 +6,9 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IGitService,
-  IConfigService,
+  IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import { resolveWorkspace } from '../../services/workspace-resolver.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CloneOptions {
@@ -25,7 +24,7 @@ export class CloneCommand extends BaseCommand<
 
   constructor(
     private readonly gitService: IGitService,
-    private readonly configService: IConfigService,
+    private readonly contextService: IContextService,
     output: IOutputService
   ) {
     super(output);
@@ -66,7 +65,7 @@ export class CloneCommand extends BaseCommand<
     let repoSlug: string;
 
     if (parts.length === 1) {
-      workspace = await resolveWorkspace(this.configService);
+      workspace = await this.contextService.requireWorkspace();
       repoSlug = parts[0]!;
     } else if (parts.length === 2) {
       workspace = parts[0]!;

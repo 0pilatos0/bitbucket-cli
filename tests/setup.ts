@@ -4,6 +4,7 @@
 
 import { beforeEach, afterEach } from 'bun:test';
 import { Container } from '../src/core/container.js';
+import { ContextService } from '../src/services/context.service.js';
 import type {
   IConfigService,
   IGitService,
@@ -170,6 +171,35 @@ export function createMockGitService(
       throw { code: 3003, message: 'No remote' } as BBError;
     },
   };
+}
+
+/**
+ * Build a real `ContextService` backed by mock git/config services. The
+ * `workspace` + `repoSlug` pair drives `getRepoContextFromGit()` via a faked
+ * bitbucket remote; `defaultWorkspace` drives the `requireWorkspace()` and
+ * `getRepoContext()` config fallbacks. Tests that need full control over the
+ * underlying services can construct `ContextService` directly instead.
+ */
+export function createMockContextService(
+  options: {
+    workspace?: string;
+    repoSlug?: string;
+    defaultWorkspace?: string;
+  } = {}
+): IContextService {
+  const hasRemote = !!(options.workspace && options.repoSlug);
+  const gitService = createMockGitService({
+    isRepo: hasRemote,
+    remoteUrl: hasRemote
+      ? `git@bitbucket.org:${options.workspace}/${options.repoSlug}.git`
+      : undefined,
+  });
+  const configService = createMockConfigService(
+    options.defaultWorkspace
+      ? { defaultWorkspace: options.defaultWorkspace }
+      : {}
+  );
+  return new ContextService(gitService, configService);
 }
 
 export function createMockOutputService(): IOutputService & { logs: string[] } {

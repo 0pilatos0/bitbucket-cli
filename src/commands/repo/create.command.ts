@@ -5,12 +5,11 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
-  IConfigService,
+  IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
 import { getCloneLinks, getLinkHref } from '../../services/response-parsers.js';
-import { resolveWorkspace } from '../../services/workspace-resolver.js';
 
 export interface CreateRepoOptions {
   workspace?: string;
@@ -29,7 +28,7 @@ export class CreateRepoCommand extends BaseCommand<
 
   constructor(
     private readonly repositoriesApi: RepositoriesApi,
-    private readonly configService: IConfigService,
+    private readonly contextService: IContextService,
     output: IOutputService
   ) {
     super(output);
@@ -43,8 +42,7 @@ export class CreateRepoCommand extends BaseCommand<
     const name = this.requireOption(options.name, 'name');
     const isPublic = options.public === true;
 
-    const workspace = await resolveWorkspace(
-      this.configService,
+    const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
 
