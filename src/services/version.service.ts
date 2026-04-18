@@ -161,7 +161,7 @@ export class VersionService {
       const cleanVersion = version.replace(/^v/, '');
       return cleanVersion.split('.').map((part) => {
         // Handle pre-release versions like "1.0.0-beta.1"
-        const numPart = part.split('-')[0];
+        const numPart = part.split('-')[0]!;
         return Number.parseInt(numPart, 10) || 0;
       });
     };

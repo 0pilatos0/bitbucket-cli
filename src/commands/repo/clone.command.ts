@@ -67,10 +67,10 @@ export class CloneCommand extends BaseCommand<
 
     if (parts.length === 1) {
       workspace = await resolveWorkspace(this.configService);
-      repoSlug = parts[0];
+      repoSlug = parts[0]!;
     } else if (parts.length === 2) {
-      workspace = parts[0];
-      repoSlug = parts[1];
+      workspace = parts[0]!;
+      repoSlug = parts[1]!;
     } else {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
