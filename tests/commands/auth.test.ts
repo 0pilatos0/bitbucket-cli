@@ -509,7 +509,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('Not logged in'))).toBe(true);
@@ -523,7 +528,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs).toContain('success:Logged in to Bitbucket');
@@ -538,7 +548,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('API Token'))).toBe(true);
@@ -552,7 +567,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
@@ -568,7 +588,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('OAuth'))).toBe(true);
@@ -584,7 +609,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('Token expires'))).toBe(true);
@@ -600,7 +630,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('expired'))).toBe(true);
@@ -616,7 +651,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: { json: true } });
 
     const jsonLog = output.logs.find((l) => l.startsWith('json:'));
@@ -630,7 +670,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
     await command.execute(undefined, { globalOptions: { json: true } });
 
     const jsonLog = output.logs.find((l) => l.startsWith('json:'));
@@ -646,7 +691,12 @@ describe('StatusCommand', () => {
     const output = createMockOutputService();
     const usersApi = createMockUsersApiError('Unauthorized');
 
-    const command = new StatusCommand(configService, usersApi, output);
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
 
     await expect(
       command.execute(undefined, { globalOptions: {} })
