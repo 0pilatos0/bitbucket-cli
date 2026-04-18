@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**RepositoryLinks**](RepositoryLinks.md) |  | [optional] [default to undefined]
 **uuid** | **string** | The repository\&#39;s immutable id. This can be used as a substitute for the slug segment in URLs. Doing this guarantees your URLs will survive renaming of the repository by its owner, or even transfer of the repository to a different user. | [optional] [default to undefined]
 **full_name** | **string** | The concatenation of the repository owner\&#39;s username and the slugified name, e.g. \&quot;evzijst/interruptingcow\&quot;. This is the same string used in Bitbucket URLs. | [optional] [default to undefined]
 **is_private** | **boolean** |  | [optional] [default to undefined]

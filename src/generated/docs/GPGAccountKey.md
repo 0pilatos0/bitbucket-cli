@@ -10,14 +10,13 @@ Name | Type | Description | Notes
 **key_id** | **string** | The unique identifier for the GPG key | [optional] [default to undefined]
 **fingerprint** | **string** | The GPG key fingerprint. | [optional] [default to undefined]
 **parent_fingerprint** | **string** | The fingerprint of the parent key. This value is null unless the current key is a subkey. | [optional] [default to undefined]
-**comment** | **string** | The comment parsed from the GPG key (if present) | [optional] [default to undefined]
 **name** | **string** | The user-defined label for the GPG key | [optional] [default to undefined]
 **expires_on** | **string** |  | [optional] [default to undefined]
 **created_on** | **string** |  | [optional] [default to undefined]
 **added_on** | **string** |  | [optional] [default to undefined]
 **last_used** | **string** |  | [optional] [default to undefined]
 **subkeys** | [**Set&lt;GPGAccountKey&gt;**](GPGAccountKey.md) |  | [optional] [default to undefined]
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
 
 ## Example
 
@@ -30,7 +29,6 @@ const instance: GPGAccountKey = {
     key_id,
     fingerprint,
     parent_fingerprint,
-    comment,
     name,
     expires_on,
     created_on,

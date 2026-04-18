@@ -32,7 +32,7 @@
     "lint": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "generate:api": "openapi-generator-cli generate",
+    "generate:api": "openapi-generator-cli generate && bun scripts/patch-generated.ts",
     "docs:dev": "cd docs && bun run dev",
     "docs:build": "cd docs && bun run build",
     "changeset": "changeset",

@@ -64,7 +64,7 @@ void (empty response body)
 # **addonLinkersGet**
 > addonLinkersGet()
 
-Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -109,7 +109,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyGet**
 > addonLinkersLinkerKeyGet()
 
-Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -162,7 +162,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesDelete**
 > addonLinkersLinkerKeyValuesDelete()
 
-Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -215,7 +215,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesGet**
 > addonLinkersLinkerKeyValuesGet()
 
-Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -268,7 +268,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesPost**
 > addonLinkersLinkerKeyValuesPost()
 
-Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -322,7 +322,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesPut**
 > addonLinkersLinkerKeyValuesPut()
 
-Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -376,7 +376,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesValueIdDelete**
 > addonLinkersLinkerKeyValuesValueIdDelete()
 
-Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 
@@ -432,7 +432,7 @@ void (empty response body)
 # **addonLinkersLinkerKeyValuesValueIdGet**
 > addonLinkersLinkerKeyValuesValueIdGet()
 
-Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
 
 ### Example
 

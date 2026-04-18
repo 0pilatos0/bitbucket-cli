@@ -5,16 +5,16 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**PullRequestLinks**](PullRequestLinks.md) |  | [optional] [default to undefined]
 **id** | **number** | The pull request\&#39;s unique ID. Note that pull request IDs are only unique within their associated repository. | [optional] [default to undefined]
 **title** | **string** | Title of the pull request. | [optional] [default to undefined]
-**rendered** | **object** | User provided pull request text, interpreted in a markup language and rendered in HTML | [optional] [default to undefined]
-**summary** | **object** |  | [optional] [default to undefined]
+**rendered** | [**RenderedPullRequestMarkup**](RenderedPullRequestMarkup.md) |  | [optional] [default to undefined]
+**summary** | [**CommentContent**](CommentContent.md) |  | [optional] [default to undefined]
 **state** | **string** | The pull request\&#39;s current status. | [optional] [default to undefined]
 **author** | [**Account**](Account.md) |  | [optional] [default to undefined]
 **source** | [**PullrequestEndpoint**](PullrequestEndpoint.md) |  | [optional] [default to undefined]
 **destination** | [**PullrequestEndpoint**](PullrequestEndpoint.md) |  | [optional] [default to undefined]
-**merge_commit** | **object** |  | [optional] [default to undefined]
+**merge_commit** | [**PullRequestCommit1**](PullRequestCommit1.md) |  | [optional] [default to undefined]
 **comment_count** | **number** | The number of comments for a specific pull request. | [optional] [default to undefined]
 **task_count** | **number** | The number of open tasks for a specific pull request. | [optional] [default to undefined]
 **close_source_branch** | **boolean** | A boolean flag indicating if merging the pull request closes the source branch. | [optional] [default to undefined]

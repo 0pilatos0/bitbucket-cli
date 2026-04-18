@@ -61,7 +61,7 @@ export class EditSnippetCommentCommand extends BaseCommand<
         workspace,
         encodedId: options.snippetId,
         commentId,
-        body,
+        snippetComment: body,
       });
 
     if (context.globalOptions.json) {

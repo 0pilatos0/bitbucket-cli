@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**GroupLinks**](GroupLinks.md) |  | [optional] [default to undefined]
 **snippet** | [**Snippet**](Snippet.md) |  | [optional] [default to undefined]
 
 ## Example

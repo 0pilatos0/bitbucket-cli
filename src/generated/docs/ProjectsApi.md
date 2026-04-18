@@ -22,7 +22,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**workspacesWorkspaceProjectsProjectKeyPut**](#workspacesworkspaceprojectsprojectkeyput) | **PUT** /workspaces/{workspace}/projects/{project_key} | Update a project for a workspace|
 
 # **workspacesWorkspaceProjectsPost**
-> Project workspacesWorkspaceProjectsPost(body)
+> Project workspacesWorkspaceProjectsPost(project)
 
 Creates a new project.  Note that the avatar has to be embedded as either a data-url or a URL to an external image as shown in the examples below:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/...\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```  or even:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"http://i.imgur.com/72tRx4w.gif\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```
 
@@ -39,11 +39,11 @@ const configuration = new Configuration();
 const apiInstance = new ProjectsApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Project; //
+let project: Project; //
 
 const { status, data } = await apiInstance.workspacesWorkspaceProjectsPost(
     workspace,
-    body
+    project
 );
 ```
 
@@ -51,7 +51,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Project**|  | |
+| **project** | **Project**|  | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
 
@@ -605,7 +605,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut**
-> ProjectGroupPermission workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(body)
+> ProjectGroupPermission workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema)
 
 Updates the group permission, or grants a new permission if one does not already exist.  Only users with admin permission for the project may access this resource.  Due to security concerns, the JWT and OAuth authentication methods are unsupported. This is to ensure integrations and add-ons are not allowed to change permissions.  Permissions can be:  * `admin` * `create-repo` * `write` * `read`
 
@@ -624,13 +624,13 @@ const apiInstance = new ProjectsApi(configuration);
 let groupSlug: string; //Slug of the requested group. (default to undefined)
 let projectKey: string; //The project in question. This is the actual key assigned to the project.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema; //The permission to grant
+let bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema; //The permission to grant
 
 const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(
     groupSlug,
     projectKey,
     workspace,
-    body
+    bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
 );
 ```
 
@@ -638,7 +638,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema**| The permission to grant | |
+| **bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema** | **BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema**| The permission to grant | |
 | **groupSlug** | [**string**] | Slug of the requested group. | defaults to undefined|
 | **projectKey** | [**string**] | The project in question. This is the actual key assigned to the project.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -848,7 +848,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut**
-> ProjectUserPermission workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(body)
+> ProjectUserPermission workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema)
 
 Updates the explicit user permission for a given user and project. The selected user must be a member of the workspace, and cannot be the workspace owner.  Only users with admin permission for the project may access this resource.  Due to security concerns, the JWT and OAuth authentication methods are unsupported. This is to ensure integrations and add-ons are not allowed to change permissions.  Permissions can be:  * `admin` * `create-repo` * `write` * `read`
 
@@ -867,13 +867,13 @@ const apiInstance = new ProjectsApi(configuration);
 let projectKey: string; //The project in question. This is the actual key assigned to the project.  (default to undefined)
 let selectedUserId: string; //This can either be the username, the user\'s UUID surrounded by curly-braces, for example: {account UUID}, or the user\'s Atlassian ID.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema; //The permission to grant
+let bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema; //The permission to grant
 
 const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(
     projectKey,
     selectedUserId,
     workspace,
-    body
+    bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
 );
 ```
 
@@ -881,7 +881,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema**| The permission to grant | |
+| **bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema** | **BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema**| The permission to grant | |
 | **projectKey** | [**string**] | The project in question. This is the actual key assigned to the project.  | defaults to undefined|
 | **selectedUserId** | [**string**] | This can either be the username, the user\&#39;s UUID surrounded by curly-braces, for example: {account UUID}, or the user\&#39;s Atlassian ID.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -914,7 +914,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **workspacesWorkspaceProjectsProjectKeyPut**
-> Project workspacesWorkspaceProjectsProjectKeyPut(body)
+> Project workspacesWorkspaceProjectsProjectKeyPut(project)
 
 Since this endpoint can be used to both update and to create a project, the request body depends on the intent.  #### Creation  See the POST documentation for the project collection for an example of the request body.  Note: The `key` should not be specified in the body of request (since it is already present in the URL). The `name` is required, everything else is optional.  #### Update  See the POST documentation for the project collection for an example of the request body.  Note: The key is not required in the body (since it is already in the URL). The key may be specified in the body, if the intent is to change the key itself. In such a scenario, the location of the project is changed and is returned in the `Location` header of the response.
 
@@ -932,12 +932,12 @@ const apiInstance = new ProjectsApi(configuration);
 
 let projectKey: string; //The project in question. This is the actual `key` assigned to the project.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Project; //
+let project: Project; //
 
 const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKeyPut(
     projectKey,
     workspace,
-    body
+    project
 );
 ```
 
@@ -945,7 +945,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceProjectsProjectKey
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Project**|  | |
+| **project** | **Project**|  | |
 | **projectKey** | [**string**] | The project in question. This is the actual &#x60;key&#x60; assigned to the project.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 

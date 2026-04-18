@@ -163,7 +163,10 @@ export class ViewPRCommand extends BaseCommand<
     this.output.text(this.output.dim('Reviewers:'));
 
     for (const reviewer of reviewers) {
-      const status = this.getReviewerStatus(reviewer);
+      const status = this.getReviewerStatus({
+        approved: reviewer.approved,
+        state: reviewer.state ?? undefined,
+      });
       this.output.text(
         `  ${status.icon} ${reviewer.user?.display_name ?? 'Unknown'} ${this.output.gray(status.label)}`
       );

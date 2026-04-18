@@ -102,8 +102,8 @@ const { status, data } = await apiInstance.getPullrequestsForCommit(
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | The paginated list of pull requests. |  -  |
-|**404** | Either the repository does not exist, or pull request commit links have not yet been indexed. |  -  |
 |**202** | The repository\&#39;s pull requests are still being indexed. |  -  |
+|**404** | Either the repository does not exist, or pull request commit links have not yet been indexed. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -529,12 +529,12 @@ const apiInstance = new PullrequestsApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Pullrequest; //The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title. (optional)
+let pullrequest: Pullrequest; //The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPost(
     repoSlug,
     workspace,
-    body
+    pullrequest
 );
 ```
 
@@ -542,7 +542,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Pullrequest**| The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title. | |
+| **pullrequest** | **Pullrequest**| The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title. | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -873,7 +873,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut**
-> PullrequestComment repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(body)
+> PullrequestComment repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(pullrequestComment)
 
 Updates a specific pull request comment.
 
@@ -893,14 +893,14 @@ let commentId: number; //The id of the comment. (default to undefined)
 let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: PullrequestComment; //The contents of the updated comment.
+let pullrequestComment: PullrequestComment; //The contents of the updated comment.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(
     commentId,
     pullRequestId,
     repoSlug,
     workspace,
-    body
+    pullrequestComment
 );
 ```
 
@@ -908,7 +908,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PullrequestComment**| The contents of the updated comment. | |
+| **pullrequestComment** | **PullrequestComment**| The contents of the updated comment. | |
 | **commentId** | [**number**] | The id of the comment. | defaults to undefined|
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
@@ -940,6 +940,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolveDelete**
 > repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolveDelete()
+
 
 
 ### Example
@@ -1001,6 +1002,7 @@ void (empty response body)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolvePost**
 > CommentResolution repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolvePost()
+
 
 
 ### Example
@@ -1121,7 +1123,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost**
-> PullrequestComment repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(body)
+> PullrequestComment repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(pullrequestComment)
 
 Creates a new pull request comment.  Returns the newly created pull request comment.
 
@@ -1140,13 +1142,13 @@ const apiInstance = new PullrequestsApi(configuration);
 let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: PullrequestComment; //The comment object.
+let pullrequestComment: PullrequestComment; //The comment object.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(
     pullRequestId,
     repoSlug,
     workspace,
-    body
+    pullrequestComment
 );
 ```
 
@@ -1154,7 +1156,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PullrequestComment**| The comment object. | |
+| **pullrequestComment** | **PullrequestComment**| The comment object. | |
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1494,14 +1496,14 @@ let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
 let async: boolean; //Default value is false.   When set to true, runs merge asynchronously and immediately returns a 202 with polling link to the task-status API in the Location header.   When set to false, runs merge and waits for it to complete, returning 200 when it succeeds. If the duration of the merge exceeds a timeout threshold, the API returns a 202 with polling link to the task-status API in the Location header. (optional) (default to undefined)
-let body: PullrequestMergeParameters; // (optional)
+let pullrequestMergeParameters: PullrequestMergeParameters; // (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(
     pullRequestId,
     repoSlug,
     workspace,
     async,
-    body
+    pullrequestMergeParameters
 );
 ```
 
@@ -1509,7 +1511,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PullrequestMergeParameters**|  | |
+| **pullrequestMergeParameters** | **PullrequestMergeParameters**|  | |
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1680,13 +1682,13 @@ const apiInstance = new PullrequestsApi(configuration);
 let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: Pullrequest; //The pull request that is to be updated. (optional)
+let pullrequest: Pullrequest; //The pull request that is to be updated. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(
     pullRequestId,
     repoSlug,
     workspace,
-    body
+    pullrequest
 );
 ```
 
@@ -1694,7 +1696,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **Pullrequest**| The pull request that is to be updated. | |
+| **pullrequest** | **Pullrequest**| The pull request that is to be updated. | |
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1726,6 +1728,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdRequestChangesDelete**
 > repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdRequestChangesDelete()
+
 
 
 ### Example
@@ -1785,6 +1788,7 @@ void (empty response body)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdRequestChangesPost**
 > Participant repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdRequestChangesPost()
+
 
 
 ### Example
@@ -1977,7 +1981,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost**
-> PullrequestCommentTask repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(body)
+> PullrequestCommentTask repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(pullrequestTaskCreate)
 
 Creates a new pull request task.  Returns the newly created pull request task.  Tasks can optionally be created in relation to a comment specified by the comment\'s ID which will cause the task to appear below the comment on a pull request when viewed in Bitbucket.
 
@@ -1996,13 +2000,13 @@ const apiInstance = new PullrequestsApi(configuration);
 let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: PullrequestTaskCreate; //The contents of the task
+let pullrequestTaskCreate: PullrequestTaskCreate; //The contents of the task
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(
     pullRequestId,
     repoSlug,
     workspace,
-    body
+    pullrequestTaskCreate
 );
 ```
 
@@ -2010,7 +2014,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PullrequestTaskCreate**| The contents of the task | |
+| **pullrequestTaskCreate** | **PullrequestTaskCreate**| The contents of the task | |
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -2165,7 +2169,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut**
-> PullrequestCommentTask repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(body)
+> PullrequestCommentTask repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(pullrequestTaskUpdate)
 
 Updates a specific pull request task.
 
@@ -2185,14 +2189,14 @@ let pullRequestId: number; //The id of the pull request. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let taskId: number; //The ID of the task. (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let body: PullrequestTaskUpdate; //The updated state and content of the task.
+let pullrequestTaskUpdate: PullrequestTaskUpdate; //The updated state and content of the task.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(
     pullRequestId,
     repoSlug,
     taskId,
     workspace,
-    body
+    pullrequestTaskUpdate
 );
 ```
 
@@ -2200,7 +2204,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **PullrequestTaskUpdate**| The updated state and content of the task. | |
+| **pullrequestTaskUpdate** | **PullrequestTaskUpdate**| The updated state and content of the task. | |
 | **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **taskId** | [**number**] | The ID of the task. | defaults to undefined|

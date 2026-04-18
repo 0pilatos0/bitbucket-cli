@@ -7,7 +7,7 @@ Base type for most resource objects. It defines the common `type` element that i
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**error** | **object** |  | [optional] [default to undefined]
+**error** | [**ErrorError**](ErrorError.md) |  | [optional] [default to undefined]
 
 ## Example
 

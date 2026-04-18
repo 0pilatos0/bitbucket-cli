@@ -83,7 +83,7 @@ export async function updatePullRequestReviewers(
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         pullRequestId: prId,
-        body,
+        pullrequest: body,
       }
     );
 

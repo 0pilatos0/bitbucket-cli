@@ -116,7 +116,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
-        body: request,
+        pullrequest: request,
       });
 
     const pr = response.data;

@@ -80,7 +80,7 @@ export interface BaseCommit extends ModelObject {
     'author'?: Author;
     'committer'?: Committer;
     'message'?: string;
-    'summary'?: object;
+    'summary'?: CommentContent;
     'parents'?: Array<BaseCommit>;
 }
 export interface BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema {
@@ -110,7 +110,7 @@ export type BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchemaPermiss
 
 export interface Branch {
     'type': string;
-    'links'?: object;
+    'links'?: RefLinks;
     /**
      * The name of the ref.
      */
@@ -141,18 +141,88 @@ export interface BranchingModel extends ModelObject {
     /**
      * The active branch types.
      */
-    'branch_types'?: Set<object>;
-    'development'?: object;
-    'production'?: object;
+    'branch_types'?: Set<ProjectBranchingModelBranchTypes>;
+    'development'?: BranchingModelDevelopment;
+    'production'?: BranchingModelDevelopment;
+}
+export interface BranchingModelDevelopment {
+    'branch'?: Branch;
+    /**
+     * Name of the target branch. Will be listed here even when the target branch does not exist. Will be `null` if targeting the main branch and the repository is empty.
+     */
+    'name': string;
+    /**
+     * Indicates if the setting points at an explicit branch (`false`) or tracks the main branch (`true`).
+     */
+    'use_mainbranch': boolean;
 }
 export interface BranchingModelSettings extends ModelObject {
-    'links'?: object;
-    'branch_types'?: Set<object>;
-    'development'?: object;
-    'production'?: object;
+    'links'?: BranchingModelSettingsLinks;
+    'branch_types'?: Set<BranchingModelSettingsBranchTypes>;
+    'development'?: BranchingModelSettingsDevelopment;
+    'production'?: BranchingModelSettingsProduction;
+}
+export interface BranchingModelSettingsBranchTypes {
+    /**
+     * Whether the branch type is enabled or not. A disabled branch type may contain an invalid `prefix`.
+     */
+    'enabled'?: boolean;
+    /**
+     * The kind of the branch type.
+     */
+    'kind': BranchingModelSettingsBranchTypesKindEnum;
+    /**
+     * The prefix for this branch type. A branch with this prefix will be classified as per `kind`. The `prefix` of an enabled branch type must be a valid branch prefix.Additionally, it cannot be blank, empty or `null`. The `prefix` for a disabled branch type can be empty or invalid.
+     */
+    'prefix'?: string;
+}
+
+export const BranchingModelSettingsBranchTypesKindEnum = {
+    Feature: 'feature',
+    Bugfix: 'bugfix',
+    Release: 'release',
+    Hotfix: 'hotfix'
+} as const;
+
+export type BranchingModelSettingsBranchTypesKindEnum = typeof BranchingModelSettingsBranchTypesKindEnum[keyof typeof BranchingModelSettingsBranchTypesKindEnum];
+
+export interface BranchingModelSettingsDevelopment {
+    /**
+     * Indicates if the configured branch is valid, that is, if the configured branch actually exists currently. Is always `true` when `use_mainbranch` is `true` (even if the main branch does not exist). This field is read-only. This field is ignored when updating/creating settings.
+     */
+    'is_valid'?: boolean;
+    /**
+     * The configured branch. It must be `null` when `use_mainbranch` is `true`. Otherwise it must be a non-empty value. It is possible for the configured branch to not exist (e.g. it was deleted after the settings are set). In this case `is_valid` will be `false`. The branch must exist when updating/setting the `name` or an error will occur.
+     */
+    'name'?: string;
+    /**
+     * Indicates if the setting points at an explicit branch (`false`) or tracks the main branch (`true`). When `true` the `name` must be `null` or not provided. When `false` the `name` must contain a non-empty branch name.
+     */
+    'use_mainbranch'?: boolean;
+}
+export interface BranchingModelSettingsLinks {
+    'self'?: Link1;
+}
+export interface BranchingModelSettingsProduction {
+    /**
+     * Indicates if the configured branch is valid, that is, if the configured branch actually exists currently. Is always `true` when `use_mainbranch` is `true` (even if the main branch does not exist). This field is read-only. This field is ignored when updating/creating settings.
+     */
+    'is_valid'?: boolean;
+    /**
+     * The configured branch. It must be `null` when `use_mainbranch` is `true`. Otherwise it must be a non-empty value. It is possible for the configured branch to not exist (e.g. it was deleted after the settings are set). In this case `is_valid` will be `false`. The branch must exist when updating/setting the `name` or an error will occur.
+     */
+    'name'?: string;
+    /**
+     * Indicates if the setting points at an explicit branch (`false`) or tracks the main branch (`true`). When `true` the `name` must be `null` or not provided. When `false` the `name` must contain a non-empty branch name.
+     */
+    'use_mainbranch'?: boolean;
+    /**
+     * Indicates if branch is enabled or not.
+     */
+    'enabled'?: boolean;
 }
 export interface Branchrestriction extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     /**
      * The branch restriction status\' id.
      */
@@ -224,12 +294,62 @@ export interface Comment extends ModelObject {
     'id'?: number;
     'created_on'?: string;
     'updated_on'?: string;
-    'content'?: object;
+    'content'?: CommentContent;
     'user'?: Account;
     'deleted'?: boolean;
     'parent'?: Comment;
-    'inline'?: object;
-    'links'?: object;
+    'inline'?: CommentInline;
+    'links'?: CommentLinks;
+}
+export interface CommentContent {
+    /**
+     * The text as it was typed by a user.
+     */
+    'raw'?: string;
+    /**
+     * The type of markup language the raw content is to be interpreted in.
+     */
+    'markup'?: CommentContentMarkupEnum;
+    /**
+     * The user\'s content rendered as HTML.
+     */
+    'html'?: string;
+}
+
+export const CommentContentMarkupEnum = {
+    Markdown: 'markdown',
+    Creole: 'creole',
+    Plaintext: 'plaintext'
+} as const;
+
+export type CommentContentMarkupEnum = typeof CommentContentMarkupEnum[keyof typeof CommentContentMarkupEnum];
+
+export interface CommentInline {
+    /**
+     * The comment\'s anchor line in the old version of the file. If the comment is a multi-line comment, this is the ending line number in the old version of the file.
+     */
+    'from'?: number;
+    /**
+     * The comment\'s anchor line in the new version of the file. If the comment is a multi-line comment, this is the ending line number in the new version of the file.
+     */
+    'to'?: number;
+    /**
+     * The starting line number in the old version of the file, if the comment is a multi-line comment. This is null otherwise.
+     */
+    'start_from'?: number;
+    /**
+     * The starting line number in the new version of the file, if the comment is a multi-line comment. This is null otherwise.
+     */
+    'start_to'?: number;
+    /**
+     * The path of the file this comment is anchored to.
+     */
+    'path': string;
+}
+export interface CommentLinks {
+    'self'?: Link1;
+    'html'?: Link1;
+    'code'?: Link1;
 }
 /**
  * The resolution object for a Comment.
@@ -280,16 +400,16 @@ export const CommitFileAttributesEnum = {
 
 export type CommitFileAttributesEnum = typeof CommitFileAttributesEnum[keyof typeof CommitFileAttributesEnum];
 
+export interface CommitStatusLinks {
+    'self'?: Link1;
+    'commit'?: Link1;
+}
 export interface Commitstatus extends ModelObject {
-    'links'?: object;
-    /**
-     * The commit status\' id.
-     */
-    'uuid'?: string;
+    'links'?: CommitStatusLinks;
     /**
      * An identifier for the status that\'s unique to         its type (current \"build\" is the only supported type) and the vendor,         e.g. BB-DEPLOY
      */
-    'key'?: string;
+    'key': string;
     /**
      *  The name of the ref that pointed to this commit at the time the status object was created. Note that this the ref may since have moved off of the commit. This optional field can be useful for build systems whose build triggers and configuration are branch-dependent (e.g. a Pipeline build). It is legitimate for this field to not be set, or even apply (e.g. a static linting job).
      */
@@ -301,7 +421,7 @@ export interface Commitstatus extends ModelObject {
     /**
      * Provides some indication of the status of this commit
      */
-    'state'?: CommitstatusStateEnum;
+    'state': CommitstatusStateEnum;
     /**
      * An identifier for the build itself, e.g. BB-DEPLOY-1
      */
@@ -331,7 +451,7 @@ export interface Committer extends ModelObject {
     'user'?: Account;
 }
 export interface Component extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'name'?: string;
     'id'?: number;
 }
@@ -361,7 +481,7 @@ export interface DeployKey extends ModelObject {
     'label'?: string;
     'added_on'?: string;
     'last_used'?: string;
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'owner'?: Account;
 }
 export interface Deployment extends ModelObject {
@@ -556,9 +676,17 @@ export interface EffectiveRepoBranchingModel extends ModelObject {
     /**
      * The active branch types.
      */
-    'branch_types'?: Set<object>;
-    'development'?: object;
-    'production'?: object;
+    'branch_types'?: Set<ProjectBranchingModelBranchTypes>;
+    'development'?: BranchingModelDevelopment;
+    'production'?: BranchingModelDevelopment;
+}
+export interface ErrorError {
+    'message': string;
+    'detail'?: string;
+    /**
+     * Optional structured data that is endpoint-specific.
+     */
+    'data'?: { [key: string]: any; };
 }
 /**
  * Options for issue export.
@@ -591,10 +719,6 @@ export interface GPGAccountKey extends ModelObject {
      */
     'parent_fingerprint'?: string;
     /**
-     * The comment parsed from the GPG key (if present)
-     */
-    'comment'?: string;
-    /**
      * The user-defined label for the GPG key
      */
     'name'?: string;
@@ -603,10 +727,10 @@ export interface GPGAccountKey extends ModelObject {
     'added_on'?: string;
     'last_used'?: string;
     'subkeys'?: Set<GPGAccountKey>;
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
 }
 export interface Group extends ModelObject {
-    'links'?: object;
+    'links'?: GroupLinks;
     'owner'?: Account;
     'workspace'?: Workspace;
     'name'?: string;
@@ -618,6 +742,10 @@ export interface Group extends ModelObject {
      * The concatenation of the workspace\'s slug and the group\'s slug, separated with a colon (e.g. `acme:developers`) 
      */
     'full_slug'?: string;
+}
+export interface GroupLinks {
+    'self'?: Link1;
+    'html'?: Link1;
 }
 /**
  * An event, associated with a resource or subject type.
@@ -645,6 +773,7 @@ export const HookEventEventEnum = {
     IssueCommentCreated: 'issue:comment_created',
     IssueCreated: 'issue:created',
     IssueUpdated: 'issue:updated',
+    PipelineSpanCreated: 'pipeline:span_created',
     ProjectUpdated: 'project:updated',
     PullrequestApproved: 'pullrequest:approved',
     PullrequestChangesRequestCreated: 'pullrequest:changes_request_created',
@@ -675,7 +804,7 @@ export const HookEventEventEnum = {
 export type HookEventEventEnum = typeof HookEventEventEnum[keyof typeof HookEventEventEnum];
 
 export interface Issue extends ModelObject {
-    'links'?: object;
+    'links'?: IssueLinks;
     'id'?: number;
     'repository'?: Repository;
     'title'?: string;
@@ -691,7 +820,7 @@ export interface Issue extends ModelObject {
     'version'?: Version;
     'component'?: Component;
     'votes'?: number;
-    'content'?: object;
+    'content'?: CommentContent;
 }
 
 export const IssueStateEnum = {
@@ -726,7 +855,7 @@ export const IssuePriorityEnum = {
 export type IssuePriorityEnum = typeof IssuePriorityEnum[keyof typeof IssuePriorityEnum];
 
 export interface IssueAttachment extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'name'?: string;
 }
 /**
@@ -736,13 +865,32 @@ export interface IssueChange {
     [key: string]: any;
 
     'type': string;
-    'links'?: object;
+    'links'?: IssueChangeLinks;
     'name'?: string;
     'created_on'?: string;
     'user'?: Account;
     'issue'?: Issue;
-    'changes'?: object;
-    'message'?: object;
+    'changes'?: IssueChangeChanges;
+    'message'?: TaskContent;
+}
+export interface IssueChangeChanges {
+    'assignee'?: IssueChangeChangesAssignee;
+    'state'?: IssueChangeChangesAssignee;
+    'title'?: IssueChangeChangesAssignee;
+    'kind'?: IssueChangeChangesAssignee;
+    'milestone'?: IssueChangeChangesAssignee;
+    'component'?: IssueChangeChangesAssignee;
+    'priority'?: IssueChangeChangesAssignee;
+    'version'?: IssueChangeChangesAssignee;
+    'content'?: IssueChangeChangesAssignee;
+}
+export interface IssueChangeChangesAssignee {
+    'old'?: string;
+    'new'?: string;
+}
+export interface IssueChangeLinks {
+    'self'?: Link;
+    'issue'?: Link;
 }
 export interface IssueComment extends Comment {
     'issue'?: Issue;
@@ -783,6 +931,14 @@ export const IssueJobStatusStatusEnum = {
 
 export type IssueJobStatusStatusEnum = typeof IssueJobStatusStatusEnum[keyof typeof IssueJobStatusStatusEnum];
 
+export interface IssueLinks {
+    'self'?: Link1;
+    'html'?: Link1;
+    'comments'?: Link1;
+    'attachments'?: Link1;
+    'watch'?: Link1;
+    'vote'?: Link1;
+}
 /**
  * A link to a resource related to this object.
  */
@@ -790,8 +946,15 @@ export interface Link {
     'href'?: string;
     'name'?: string;
 }
+/**
+ * A link to a resource related to this object.
+ */
+export interface Link1 {
+    'href'?: string;
+    'name'?: string;
+}
 export interface Milestone extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'name'?: string;
     'id'?: number;
 }
@@ -802,7 +965,7 @@ export interface ModelError {
     [key: string]: any;
 
     'type': string;
-    'error'?: object;
+    'error'?: ErrorError;
 }
 /**
  * Base type for most resource objects. It defines the common `type` element that identifies an object\'s type. It also identifies the element as Swagger\'s `discriminator`.
@@ -1437,6 +1600,35 @@ export interface PaginatedPipelineKnownHosts {
      * The values of the current page.
      */
     'values'?: Array<PipelineKnownHost>;
+    /**
+     * Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.
+     */
+    'size'?: number;
+    /**
+     * Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.
+     */
+    'pagelen'?: number;
+    /**
+     * Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.
+     */
+    'next'?: string;
+    /**
+     * Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.
+     */
+    'previous'?: string;
+}
+/**
+ * A paged list of runners.
+ */
+export interface PaginatedPipelineRunners {
+    /**
+     * Page number of the current results. This is an optional element that is not provided in all responses.
+     */
+    'page'?: number;
+    /**
+     * The values of the current page.
+     */
+    'values'?: Array<PipelineRunner>;
     /**
      * Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.
      */
@@ -2149,6 +2341,32 @@ export interface PaginatedWebhookSubscriptions {
     'values'?: Set<WebhookSubscription>;
 }
 /**
+ * A paginated list of workspace permissions.
+ */
+export interface PaginatedWorkspaceAccess {
+    /**
+     * Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.
+     */
+    'size'?: number;
+    /**
+     * Page number of the current results. This is an optional element that is not provided in all responses.
+     */
+    'page'?: number;
+    /**
+     * Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.
+     */
+    'pagelen'?: number;
+    /**
+     * Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.
+     */
+    'next'?: string;
+    /**
+     * Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.
+     */
+    'previous'?: string;
+    'values'?: Set<WorkspaceAccess>;
+}
+/**
  * A paginated list of workspace memberships.
  */
 export interface PaginatedWorkspaceMemberships {
@@ -2204,7 +2422,7 @@ export interface Participant extends ModelObject {
     'user'?: Account;
     'role'?: ParticipantRoleEnum;
     'approved'?: boolean;
-    'state'?: ParticipantStateEnum;
+    'state'?: ParticipantStateEnum | null;
     /**
      * The ISO8601 timestamp of the participant\'s action. For approvers, this is the time of their approval. For commenters and pull request reviewers who are not approvers, this is the time they last commented, or null if they have not commented.
      */
@@ -2403,6 +2621,85 @@ export const PipelineRefTargetRefTypeEnum = {
 
 export type PipelineRefTargetRefTypeEnum = typeof PipelineRefTargetRefTypeEnum[keyof typeof PipelineRefTargetRefTypeEnum];
 
+export interface PipelineRunner extends ModelObject {
+    /**
+     * The UUID identifying the runner.
+     */
+    'uuid'?: string;
+    /**
+     * The name of the runner.
+     */
+    'name'?: string;
+    /**
+     * Labels assigned to the runner for identification and routing.
+     */
+    'labels'?: Array<string>;
+    'state'?: PipelineRunnerState;
+    /**
+     * The timestamp when the runner was created.
+     */
+    'created_on'?: string;
+    /**
+     * The timestamp when the runner was last updated.
+     */
+    'updated_on'?: string;
+    'oauth_client'?: PipelineRunnerOauthClient;
+}
+export interface PipelineRunnerOauthClient extends ModelObject {
+    /**
+     * The OAuth client ID.
+     */
+    'id'?: string;
+    /**
+     * The OAuth client secret. This is an optional element that is only provided once.
+     */
+    'secret'?: string;
+    /**
+     * The OAuth token endpoint URL.
+     */
+    'token_endpoint'?: string;
+    /**
+     * The intended audience for the OAuth token.
+     */
+    'audience'?: string;
+}
+export interface PipelineRunnerState extends ModelObject {
+    /**
+     * The current status of the runner.
+     */
+    'status'?: PipelineRunnerStateStatusEnum;
+    'version'?: PipelineRunnerVersion;
+    /**
+     * The timestamp when the runner state was last updated.
+     */
+    'updated_on'?: string;
+    /**
+     * Whether the runner is cordoned (prevented from accepting new steps).
+     */
+    'cordoned'?: boolean;
+}
+
+export const PipelineRunnerStateStatusEnum = {
+    Unregistered: 'UNREGISTERED',
+    Online: 'ONLINE',
+    Offline: 'OFFLINE',
+    Disabled: 'DISABLED',
+    Enabled: 'ENABLED',
+    Unhealthy: 'UNHEALTHY'
+} as const;
+
+export type PipelineRunnerStateStatusEnum = typeof PipelineRunnerStateStatusEnum[keyof typeof PipelineRunnerStateStatusEnum];
+
+export interface PipelineRunnerVersion extends ModelObject {
+    /**
+     * The currently installed version of the runner.
+     */
+    'version'?: string;
+    /**
+     * The current recommended version of the runner.
+     */
+    'current'?: string;
+}
 export interface PipelineSchedule extends ModelObject {
     /**
      * The UUID identifying the schedule.
@@ -2853,7 +3150,7 @@ export interface PipelinesPipelineLinks extends ModelObject {
     'steps'?: PipelinesLinksSectionHref;
 }
 export interface Project extends ModelObject {
-    'links'?: object;
+    'links'?: ProjectLinks;
     /**
      * The project\'s immutable id.
      */
@@ -2883,9 +3180,39 @@ export interface ProjectBranchingModel extends ModelObject {
     /**
      * The active branch types.
      */
-    'branch_types'?: Set<object>;
-    'development'?: object;
-    'production'?: object;
+    'branch_types'?: Set<ProjectBranchingModelBranchTypes>;
+    'development'?: ProjectBranchingModelDevelopment;
+    'production'?: ProjectBranchingModelDevelopment;
+}
+export interface ProjectBranchingModelBranchTypes {
+    /**
+     * The kind of branch.
+     */
+    'kind': ProjectBranchingModelBranchTypesKindEnum;
+    /**
+     * The prefix for this branch type. A branch with this prefix will be classified as per `kind`. The prefix must be a valid prefix for a branch and must always exist. It cannot be blank, empty or `null`.
+     */
+    'prefix': string;
+}
+
+export const ProjectBranchingModelBranchTypesKindEnum = {
+    Feature: 'feature',
+    Bugfix: 'bugfix',
+    Release: 'release',
+    Hotfix: 'hotfix'
+} as const;
+
+export type ProjectBranchingModelBranchTypesKindEnum = typeof ProjectBranchingModelBranchTypesKindEnum[keyof typeof ProjectBranchingModelBranchTypesKindEnum];
+
+export interface ProjectBranchingModelDevelopment {
+    /**
+     * Name of the target branch. If inherited by a repository, it will default to the main branch if the specified branch does not exist.
+     */
+    'name': string;
+    /**
+     * Indicates if the setting points at an explicit branch (`false`) or tracks the main branch (`true`).
+     */
+    'use_mainbranch': boolean;
 }
 export interface ProjectDeployKey extends ModelObject {
     /**
@@ -2903,7 +3230,7 @@ export interface ProjectDeployKey extends ModelObject {
     'label'?: string;
     'added_on'?: string;
     'last_used'?: string;
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'created_by'?: Account;
 }
 /**
@@ -2913,7 +3240,7 @@ export interface ProjectGroupPermission {
     [key: string]: any;
 
     'type': string;
-    'links'?: object;
+    'links'?: ProjectGroupPermissionLinks;
     'permission'?: ProjectGroupPermissionPermissionEnum;
     'group'?: Group;
     'project'?: Project;
@@ -2929,6 +3256,13 @@ export const ProjectGroupPermissionPermissionEnum = {
 
 export type ProjectGroupPermissionPermissionEnum = typeof ProjectGroupPermissionPermissionEnum[keyof typeof ProjectGroupPermissionPermissionEnum];
 
+export interface ProjectGroupPermissionLinks {
+    'self'?: Link;
+}
+export interface ProjectLinks {
+    'html'?: Link1;
+    'avatar'?: Link1;
+}
 /**
  * A user\'s direct permission for a given project.
  */
@@ -2936,7 +3270,7 @@ export interface ProjectUserPermission {
     [key: string]: any;
 
     'type': string;
-    'links'?: object;
+    'links'?: ProjectGroupPermissionLinks;
     'permission'?: ProjectUserPermissionPermissionEnum;
     'user'?: User;
     'project'?: Project;
@@ -2952,8 +3286,49 @@ export const ProjectUserPermissionPermissionEnum = {
 
 export type ProjectUserPermissionPermissionEnum = typeof ProjectUserPermissionPermissionEnum[keyof typeof ProjectUserPermissionPermissionEnum];
 
+export interface PullRequestBranch {
+    'name'?: string;
+    /**
+     * Available merge strategies, when this endpoint is the destination of the pull request.
+     */
+    'merge_strategies'?: Array<PullRequestBranchMergeStrategiesEnum>;
+    /**
+     * The default merge strategy, when this endpoint is the destination of the pull request.
+     */
+    'default_merge_strategy'?: string;
+}
+
+export const PullRequestBranchMergeStrategiesEnum = {
+    MergeCommit: 'merge_commit',
+    Squash: 'squash',
+    FastForward: 'fast_forward',
+    SquashFastForward: 'squash_fast_forward',
+    RebaseFastForward: 'rebase_fast_forward',
+    RebaseMerge: 'rebase_merge'
+} as const;
+
+export type PullRequestBranchMergeStrategiesEnum = typeof PullRequestBranchMergeStrategiesEnum[keyof typeof PullRequestBranchMergeStrategiesEnum];
+
+export interface PullRequestCommit {
+    'hash'?: string;
+}
+export interface PullRequestCommit1 {
+    'hash'?: string;
+}
+export interface PullRequestLinks {
+    'self'?: Link1;
+    'html'?: Link1;
+    'commits'?: Link1;
+    'approve'?: Link1;
+    'diff'?: Link1;
+    'diffstat'?: Link1;
+    'comments'?: Link1;
+    'activity'?: Link1;
+    'merge'?: Link1;
+    'decline'?: Link1;
+}
 export interface Pullrequest extends ModelObject {
-    'links'?: object;
+    'links'?: PullRequestLinks;
     /**
      * The pull request\'s unique ID. Note that pull request IDs are only unique within their associated repository.
      */
@@ -2962,11 +3337,8 @@ export interface Pullrequest extends ModelObject {
      * Title of the pull request.
      */
     'title'?: string;
-    /**
-     * User provided pull request text, interpreted in a markup language and rendered in HTML
-     */
-    'rendered'?: object;
-    'summary'?: object;
+    'rendered'?: RenderedPullRequestMarkup;
+    'summary'?: CommentContent;
     /**
      * The pull request\'s current status.
      */
@@ -2974,7 +3346,7 @@ export interface Pullrequest extends ModelObject {
     'author'?: Account;
     'source'?: PullrequestEndpoint;
     'destination'?: PullrequestEndpoint;
-    'merge_commit'?: object;
+    'merge_commit'?: PullRequestCommit1;
     /**
      * The number of comments for a specific pull request.
      */
@@ -3020,6 +3392,8 @@ export interface Pullrequest extends ModelObject {
 
 export const PullrequestStateEnum = {
     Open: 'OPEN',
+    Draft: 'DRAFT',
+    Queued: 'QUEUED',
     Merged: 'MERGED',
     Declined: 'DECLINED',
     Superseded: 'SUPERSEDED'
@@ -3037,7 +3411,7 @@ export interface PullrequestCommentTask {
     'created_on': string;
     'updated_on': string;
     'state': PullrequestCommentTaskStateEnum;
-    'content': object;
+    'content': TaskContent;
     'creator': Account;
     'pending'?: boolean;
     /**
@@ -3045,7 +3419,7 @@ export interface PullrequestCommentTask {
      */
     'resolved_on'?: string;
     'resolved_by'?: Account;
-    'links'?: object;
+    'links'?: GroupLinks;
     'comment'?: Comment;
 }
 
@@ -3058,8 +3432,8 @@ export type PullrequestCommentTaskStateEnum = typeof PullrequestCommentTaskState
 
 export interface PullrequestEndpoint {
     'repository'?: Repository;
-    'branch'?: object;
-    'commit'?: object;
+    'branch'?: PullRequestBranch;
+    'commit'?: PullRequestCommit;
 }
 /**
  * The metadata that describes a pull request merge.
@@ -3098,7 +3472,7 @@ export interface PullrequestTask {
     'created_on': string;
     'updated_on': string;
     'state': PullrequestTaskStateEnum;
-    'content': object;
+    'content': TaskContent;
     'creator': Account;
     'pending'?: boolean;
     /**
@@ -3106,7 +3480,7 @@ export interface PullrequestTask {
      */
     'resolved_on'?: string;
     'resolved_by'?: Account;
-    'links'?: object;
+    'links'?: GroupLinks;
 }
 
 export const PullrequestTaskStateEnum = {
@@ -3120,10 +3494,7 @@ export type PullrequestTaskStateEnum = typeof PullrequestTaskStateEnum[keyof typ
  * A pullrequest task create
  */
 export interface PullrequestTaskCreate {
-    /**
-     * task raw content
-     */
-    'content': object;
+    'content': TaskRawContent;
     'comment'?: Comment;
     'pending'?: boolean;
 }
@@ -3131,10 +3502,7 @@ export interface PullrequestTaskCreate {
  * A pullrequest task update
  */
 export interface PullrequestTaskUpdate {
-    /**
-     * task raw content
-     */
-    'content'?: object;
+    'content'?: TaskRawContent;
     'state'?: PullrequestTaskUpdateStateEnum;
 }
 
@@ -3152,12 +3520,25 @@ export interface Ref {
     [key: string]: any;
 
     'type': string;
-    'links'?: object;
+    'links'?: RefLinks;
     /**
      * The name of the ref.
      */
     'name'?: string;
     'target'?: Commit;
+}
+export interface RefLinks {
+    'self'?: Link;
+    'commits'?: Link;
+    'html'?: Link;
+}
+/**
+ * User provided pull request text, interpreted in a markup language and rendered in HTML
+ */
+export interface RenderedPullRequestMarkup {
+    'title'?: CommentContent;
+    'description'?: CommentContent;
+    'reason'?: CommentContent;
 }
 export interface Report extends ModelObject {
     /**
@@ -3336,7 +3717,7 @@ export const ReportDataTypeEnum = {
 export type ReportDataTypeEnum = typeof ReportDataTypeEnum[keyof typeof ReportDataTypeEnum];
 
 export interface Repository extends ModelObject {
-    'links'?: object;
+    'links'?: RepositoryLinks;
     /**
      * The repository\'s immutable id. This can be used as a substitute for the slug segment in URLs. Doing this guarantees your URLs will survive renaming of the repository by its owner, or even transfer of the repository to a different user.
      */
@@ -3391,7 +3772,7 @@ export interface RepositoryGroupPermission {
     [key: string]: any;
 
     'type': string;
-    'links'?: object;
+    'links'?: ProjectGroupPermissionLinks;
     'permission'?: RepositoryGroupPermissionPermissionEnum;
     'group'?: Group;
     'repository'?: Repository;
@@ -3414,6 +3795,18 @@ export interface RepositoryInheritanceState {
 
     'type': string;
     'override_settings'?: object;
+}
+export interface RepositoryLinks {
+    'self'?: Link1;
+    'html'?: Link1;
+    'avatar'?: Link1;
+    'pullrequests'?: Link1;
+    'commits'?: Link1;
+    'forks'?: Link1;
+    'watchers'?: Link1;
+    'downloads'?: Link1;
+    'clone'?: Array<Link1>;
+    'hooks'?: Link1;
 }
 /**
  * A user\'s permission for a given repository.
@@ -3446,7 +3839,7 @@ export interface RepositoryUserPermission {
     'permission'?: RepositoryUserPermissionPermissionEnum;
     'user'?: User;
     'repository'?: Repository;
-    'links'?: object;
+    'links'?: ProjectGroupPermissionLinks;
 }
 
 export const RepositoryUserPermissionPermissionEnum = {
@@ -3527,12 +3920,17 @@ export const SnippetScmEnum = {
 export type SnippetScmEnum = typeof SnippetScmEnum[keyof typeof SnippetScmEnum];
 
 export interface SnippetComment extends ModelObject {
-    'links'?: object;
+    'links'?: GroupLinks;
     'snippet'?: Snippet;
 }
 export interface SnippetCommit extends BaseCommit {
-    'links'?: object;
+    'links'?: SnippetCommitLinks;
     'snippet'?: Snippet;
+}
+export interface SnippetCommitLinks {
+    'self'?: Link1;
+    'html'?: Link1;
+    'diff'?: Link1;
 }
 export interface SshAccountKey extends SshKey {
     'owner'?: Account;
@@ -3561,18 +3959,21 @@ export interface SshKey extends ModelObject {
     'label'?: string;
     'created_on'?: string;
     'last_used'?: string;
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
 }
 /**
  * The mapping of resource/subject types pointing to their individual event types.
  */
 export interface SubjectTypes {
-    'repository'?: object;
-    'workspace'?: object;
+    'repository'?: SubjectTypesRepository;
+    'workspace'?: SubjectTypesRepository;
+}
+export interface SubjectTypesRepository {
+    'events'?: Link;
 }
 export interface Tag {
     'type': string;
-    'links'?: object;
+    'links'?: RefLinks;
     /**
      * The name of the ref.
      */
@@ -3596,7 +3997,7 @@ export interface Task {
     'created_on': string;
     'updated_on': string;
     'state': TaskStateEnum;
-    'content': object;
+    'content': TaskContent;
     'creator': Account;
     'pending'?: boolean;
     /**
@@ -3613,6 +4014,38 @@ export const TaskStateEnum = {
 
 export type TaskStateEnum = typeof TaskStateEnum[keyof typeof TaskStateEnum];
 
+export interface TaskContent {
+    /**
+     * The text as it was typed by a user.
+     */
+    'raw'?: string;
+    /**
+     * The type of markup language the raw content is to be interpreted in.
+     */
+    'markup'?: TaskContentMarkupEnum;
+    /**
+     * The user\'s content rendered as HTML.
+     */
+    'html'?: string;
+}
+
+export const TaskContentMarkupEnum = {
+    Markdown: 'markdown',
+    Creole: 'creole',
+    Plaintext: 'plaintext'
+} as const;
+
+export type TaskContentMarkupEnum = typeof TaskContentMarkupEnum[keyof typeof TaskContentMarkupEnum];
+
+/**
+ * task raw content
+ */
+export interface TaskRawContent {
+    /**
+     * The task contents
+     */
+    'raw': string;
+}
 export interface Team extends Account {
     'links'?: TeamLinks;
 }
@@ -3661,7 +4094,7 @@ export interface UserLinks {
     'repositories'?: Link;
 }
 export interface Version extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'name'?: string;
     'id'?: number;
 }
@@ -3709,6 +4142,7 @@ export const WebhookSubscriptionEventsEnum = {
     IssueCommentCreated: 'issue:comment_created',
     IssueCreated: 'issue:created',
     IssueUpdated: 'issue:updated',
+    PipelineSpanCreated: 'pipeline:span_created',
     ProjectUpdated: 'project:updated',
     PullrequestApproved: 'pullrequest:approved',
     PullrequestChangesRequestCreated: 'pullrequest:changes_request_created',
@@ -3739,7 +4173,7 @@ export const WebhookSubscriptionEventsEnum = {
 export type WebhookSubscriptionEventsEnum = typeof WebhookSubscriptionEventsEnum[keyof typeof WebhookSubscriptionEventsEnum];
 
 export interface Workspace extends ModelObject {
-    'links'?: object;
+    'links'?: WorkspaceLinks;
     /**
      * The workspace\'s immutable id.
      */
@@ -3775,8 +4209,40 @@ export const WorkspaceForkingModeEnum = {
 
 export type WorkspaceForkingModeEnum = typeof WorkspaceForkingModeEnum[keyof typeof WorkspaceForkingModeEnum];
 
+export interface WorkspaceAccess extends ModelObject {
+    /**
+     * The permission level the user has for the workspace. True if the user is an administrator, otherwise False.
+     */
+    'administrator'?: boolean;
+    'workspace'?: WorkspaceBase;
+}
+export interface WorkspaceBase extends ModelObject {
+    'links'?: WorkspaceBaseLinks;
+    /**
+     * The workspace\'s immutable id.
+     */
+    'uuid'?: string;
+    /**
+     * The short label that identifies this workspace.
+     */
+    'slug'?: string;
+}
+export interface WorkspaceBaseLinks {
+    'avatar'?: Link1;
+    'self'?: Link1;
+}
+export interface WorkspaceLinks {
+    'avatar'?: Link1;
+    'html'?: Link1;
+    'members'?: Link1;
+    'owners'?: Link1;
+    'projects'?: Link1;
+    'repositories'?: Link1;
+    'snippets'?: Link1;
+    'self'?: Link1;
+}
 export interface WorkspaceMembership extends ModelObject {
-    'links'?: object;
+    'links'?: BranchingModelSettingsLinks;
     'user'?: Account;
     'workspace'?: Workspace;
 }
@@ -3828,9 +4294,10 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linkers for an app
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -3869,10 +4336,11 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker for an app
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyGet: async (linkerKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -3914,10 +4382,11 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete all linker values
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesDelete: async (linkerKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -3959,10 +4428,11 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linker values for a linker
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesGet: async (linkerKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -4004,10 +4474,11 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Create a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesPost: async (linkerKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -4049,10 +4520,11 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Update a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesPut: async (linkerKey: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -4094,11 +4566,12 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {number} valueId The numeric ID of the linker value.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesValueIdDelete: async (linkerKey: string, valueId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -4143,11 +4616,12 @@ export const AddonApiAxiosParamCreator = function (configuration?: Configuration
             };
         },
         /**
-         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {number} valueId The numeric ID of the linker value.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesValueIdGet: async (linkerKey: string, valueId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -4254,9 +4728,10 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linkers for an app
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4266,10 +4741,11 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker for an app
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyGet(linkerKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4279,10 +4755,11 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete all linker values
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesDelete(linkerKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4292,10 +4769,11 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linker values for a linker
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesGet(linkerKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4305,10 +4783,11 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Create a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesPost(linkerKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4318,10 +4797,11 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Update a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesPut(linkerKey: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4331,11 +4811,12 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {number} valueId The numeric ID of the linker value.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesValueIdDelete(linkerKey: string, valueId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4345,11 +4826,12 @@ export const AddonApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker value
          * @param {string} linkerKey The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor.
          * @param {number} valueId The numeric ID of the linker value.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async addonLinkersLinkerKeyValuesValueIdGet(linkerKey: string, valueId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -4389,79 +4871,87 @@ export const AddonApiFactory = function (configuration?: Configuration, basePath
             return localVarFp.addonDelete(options).then((request) => request(axios, basePath));
         },
         /**
-         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+         * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linkers for an app
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersGet(options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersGet(options).then((request) => request(axios, basePath));
         },
         /**
-         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+         * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker for an app
          * @param {AddonApiAddonLinkersLinkerKeyGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyGet(requestParameters: AddonApiAddonLinkersLinkerKeyGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyGet(requestParameters.linkerKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+         * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete all linker values
          * @param {AddonApiAddonLinkersLinkerKeyValuesDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyValuesDelete(requestParameters.linkerKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary List linker values for a linker
          * @param {AddonApiAddonLinkersLinkerKeyValuesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyValuesGet(requestParameters.linkerKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Create a linker value
          * @param {AddonApiAddonLinkersLinkerKeyValuesPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesPost(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyValuesPost(requestParameters.linkerKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+         * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
          * @summary Update a linker value
          * @param {AddonApiAddonLinkersLinkerKeyValuesPutRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesPut(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyValuesPut(requestParameters.linkerKey, options).then((request) => request(axios, basePath));
         },
         /**
-         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Delete a linker value
          * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesValueIdDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.addonLinkersLinkerKeyValuesValueIdDelete(requestParameters.linkerKey, requestParameters.valueId, options).then((request) => request(axios, basePath));
         },
         /**
-         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+         * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
          * @summary Get a linker value
          * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         addonLinkersLinkerKeyValuesValueIdGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -4492,72 +4982,80 @@ export interface AddonApiInterface {
     addonDelete(options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+     * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary List linkers for an app
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersGet(options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+     * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Get a linker for an app
      * @param {AddonApiAddonLinkersLinkerKeyGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyGet(requestParameters: AddonApiAddonLinkersLinkerKeyGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+     * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Delete all linker values
      * @param {AddonApiAddonLinkersLinkerKeyValuesDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary List linker values for a linker
      * @param {AddonApiAddonLinkersLinkerKeyValuesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary Create a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesPost(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary Update a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesPut(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+     * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Delete a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesValueIdDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+     * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Get a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     addonLinkersLinkerKeyValuesValueIdGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -4667,9 +5165,10 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.
+     * Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary List linkers for an app
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersGet(options?: RawAxiosRequestConfig) {
@@ -4677,10 +5176,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.
+     * Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Get a linker for an app
      * @param {AddonApiAddonLinkersLinkerKeyGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyGet(requestParameters: AddonApiAddonLinkersLinkerKeyGetRequest, options?: RawAxiosRequestConfig) {
@@ -4688,10 +5188,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.
+     * Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Delete all linker values
      * @param {AddonApiAddonLinkersLinkerKeyValuesDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -4699,10 +5200,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary List linker values for a linker
      * @param {AddonApiAddonLinkersLinkerKeyValuesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesGetRequest, options?: RawAxiosRequestConfig) {
@@ -4710,10 +5212,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary Create a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesPost(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPostRequest, options?: RawAxiosRequestConfig) {
@@ -4721,10 +5224,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)
+     * Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
      * @summary Update a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesPut(requestParameters: AddonApiAddonLinkersLinkerKeyValuesPutRequest, options?: RawAxiosRequestConfig) {
@@ -4732,10 +5236,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+     * Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Delete a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesValueIdDelete(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -4743,10 +5248,11 @@ export class AddonApi extends BaseAPI implements AddonApiInterface {
     }
 
     /**
-     * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.
+     * Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
      * @summary Get a linker value
      * @param {AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public addonLinkersLinkerKeyValuesValueIdGet(requestParameters: AddonApiAddonLinkersLinkerKeyValuesValueIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -4942,19 +5448,19 @@ export const BranchRestrictionsApiAxiosParamCreator = function (configuration?: 
          * @param {string} id The restriction rule\&#39;s id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Branchrestriction} body The new version of the existing rule
+         * @param {Branchrestriction} branchrestriction The new version of the existing rule
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut: async (id: string, repoSlug: string, workspace: string, body: Branchrestriction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut: async (id: string, repoSlug: string, workspace: string, branchrestriction: Branchrestriction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'id' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut', 'id', id)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut', 'body', body)
+            // verify required parameter 'branchrestriction' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut', 'branchrestriction', branchrestriction)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/branch-restrictions/{id}`
                 .replace(`{${"id"}}`, encodeURIComponent(String(id)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -4987,7 +5493,7 @@ export const BranchRestrictionsApiAxiosParamCreator = function (configuration?: 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(branchrestriction, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -4999,17 +5505,17 @@ export const BranchRestrictionsApiAxiosParamCreator = function (configuration?: 
          * @summary Create a branch restriction rule
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Branchrestriction} body The new rule
+         * @param {Branchrestriction} branchrestriction The new rule
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugBranchRestrictionsPost: async (repoSlug: string, workspace: string, body: Branchrestriction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugBranchRestrictionsPost: async (repoSlug: string, workspace: string, branchrestriction: Branchrestriction, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsPost', 'body', body)
+            // verify required parameter 'branchrestriction' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugBranchRestrictionsPost', 'branchrestriction', branchrestriction)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/branch-restrictions`
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
@@ -5041,7 +5547,7 @@ export const BranchRestrictionsApiAxiosParamCreator = function (configuration?: 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(branchrestriction, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -5109,12 +5615,12 @@ export const BranchRestrictionsApiFp = function(configuration?: Configuration) {
          * @param {string} id The restriction rule\&#39;s id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Branchrestriction} body The new version of the existing rule
+         * @param {Branchrestriction} branchrestriction The new version of the existing rule
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(id: string, repoSlug: string, workspace: string, body: Branchrestriction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Branchrestriction>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(id, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(id: string, repoSlug: string, workspace: string, branchrestriction: Branchrestriction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Branchrestriction>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(id, repoSlug, workspace, branchrestriction, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['BranchRestrictionsApi.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -5124,12 +5630,12 @@ export const BranchRestrictionsApiFp = function(configuration?: Configuration) {
          * @summary Create a branch restriction rule
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Branchrestriction} body The new rule
+         * @param {Branchrestriction} branchrestriction The new rule
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugBranchRestrictionsPost(repoSlug: string, workspace: string, body: Branchrestriction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Branchrestriction>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugBranchRestrictionsPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugBranchRestrictionsPost(repoSlug: string, workspace: string, branchrestriction: Branchrestriction, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Branchrestriction>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugBranchRestrictionsPost(repoSlug, workspace, branchrestriction, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['BranchRestrictionsApi.repositoriesWorkspaceRepoSlugBranchRestrictionsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -5181,7 +5687,7 @@ export const BranchRestrictionsApiFactory = function (configuration?: Configurat
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters: BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestrictionsIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Branchrestriction> {
-            return localVarFp.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters.id, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters.id, requestParameters.repoSlug, requestParameters.workspace, requestParameters.branchrestriction, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates a new branch restriction rule for a repository.  `kind` describes what will be restricted. Allowed values include: `push`, `force`, `delete`, `restrict_merges`, `require_tasks_to_be_completed`, `require_approvals_to_merge`, `require_default_reviewer_approvals_to_merge`, `require_no_changes_requested`, `require_passing_builds_to_merge`, `require_commits_behind`, `reset_pullrequest_approvals_on_change`, `smart_reset_pullrequest_approvals`, `reset_pullrequest_changes_requested_on_change`, `require_all_dependencies_merged`, `enforce_merge_checks`, and `allow_auto_merge_when_builds_pass`.  Different kinds of branch restrictions have different requirements:  * `push` and `restrict_merges` require `users` and `groups` to be   specified. Empty lists are allowed, in which case permission is   denied for everybody.  The restriction applies to all branches that match. There are two ways to match a branch. It is configured in `branch_match_kind`:  1. `glob`: Matches a branch against the `pattern`. A `\'*\'` in    `pattern` will expand to match zero or more characters, and every    other character matches itself. For example, `\'foo*\'` will match    `\'foo\'` and `\'foobar\'`, but not `\'barfoo\'`. `\'*\'` will match all    branches. 2. `branching_model`: Matches a branch against the repository\'s    branching model. The `branch_type` controls the type of branch    to match. Allowed values include: `production`, `development`,    `bugfix`, `release`, `feature` and `hotfix`.  The combination of `kind` and match must be unique. This means that two `glob` restrictions in a repository cannot have the same `kind` and `pattern`. Additionally, two `branching_model` restrictions in a repository cannot have the same `kind` and `branch_type`.  `users` and `groups` are lists of users and groups that are except from the restriction. They can only be configured in `push` and `restrict_merges` restrictions. The `push` restriction stops a user pushing to matching branches unless that user is in `users` or is a member of a group in `groups`. The `restrict_merges` stops a user merging pull requests to matching branches unless that user is in `users` or is a member of a group in `groups`. Adding new users or groups to an existing restriction should be done via `PUT`.  Note that branch restrictions with overlapping matchers is allowed, but the resulting behavior may be surprising.
@@ -5191,7 +5697,7 @@ export const BranchRestrictionsApiFactory = function (configuration?: Configurat
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters: BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestrictionsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Branchrestriction> {
-            return localVarFp.repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.branchrestriction, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -5334,7 +5840,7 @@ export interface BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestric
     /**
      * The new version of the existing rule
      */
-    readonly body: Branchrestriction
+    readonly branchrestriction: Branchrestriction
 }
 
 /**
@@ -5354,7 +5860,7 @@ export interface BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestric
     /**
      * The new rule
      */
-    readonly body: Branchrestriction
+    readonly branchrestriction: Branchrestriction
 }
 
 /**
@@ -5402,7 +5908,7 @@ export class BranchRestrictionsApi extends BaseAPI implements BranchRestrictions
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters: BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestrictionsIdPutRequest, options?: RawAxiosRequestConfig) {
-        return BranchRestrictionsApiFp(this.configuration).repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters.id, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return BranchRestrictionsApiFp(this.configuration).repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(requestParameters.id, requestParameters.repoSlug, requestParameters.workspace, requestParameters.branchrestriction, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -5413,7 +5919,7 @@ export class BranchRestrictionsApi extends BaseAPI implements BranchRestrictions
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters: BranchRestrictionsApiRepositoriesWorkspaceRepoSlugBranchRestrictionsPostRequest, options?: RawAxiosRequestConfig) {
-        return BranchRestrictionsApiFp(this.configuration).repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return BranchRestrictionsApiFp(this.configuration).repositoriesWorkspaceRepoSlugBranchRestrictionsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.branchrestriction, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -6283,11 +6789,11 @@ export const CommitStatusesApiAxiosParamCreator = function (configuration?: Conf
          * @param {string} key The build status\&#39; unique key
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Commitstatus} [body] The updated build status object
+         * @param {Commitstatus} [commitstatus] The updated build status object
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut: async (commit: string, key: string, repoSlug: string, workspace: string, body?: Commitstatus, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut: async (commit: string, key: string, repoSlug: string, workspace: string, commitstatus?: Commitstatus, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commit' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut', 'commit', commit)
             // verify required parameter 'key' is not null or undefined
@@ -6329,7 +6835,7 @@ export const CommitStatusesApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(commitstatus, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -6342,11 +6848,11 @@ export const CommitStatusesApiAxiosParamCreator = function (configuration?: Conf
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Commitstatus} [body] The new commit status object.
+         * @param {Commitstatus} [commitstatus] The new commit status object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost: async (commit: string, repoSlug: string, workspace: string, body?: Commitstatus, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost: async (commit: string, repoSlug: string, workspace: string, commitstatus?: Commitstatus, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commit' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost', 'commit', commit)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -6385,7 +6891,7 @@ export const CommitStatusesApiAxiosParamCreator = function (configuration?: Conf
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(commitstatus, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -6555,12 +7061,12 @@ export const CommitStatusesApiFp = function(configuration?: Configuration) {
          * @param {string} key The build status\&#39; unique key
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Commitstatus} [body] The updated build status object
+         * @param {Commitstatus} [commitstatus] The updated build status object
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(commit: string, key: string, repoSlug: string, workspace: string, body?: Commitstatus, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Commitstatus>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(commit, key, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(commit: string, key: string, repoSlug: string, workspace: string, commitstatus?: Commitstatus, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Commitstatus>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(commit, key, repoSlug, workspace, commitstatus, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitStatusesApi.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -6571,12 +7077,12 @@ export const CommitStatusesApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Commitstatus} [body] The new commit status object.
+         * @param {Commitstatus} [commitstatus] The new commit status object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(commit: string, repoSlug: string, workspace: string, body?: Commitstatus, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Commitstatus>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(commit, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(commit: string, repoSlug: string, workspace: string, commitstatus?: Commitstatus, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Commitstatus>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(commit, repoSlug, workspace, commitstatus, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitStatusesApi.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -6643,7 +7149,7 @@ export const CommitStatusesApiFactory = function (configuration?: Configuration,
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters: CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Commitstatus> {
-            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters.commit, requestParameters.key, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters.commit, requestParameters.key, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitstatus, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates a new build status against the specified commit.  If the specified key already exists, the existing status object will be overwritten.  Example:  ``` curl https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo/commit/e10dae226959c2194f2b07b077c07762d93821cf/statuses/build/           -X POST -u jdoe -H \'Content-Type: application/json\'           -d \'{     \"key\": \"MY-BUILD\",     \"state\": \"SUCCESSFUL\",     \"description\": \"42 tests passed\",     \"url\": \"https://www.example.org/my-build-result\"   }\' ```  When creating a new commit status, you can use a URI template for the URL. Templates are URLs that contain variable names that Bitbucket will evaluate at runtime whenever the URL is displayed anywhere similar to parameter substitution in [Bitbucket Connect](https://developer.atlassian.com/bitbucket/concepts/context-parameters.html). For example, one could use `https://foo.com/builds/{repository.full_name}` which Bitbucket will turn into `https://foo.com/builds/foo/bar` at render time. The context variables available are `repository` and `commit`.  To associate a commit status to a pull request, the refname field must be set to the source branch of the pull request.  Example: ``` curl https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo/commit/e10dae226959c2194f2b07b077c07762d93821cf/statuses/build/           -X POST -u jdoe -H \'Content-Type: application/json\'           -d \'{     \"key\": \"MY-BUILD\",     \"state\": \"SUCCESSFUL\",     \"description\": \"42 tests passed\",     \"url\": \"https://www.example.org/my-build-result\",     \"refname\": \"my-pr-branch\"   }\' ```
@@ -6653,7 +7159,7 @@ export const CommitStatusesApiFactory = function (configuration?: Configuration,
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters: CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Commitstatus> {
-            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitstatus, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns all statuses (e.g. build results) for a specific commit.
@@ -6781,7 +7287,7 @@ export interface CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatu
     /**
      * The updated build status object
      */
-    readonly body?: Commitstatus
+    readonly commitstatus?: Commitstatus
 }
 
 /**
@@ -6806,7 +7312,7 @@ export interface CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatu
     /**
      * The new commit status object.
      */
-    readonly body?: Commitstatus
+    readonly commitstatus?: Commitstatus
 }
 
 /**
@@ -6897,7 +7403,7 @@ export class CommitStatusesApi extends BaseAPI implements CommitStatusesApiInter
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters: CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPutRequest, options?: RawAxiosRequestConfig) {
-        return CommitStatusesApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters.commit, requestParameters.key, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitStatusesApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut(requestParameters.commit, requestParameters.key, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitstatus, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -6908,7 +7414,7 @@ export class CommitStatusesApi extends BaseAPI implements CommitStatusesApiInter
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters: CommitStatusesApiRepositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPostRequest, options?: RawAxiosRequestConfig) {
-        return CommitStatusesApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitStatusesApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitstatus, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -6948,11 +7454,11 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit for which to retrieve reports.
          * @param {string} reportId Uuid or external-if of the report for which to get annotations for.
-         * @param {Array<ReportAnnotation>} body The annotations to create or update
+         * @param {Array<ReportAnnotation>} reportAnnotation The annotations to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        bulkCreateOrUpdateAnnotations: async (workspace: string, repoSlug: string, commit: string, reportId: string, body: Array<ReportAnnotation>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        bulkCreateOrUpdateAnnotations: async (workspace: string, repoSlug: string, commit: string, reportId: string, reportAnnotation: Array<ReportAnnotation>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('bulkCreateOrUpdateAnnotations', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -6961,8 +7467,8 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('bulkCreateOrUpdateAnnotations', 'commit', commit)
             // verify required parameter 'reportId' is not null or undefined
             assertParamExists('bulkCreateOrUpdateAnnotations', 'reportId', reportId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('bulkCreateOrUpdateAnnotations', 'body', body)
+            // verify required parameter 'reportAnnotation' is not null or undefined
+            assertParamExists('bulkCreateOrUpdateAnnotations', 'reportAnnotation', reportAnnotation)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}/annotations`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -6996,7 +7502,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(reportAnnotation, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7011,11 +7517,11 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
          * @param {string} annotationId Either the uuid or external-id of the annotation.
-         * @param {ReportAnnotation} body The annotation to create or update
+         * @param {ReportAnnotation} reportAnnotation The annotation to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createOrUpdateAnnotation: async (workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, body: ReportAnnotation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createOrUpdateAnnotation: async (workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, reportAnnotation: ReportAnnotation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createOrUpdateAnnotation', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -7026,8 +7532,8 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('createOrUpdateAnnotation', 'reportId', reportId)
             // verify required parameter 'annotationId' is not null or undefined
             assertParamExists('createOrUpdateAnnotation', 'annotationId', annotationId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createOrUpdateAnnotation', 'body', body)
+            // verify required parameter 'reportAnnotation' is not null or undefined
+            assertParamExists('createOrUpdateAnnotation', 'reportAnnotation', reportAnnotation)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}/annotations/{annotationId}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -7062,7 +7568,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(reportAnnotation, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7076,11 +7582,11 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
-         * @param {Report} body The report to create or update
+         * @param {Report} report The report to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createOrUpdateReport: async (workspace: string, repoSlug: string, commit: string, reportId: string, body: Report, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createOrUpdateReport: async (workspace: string, repoSlug: string, commit: string, reportId: string, report: Report, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createOrUpdateReport', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -7089,8 +7595,8 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('createOrUpdateReport', 'commit', commit)
             // verify required parameter 'reportId' is not null or undefined
             assertParamExists('createOrUpdateReport', 'reportId', reportId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createOrUpdateReport', 'body', body)
+            // verify required parameter 'report' is not null or undefined
+            assertParamExists('createOrUpdateReport', 'report', report)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -7124,7 +7630,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(report, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7701,11 +8207,11 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {CommitComment} body The updated comment.
+         * @param {CommitComment} commitComment The updated comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut: async (commentId: number, commit: string, repoSlug: string, workspace: string, body: CommitComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut: async (commentId: number, commit: string, repoSlug: string, workspace: string, commitComment: CommitComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commentId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut', 'commentId', commentId)
             // verify required parameter 'commit' is not null or undefined
@@ -7714,8 +8220,8 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut', 'body', body)
+            // verify required parameter 'commitComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut', 'commitComment', commitComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/comments/{comment_id}`
                 .replace(`{${"comment_id"}}`, encodeURIComponent(String(commentId)))
                 .replace(`{${"commit"}}`, encodeURIComponent(String(commit)))
@@ -7748,7 +8254,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(commitComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -7824,19 +8330,19 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {CommitComment} body The specified comment.
+         * @param {CommitComment} commitComment The specified comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugCommitCommitCommentsPost: async (commit: string, repoSlug: string, workspace: string, body: CommitComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugCommitCommitCommentsPost: async (commit: string, repoSlug: string, workspace: string, commitComment: CommitComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commit' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsPost', 'commit', commit)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsPost', 'body', body)
+            // verify required parameter 'commitComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugCommitCommitCommentsPost', 'commitComment', commitComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/comments`
                 .replace(`{${"commit"}}`, encodeURIComponent(String(commit)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -7868,7 +8374,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(commitComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -8144,7 +8650,7 @@ export const CommitsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {boolean} [binary] Generate diffs that include binary files, true if omitted.
          * @param {boolean} [renames] Whether to perform rename detection, true if omitted.
          * @param {boolean} [merge] This parameter is deprecated. The \&#39;topic\&#39; parameter should be used instead. The \&#39;merge\&#39; and \&#39;topic\&#39; parameters cannot be both used at the same time.  If true, the source commit is merged into the destination commit, and then a diff from the destination to the merge result is returned. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned. True if omitted.
-         * @param {boolean} [topic] If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.
+         * @param {boolean} [topic] If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.  If omitted, defaults to true, ie. a 2 way \&#39;three-dot\&#39; diff is returned. 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -8420,12 +8926,12 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit for which to retrieve reports.
          * @param {string} reportId Uuid or external-if of the report for which to get annotations for.
-         * @param {Array<ReportAnnotation>} body The annotations to create or update
+         * @param {Array<ReportAnnotation>} reportAnnotation The annotations to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async bulkCreateOrUpdateAnnotations(workspace: string, repoSlug: string, commit: string, reportId: string, body: Array<ReportAnnotation>, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ReportAnnotation>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.bulkCreateOrUpdateAnnotations(workspace, repoSlug, commit, reportId, body, options);
+        async bulkCreateOrUpdateAnnotations(workspace: string, repoSlug: string, commit: string, reportId: string, reportAnnotation: Array<ReportAnnotation>, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ReportAnnotation>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.bulkCreateOrUpdateAnnotations(workspace, repoSlug, commit, reportId, reportAnnotation, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitsApi.bulkCreateOrUpdateAnnotations']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -8438,12 +8944,12 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
          * @param {string} annotationId Either the uuid or external-id of the annotation.
-         * @param {ReportAnnotation} body The annotation to create or update
+         * @param {ReportAnnotation} reportAnnotation The annotation to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createOrUpdateAnnotation(workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, body: ReportAnnotation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReportAnnotation>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateAnnotation(workspace, repoSlug, commit, reportId, annotationId, body, options);
+        async createOrUpdateAnnotation(workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, reportAnnotation: ReportAnnotation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReportAnnotation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateAnnotation(workspace, repoSlug, commit, reportId, annotationId, reportAnnotation, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitsApi.createOrUpdateAnnotation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -8455,12 +8961,12 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
-         * @param {Report} body The report to create or update
+         * @param {Report} report The report to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createOrUpdateReport(workspace: string, repoSlug: string, commit: string, reportId: string, body: Report, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Report>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateReport(workspace, repoSlug, commit, reportId, body, options);
+        async createOrUpdateReport(workspace: string, repoSlug: string, commit: string, reportId: string, report: Report, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Report>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateReport(workspace, repoSlug, commit, reportId, report, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitsApi.createOrUpdateReport']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -8631,12 +9137,12 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {CommitComment} body The updated comment.
+         * @param {CommitComment} commitComment The updated comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(commentId: number, commit: string, repoSlug: string, workspace: string, body: CommitComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(commentId, commit, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(commentId: number, commit: string, repoSlug: string, workspace: string, commitComment: CommitComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(commentId, commit, repoSlug, workspace, commitComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitsApi.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -8664,12 +9170,12 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit\&#39;s SHA1.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {CommitComment} body The specified comment.
+         * @param {CommitComment} commitComment The specified comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(commit: string, repoSlug: string, workspace: string, body: CommitComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(commit, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(commit: string, repoSlug: string, workspace: string, commitComment: CommitComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(commit, repoSlug, workspace, commitComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['CommitsApi.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -8759,7 +9265,7 @@ export const CommitsApiFp = function(configuration?: Configuration) {
          * @param {boolean} [binary] Generate diffs that include binary files, true if omitted.
          * @param {boolean} [renames] Whether to perform rename detection, true if omitted.
          * @param {boolean} [merge] This parameter is deprecated. The \&#39;topic\&#39; parameter should be used instead. The \&#39;merge\&#39; and \&#39;topic\&#39; parameters cannot be both used at the same time.  If true, the source commit is merged into the destination commit, and then a diff from the destination to the merge result is returned. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned. True if omitted.
-         * @param {boolean} [topic] If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.
+         * @param {boolean} [topic] If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.  If omitted, defaults to true, ie. a 2 way \&#39;three-dot\&#39; diff is returned. 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
@@ -8836,7 +9342,7 @@ export const CommitsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         bulkCreateOrUpdateAnnotations(requestParameters: CommitsApiBulkCreateOrUpdateAnnotationsRequest, options?: RawAxiosRequestConfig): AxiosPromise<Array<ReportAnnotation>> {
-            return localVarFp.bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.reportAnnotation, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates or updates an individual annotation for the specified report. Annotations are individual findings that have been identified as part of a report, for example, a line of code that represents a vulnerability. These annotations can be attached to a specific file and even a specific line in that file, however, that is optional. Annotations are not mandatory and a report can contain up to 1000 annotations.  Just as reports, annotation needs to be uploaded with a unique ID that can later be used to identify the report as an alternative to the generated [UUID](https://developer.atlassian.com/bitbucket/api/2/reference/meta/uri-uuid#uuid). If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-annotation001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mySystem-001/annotations/mysystem-annotation001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"annotation_type\": \"VULNERABILITY\",     \"summary\": \"This line represents a security thread.\",     \"severity\": \"HIGH\",     \"path\": \"my-service/src/main/java/com/myCompany/mysystem/logic/Main.java\",     \"line\": 42 }\' ```  ### Possible field values: annotation_type: VULNERABILITY, CODE_SMELL, BUG result: PASSED, FAILED, IGNORED, SKIPPED severity: HIGH, MEDIUM, LOW, CRITICAL  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
@@ -8846,7 +9352,7 @@ export const CommitsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         createOrUpdateAnnotation(requestParameters: CommitsApiCreateOrUpdateAnnotationRequest, options?: RawAxiosRequestConfig): AxiosPromise<ReportAnnotation> {
-            return localVarFp.createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.reportAnnotation, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates or updates a report for the specified commit. To upload a report, make sure to generate an ID that is unique across all reports for that commit. If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mysystem-001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"details\": \"This pull request introduces 10 new dependency vulnerabilities.\",     \"report_type\": \"SECURITY\",     \"reporter\": \"mySystem\",     \"link\": \"http://www.mysystem.com/reports/001\",     \"result\": \"FAILED\",     \"data\": [         {             \"title\": \"Duration (seconds)\",             \"type\": \"DURATION\",             \"value\": 14         },         {             \"title\": \"Safe to merge?\",             \"type\": \"BOOLEAN\",             \"value\": false         }     ] }\' ```  ### Possible field values: report_type: SECURITY, COVERAGE, TEST, BUG result: PASSED, FAILED, PENDING data.type: BOOLEAN, DATE, DURATION, LINK, NUMBER, PERCENTAGE, TEXT  #### Data field formats | Type  Field   | Value Field Type  | Value Field Display | |:--------------|:------------------|:--------------------| | None/ Omitted | Number, String or Boolean (not an array or object) | Plain text | | BOOLEAN | Boolean | The value will be read as a JSON boolean and displayed as \'Yes\' or \'No\'. | | DATE  | Number | The value will be read as a JSON number in the form of a Unix timestamp (milliseconds) and will be displayed as a relative date if the date is less than one week ago, otherwise  it will be displayed as an absolute date. | | DURATION | Number | The value will be read as a JSON number in milliseconds and will be displayed in a human readable duration format. | | LINK | Object: `{\"text\": \"Link text here\", \"href\": \"https://link.to.annotation/in/external/tool\"}` | The value will be read as a JSON object containing the fields \"text\" and \"href\" and will be displayed as a clickable link on the report. | | NUMBER | Number | The value will be read as a JSON number and large numbers will be  displayed in a human readable format (e.g. 14.3k). | | PERCENTAGE | Number (between 0 and 100) | The value will be read as a JSON number between 0 and 100 and will be displayed with a percentage sign. | | TEXT | String | The value will be read as a JSON string and will be displayed as-is |  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
@@ -8856,7 +9362,7 @@ export const CommitsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         createOrUpdateReport(requestParameters: CommitsApiCreateOrUpdateReportRequest, options?: RawAxiosRequestConfig): AxiosPromise<Report> {
-            return localVarFp.createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.report, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes a single Annotation matching the provided ID.
@@ -8966,7 +9472,7 @@ export const CommitsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters: CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters.commentId, requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters.commentId, requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the commit\'s comments.  This includes both global and inline comments.  The default sorting is oldest to newest and can be overridden with the `sort` query parameter.
@@ -8986,7 +9492,7 @@ export const CommitsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters: CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the specified commit.
@@ -9339,7 +9845,7 @@ export interface CommitsApiBulkCreateOrUpdateAnnotationsRequest {
     /**
      * The annotations to create or update
      */
-    readonly body: Array<ReportAnnotation>
+    readonly reportAnnotation: Array<ReportAnnotation>
 }
 
 /**
@@ -9374,7 +9880,7 @@ export interface CommitsApiCreateOrUpdateAnnotationRequest {
     /**
      * The annotation to create or update
      */
-    readonly body: ReportAnnotation
+    readonly reportAnnotation: ReportAnnotation
 }
 
 /**
@@ -9404,7 +9910,7 @@ export interface CommitsApiCreateOrUpdateReportRequest {
     /**
      * The report to create or update
      */
-    readonly body: Report
+    readonly report: Report
 }
 
 /**
@@ -9679,7 +10185,7 @@ export interface CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsComm
     /**
      * The updated comment.
      */
-    readonly body: CommitComment
+    readonly commitComment: CommitComment
 }
 
 /**
@@ -9734,7 +10240,7 @@ export interface CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsPost
     /**
      * The specified comment.
      */
-    readonly body: CommitComment
+    readonly commitComment: CommitComment
 }
 
 /**
@@ -9877,7 +10383,7 @@ export interface CommitsApiRepositoriesWorkspaceRepoSlugDiffSpecGetRequest {
     readonly merge?: boolean
 
     /**
-     * If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.
+     * If true, returns 2-way \&#39;three-dot\&#39; diff. This is a diff between the source commit and the merge base of the source commit and the destination commit. If false, a simple \&#39;two dot\&#39; diff between the source and destination is returned.  If omitted, defaults to true, ie. a 2 way \&#39;three-dot\&#39; diff is returned. 
      */
     readonly topic?: boolean
 }
@@ -9979,7 +10485,7 @@ export class CommitsApi extends BaseAPI implements CommitsApiInterface {
      * @throws {RequiredError}
      */
     public bulkCreateOrUpdateAnnotations(requestParameters: CommitsApiBulkCreateOrUpdateAnnotationsRequest, options?: RawAxiosRequestConfig) {
-        return CommitsApiFp(this.configuration).bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitsApiFp(this.configuration).bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.reportAnnotation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -9990,7 +10496,7 @@ export class CommitsApi extends BaseAPI implements CommitsApiInterface {
      * @throws {RequiredError}
      */
     public createOrUpdateAnnotation(requestParameters: CommitsApiCreateOrUpdateAnnotationRequest, options?: RawAxiosRequestConfig) {
-        return CommitsApiFp(this.configuration).createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitsApiFp(this.configuration).createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.reportAnnotation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10001,7 +10507,7 @@ export class CommitsApi extends BaseAPI implements CommitsApiInterface {
      * @throws {RequiredError}
      */
     public createOrUpdateReport(requestParameters: CommitsApiCreateOrUpdateReportRequest, options?: RawAxiosRequestConfig) {
-        return CommitsApiFp(this.configuration).createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitsApiFp(this.configuration).createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.report, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10122,7 +10628,7 @@ export class CommitsApi extends BaseAPI implements CommitsApiInterface {
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters: CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig) {
-        return CommitsApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters.commentId, requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitsApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(requestParameters.commentId, requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10144,7 +10650,7 @@ export class CommitsApi extends BaseAPI implements CommitsApiInterface {
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters: CommitsApiRepositoriesWorkspaceRepoSlugCommitCommitCommentsPostRequest, options?: RawAxiosRequestConfig) {
-        return CommitsApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return CommitsApiFp(this.configuration).repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(requestParameters.commit, requestParameters.repoSlug, requestParameters.workspace, requestParameters.commitComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -10259,17 +10765,17 @@ export const DeploymentsApiAxiosParamCreator = function (configuration?: Configu
          * @summary Create an environment
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {DeploymentEnvironment} body The environment to create.
+         * @param {DeploymentEnvironment} deploymentEnvironment The environment to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createEnvironment: async (workspace: string, repoSlug: string, body: DeploymentEnvironment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createEnvironment: async (workspace: string, repoSlug: string, deploymentEnvironment: DeploymentEnvironment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createEnvironment', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createEnvironment', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createEnvironment', 'body', body)
+            // verify required parameter 'deploymentEnvironment' is not null or undefined
+            assertParamExists('createEnvironment', 'deploymentEnvironment', deploymentEnvironment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/environments`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -10301,7 +10807,7 @@ export const DeploymentsApiAxiosParamCreator = function (configuration?: Configu
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(deploymentEnvironment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -11093,12 +11599,12 @@ export const DeploymentsApiFp = function(configuration?: Configuration) {
          * @summary Create an environment
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {DeploymentEnvironment} body The environment to create.
+         * @param {DeploymentEnvironment} deploymentEnvironment The environment to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createEnvironment(workspace: string, repoSlug: string, body: DeploymentEnvironment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentEnvironment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createEnvironment(workspace, repoSlug, body, options);
+        async createEnvironment(workspace: string, repoSlug: string, deploymentEnvironment: DeploymentEnvironment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentEnvironment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createEnvironment(workspace, repoSlug, deploymentEnvironment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['DeploymentsApi.createEnvironment']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -11339,7 +11845,7 @@ export const DeploymentsApiFactory = function (configuration?: Configuration, ba
          * @throws {RequiredError}
          */
         createEnvironment(requestParameters: DeploymentsApiCreateEnvironmentRequest, options?: RawAxiosRequestConfig): AxiosPromise<DeploymentEnvironment> {
-            return localVarFp.createEnvironment(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createEnvironment(requestParameters.workspace, requestParameters.repoSlug, requestParameters.deploymentEnvironment, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete an environment
@@ -11661,7 +12167,7 @@ export interface DeploymentsApiCreateEnvironmentRequest {
     /**
      * The environment to create.
      */
-    readonly body: DeploymentEnvironment
+    readonly deploymentEnvironment: DeploymentEnvironment
 }
 
 /**
@@ -11946,7 +12452,7 @@ export class DeploymentsApi extends BaseAPI implements DeploymentsApiInterface {
      * @throws {RequiredError}
      */
     public createEnvironment(requestParameters: DeploymentsApiCreateEnvironmentRequest, options?: RawAxiosRequestConfig) {
-        return DeploymentsApiFp(this.configuration).createEnvironment(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return DeploymentsApiFp(this.configuration).createEnvironment(requestParameters.workspace, requestParameters.repoSlug, requestParameters.deploymentEnvironment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -12760,11 +13266,11 @@ export const GPGApiAxiosParamCreator = function (configuration?: Configuration) 
          * Adds a new GPG public key to the specified user account and returns the resulting key.  Example:  ``` $ curl -X POST -H \"Content-Type: application/json\" -d \'{\"key\": \"<insert GPG Key>\"}\' https://api.bitbucket.org/2.0/users/{d7dd0e2d-3994-4a50-a9ee-d260b6cefdab}/gpg-keys ```
          * @summary Add a new GPG key
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
-         * @param {GPGAccountKey} [body] The new GPG key object.
+         * @param {GPGAccountKey} [gPGAccountKey] The new GPG key object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        usersSelectedUserGpgKeysPost: async (selectedUser: string, body?: GPGAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        usersSelectedUserGpgKeysPost: async (selectedUser: string, gPGAccountKey?: GPGAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'selectedUser' is not null or undefined
             assertParamExists('usersSelectedUserGpgKeysPost', 'selectedUser', selectedUser)
             const localVarPath = `/users/{selected_user}/gpg-keys`
@@ -12797,7 +13303,7 @@ export const GPGApiAxiosParamCreator = function (configuration?: Configuration) 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(gPGAccountKey, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -12858,12 +13364,12 @@ export const GPGApiFp = function(configuration?: Configuration) {
          * Adds a new GPG public key to the specified user account and returns the resulting key.  Example:  ``` $ curl -X POST -H \"Content-Type: application/json\" -d \'{\"key\": \"<insert GPG Key>\"}\' https://api.bitbucket.org/2.0/users/{d7dd0e2d-3994-4a50-a9ee-d260b6cefdab}/gpg-keys ```
          * @summary Add a new GPG key
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
-         * @param {GPGAccountKey} [body] The new GPG key object.
+         * @param {GPGAccountKey} [gPGAccountKey] The new GPG key object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async usersSelectedUserGpgKeysPost(selectedUser: string, body?: GPGAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GPGAccountKey>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserGpgKeysPost(selectedUser, body, options);
+        async usersSelectedUserGpgKeysPost(selectedUser: string, gPGAccountKey?: GPGAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<GPGAccountKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserGpgKeysPost(selectedUser, gPGAccountKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['GPGApi.usersSelectedUserGpgKeysPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -12915,7 +13421,7 @@ export const GPGApiFactory = function (configuration?: Configuration, basePath?:
          * @throws {RequiredError}
          */
         usersSelectedUserGpgKeysPost(requestParameters: GPGApiUsersSelectedUserGpgKeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<GPGAccountKey> {
-            return localVarFp.usersSelectedUserGpgKeysPost(requestParameters.selectedUser, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.usersSelectedUserGpgKeysPost(requestParameters.selectedUser, requestParameters.gPGAccountKey, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -13014,7 +13520,7 @@ export interface GPGApiUsersSelectedUserGpgKeysPostRequest {
     /**
      * The new GPG key object.
      */
-    readonly body?: GPGAccountKey
+    readonly gPGAccountKey?: GPGAccountKey
 }
 
 /**
@@ -13062,7 +13568,7 @@ export class GPGApi extends BaseAPI implements GPGApiInterface {
      * @throws {RequiredError}
      */
     public usersSelectedUserGpgKeysPost(requestParameters: GPGApiUsersSelectedUserGpgKeysPostRequest, options?: RawAxiosRequestConfig) {
-        return GPGApiFp(this.configuration).usersSelectedUserGpgKeysPost(requestParameters.selectedUser, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return GPGApiFp(this.configuration).usersSelectedUserGpgKeysPost(requestParameters.selectedUser, requestParameters.gPGAccountKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -13080,6 +13586,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugComponentsComponentIdGet: async (componentId: number, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13132,6 +13639,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugComponentsGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13180,11 +13688,12 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @summary Export issues
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {ExportOptions} [body] The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export.
+         * @param {ExportOptions} [exportOptions] The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugIssuesExportPost: async (repoSlug: string, workspace: string, body?: ExportOptions, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugIssuesExportPost: async (repoSlug: string, workspace: string, exportOptions?: ExportOptions, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesExportPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
@@ -13220,7 +13729,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(exportOptions, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -13235,6 +13744,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} taskId The ID of the export task
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGet: async (repoName: string, repoSlug: string, taskId: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13290,6 +13800,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13339,6 +13850,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesImportGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13388,6 +13900,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesImportPost: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13438,6 +13951,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGet: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13492,6 +14006,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDelete: async (issueId: string, path: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13549,6 +14064,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGet: async (issueId: string, path: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13605,6 +14121,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPost: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13659,6 +14176,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGet: async (changeId: string, issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13717,6 +14235,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
          * @param {string} [sort]  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdChangesGet: async (issueId: string, repoSlug: string, workspace: string, q?: string, sort?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13777,19 +14296,20 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueChange} body The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body.
+         * @param {IssueChange} issueChange The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost: async (issueId: string, repoSlug: string, workspace: string, body: IssueChange, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost: async (issueId: string, repoSlug: string, workspace: string, issueChange: IssueChange, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'issueId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost', 'issueId', issueId)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost', 'body', body)
+            // verify required parameter 'issueChange' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost', 'issueChange', issueChange)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/issues/{issue_id}/changes`
                 .replace(`{${"issue_id"}}`, encodeURIComponent(String(issueId)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -13822,7 +14342,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(issueChange, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -13837,6 +14357,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDelete: async (commentId: number, issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13893,6 +14414,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGet: async (commentId: number, issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -13949,11 +14471,12 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueComment} body The updated comment.
+         * @param {IssueComment} issueComment The updated comment.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut: async (commentId: number, issueId: string, repoSlug: string, workspace: string, body: IssueComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut: async (commentId: number, issueId: string, repoSlug: string, workspace: string, issueComment: IssueComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commentId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut', 'commentId', commentId)
             // verify required parameter 'issueId' is not null or undefined
@@ -13962,8 +14485,8 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut', 'body', body)
+            // verify required parameter 'issueComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut', 'issueComment', issueComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/issues/{issue_id}/comments/{comment_id}`
                 .replace(`{${"comment_id"}}`, encodeURIComponent(String(commentId)))
                 .replace(`{${"issue_id"}}`, encodeURIComponent(String(issueId)))
@@ -13997,7 +14520,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(issueComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -14012,6 +14535,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGet: async (issueId: string, repoSlug: string, workspace: string, q?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14068,19 +14592,20 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueComment} body The new issue comment object.
+         * @param {IssueComment} issueComment The new issue comment object.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost: async (issueId: string, repoSlug: string, workspace: string, body: IssueComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost: async (issueId: string, repoSlug: string, workspace: string, issueComment: IssueComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'issueId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost', 'issueId', issueId)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost', 'body', body)
+            // verify required parameter 'issueComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost', 'issueComment', issueComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/issues/{issue_id}/comments`
                 .replace(`{${"issue_id"}}`, encodeURIComponent(String(issueId)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -14113,7 +14638,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(issueComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -14127,6 +14652,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdDelete: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14180,6 +14706,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdGet: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14233,6 +14760,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdPut: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14286,6 +14814,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVoteDelete: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14339,6 +14868,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVoteGet: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14392,6 +14922,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVotePut: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14445,6 +14976,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchDelete: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14498,6 +15030,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchGet: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14551,6 +15084,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchPut: async (issueId: string, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14602,17 +15136,18 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @summary Create an issue
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Issue} body The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body.
+         * @param {Issue} issue The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugIssuesPost: async (repoSlug: string, workspace: string, body: Issue, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugIssuesPost: async (repoSlug: string, workspace: string, issue: Issue, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugIssuesPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugIssuesPost', 'body', body)
+            // verify required parameter 'issue' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugIssuesPost', 'issue', issue)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/issues`
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
@@ -14644,7 +15179,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(issue, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -14657,6 +15192,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugMilestonesGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14707,6 +15243,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugMilestonesMilestoneIdGet: async (milestoneId: number, repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14759,6 +15296,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugVersionsGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14809,6 +15347,7 @@ export const IssueTrackerApiAxiosParamCreator = function (configuration?: Config
          * @param {number} versionId The version\&#39;s id
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugVersionsVersionIdGet: async (repoSlug: string, versionId: number, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -14871,6 +15410,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugComponentsComponentIdGet(componentId: number, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Component>> {
@@ -14885,6 +15425,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugComponentsGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedComponents>> {
@@ -14898,12 +15439,13 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @summary Export issues
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {ExportOptions} [body] The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export.
+         * @param {ExportOptions} [exportOptions] The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugIssuesExportPost(repoSlug: string, workspace: string, body?: ExportOptions, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesExportPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugIssuesExportPost(repoSlug: string, workspace: string, exportOptions?: ExportOptions, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesExportPost(repoSlug, workspace, exportOptions, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IssueTrackerApi.repositoriesWorkspaceRepoSlugIssuesExportPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -14916,6 +15458,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} taskId The ID of the export task
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGet(repoName: string, repoSlug: string, taskId: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueJobStatus>> {
@@ -14930,6 +15473,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedIssues>> {
@@ -14944,6 +15488,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesImportGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueJobStatus>> {
@@ -14958,6 +15503,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesImportPost(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueJobStatus>> {
@@ -14973,6 +15519,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGet(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedIssueAttachments>> {
@@ -14989,6 +15536,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDelete(issueId: string, path: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -15005,6 +15553,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGet(issueId: string, path: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -15020,6 +15569,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPost(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -15036,6 +15586,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGet(changeId: string, issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueChange>> {
@@ -15053,6 +15604,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
          * @param {string} [sort]  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdChangesGet(issueId: string, repoSlug: string, workspace: string, q?: string, sort?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedLogEntries>> {
@@ -15067,12 +15619,13 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueChange} body The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body.
+         * @param {IssueChange} issueChange The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(issueId: string, repoSlug: string, workspace: string, body: IssueChange, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueChange>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(issueId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(issueId: string, repoSlug: string, workspace: string, issueChange: IssueChange, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueChange>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(issueId, repoSlug, workspace, issueChange, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IssueTrackerApi.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -15085,6 +15638,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDelete(commentId: number, issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -15101,6 +15655,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGet(commentId: number, issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueComment>> {
@@ -15116,12 +15671,13 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueComment} body The updated comment.
+         * @param {IssueComment} issueComment The updated comment.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(commentId: number, issueId: string, repoSlug: string, workspace: string, body: IssueComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueComment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(commentId, issueId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(commentId: number, issueId: string, repoSlug: string, workspace: string, issueComment: IssueComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<IssueComment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(commentId, issueId, repoSlug, workspace, issueComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IssueTrackerApi.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -15134,6 +15690,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGet(issueId: string, repoSlug: string, workspace: string, q?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedIssueComments>> {
@@ -15148,12 +15705,13 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} issueId The issue id
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {IssueComment} body The new issue comment object.
+         * @param {IssueComment} issueComment The new issue comment object.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(issueId: string, repoSlug: string, workspace: string, body: IssueComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(issueId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(issueId: string, repoSlug: string, workspace: string, issueComment: IssueComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(issueId, repoSlug, workspace, issueComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IssueTrackerApi.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -15165,6 +15723,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdDelete(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -15180,6 +15739,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdGet(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Issue>> {
@@ -15195,6 +15755,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdPut(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Issue>> {
@@ -15210,6 +15771,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdVoteDelete(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15225,6 +15787,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdVoteGet(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15240,6 +15803,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdVotePut(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15255,6 +15819,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdWatchDelete(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15270,6 +15835,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdWatchGet(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15285,6 +15851,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugIssuesIssueIdWatchPut(issueId: string, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ModelError>> {
@@ -15298,12 +15865,13 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @summary Create an issue
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Issue} body The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body.
+         * @param {Issue} issue The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugIssuesPost(repoSlug: string, workspace: string, body: Issue, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Issue>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugIssuesPost(repoSlug: string, workspace: string, issue: Issue, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Issue>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugIssuesPost(repoSlug, workspace, issue, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['IssueTrackerApi.repositoriesWorkspaceRepoSlugIssuesPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -15314,6 +15882,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugMilestonesGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedMilestones>> {
@@ -15329,6 +15898,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugMilestonesMilestoneIdGet(milestoneId: number, repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Milestone>> {
@@ -15343,6 +15913,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugVersionsGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedVersions>> {
@@ -15358,6 +15929,7 @@ export const IssueTrackerApiFp = function(configuration?: Configuration) {
          * @param {number} versionId The version\&#39;s id
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async repositoriesWorkspaceRepoSlugVersionsVersionIdGet(repoSlug: string, versionId: number, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Version>> {
@@ -15380,6 +15952,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get a component for issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugComponentsComponentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Component> {
@@ -15390,6 +15963,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary List components
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugComponentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedComponents> {
@@ -15400,16 +15974,18 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Export issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.exportOptions, options).then((request) => request(axios, basePath));
         },
         /**
          * This endpoint is used to poll for the progress of an issue export job and return the zip file after the job is complete. As long as the job is running, this will return a 202 response with in the response body a description of the current status.  After the job has been scheduled, but before it starts executing, the endpoint returns a 202 response with status `ACCEPTED`.  Once it starts running, it is a 202 response with status `STARTED` and progress filled.  After it is finished, it becomes a 200 response with status `SUCCESS` or `FAILURE`.
          * @summary Check issue export status
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus> {
@@ -15420,6 +15996,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary List issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssues> {
@@ -15430,6 +16007,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Check issue import status
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesImportGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus> {
@@ -15440,6 +16018,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Import issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesImportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus> {
@@ -15450,6 +16029,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary List attachments for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssueAttachments> {
@@ -15460,6 +16040,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Delete an attachment for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -15470,6 +16051,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get attachment for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -15480,6 +16062,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Upload an attachment to an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -15490,6 +16073,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get issue change object
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueChange> {
@@ -15500,6 +16084,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary List changes on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdChangesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedLogEntries> {
@@ -15510,16 +16095,18 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Modify the state of an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueChange> {
-            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueChange, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes the specified comment.
          * @summary Delete a comment on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -15530,6 +16117,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get a comment on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueComment> {
@@ -15540,16 +16128,18 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Update a comment on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueComment> {
-            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of all comments that were made on the specified issue.  The default sorting is oldest to newest and can be overridden with the `sort` query parameter.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List comments on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssueComments> {
@@ -15560,16 +16150,18 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Create a comment on an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes the specified issue. This requires write access to the repository.
          * @summary Delete an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -15580,6 +16172,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue> {
@@ -15590,6 +16183,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Update an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue> {
@@ -15600,6 +16194,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Remove vote for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVoteDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15610,6 +16205,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Check if current user voted for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVoteGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15620,6 +16216,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Vote for an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdVotePut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15630,6 +16227,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Stop watching an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15640,6 +16238,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Check if current user is watching a issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15650,6 +16249,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Watch an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesIssueIdWatchPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError> {
@@ -15660,16 +16260,18 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Create an issue
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugIssuesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue> {
-            return localVarFp.repositoriesWorkspaceRepoSlugIssuesPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugIssuesPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.issue, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the milestones that have been defined in the issue tracker.  This resource is only available on repositories that have the issue tracker enabled.
          * @summary List milestones
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugMilestonesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMilestones> {
@@ -15680,6 +16282,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get a milestone
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugMilestonesMilestoneIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Milestone> {
@@ -15690,6 +16293,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary List defined versions for issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugVersionsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedVersions> {
@@ -15700,6 +16304,7 @@ export const IssueTrackerApiFactory = function (configuration?: Configuration, b
          * @summary Get a defined version for issues
          * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugVersionsVersionIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Version> {
@@ -15717,6 +16322,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get a component for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugComponentsComponentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Component>;
@@ -15726,6 +16332,7 @@ export interface IssueTrackerApiInterface {
      * @summary List components
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugComponentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedComponents>;
@@ -15735,6 +16342,7 @@ export interface IssueTrackerApiInterface {
      * @summary Export issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15744,6 +16352,7 @@ export interface IssueTrackerApiInterface {
      * @summary Check issue export status
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus>;
@@ -15753,6 +16362,7 @@ export interface IssueTrackerApiInterface {
      * @summary List issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssues>;
@@ -15762,6 +16372,7 @@ export interface IssueTrackerApiInterface {
      * @summary Check issue import status
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesImportGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus>;
@@ -15771,6 +16382,7 @@ export interface IssueTrackerApiInterface {
      * @summary Import issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesImportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueJobStatus>;
@@ -15780,6 +16392,7 @@ export interface IssueTrackerApiInterface {
      * @summary List attachments for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssueAttachments>;
@@ -15789,6 +16402,7 @@ export interface IssueTrackerApiInterface {
      * @summary Delete an attachment for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15798,6 +16412,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get attachment for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15807,6 +16422,7 @@ export interface IssueTrackerApiInterface {
      * @summary Upload an attachment to an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15816,6 +16432,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get issue change object
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueChange>;
@@ -15825,6 +16442,7 @@ export interface IssueTrackerApiInterface {
      * @summary List changes on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdChangesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedLogEntries>;
@@ -15834,6 +16452,7 @@ export interface IssueTrackerApiInterface {
      * @summary Modify the state of an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueChange>;
@@ -15843,6 +16462,7 @@ export interface IssueTrackerApiInterface {
      * @summary Delete a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15852,6 +16472,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueComment>;
@@ -15861,6 +16482,7 @@ export interface IssueTrackerApiInterface {
      * @summary Update a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<IssueComment>;
@@ -15870,6 +16492,7 @@ export interface IssueTrackerApiInterface {
      * @summary List comments on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedIssueComments>;
@@ -15879,6 +16502,7 @@ export interface IssueTrackerApiInterface {
      * @summary Create a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15888,6 +16512,7 @@ export interface IssueTrackerApiInterface {
      * @summary Delete an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -15897,6 +16522,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue>;
@@ -15906,6 +16532,7 @@ export interface IssueTrackerApiInterface {
      * @summary Update an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue>;
@@ -15915,6 +16542,7 @@ export interface IssueTrackerApiInterface {
      * @summary Remove vote for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdVoteDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15924,6 +16552,7 @@ export interface IssueTrackerApiInterface {
      * @summary Check if current user voted for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdVoteGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15933,6 +16562,7 @@ export interface IssueTrackerApiInterface {
      * @summary Vote for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdVotePut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15942,6 +16572,7 @@ export interface IssueTrackerApiInterface {
      * @summary Stop watching an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdWatchDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15951,6 +16582,7 @@ export interface IssueTrackerApiInterface {
      * @summary Check if current user is watching a issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdWatchGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15960,6 +16592,7 @@ export interface IssueTrackerApiInterface {
      * @summary Watch an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesIssueIdWatchPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ModelError>;
@@ -15969,6 +16602,7 @@ export interface IssueTrackerApiInterface {
      * @summary Create an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugIssuesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Issue>;
@@ -15978,6 +16612,7 @@ export interface IssueTrackerApiInterface {
      * @summary List milestones
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugMilestonesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMilestones>;
@@ -15987,6 +16622,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get a milestone
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugMilestonesMilestoneIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Milestone>;
@@ -15996,6 +16632,7 @@ export interface IssueTrackerApiInterface {
      * @summary List defined versions for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugVersionsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedVersions>;
@@ -16005,6 +16642,7 @@ export interface IssueTrackerApiInterface {
      * @summary Get a defined version for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugVersionsVersionIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Version>;
@@ -16063,7 +16701,7 @@ export interface IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostReq
     /**
      * The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export.
      */
-    readonly body?: ExportOptions
+    readonly exportOptions?: ExportOptions
 }
 
 /**
@@ -16303,7 +16941,7 @@ export interface IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChange
     /**
      * The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body.
      */
-    readonly body: IssueChange
+    readonly issueChange: IssueChange
 }
 
 /**
@@ -16383,7 +17021,7 @@ export interface IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommen
     /**
      * The updated comment.
      */
-    readonly body: IssueComment
+    readonly issueComment: IssueComment
 }
 
 /**
@@ -16433,7 +17071,7 @@ export interface IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommen
     /**
      * The new issue comment object.
      */
-    readonly body: IssueComment
+    readonly issueComment: IssueComment
 }
 
 /**
@@ -16633,7 +17271,7 @@ export interface IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest {
     /**
      * The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body.
      */
-    readonly body: Issue
+    readonly issue: Issue
 }
 
 /**
@@ -16715,6 +17353,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get a component for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugComponentsComponentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsComponentIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -16726,6 +17365,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List components
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugComponentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugComponentsGetRequest, options?: RawAxiosRequestConfig) {
@@ -16737,10 +17377,11 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Export issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportPostRequest, options?: RawAxiosRequestConfig) {
-        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesExportPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.exportOptions, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -16748,6 +17389,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Check issue export status
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesExportRepoNameIssuesTaskIdZipGetRequest, options?: RawAxiosRequestConfig) {
@@ -16759,6 +17401,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesGetRequest, options?: RawAxiosRequestConfig) {
@@ -16770,6 +17413,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Check issue import status
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesImportGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportGetRequest, options?: RawAxiosRequestConfig) {
@@ -16781,6 +17425,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Import issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesImportPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesImportPostRequest, options?: RawAxiosRequestConfig) {
@@ -16792,6 +17437,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List attachments for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsGetRequest, options?: RawAxiosRequestConfig) {
@@ -16803,6 +17449,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Delete an attachment for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -16814,6 +17461,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get attachment for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPathGetRequest, options?: RawAxiosRequestConfig) {
@@ -16825,6 +17473,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Upload an attachment to an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdAttachmentsPostRequest, options?: RawAxiosRequestConfig) {
@@ -16836,6 +17485,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get issue change object
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesChangeIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -16847,6 +17497,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List changes on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdChangesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesGetRequest, options?: RawAxiosRequestConfig) {
@@ -16858,10 +17509,11 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Modify the state of an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdChangesPostRequest, options?: RawAxiosRequestConfig) {
-        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueChange, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -16869,6 +17521,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Delete a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -16880,6 +17533,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -16891,10 +17545,11 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Update a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig) {
-        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -16902,6 +17557,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List comments on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsGetRequest, options?: RawAxiosRequestConfig) {
@@ -16913,10 +17569,11 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Create a comment on an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPostRequest, options?: RawAxiosRequestConfig) {
-        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(requestParameters.issueId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.issueComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -16924,6 +17581,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Delete an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -16935,6 +17593,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -16946,6 +17605,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Update an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdPutRequest, options?: RawAxiosRequestConfig) {
@@ -16957,6 +17617,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Remove vote for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdVoteDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -16968,6 +17629,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Check if current user voted for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdVoteGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVoteGetRequest, options?: RawAxiosRequestConfig) {
@@ -16979,6 +17641,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Vote for an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdVotePut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdVotePutRequest, options?: RawAxiosRequestConfig) {
@@ -16990,6 +17653,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Stop watching an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdWatchDelete(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchDeleteRequest, options?: RawAxiosRequestConfig) {
@@ -17001,6 +17665,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Check if current user is watching a issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdWatchGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchGetRequest, options?: RawAxiosRequestConfig) {
@@ -17012,6 +17677,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Watch an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesIssueIdWatchPut(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesIssueIdWatchPutRequest, options?: RawAxiosRequestConfig) {
@@ -17023,10 +17689,11 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Create an issue
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugIssuesPost(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugIssuesPostRequest, options?: RawAxiosRequestConfig) {
-        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return IssueTrackerApiFp(this.configuration).repositoriesWorkspaceRepoSlugIssuesPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.issue, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -17034,6 +17701,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List milestones
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugMilestonesGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesGetRequest, options?: RawAxiosRequestConfig) {
@@ -17045,6 +17713,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get a milestone
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugMilestonesMilestoneIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugMilestonesMilestoneIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -17056,6 +17725,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary List defined versions for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugVersionsGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsGetRequest, options?: RawAxiosRequestConfig) {
@@ -17067,6 +17737,7 @@ export class IssueTrackerApi extends BaseAPI implements IssueTrackerApiInterface
      * @summary Get a defined version for issues
      * @param {IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugVersionsVersionIdGet(requestParameters: IssueTrackerApiRepositoriesWorkspaceRepoSlugVersionsVersionIdGetRequest, options?: RawAxiosRequestConfig) {
@@ -17087,19 +17758,19 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} environmentUuid The environment.
-         * @param {DeploymentVariable} body The variable to create
+         * @param {DeploymentVariable} deploymentVariable The variable to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createDeploymentVariable: async (workspace: string, repoSlug: string, environmentUuid: string, body: DeploymentVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createDeploymentVariable: async (workspace: string, repoSlug: string, environmentUuid: string, deploymentVariable: DeploymentVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createDeploymentVariable', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createDeploymentVariable', 'repoSlug', repoSlug)
             // verify required parameter 'environmentUuid' is not null or undefined
             assertParamExists('createDeploymentVariable', 'environmentUuid', environmentUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createDeploymentVariable', 'body', body)
+            // verify required parameter 'deploymentVariable' is not null or undefined
+            assertParamExists('createDeploymentVariable', 'deploymentVariable', deploymentVariable)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -17132,7 +17803,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(deploymentVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17140,21 +17811,21 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
-         * Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+         * Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
          * @summary Run a pipeline
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {Pipeline} body The pipeline to initiate.
+         * @param {Pipeline} pipeline The pipeline to initiate.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createPipelineForRepository: async (workspace: string, repoSlug: string, body: Pipeline, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createPipelineForRepository: async (workspace: string, repoSlug: string, pipeline: Pipeline, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createPipelineForRepository', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createPipelineForRepository', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createPipelineForRepository', 'body', body)
+            // verify required parameter 'pipeline' is not null or undefined
+            assertParamExists('createPipelineForRepository', 'pipeline', pipeline)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -17186,7 +17857,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipeline, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17197,12 +17868,12 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * Create an account level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
          * @summary Create a variable for a user
          * @param {string} username The account.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        createPipelineVariableForTeam: async (username: string, body?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createPipelineVariableForTeam: async (username: string, pipelineVariable?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'username' is not null or undefined
             assertParamExists('createPipelineVariableForTeam', 'username', username)
             const localVarPath = `/teams/{username}/pipelines_config/variables`
@@ -17235,7 +17906,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17246,12 +17917,12 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * Create a user level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
          * @summary Create a variable for a user
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        createPipelineVariableForUser: async (selectedUser: string, body?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createPipelineVariableForUser: async (selectedUser: string, pipelineVariable?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'selectedUser' is not null or undefined
             assertParamExists('createPipelineVariableForUser', 'selectedUser', selectedUser)
             const localVarPath = `/users/{selected_user}/pipelines_config/variables`
@@ -17284,7 +17955,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17295,11 +17966,11 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * Create a workspace level variable.
          * @summary Create a variable for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createPipelineVariableForWorkspace: async (workspace: string, body?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createPipelineVariableForWorkspace: async (workspace: string, pipelineVariable?: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createPipelineVariableForWorkspace', 'workspace', workspace)
             const localVarPath = `/workspaces/{workspace}/pipelines-config/variables`
@@ -17332,7 +18003,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17344,17 +18015,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Create a known host
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineKnownHost} body The known host to create.
+         * @param {PipelineKnownHost} pipelineKnownHost The known host to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createRepositoryPipelineKnownHost: async (workspace: string, repoSlug: string, body: PipelineKnownHost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createRepositoryPipelineKnownHost: async (workspace: string, repoSlug: string, pipelineKnownHost: PipelineKnownHost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createRepositoryPipelineKnownHost', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createRepositoryPipelineKnownHost', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createRepositoryPipelineKnownHost', 'body', body)
+            // verify required parameter 'pipelineKnownHost' is not null or undefined
+            assertParamExists('createRepositoryPipelineKnownHost', 'pipelineKnownHost', pipelineKnownHost)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -17386,7 +18057,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineKnownHost, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17398,17 +18069,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Create a schedule
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineSchedulePostRequestBody} body The schedule to create.
+         * @param {PipelineSchedulePostRequestBody} pipelineSchedulePostRequestBody The schedule to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createRepositoryPipelineSchedule: async (workspace: string, repoSlug: string, body: PipelineSchedulePostRequestBody, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createRepositoryPipelineSchedule: async (workspace: string, repoSlug: string, pipelineSchedulePostRequestBody: PipelineSchedulePostRequestBody, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createRepositoryPipelineSchedule', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createRepositoryPipelineSchedule', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createRepositoryPipelineSchedule', 'body', body)
+            // verify required parameter 'pipelineSchedulePostRequestBody' is not null or undefined
+            assertParamExists('createRepositoryPipelineSchedule', 'pipelineSchedulePostRequestBody', pipelineSchedulePostRequestBody)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/schedules`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -17440,7 +18111,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineSchedulePostRequestBody, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -17452,17 +18123,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Create a variable for a repository
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineVariable} body The variable to create.
+         * @param {PipelineVariable} pipelineVariable The variable to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createRepositoryPipelineVariable: async (workspace: string, repoSlug: string, body: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createRepositoryPipelineVariable: async (workspace: string, repoSlug: string, pipelineVariable: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createRepositoryPipelineVariable', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('createRepositoryPipelineVariable', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createRepositoryPipelineVariable', 'body', body)
+            // verify required parameter 'pipelineVariable' is not null or undefined
+            assertParamExists('createRepositoryPipelineVariable', 'pipelineVariable', pipelineVariable)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/variables`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -17494,7 +18165,101 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Create repository runner.
+         * @summary Create repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryRunner: async (workspace: string, repoSlug: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createRepositoryRunner', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('createRepositoryRunner', 'repoSlug', repoSlug)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines-config/runners`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Create workspace runner.
+         * @summary Create workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceRunner: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createWorkspaceRunner', 'workspace', workspace)
+            const localVarPath = `/workspaces/{workspace}/pipelines-config/runners`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -18008,6 +18773,108 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             // authentication oauth2 required
             // oauth required
             await setOAuthToObject(localVarHeaderParameter, "oauth2", ["pipeline:variable"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete repository runner by uuid.
+         * @summary Delete repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryRunner: async (workspace: string, repoSlug: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteRepositoryRunner', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('deleteRepositoryRunner', 'repoSlug', repoSlug)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('deleteRepositoryRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Delete workspace runner by uuid.
+         * @summary Delete workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceRunner: async (workspace: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteWorkspaceRunner', 'workspace', workspace)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('deleteWorkspaceRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/workspaces/{workspace}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
 
             // authentication basic required
             // http basic authentication required
@@ -19585,6 +20452,202 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             };
         },
         /**
+         * Retrieve repository runner by uuid.
+         * @summary Get repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryRunner: async (workspace: string, repoSlug: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getRepositoryRunner', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getRepositoryRunner', 'repoSlug', repoSlug)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('getRepositoryRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieve repository runners.
+         * @summary Get repository runners
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryRunners: async (workspace: string, repoSlug: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getRepositoryRunners', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getRepositoryRunners', 'repoSlug', repoSlug)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines-config/runners`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Get workspace runner by uuid.
+         * @summary Get workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceRunner: async (workspace: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getWorkspaceRunner', 'workspace', workspace)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('getWorkspaceRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/workspaces/{workspace}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Retrieve workspace runners.
+         * @summary Get workspace runners
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceRunners: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getWorkspaceRunners', 'workspace', workspace)
+            const localVarPath = `/workspaces/{workspace}/pipelines-config/runners`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Signal the stop of a pipeline and all of its steps that not have completed yet.
          * @summary Stop a pipeline
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
@@ -19644,11 +20707,11 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @param {string} repoSlug The repository.
          * @param {string} environmentUuid The environment.
          * @param {string} variableUuid The UUID of the variable to update.
-         * @param {DeploymentVariable} body The updated deployment variable.
+         * @param {DeploymentVariable} deploymentVariable The updated deployment variable.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateDeploymentVariable: async (workspace: string, repoSlug: string, environmentUuid: string, variableUuid: string, body: DeploymentVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateDeploymentVariable: async (workspace: string, repoSlug: string, environmentUuid: string, variableUuid: string, deploymentVariable: DeploymentVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateDeploymentVariable', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -19657,8 +20720,8 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             assertParamExists('updateDeploymentVariable', 'environmentUuid', environmentUuid)
             // verify required parameter 'variableUuid' is not null or undefined
             assertParamExists('updateDeploymentVariable', 'variableUuid', variableUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateDeploymentVariable', 'body', body)
+            // verify required parameter 'deploymentVariable' is not null or undefined
+            assertParamExists('updateDeploymentVariable', 'deploymentVariable', deploymentVariable)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/deployments_config/environments/{environment_uuid}/variables/{variable_uuid}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -19692,7 +20755,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(deploymentVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19704,18 +20767,18 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update a variable for a team
          * @param {string} username The account.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        updatePipelineVariableForTeam: async (username: string, variableUuid: string, body: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updatePipelineVariableForTeam: async (username: string, variableUuid: string, pipelineVariable: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'username' is not null or undefined
             assertParamExists('updatePipelineVariableForTeam', 'username', username)
             // verify required parameter 'variableUuid' is not null or undefined
             assertParamExists('updatePipelineVariableForTeam', 'variableUuid', variableUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updatePipelineVariableForTeam', 'body', body)
+            // verify required parameter 'pipelineVariable' is not null or undefined
+            assertParamExists('updatePipelineVariableForTeam', 'pipelineVariable', pipelineVariable)
             const localVarPath = `/teams/{username}/pipelines_config/variables/{variable_uuid}`
                 .replace(`{${"username"}}`, encodeURIComponent(String(username)))
                 .replace(`{${"variable_uuid"}}`, encodeURIComponent(String(variableUuid)));
@@ -19747,7 +20810,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19759,18 +20822,18 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update a variable for a user
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        updatePipelineVariableForUser: async (selectedUser: string, variableUuid: string, body: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updatePipelineVariableForUser: async (selectedUser: string, variableUuid: string, pipelineVariable: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'selectedUser' is not null or undefined
             assertParamExists('updatePipelineVariableForUser', 'selectedUser', selectedUser)
             // verify required parameter 'variableUuid' is not null or undefined
             assertParamExists('updatePipelineVariableForUser', 'variableUuid', variableUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updatePipelineVariableForUser', 'body', body)
+            // verify required parameter 'pipelineVariable' is not null or undefined
+            assertParamExists('updatePipelineVariableForUser', 'pipelineVariable', pipelineVariable)
             const localVarPath = `/users/{selected_user}/pipelines_config/variables/{variable_uuid}`
                 .replace(`{${"selected_user"}}`, encodeURIComponent(String(selectedUser)))
                 .replace(`{${"variable_uuid"}}`, encodeURIComponent(String(variableUuid)));
@@ -19802,7 +20865,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19814,17 +20877,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update variable for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updatePipelineVariableForWorkspace: async (workspace: string, variableUuid: string, body: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updatePipelineVariableForWorkspace: async (workspace: string, variableUuid: string, pipelineVariable: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updatePipelineVariableForWorkspace', 'workspace', workspace)
             // verify required parameter 'variableUuid' is not null or undefined
             assertParamExists('updatePipelineVariableForWorkspace', 'variableUuid', variableUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updatePipelineVariableForWorkspace', 'body', body)
+            // verify required parameter 'pipelineVariable' is not null or undefined
+            assertParamExists('updatePipelineVariableForWorkspace', 'pipelineVariable', pipelineVariable)
             const localVarPath = `/workspaces/{workspace}/pipelines-config/variables/{variable_uuid}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"variable_uuid"}}`, encodeURIComponent(String(variableUuid)));
@@ -19856,7 +20919,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19868,17 +20931,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update the next build number
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineBuildNumber} body The build number to update.
+         * @param {PipelineBuildNumber} pipelineBuildNumber The build number to update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryBuildNumber: async (workspace: string, repoSlug: string, body: PipelineBuildNumber, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryBuildNumber: async (workspace: string, repoSlug: string, pipelineBuildNumber: PipelineBuildNumber, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryBuildNumber', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryBuildNumber', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryBuildNumber', 'body', body)
+            // verify required parameter 'pipelineBuildNumber' is not null or undefined
+            assertParamExists('updateRepositoryBuildNumber', 'pipelineBuildNumber', pipelineBuildNumber)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/build_number`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -19910,7 +20973,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineBuildNumber, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19922,17 +20985,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update configuration
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelinesConfig} body The updated repository pipelines configuration.
+         * @param {PipelinesConfig} pipelinesConfig The updated repository pipelines configuration.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryPipelineConfig: async (workspace: string, repoSlug: string, body: PipelinesConfig, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryPipelineConfig: async (workspace: string, repoSlug: string, pipelinesConfig: PipelinesConfig, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryPipelineConfig', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryPipelineConfig', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryPipelineConfig', 'body', body)
+            // verify required parameter 'pipelinesConfig' is not null or undefined
+            assertParamExists('updateRepositoryPipelineConfig', 'pipelinesConfig', pipelinesConfig)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -19964,7 +21027,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelinesConfig, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -19976,17 +21039,17 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @summary Update SSH key pair
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineSshKeyPair} body The created or updated SSH key pair.
+         * @param {PipelineSshKeyPair} pipelineSshKeyPair The created or updated SSH key pair.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryPipelineKeyPair: async (workspace: string, repoSlug: string, body: PipelineSshKeyPair, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryPipelineKeyPair: async (workspace: string, repoSlug: string, pipelineSshKeyPair: PipelineSshKeyPair, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryPipelineKeyPair', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryPipelineKeyPair', 'repoSlug', repoSlug)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryPipelineKeyPair', 'body', body)
+            // verify required parameter 'pipelineSshKeyPair' is not null or undefined
+            assertParamExists('updateRepositoryPipelineKeyPair', 'pipelineSshKeyPair', pipelineSshKeyPair)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/ssh/key_pair`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
@@ -20018,7 +21081,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineSshKeyPair, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -20031,19 +21094,19 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} knownHostUuid The UUID of the known host to update.
-         * @param {PipelineKnownHost} body The updated known host.
+         * @param {PipelineKnownHost} pipelineKnownHost The updated known host.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryPipelineKnownHost: async (workspace: string, repoSlug: string, knownHostUuid: string, body: PipelineKnownHost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryPipelineKnownHost: async (workspace: string, repoSlug: string, knownHostUuid: string, pipelineKnownHost: PipelineKnownHost, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryPipelineKnownHost', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryPipelineKnownHost', 'repoSlug', repoSlug)
             // verify required parameter 'knownHostUuid' is not null or undefined
             assertParamExists('updateRepositoryPipelineKnownHost', 'knownHostUuid', knownHostUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryPipelineKnownHost', 'body', body)
+            // verify required parameter 'pipelineKnownHost' is not null or undefined
+            assertParamExists('updateRepositoryPipelineKnownHost', 'pipelineKnownHost', pipelineKnownHost)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/ssh/known_hosts/{known_host_uuid}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -20076,7 +21139,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineKnownHost, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -20089,19 +21152,19 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} scheduleUuid The uuid of the schedule.
-         * @param {PipelineSchedulePutRequestBody} body The schedule to update.
+         * @param {PipelineSchedulePutRequestBody} pipelineSchedulePutRequestBody The schedule to update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryPipelineSchedule: async (workspace: string, repoSlug: string, scheduleUuid: string, body: PipelineSchedulePutRequestBody, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryPipelineSchedule: async (workspace: string, repoSlug: string, scheduleUuid: string, pipelineSchedulePutRequestBody: PipelineSchedulePutRequestBody, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryPipelineSchedule', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryPipelineSchedule', 'repoSlug', repoSlug)
             // verify required parameter 'scheduleUuid' is not null or undefined
             assertParamExists('updateRepositoryPipelineSchedule', 'scheduleUuid', scheduleUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryPipelineSchedule', 'body', body)
+            // verify required parameter 'pipelineSchedulePutRequestBody' is not null or undefined
+            assertParamExists('updateRepositoryPipelineSchedule', 'pipelineSchedulePutRequestBody', pipelineSchedulePutRequestBody)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/schedules/{schedule_uuid}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -20134,7 +21197,7 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineSchedulePutRequestBody, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -20147,19 +21210,19 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} variableUuid The UUID of the variable to update.
-         * @param {PipelineVariable} body The updated variable
+         * @param {PipelineVariable} pipelineVariable The updated variable
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryPipelineVariable: async (workspace: string, repoSlug: string, variableUuid: string, body: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryPipelineVariable: async (workspace: string, repoSlug: string, variableUuid: string, pipelineVariable: PipelineVariable, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryPipelineVariable', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('updateRepositoryPipelineVariable', 'repoSlug', repoSlug)
             // verify required parameter 'variableUuid' is not null or undefined
             assertParamExists('updateRepositoryPipelineVariable', 'variableUuid', variableUuid)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryPipelineVariable', 'body', body)
+            // verify required parameter 'pipelineVariable' is not null or undefined
+            assertParamExists('updateRepositoryPipelineVariable', 'pipelineVariable', pipelineVariable)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines_config/variables/{variable_uuid}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -20192,7 +21255,109 @@ export const PipelinesApiAxiosParamCreator = function (configuration?: Configura
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pipelineVariable, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update repository runner.
+         * @summary Update repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateRepositoryRunner: async (workspace: string, repoSlug: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('updateRepositoryRunner', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('updateRepositoryRunner', 'repoSlug', repoSlug)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('updateRepositoryRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Update workspace runner.
+         * @summary Update workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateWorkspaceRunner: async (workspace: string, runnerUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('updateWorkspaceRunner', 'workspace', workspace)
+            // verify required parameter 'runnerUuid' is not null or undefined
+            assertParamExists('updateWorkspaceRunner', 'runnerUuid', runnerUuid)
+            const localVarPath = `/workspaces/{workspace}/pipelines-config/runners/{runner_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"runner_uuid"}}`, encodeURIComponent(String(runnerUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["runner:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -20214,27 +21379,27 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} environmentUuid The environment.
-         * @param {DeploymentVariable} body The variable to create
+         * @param {DeploymentVariable} deploymentVariable The variable to create
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createDeploymentVariable(workspace: string, repoSlug: string, environmentUuid: string, body: DeploymentVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createDeploymentVariable(workspace, repoSlug, environmentUuid, body, options);
+        async createDeploymentVariable(workspace: string, repoSlug: string, environmentUuid: string, deploymentVariable: DeploymentVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createDeploymentVariable(workspace, repoSlug, environmentUuid, deploymentVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createDeploymentVariable']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+         * Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
          * @summary Run a pipeline
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {Pipeline} body The pipeline to initiate.
+         * @param {Pipeline} pipeline The pipeline to initiate.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createPipelineForRepository(workspace: string, repoSlug: string, body: Pipeline, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pipeline>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineForRepository(workspace, repoSlug, body, options);
+        async createPipelineForRepository(workspace: string, repoSlug: string, pipeline: Pipeline, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pipeline>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineForRepository(workspace, repoSlug, pipeline, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createPipelineForRepository']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20243,13 +21408,13 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * Create an account level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
          * @summary Create a variable for a user
          * @param {string} username The account.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        async createPipelineVariableForTeam(username: string, body?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForTeam(username, body, options);
+        async createPipelineVariableForTeam(username: string, pipelineVariable?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForTeam(username, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createPipelineVariableForTeam']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20258,13 +21423,13 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * Create a user level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
          * @summary Create a variable for a user
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        async createPipelineVariableForUser(selectedUser: string, body?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForUser(selectedUser, body, options);
+        async createPipelineVariableForUser(selectedUser: string, pipelineVariable?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForUser(selectedUser, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createPipelineVariableForUser']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20273,12 +21438,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * Create a workspace level variable.
          * @summary Create a variable for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
-         * @param {PipelineVariable} [body] The variable to create.
+         * @param {PipelineVariable} [pipelineVariable] The variable to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createPipelineVariableForWorkspace(workspace: string, body?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForWorkspace(workspace, body, options);
+        async createPipelineVariableForWorkspace(workspace: string, pipelineVariable?: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createPipelineVariableForWorkspace(workspace, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createPipelineVariableForWorkspace']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20288,12 +21453,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Create a known host
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineKnownHost} body The known host to create.
+         * @param {PipelineKnownHost} pipelineKnownHost The known host to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createRepositoryPipelineKnownHost(workspace: string, repoSlug: string, body: PipelineKnownHost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineKnownHost>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineKnownHost(workspace, repoSlug, body, options);
+        async createRepositoryPipelineKnownHost(workspace: string, repoSlug: string, pipelineKnownHost: PipelineKnownHost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineKnownHost>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineKnownHost(workspace, repoSlug, pipelineKnownHost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createRepositoryPipelineKnownHost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20303,12 +21468,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Create a schedule
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineSchedulePostRequestBody} body The schedule to create.
+         * @param {PipelineSchedulePostRequestBody} pipelineSchedulePostRequestBody The schedule to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createRepositoryPipelineSchedule(workspace: string, repoSlug: string, body: PipelineSchedulePostRequestBody, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSchedule>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineSchedule(workspace, repoSlug, body, options);
+        async createRepositoryPipelineSchedule(workspace: string, repoSlug: string, pipelineSchedulePostRequestBody: PipelineSchedulePostRequestBody, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSchedule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineSchedule(workspace, repoSlug, pipelineSchedulePostRequestBody, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createRepositoryPipelineSchedule']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20318,14 +21483,41 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Create a variable for a repository
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineVariable} body The variable to create.
+         * @param {PipelineVariable} pipelineVariable The variable to create.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createRepositoryPipelineVariable(workspace: string, repoSlug: string, body: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineVariable(workspace, repoSlug, body, options);
+        async createRepositoryPipelineVariable(workspace: string, repoSlug: string, pipelineVariable: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryPipelineVariable(workspace, repoSlug, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createRepositoryPipelineVariable']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Create repository runner.
+         * @summary Create repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createRepositoryRunner(workspace: string, repoSlug: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryRunner(workspace, repoSlug, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createRepositoryRunner']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Create workspace runner.
+         * @summary Create workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createWorkspaceRunner(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createWorkspaceRunner(workspace, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.createWorkspaceRunner']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -20475,6 +21667,35 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepositoryPipelineVariable(workspace, repoSlug, variableUuid, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.deleteRepositoryPipelineVariable']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete repository runner by uuid.
+         * @summary Delete repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteRepositoryRunner(workspace: string, repoSlug: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepositoryRunner(workspace, repoSlug, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.deleteRepositoryRunner']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Delete workspace runner by uuid.
+         * @summary Delete workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteWorkspaceRunner(workspace: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWorkspaceRunner(workspace, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.deleteWorkspaceRunner']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -20918,6 +22139,62 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Retrieve repository runner by uuid.
+         * @summary Get repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getRepositoryRunner(workspace: string, repoSlug: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getRepositoryRunner(workspace, repoSlug, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.getRepositoryRunner']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieve repository runners.
+         * @summary Get repository runners
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getRepositoryRunners(workspace: string, repoSlug: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedPipelineRunners>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getRepositoryRunners(workspace, repoSlug, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.getRepositoryRunners']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Get workspace runner by uuid.
+         * @summary Get workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getWorkspaceRunner(workspace: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkspaceRunner(workspace, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.getWorkspaceRunner']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Retrieve workspace runners.
+         * @summary Get workspace runners
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getWorkspaceRunners(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedPipelineRunners>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkspaceRunners(workspace, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.getWorkspaceRunners']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Signal the stop of a pipeline and all of its steps that not have completed yet.
          * @summary Stop a pipeline
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
@@ -20939,12 +22216,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} environmentUuid The environment.
          * @param {string} variableUuid The UUID of the variable to update.
-         * @param {DeploymentVariable} body The updated deployment variable.
+         * @param {DeploymentVariable} deploymentVariable The updated deployment variable.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateDeploymentVariable(workspace: string, repoSlug: string, environmentUuid: string, variableUuid: string, body: DeploymentVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateDeploymentVariable(workspace, repoSlug, environmentUuid, variableUuid, body, options);
+        async updateDeploymentVariable(workspace: string, repoSlug: string, environmentUuid: string, variableUuid: string, deploymentVariable: DeploymentVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<DeploymentVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateDeploymentVariable(workspace, repoSlug, environmentUuid, variableUuid, deploymentVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateDeploymentVariable']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20954,13 +22231,13 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update a variable for a team
          * @param {string} username The account.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        async updatePipelineVariableForTeam(username: string, variableUuid: string, body: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForTeam(username, variableUuid, body, options);
+        async updatePipelineVariableForTeam(username: string, variableUuid: string, pipelineVariable: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForTeam(username, variableUuid, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updatePipelineVariableForTeam']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20970,13 +22247,13 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update a variable for a user
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @deprecated
          * @throws {RequiredError}
          */
-        async updatePipelineVariableForUser(selectedUser: string, variableUuid: string, body: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForUser(selectedUser, variableUuid, body, options);
+        async updatePipelineVariableForUser(selectedUser: string, variableUuid: string, pipelineVariable: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForUser(selectedUser, variableUuid, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updatePipelineVariableForUser']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -20986,12 +22263,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update variable for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} variableUuid The UUID of the variable.
-         * @param {PipelineVariable} body The updated variable.
+         * @param {PipelineVariable} pipelineVariable The updated variable.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updatePipelineVariableForWorkspace(workspace: string, variableUuid: string, body: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForWorkspace(workspace, variableUuid, body, options);
+        async updatePipelineVariableForWorkspace(workspace: string, variableUuid: string, pipelineVariable: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePipelineVariableForWorkspace(workspace, variableUuid, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updatePipelineVariableForWorkspace']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21001,12 +22278,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update the next build number
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineBuildNumber} body The build number to update.
+         * @param {PipelineBuildNumber} pipelineBuildNumber The build number to update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryBuildNumber(workspace: string, repoSlug: string, body: PipelineBuildNumber, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineBuildNumber>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryBuildNumber(workspace, repoSlug, body, options);
+        async updateRepositoryBuildNumber(workspace: string, repoSlug: string, pipelineBuildNumber: PipelineBuildNumber, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineBuildNumber>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryBuildNumber(workspace, repoSlug, pipelineBuildNumber, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryBuildNumber']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21016,12 +22293,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update configuration
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelinesConfig} body The updated repository pipelines configuration.
+         * @param {PipelinesConfig} pipelinesConfig The updated repository pipelines configuration.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryPipelineConfig(workspace: string, repoSlug: string, body: PipelinesConfig, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelinesConfig>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineConfig(workspace, repoSlug, body, options);
+        async updateRepositoryPipelineConfig(workspace: string, repoSlug: string, pipelinesConfig: PipelinesConfig, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelinesConfig>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineConfig(workspace, repoSlug, pipelinesConfig, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryPipelineConfig']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21031,12 +22308,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @summary Update SSH key pair
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
-         * @param {PipelineSshKeyPair} body The created or updated SSH key pair.
+         * @param {PipelineSshKeyPair} pipelineSshKeyPair The created or updated SSH key pair.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryPipelineKeyPair(workspace: string, repoSlug: string, body: PipelineSshKeyPair, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSshKeyPair>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineKeyPair(workspace, repoSlug, body, options);
+        async updateRepositoryPipelineKeyPair(workspace: string, repoSlug: string, pipelineSshKeyPair: PipelineSshKeyPair, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSshKeyPair>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineKeyPair(workspace, repoSlug, pipelineSshKeyPair, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryPipelineKeyPair']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21047,12 +22324,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} knownHostUuid The UUID of the known host to update.
-         * @param {PipelineKnownHost} body The updated known host.
+         * @param {PipelineKnownHost} pipelineKnownHost The updated known host.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryPipelineKnownHost(workspace: string, repoSlug: string, knownHostUuid: string, body: PipelineKnownHost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineKnownHost>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineKnownHost(workspace, repoSlug, knownHostUuid, body, options);
+        async updateRepositoryPipelineKnownHost(workspace: string, repoSlug: string, knownHostUuid: string, pipelineKnownHost: PipelineKnownHost, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineKnownHost>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineKnownHost(workspace, repoSlug, knownHostUuid, pipelineKnownHost, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryPipelineKnownHost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21063,12 +22340,12 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} scheduleUuid The uuid of the schedule.
-         * @param {PipelineSchedulePutRequestBody} body The schedule to update.
+         * @param {PipelineSchedulePutRequestBody} pipelineSchedulePutRequestBody The schedule to update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryPipelineSchedule(workspace: string, repoSlug: string, scheduleUuid: string, body: PipelineSchedulePutRequestBody, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSchedule>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineSchedule(workspace, repoSlug, scheduleUuid, body, options);
+        async updateRepositoryPipelineSchedule(workspace: string, repoSlug: string, scheduleUuid: string, pipelineSchedulePutRequestBody: PipelineSchedulePutRequestBody, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineSchedule>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineSchedule(workspace, repoSlug, scheduleUuid, pipelineSchedulePutRequestBody, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryPipelineSchedule']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -21079,14 +22356,43 @@ export const PipelinesApiFp = function(configuration?: Configuration) {
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {string} repoSlug The repository.
          * @param {string} variableUuid The UUID of the variable to update.
-         * @param {PipelineVariable} body The updated variable
+         * @param {PipelineVariable} pipelineVariable The updated variable
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryPipelineVariable(workspace: string, repoSlug: string, variableUuid: string, body: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineVariable(workspace, repoSlug, variableUuid, body, options);
+        async updateRepositoryPipelineVariable(workspace: string, repoSlug: string, variableUuid: string, pipelineVariable: PipelineVariable, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineVariable>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryPipelineVariable(workspace, repoSlug, variableUuid, pipelineVariable, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryPipelineVariable']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update repository runner.
+         * @summary Update repository runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug The repository.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateRepositoryRunner(workspace: string, repoSlug: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryRunner(workspace, repoSlug, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateRepositoryRunner']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Update workspace runner.
+         * @summary Update workspace runner
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} runnerUuid The runner uuid.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateWorkspaceRunner(workspace: string, runnerUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PipelineRunner>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateWorkspaceRunner(workspace, runnerUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PipelinesApi.updateWorkspaceRunner']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
     }
@@ -21106,17 +22412,17 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createDeploymentVariable(requestParameters: PipelinesApiCreateDeploymentVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<DeploymentVariable> {
-            return localVarFp.createDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.deploymentVariable, options).then((request) => request(axios, basePath));
         },
         /**
-         * Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+         * Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
          * @summary Run a pipeline
          * @param {PipelinesApiCreatePipelineForRepositoryRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         createPipelineForRepository(requestParameters: PipelinesApiCreatePipelineForRepositoryRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pipeline> {
-            return localVarFp.createPipelineForRepository(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createPipelineForRepository(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipeline, options).then((request) => request(axios, basePath));
         },
         /**
          * Create an account level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
@@ -21127,7 +22433,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createPipelineVariableForTeam(requestParameters: PipelinesApiCreatePipelineVariableForTeamRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.createPipelineVariableForTeam(requestParameters.username, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createPipelineVariableForTeam(requestParameters.username, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a user level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
@@ -21138,7 +22444,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createPipelineVariableForUser(requestParameters: PipelinesApiCreatePipelineVariableForUserRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.createPipelineVariableForUser(requestParameters.selectedUser, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createPipelineVariableForUser(requestParameters.selectedUser, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a workspace level variable.
@@ -21148,7 +22454,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createPipelineVariableForWorkspace(requestParameters: PipelinesApiCreatePipelineVariableForWorkspaceRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.createPipelineVariableForWorkspace(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createPipelineVariableForWorkspace(requestParameters.workspace, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a repository level known host.
@@ -21158,7 +22464,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createRepositoryPipelineKnownHost(requestParameters: PipelinesApiCreateRepositoryPipelineKnownHostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineKnownHost> {
-            return localVarFp.createRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineKnownHost, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a schedule for the given repository.
@@ -21168,7 +22474,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createRepositoryPipelineSchedule(requestParameters: PipelinesApiCreateRepositoryPipelineScheduleRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineSchedule> {
-            return localVarFp.createRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineSchedulePostRequestBody, options).then((request) => request(axios, basePath));
         },
         /**
          * Create a repository level variable.
@@ -21178,7 +22484,27 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         createRepositoryPipelineVariable(requestParameters: PipelinesApiCreateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.createRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create repository runner.
+         * @summary Create repository runner
+         * @param {PipelinesApiCreateRepositoryRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryRunner(requestParameters: PipelinesApiCreateRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.createRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Create workspace runner.
+         * @summary Create workspace runner
+         * @param {PipelinesApiCreateWorkspaceRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceRunner(requestParameters: PipelinesApiCreateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.createWorkspaceRunner(requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
          * Delete a deployment environment level variable.
@@ -21281,6 +22607,26 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          */
         deleteRepositoryPipelineVariable(requestParameters: PipelinesApiDeleteRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deleteRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete repository runner by uuid.
+         * @summary Delete repository runner
+         * @param {PipelinesApiDeleteRepositoryRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryRunner(requestParameters: PipelinesApiDeleteRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Delete workspace runner by uuid.
+         * @summary Delete workspace runner
+         * @param {PipelinesApiDeleteWorkspaceRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceRunner(requestParameters: PipelinesApiDeleteWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
         },
         /**
          * Find deployment environment level variables.
@@ -21577,6 +22923,46 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
             return localVarFp.getRepositoryPipelineVariables(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(axios, basePath));
         },
         /**
+         * Retrieve repository runner by uuid.
+         * @summary Get repository runner
+         * @param {PipelinesApiGetRepositoryRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryRunner(requestParameters: PipelinesApiGetRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.getRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieve repository runners.
+         * @summary Get repository runners
+         * @param {PipelinesApiGetRepositoryRunnersRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryRunners(requestParameters: PipelinesApiGetRepositoryRunnersRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPipelineRunners> {
+            return localVarFp.getRepositoryRunners(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Get workspace runner by uuid.
+         * @summary Get workspace runner
+         * @param {PipelinesApiGetWorkspaceRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceRunner(requestParameters: PipelinesApiGetWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.getWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Retrieve workspace runners.
+         * @summary Get workspace runners
+         * @param {PipelinesApiGetWorkspaceRunnersRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceRunners(requestParameters: PipelinesApiGetWorkspaceRunnersRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPipelineRunners> {
+            return localVarFp.getWorkspaceRunners(requestParameters.workspace, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Signal the stop of a pipeline and all of its steps that not have completed yet.
          * @summary Stop a pipeline
          * @param {PipelinesApiStopPipelineRequest} requestParameters Request parameters.
@@ -21594,7 +22980,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateDeploymentVariable(requestParameters: PipelinesApiUpdateDeploymentVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<DeploymentVariable> {
-            return localVarFp.updateDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.variableUuid, requestParameters.deploymentVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a team level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
@@ -21605,7 +22991,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updatePipelineVariableForTeam(requestParameters: PipelinesApiUpdatePipelineVariableForTeamRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.updatePipelineVariableForTeam(requestParameters.username, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updatePipelineVariableForTeam(requestParameters.username, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a user level variable. This endpoint has been deprecated, and you should use the new workspaces endpoint. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).
@@ -21616,7 +23002,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updatePipelineVariableForUser(requestParameters: PipelinesApiUpdatePipelineVariableForUserRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.updatePipelineVariableForUser(requestParameters.selectedUser, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updatePipelineVariableForUser(requestParameters.selectedUser, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a workspace level variable.
@@ -21626,7 +23012,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updatePipelineVariableForWorkspace(requestParameters: PipelinesApiUpdatePipelineVariableForWorkspaceRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.updatePipelineVariableForWorkspace(requestParameters.workspace, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updatePipelineVariableForWorkspace(requestParameters.workspace, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
         },
         /**
          * Update the next build number that should be assigned to a pipeline. The next build number that will be configured has to be strictly higher than the current latest build number for this repository.
@@ -21636,7 +23022,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryBuildNumber(requestParameters: PipelinesApiUpdateRepositoryBuildNumberRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineBuildNumber> {
-            return localVarFp.updateRepositoryBuildNumber(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryBuildNumber(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineBuildNumber, options).then((request) => request(axios, basePath));
         },
         /**
          * Update the pipelines configuration for a repository.
@@ -21646,7 +23032,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryPipelineConfig(requestParameters: PipelinesApiUpdateRepositoryPipelineConfigRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelinesConfig> {
-            return localVarFp.updateRepositoryPipelineConfig(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryPipelineConfig(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelinesConfig, options).then((request) => request(axios, basePath));
         },
         /**
          * Create or update the repository SSH key pair. The private key will be set as a default SSH identity in your build container.
@@ -21656,7 +23042,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryPipelineKeyPair(requestParameters: PipelinesApiUpdateRepositoryPipelineKeyPairRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineSshKeyPair> {
-            return localVarFp.updateRepositoryPipelineKeyPair(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryPipelineKeyPair(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineSshKeyPair, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a repository level known host.
@@ -21666,7 +23052,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryPipelineKnownHost(requestParameters: PipelinesApiUpdateRepositoryPipelineKnownHostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineKnownHost> {
-            return localVarFp.updateRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.knownHostUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.knownHostUuid, requestParameters.pipelineKnownHost, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a schedule.
@@ -21676,7 +23062,7 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryPipelineSchedule(requestParameters: PipelinesApiUpdateRepositoryPipelineScheduleRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineSchedule> {
-            return localVarFp.updateRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.scheduleUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.scheduleUuid, requestParameters.pipelineSchedulePutRequestBody, options).then((request) => request(axios, basePath));
         },
         /**
          * Update a repository level variable.
@@ -21686,7 +23072,27 @@ export const PipelinesApiFactory = function (configuration?: Configuration, base
          * @throws {RequiredError}
          */
         updateRepositoryPipelineVariable(requestParameters: PipelinesApiUpdateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable> {
-            return localVarFp.updateRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update repository runner.
+         * @summary Update repository runner
+         * @param {PipelinesApiUpdateRepositoryRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateRepositoryRunner(requestParameters: PipelinesApiUpdateRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.updateRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Update workspace runner.
+         * @summary Update workspace runner
+         * @param {PipelinesApiUpdateWorkspaceRunnerRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateWorkspaceRunner(requestParameters: PipelinesApiUpdateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner> {
+            return localVarFp.updateWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -21705,7 +23111,7 @@ export interface PipelinesApiInterface {
     createDeploymentVariable(requestParameters: PipelinesApiCreateDeploymentVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<DeploymentVariable>;
 
     /**
-     * Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+     * Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
      * @summary Run a pipeline
      * @param {PipelinesApiCreatePipelineForRepositoryRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -21768,6 +23174,24 @@ export interface PipelinesApiInterface {
      * @throws {RequiredError}
      */
     createRepositoryPipelineVariable(requestParameters: PipelinesApiCreateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable>;
+
+    /**
+     * Create repository runner.
+     * @summary Create repository runner
+     * @param {PipelinesApiCreateRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createRepositoryRunner(requestParameters: PipelinesApiCreateRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
+
+    /**
+     * Create workspace runner.
+     * @summary Create workspace runner
+     * @param {PipelinesApiCreateWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createWorkspaceRunner(requestParameters: PipelinesApiCreateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
 
     /**
      * Delete a deployment environment level variable.
@@ -21860,6 +23284,24 @@ export interface PipelinesApiInterface {
      * @throws {RequiredError}
      */
     deleteRepositoryPipelineVariable(requestParameters: PipelinesApiDeleteRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Delete repository runner by uuid.
+     * @summary Delete repository runner
+     * @param {PipelinesApiDeleteRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteRepositoryRunner(requestParameters: PipelinesApiDeleteRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Delete workspace runner by uuid.
+     * @summary Delete workspace runner
+     * @param {PipelinesApiDeleteWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteWorkspaceRunner(requestParameters: PipelinesApiDeleteWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
      * Find deployment environment level variables.
@@ -22127,6 +23569,42 @@ export interface PipelinesApiInterface {
     getRepositoryPipelineVariables(requestParameters: PipelinesApiGetRepositoryPipelineVariablesRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPipelineVariables>;
 
     /**
+     * Retrieve repository runner by uuid.
+     * @summary Get repository runner
+     * @param {PipelinesApiGetRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getRepositoryRunner(requestParameters: PipelinesApiGetRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
+
+    /**
+     * Retrieve repository runners.
+     * @summary Get repository runners
+     * @param {PipelinesApiGetRepositoryRunnersRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getRepositoryRunners(requestParameters: PipelinesApiGetRepositoryRunnersRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPipelineRunners>;
+
+    /**
+     * Get workspace runner by uuid.
+     * @summary Get workspace runner
+     * @param {PipelinesApiGetWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWorkspaceRunner(requestParameters: PipelinesApiGetWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
+
+    /**
+     * Retrieve workspace runners.
+     * @summary Get workspace runners
+     * @param {PipelinesApiGetWorkspaceRunnersRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWorkspaceRunners(requestParameters: PipelinesApiGetWorkspaceRunnersRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPipelineRunners>;
+
+    /**
      * Signal the stop of a pipeline and all of its steps that not have completed yet.
      * @summary Stop a pipeline
      * @param {PipelinesApiStopPipelineRequest} requestParameters Request parameters.
@@ -22227,6 +23705,24 @@ export interface PipelinesApiInterface {
      */
     updateRepositoryPipelineVariable(requestParameters: PipelinesApiUpdateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineVariable>;
 
+    /**
+     * Update repository runner.
+     * @summary Update repository runner
+     * @param {PipelinesApiUpdateRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateRepositoryRunner(requestParameters: PipelinesApiUpdateRepositoryRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
+
+    /**
+     * Update workspace runner.
+     * @summary Update workspace runner
+     * @param {PipelinesApiUpdateWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateWorkspaceRunner(requestParameters: PipelinesApiUpdateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig): AxiosPromise<PipelineRunner>;
+
 }
 
 /**
@@ -22251,7 +23747,7 @@ export interface PipelinesApiCreateDeploymentVariableRequest {
     /**
      * The variable to create
      */
-    readonly body: DeploymentVariable
+    readonly deploymentVariable: DeploymentVariable
 }
 
 /**
@@ -22271,7 +23767,7 @@ export interface PipelinesApiCreatePipelineForRepositoryRequest {
     /**
      * The pipeline to initiate.
      */
-    readonly body: Pipeline
+    readonly pipeline: Pipeline
 }
 
 /**
@@ -22286,7 +23782,7 @@ export interface PipelinesApiCreatePipelineVariableForTeamRequest {
     /**
      * The variable to create.
      */
-    readonly body?: PipelineVariable
+    readonly pipelineVariable?: PipelineVariable
 }
 
 /**
@@ -22301,7 +23797,7 @@ export interface PipelinesApiCreatePipelineVariableForUserRequest {
     /**
      * The variable to create.
      */
-    readonly body?: PipelineVariable
+    readonly pipelineVariable?: PipelineVariable
 }
 
 /**
@@ -22316,7 +23812,7 @@ export interface PipelinesApiCreatePipelineVariableForWorkspaceRequest {
     /**
      * The variable to create.
      */
-    readonly body?: PipelineVariable
+    readonly pipelineVariable?: PipelineVariable
 }
 
 /**
@@ -22336,7 +23832,7 @@ export interface PipelinesApiCreateRepositoryPipelineKnownHostRequest {
     /**
      * The known host to create.
      */
-    readonly body: PipelineKnownHost
+    readonly pipelineKnownHost: PipelineKnownHost
 }
 
 /**
@@ -22356,7 +23852,7 @@ export interface PipelinesApiCreateRepositoryPipelineScheduleRequest {
     /**
      * The schedule to create.
      */
-    readonly body: PipelineSchedulePostRequestBody
+    readonly pipelineSchedulePostRequestBody: PipelineSchedulePostRequestBody
 }
 
 /**
@@ -22376,7 +23872,32 @@ export interface PipelinesApiCreateRepositoryPipelineVariableRequest {
     /**
      * The variable to create.
      */
-    readonly body: PipelineVariable
+    readonly pipelineVariable: PipelineVariable
+}
+
+/**
+ * Request parameters for createRepositoryRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiCreateRepositoryRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository.
+     */
+    readonly repoSlug: string
+}
+
+/**
+ * Request parameters for createWorkspaceRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiCreateWorkspaceRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
 }
 
 /**
@@ -22562,6 +24083,41 @@ export interface PipelinesApiDeleteRepositoryPipelineVariableRequest {
      * The UUID of the variable to delete.
      */
     readonly variableUuid: string
+}
+
+/**
+ * Request parameters for deleteRepositoryRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiDeleteRepositoryRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
+}
+
+/**
+ * Request parameters for deleteWorkspaceRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiDeleteWorkspaceRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
 }
 
 /**
@@ -23150,6 +24706,66 @@ export interface PipelinesApiGetRepositoryPipelineVariablesRequest {
 }
 
 /**
+ * Request parameters for getRepositoryRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiGetRepositoryRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
+}
+
+/**
+ * Request parameters for getRepositoryRunners operation in PipelinesApi.
+ */
+export interface PipelinesApiGetRepositoryRunnersRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository.
+     */
+    readonly repoSlug: string
+}
+
+/**
+ * Request parameters for getWorkspaceRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiGetWorkspaceRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
+}
+
+/**
+ * Request parameters for getWorkspaceRunners operation in PipelinesApi.
+ */
+export interface PipelinesApiGetWorkspaceRunnersRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+}
+
+/**
  * Request parameters for stopPipeline operation in PipelinesApi.
  */
 export interface PipelinesApiStopPipelineRequest {
@@ -23196,7 +24812,7 @@ export interface PipelinesApiUpdateDeploymentVariableRequest {
     /**
      * The updated deployment variable.
      */
-    readonly body: DeploymentVariable
+    readonly deploymentVariable: DeploymentVariable
 }
 
 /**
@@ -23216,7 +24832,7 @@ export interface PipelinesApiUpdatePipelineVariableForTeamRequest {
     /**
      * The updated variable.
      */
-    readonly body: PipelineVariable
+    readonly pipelineVariable: PipelineVariable
 }
 
 /**
@@ -23236,7 +24852,7 @@ export interface PipelinesApiUpdatePipelineVariableForUserRequest {
     /**
      * The updated variable.
      */
-    readonly body: PipelineVariable
+    readonly pipelineVariable: PipelineVariable
 }
 
 /**
@@ -23256,7 +24872,7 @@ export interface PipelinesApiUpdatePipelineVariableForWorkspaceRequest {
     /**
      * The updated variable.
      */
-    readonly body: PipelineVariable
+    readonly pipelineVariable: PipelineVariable
 }
 
 /**
@@ -23276,7 +24892,7 @@ export interface PipelinesApiUpdateRepositoryBuildNumberRequest {
     /**
      * The build number to update.
      */
-    readonly body: PipelineBuildNumber
+    readonly pipelineBuildNumber: PipelineBuildNumber
 }
 
 /**
@@ -23296,7 +24912,7 @@ export interface PipelinesApiUpdateRepositoryPipelineConfigRequest {
     /**
      * The updated repository pipelines configuration.
      */
-    readonly body: PipelinesConfig
+    readonly pipelinesConfig: PipelinesConfig
 }
 
 /**
@@ -23316,7 +24932,7 @@ export interface PipelinesApiUpdateRepositoryPipelineKeyPairRequest {
     /**
      * The created or updated SSH key pair.
      */
-    readonly body: PipelineSshKeyPair
+    readonly pipelineSshKeyPair: PipelineSshKeyPair
 }
 
 /**
@@ -23341,7 +24957,7 @@ export interface PipelinesApiUpdateRepositoryPipelineKnownHostRequest {
     /**
      * The updated known host.
      */
-    readonly body: PipelineKnownHost
+    readonly pipelineKnownHost: PipelineKnownHost
 }
 
 /**
@@ -23366,7 +24982,7 @@ export interface PipelinesApiUpdateRepositoryPipelineScheduleRequest {
     /**
      * The schedule to update.
      */
-    readonly body: PipelineSchedulePutRequestBody
+    readonly pipelineSchedulePutRequestBody: PipelineSchedulePutRequestBody
 }
 
 /**
@@ -23391,7 +25007,42 @@ export interface PipelinesApiUpdateRepositoryPipelineVariableRequest {
     /**
      * The updated variable
      */
-    readonly body: PipelineVariable
+    readonly pipelineVariable: PipelineVariable
+}
+
+/**
+ * Request parameters for updateRepositoryRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiUpdateRepositoryRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
+}
+
+/**
+ * Request parameters for updateWorkspaceRunner operation in PipelinesApi.
+ */
+export interface PipelinesApiUpdateWorkspaceRunnerRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The runner uuid.
+     */
+    readonly runnerUuid: string
 }
 
 /**
@@ -23406,18 +25057,18 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createDeploymentVariable(requestParameters: PipelinesApiCreateDeploymentVariableRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.deploymentVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Endpoint to create and initiate a pipeline. There are a couple of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated. # Trigger a Pipeline for a branch One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a Pipeline for a commit on a branch or tag You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\   https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\   -d \'   {     \"target\": {       \"commit\": {         \"type\": \"commit\",         \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"       },       \"ref_type\": \"branch\",       \"type\": \"pipeline_ref_target\",       \"ref_name\": \"master\"     }   }\' ``` # Trigger a specific pipeline definition for a commit You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },         \"selector\": {            \"type\":\"custom\",               \"pattern\":\"Deploy to production\"           },         \"type\":\"pipeline_commit_target\"    }   }\' ``` # Trigger a specific pipeline definition for a commit on a branch or tag You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/jeroendr/meat-demo2/pipelines/ \\  -d \'   {      \"target\": {       \"commit\": {          \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",          \"type\":\"commit\"        },        \"selector\": {           \"type\": \"custom\",           \"pattern\": \"Deploy to production\"        },        \"type\": \"pipeline_ref_target\",        \"ref_name\": \"master\",        \"ref_type\": \"branch\"      }   }\' ```   # Trigger a custom pipeline with variables In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_ref_target\",       \"ref_type\": \"branch\",       \"ref_name\": \"master\",       \"selector\": {         \"type\": \"custom\",         \"pattern\": \"Deploy to production\"       }     },     \"variables\": [       {         \"key\": \"var1key\",         \"value\": \"var1value\",         \"secured\": true       },       {         \"key\": \"var2key\",         \"value\": \"var2value\"       }     ]   }\' ```  # Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u username:password \\   -H \'Content-Type: application/json\' \\  https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\  -d \'   {     \"target\": {       \"type\": \"pipeline_pullrequest_target\",       \"source\": \"pull-request-branch\",       \"destination\": \"master\",       \"destination_commit\": {         \"hash\": \"9f848b7\"       },       \"commit\": {         \"hash\": \"1a372fc\"       },       \"pullrequest\": {         \"id\": \"3\"       },       \"selector\": {         \"type\": \"pull-requests\",         \"pattern\": \"**\"       }     }   }\' ``` 
+     * Endpoint to create and initiate a pipeline. There are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.  ## Trigger a pipeline for a branch  One way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline. The specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a pipeline for a commit on a branch or tag  You can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark). The specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.  The following reference types are supported:  * `branch` * `named_branch` * `bookmark`  * `tag`  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"type\": \"commit\",             \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"           },           \"ref_type\": \"branch\",           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\":\"custom\",             \"pattern\":\"Deploy to production\"           },           \"type\":\"pipeline_commit_target\"         }       }\' ```  ## Trigger a specific pipeline definition for a commit on a branch or tag  You can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"commit\": {             \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",             \"type\":\"commit\"           },           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           },           \"type\": \"pipeline_ref_target\",           \"ref_name\": \"master\",           \"ref_type\": \"branch\"         }       }\' ```  ## Trigger a custom pipeline with variables  In addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_ref_target\",           \"ref_type\": \"branch\",           \"ref_name\": \"master\",           \"selector\": {             \"type\": \"custom\",             \"pattern\": \"Deploy to production\"           }         },         \"variables\": [           {             \"key\": \"var1key\",             \"value\": \"var1value\",             \"secured\": true           },           {             \"key\": \"var2key\",             \"value\": \"var2value\"           }         ]       }\' ```  ## Trigger a pull request pipeline  You can also initiate a pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/json\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\       -d \'       {         \"target\": {           \"type\": \"pipeline_pullrequest_target\",           \"source\": \"pull-request-branch\",           \"destination\": \"master\",           \"destination_commit\": {             \"hash\": \"9f848b7\"           },           \"commit\": {             \"hash\": \"1a372fc\"           },           \"pullrequest\": {             \"id\": \"3\"           },           \"selector\": {             \"type\": \"pull-requests\",             \"pattern\": \"**\"           }         }       }\' ```  # On-demand pipeline  By default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file. With an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only to that run and overrides the YAML in `bitbucket-pipelines.yml`.  Just like with regular pipelines, there is a number of different options to initiate an on-demand pipeline. However, since the payload contains YAML configuration in this case, _query parameters_ are used to supply the necessary metadata to determine which type of pipeline will be instantiated. These query parameters are derived from the JSON equivalent by turning each property into a key-value pair with the JSON path of the property as the new key.  ## Trigger on-demand pipeline for a branch  You can initiate an on-demand pipeline for a specific branch. This branch will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and check out the latest revision of the specified branch.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger on-demand pipeline for a commit on a branch or tag  You can initiate an on-demand pipeline for a specific commit and in the context of a specified reference (branch or tag). The specified reference will be used to determine which pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and check out the specified reference.  To trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for that branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\       -d \' pipelines:   default:     - step:         script:           - echo This is an on-demand pipeline\' ```  ## Trigger a specific on-demand pipeline definition for a commit  You can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit. In addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\       -d \' pipelines:   custom:     security-scan:       - step:           script:             - echo Run on-demand security scan ```  ## Trigger a custom on-demand pipeline with variables  In addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration as shown in the examples above, you can specify variables that will be available for your build. In the request, provide each variable as an indexed set of query parameters representing its key, value, and whether it should be secured or not (this field is optional and defaults to not secured).  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\       -d \' pipelines:   custom:     security-scan:       - variables:           - name: var1key           - name: var2key       - step:           script:             - echo Run on-demand security scan\' ```  ## Trigger a pull request pipeline  You can also initiate an on-demand pipeline for a specific pull request.  ### Example  ``` $ curl -X POST -is -u \'{atlassian_account_email}:{api_token}\' \\       -H \'Content-Type: application/yaml\' \\       https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\       -d \' pipelines:   pull-requests:     \"**\":       - step:           script:             - echo This is an on-demand pipeline\' ``` 
      * @summary Run a pipeline
      * @param {PipelinesApiCreatePipelineForRepositoryRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     public createPipelineForRepository(requestParameters: PipelinesApiCreatePipelineForRepositoryRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createPipelineForRepository(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createPipelineForRepository(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipeline, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23429,7 +25080,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createPipelineVariableForTeam(requestParameters: PipelinesApiCreatePipelineVariableForTeamRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createPipelineVariableForTeam(requestParameters.username, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createPipelineVariableForTeam(requestParameters.username, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23441,7 +25092,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createPipelineVariableForUser(requestParameters: PipelinesApiCreatePipelineVariableForUserRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createPipelineVariableForUser(requestParameters.selectedUser, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createPipelineVariableForUser(requestParameters.selectedUser, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23452,7 +25103,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createPipelineVariableForWorkspace(requestParameters: PipelinesApiCreatePipelineVariableForWorkspaceRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createPipelineVariableForWorkspace(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createPipelineVariableForWorkspace(requestParameters.workspace, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23463,7 +25114,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createRepositoryPipelineKnownHost(requestParameters: PipelinesApiCreateRepositoryPipelineKnownHostRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineKnownHost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23474,7 +25125,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createRepositoryPipelineSchedule(requestParameters: PipelinesApiCreateRepositoryPipelineScheduleRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineSchedulePostRequestBody, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23485,7 +25136,29 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public createRepositoryPipelineVariable(requestParameters: PipelinesApiCreateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).createRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).createRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Create repository runner.
+     * @summary Create repository runner
+     * @param {PipelinesApiCreateRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createRepositoryRunner(requestParameters: PipelinesApiCreateRepositoryRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).createRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Create workspace runner.
+     * @summary Create workspace runner
+     * @param {PipelinesApiCreateWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createWorkspaceRunner(requestParameters: PipelinesApiCreateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).createWorkspaceRunner(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23598,6 +25271,28 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      */
     public deleteRepositoryPipelineVariable(requestParameters: PipelinesApiDeleteRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig) {
         return PipelinesApiFp(this.configuration).deleteRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete repository runner by uuid.
+     * @summary Delete repository runner
+     * @param {PipelinesApiDeleteRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteRepositoryRunner(requestParameters: PipelinesApiDeleteRepositoryRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).deleteRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Delete workspace runner by uuid.
+     * @summary Delete workspace runner
+     * @param {PipelinesApiDeleteWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteWorkspaceRunner(requestParameters: PipelinesApiDeleteWorkspaceRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).deleteWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23924,6 +25619,50 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
     }
 
     /**
+     * Retrieve repository runner by uuid.
+     * @summary Get repository runner
+     * @param {PipelinesApiGetRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getRepositoryRunner(requestParameters: PipelinesApiGetRepositoryRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).getRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieve repository runners.
+     * @summary Get repository runners
+     * @param {PipelinesApiGetRepositoryRunnersRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getRepositoryRunners(requestParameters: PipelinesApiGetRepositoryRunnersRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).getRepositoryRunners(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Get workspace runner by uuid.
+     * @summary Get workspace runner
+     * @param {PipelinesApiGetWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getWorkspaceRunner(requestParameters: PipelinesApiGetWorkspaceRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).getWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Retrieve workspace runners.
+     * @summary Get workspace runners
+     * @param {PipelinesApiGetWorkspaceRunnersRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getWorkspaceRunners(requestParameters: PipelinesApiGetWorkspaceRunnersRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).getWorkspaceRunners(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Signal the stop of a pipeline and all of its steps that not have completed yet.
      * @summary Stop a pipeline
      * @param {PipelinesApiStopPipelineRequest} requestParameters Request parameters.
@@ -23942,7 +25681,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateDeploymentVariable(requestParameters: PipelinesApiUpdateDeploymentVariableRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateDeploymentVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.environmentUuid, requestParameters.variableUuid, requestParameters.deploymentVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23954,7 +25693,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updatePipelineVariableForTeam(requestParameters: PipelinesApiUpdatePipelineVariableForTeamRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updatePipelineVariableForTeam(requestParameters.username, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updatePipelineVariableForTeam(requestParameters.username, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23966,7 +25705,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updatePipelineVariableForUser(requestParameters: PipelinesApiUpdatePipelineVariableForUserRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updatePipelineVariableForUser(requestParameters.selectedUser, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updatePipelineVariableForUser(requestParameters.selectedUser, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23977,7 +25716,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updatePipelineVariableForWorkspace(requestParameters: PipelinesApiUpdatePipelineVariableForWorkspaceRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updatePipelineVariableForWorkspace(requestParameters.workspace, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updatePipelineVariableForWorkspace(requestParameters.workspace, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23988,7 +25727,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryBuildNumber(requestParameters: PipelinesApiUpdateRepositoryBuildNumberRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryBuildNumber(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryBuildNumber(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineBuildNumber, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -23999,7 +25738,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryPipelineConfig(requestParameters: PipelinesApiUpdateRepositoryPipelineConfigRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryPipelineConfig(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryPipelineConfig(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelinesConfig, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24010,7 +25749,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryPipelineKeyPair(requestParameters: PipelinesApiUpdateRepositoryPipelineKeyPairRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryPipelineKeyPair(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryPipelineKeyPair(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pipelineSshKeyPair, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24021,7 +25760,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryPipelineKnownHost(requestParameters: PipelinesApiUpdateRepositoryPipelineKnownHostRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.knownHostUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryPipelineKnownHost(requestParameters.workspace, requestParameters.repoSlug, requestParameters.knownHostUuid, requestParameters.pipelineKnownHost, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24032,7 +25771,7 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryPipelineSchedule(requestParameters: PipelinesApiUpdateRepositoryPipelineScheduleRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.scheduleUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryPipelineSchedule(requestParameters.workspace, requestParameters.repoSlug, requestParameters.scheduleUuid, requestParameters.pipelineSchedulePutRequestBody, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -24043,7 +25782,29 @@ export class PipelinesApi extends BaseAPI implements PipelinesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryPipelineVariable(requestParameters: PipelinesApiUpdateRepositoryPipelineVariableRequest, options?: RawAxiosRequestConfig) {
-        return PipelinesApiFp(this.configuration).updateRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PipelinesApiFp(this.configuration).updateRepositoryPipelineVariable(requestParameters.workspace, requestParameters.repoSlug, requestParameters.variableUuid, requestParameters.pipelineVariable, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update repository runner.
+     * @summary Update repository runner
+     * @param {PipelinesApiUpdateRepositoryRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateRepositoryRunner(requestParameters: PipelinesApiUpdateRepositoryRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).updateRepositoryRunner(requestParameters.workspace, requestParameters.repoSlug, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Update workspace runner.
+     * @summary Update workspace runner
+     * @param {PipelinesApiUpdateWorkspaceRunnerRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateWorkspaceRunner(requestParameters: PipelinesApiUpdateWorkspaceRunnerRequest, options?: RawAxiosRequestConfig) {
+        return PipelinesApiFp(this.configuration).updateWorkspaceRunner(requestParameters.workspace, requestParameters.runnerUuid, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -24098,15 +25859,15 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * Creates a new project.  Note that the avatar has to be embedded as either a data-url or a URL to an external image as shown in the examples below:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/...\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```  or even:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"http://i.imgur.com/72tRx4w.gif\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```
          * @summary Create a project in a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Project} body 
+         * @param {Project} project 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceProjectsPost: async (workspace: string, body: Project, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        workspacesWorkspaceProjectsPost: async (workspace: string, project: Project, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceProjectsPost', 'body', body)
+            // verify required parameter 'project' is not null or undefined
+            assertParamExists('workspacesWorkspaceProjectsPost', 'project', project)
             const localVarPath = `/workspaces/{workspace}/projects`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -24137,7 +25898,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(project, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -24611,19 +26372,19 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {string} groupSlug Slug of the requested group.
          * @param {string} projectKey The project in question. This is the actual key assigned to the project. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut: async (groupSlug: string, projectKey: string, workspace: string, body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut: async (groupSlug: string, projectKey: string, workspace: string, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'groupSlug' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut', 'groupSlug', groupSlug)
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut', 'projectKey', projectKey)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut', 'body', body)
+            // verify required parameter 'bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema' is not null or undefined
+            assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut', 'bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema', bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema)
             const localVarPath = `/workspaces/{workspace}/projects/{project_key}/permissions-config/groups/{group_slug}`
                 .replace(`{${"group_slug"}}`, encodeURIComponent(String(groupSlug)))
                 .replace(`{${"project_key"}}`, encodeURIComponent(String(projectKey)))
@@ -24656,7 +26417,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -24824,19 +26585,19 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {string} projectKey The project in question. This is the actual key assigned to the project. 
          * @param {string} selectedUserId This can either be the username, the user\&#39;s UUID surrounded by curly-braces, for example: {account UUID}, or the user\&#39;s Atlassian ID. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut: async (projectKey: string, selectedUserId: string, workspace: string, body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut: async (projectKey: string, selectedUserId: string, workspace: string, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut', 'projectKey', projectKey)
             // verify required parameter 'selectedUserId' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut', 'selectedUserId', selectedUserId)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut', 'body', body)
+            // verify required parameter 'bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema' is not null or undefined
+            assertParamExists('workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut', 'bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema', bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema)
             const localVarPath = `/workspaces/{workspace}/projects/{project_key}/permissions-config/users/{selected_user_id}`
                 .replace(`{${"project_key"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"selected_user_id"}}`, encodeURIComponent(String(selectedUserId)))
@@ -24869,7 +26630,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -24881,17 +26642,17 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
          * @summary Update a project for a workspace
          * @param {string} projectKey The project in question. This is the actual &#x60;key&#x60; assigned to the project. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Project} body 
+         * @param {Project} project 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceProjectsProjectKeyPut: async (projectKey: string, workspace: string, body: Project, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        workspacesWorkspaceProjectsProjectKeyPut: async (projectKey: string, workspace: string, project: Project, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'projectKey' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPut', 'projectKey', projectKey)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('workspacesWorkspaceProjectsProjectKeyPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceProjectsProjectKeyPut', 'body', body)
+            // verify required parameter 'project' is not null or undefined
+            assertParamExists('workspacesWorkspaceProjectsProjectKeyPut', 'project', project)
             const localVarPath = `/workspaces/{workspace}/projects/{project_key}`
                 .replace(`{${"project_key"}}`, encodeURIComponent(String(projectKey)))
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
@@ -24923,7 +26684,7 @@ export const ProjectsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(project, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -24943,12 +26704,12 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * Creates a new project.  Note that the avatar has to be embedded as either a data-url or a URL to an external image as shown in the examples below:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/...\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```  or even:  ``` $ body=$(cat << EOF {     \"name\": \"Mars Project\",     \"key\": \"MARS\",     \"description\": \"Software for colonizing mars.\",     \"links\": {         \"avatar\": {             \"href\": \"http://i.imgur.com/72tRx4w.gif\"         }     },     \"is_private\": false } EOF ) $ curl -H \"Content-Type: application/json\" \\        -X POST \\        -d \"$body\" \\        https://api.bitbucket.org/2.0/workspaces/teams-in-space/projects/ | jq . {   // Serialized project document } ```
          * @summary Create a project in a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Project} body 
+         * @param {Project} project 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceProjectsPost(workspace: string, body: Project, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsPost(workspace, body, options);
+        async workspacesWorkspaceProjectsPost(workspace: string, project: Project, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsPost(workspace, project, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectsApi.workspacesWorkspaceProjectsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -25090,12 +26851,12 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {string} groupSlug Slug of the requested group.
          * @param {string} projectKey The project in question. This is the actual key assigned to the project. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(groupSlug: string, projectKey: string, workspace: string, body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupPermission>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(groupSlug, projectKey, workspace, body, options);
+        async workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(groupSlug: string, projectKey: string, workspace: string, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectGroupPermission>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(groupSlug, projectKey, workspace, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectsApi.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -25150,12 +26911,12 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @param {string} projectKey The project in question. This is the actual key assigned to the project. 
          * @param {string} selectedUserId This can either be the username, the user\&#39;s UUID surrounded by curly-braces, for example: {account UUID}, or the user\&#39;s Atlassian ID. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema} bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(projectKey: string, selectedUserId: string, workspace: string, body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectUserPermission>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(projectKey, selectedUserId, workspace, body, options);
+        async workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(projectKey: string, selectedUserId: string, workspace: string, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ProjectUserPermission>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(projectKey, selectedUserId, workspace, bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectsApi.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -25165,12 +26926,12 @@ export const ProjectsApiFp = function(configuration?: Configuration) {
          * @summary Update a project for a workspace
          * @param {string} projectKey The project in question. This is the actual &#x60;key&#x60; assigned to the project. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Project} body 
+         * @param {Project} project 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceProjectsProjectKeyPut(projectKey: string, workspace: string, body: Project, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPut(projectKey, workspace, body, options);
+        async workspacesWorkspaceProjectsProjectKeyPut(projectKey: string, workspace: string, project: Project, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Project>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceProjectsProjectKeyPut(projectKey, workspace, project, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ProjectsApi.workspacesWorkspaceProjectsProjectKeyPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -25192,7 +26953,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         workspacesWorkspaceProjectsPost(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Project> {
-            return localVarFp.workspacesWorkspaceProjectsPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.workspacesWorkspaceProjectsPost(requestParameters.workspace, requestParameters.project, options).then((request) => request(axios, basePath));
         },
         /**
          * Return a list of all default reviewers for a project. This is a list of users that will be added as default reviewers to pull requests for any repository within the project.
@@ -25292,7 +27053,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ProjectGroupPermission> {
-            return localVarFp.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.projectKey, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.projectKey, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of explicit user permissions for the given project. This endpoint does not support BBQL features.
@@ -25332,7 +27093,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<ProjectUserPermission> {
-            return localVarFp.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters.projectKey, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters.projectKey, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options).then((request) => request(axios, basePath));
         },
         /**
          * Since this endpoint can be used to both update and to create a project, the request body depends on the intent.  #### Creation  See the POST documentation for the project collection for an example of the request body.  Note: The `key` should not be specified in the body of request (since it is already present in the URL). The `name` is required, everything else is optional.  #### Update  See the POST documentation for the project collection for an example of the request body.  Note: The key is not required in the body (since it is already in the URL). The key may be specified in the body, if the intent is to change the key itself. In such a scenario, the location of the project is changed and is returned in the `Location` header of the response.
@@ -25342,7 +27103,7 @@ export const ProjectsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         workspacesWorkspaceProjectsProjectKeyPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Project> {
-            return localVarFp.workspacesWorkspaceProjectsProjectKeyPut(requestParameters.projectKey, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.workspacesWorkspaceProjectsProjectKeyPut(requestParameters.projectKey, requestParameters.workspace, requestParameters.project, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -25506,7 +27267,7 @@ export interface ProjectsApiWorkspacesWorkspaceProjectsPostRequest {
      */
     readonly workspace: string
 
-    readonly body: Project
+    readonly project: Project
 }
 
 /**
@@ -25691,7 +27452,7 @@ export interface ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConf
     /**
      * The permission to grant
      */
-    readonly body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
+    readonly bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
 }
 
 /**
@@ -25771,7 +27532,7 @@ export interface ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConf
     /**
      * The permission to grant
      */
-    readonly body: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
+    readonly bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema: BitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema
 }
 
 /**
@@ -25788,7 +27549,7 @@ export interface ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPutRequest {
      */
     readonly workspace: string
 
-    readonly body: Project
+    readonly project: Project
 }
 
 /**
@@ -25803,7 +27564,7 @@ export class ProjectsApi extends BaseAPI implements ProjectsApiInterface {
      * @throws {RequiredError}
      */
     public workspacesWorkspaceProjectsPost(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsPostRequest, options?: RawAxiosRequestConfig) {
-        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsPost(requestParameters.workspace, requestParameters.project, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -25913,7 +27674,7 @@ export class ProjectsApi extends BaseAPI implements ProjectsApiInterface {
      * @throws {RequiredError}
      */
     public workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPutRequest, options?: RawAxiosRequestConfig) {
-        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.projectKey, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.projectKey, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -25957,7 +27718,7 @@ export class ProjectsApi extends BaseAPI implements ProjectsApiInterface {
      * @throws {RequiredError}
      */
     public workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPutRequest, options?: RawAxiosRequestConfig) {
-        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters.projectKey, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPermissionsConfigUsersSelectedUserIdPut(requestParameters.projectKey, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersProjectPermissionUpdateSchema, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -25968,7 +27729,7 @@ export class ProjectsApi extends BaseAPI implements ProjectsApiInterface {
      * @throws {RequiredError}
      */
     public workspacesWorkspaceProjectsProjectKeyPut(requestParameters: ProjectsApiWorkspacesWorkspaceProjectsProjectKeyPutRequest, options?: RawAxiosRequestConfig) {
-        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPut(requestParameters.projectKey, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ProjectsApiFp(this.configuration).workspacesWorkspaceProjectsProjectKeyPut(requestParameters.projectKey, requestParameters.workspace, requestParameters.project, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -26447,11 +28208,11 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} commit The commit.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateCommitHostedPropertyValue: async (workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateCommitHostedPropertyValue: async (workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateCommitHostedPropertyValue', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -26462,8 +28223,8 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             assertParamExists('updateCommitHostedPropertyValue', 'appKey', appKey)
             // verify required parameter 'propertyName' is not null or undefined
             assertParamExists('updateCommitHostedPropertyValue', 'propertyName', propertyName)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateCommitHostedPropertyValue', 'body', body)
+            // verify required parameter 'applicationProperty' is not null or undefined
+            assertParamExists('updateCommitHostedPropertyValue', 'applicationProperty', applicationProperty)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/properties/{app_key}/{property_name}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -26497,7 +28258,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(applicationProperty, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -26512,11 +28273,11 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} pullrequestId The pull request ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updatePullRequestHostedPropertyValue: async (workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updatePullRequestHostedPropertyValue: async (workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updatePullRequestHostedPropertyValue', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -26527,8 +28288,8 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             assertParamExists('updatePullRequestHostedPropertyValue', 'appKey', appKey)
             // verify required parameter 'propertyName' is not null or undefined
             assertParamExists('updatePullRequestHostedPropertyValue', 'propertyName', propertyName)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updatePullRequestHostedPropertyValue', 'body', body)
+            // verify required parameter 'applicationProperty' is not null or undefined
+            assertParamExists('updatePullRequestHostedPropertyValue', 'applicationProperty', applicationProperty)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pullrequest_id}/properties/{app_key}/{property_name}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -26562,7 +28323,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(applicationProperty, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -26576,11 +28337,11 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateRepositoryHostedPropertyValue: async (workspace: string, repoSlug: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateRepositoryHostedPropertyValue: async (workspace: string, repoSlug: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('updateRepositoryHostedPropertyValue', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -26589,8 +28350,8 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             assertParamExists('updateRepositoryHostedPropertyValue', 'appKey', appKey)
             // verify required parameter 'propertyName' is not null or undefined
             assertParamExists('updateRepositoryHostedPropertyValue', 'propertyName', propertyName)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateRepositoryHostedPropertyValue', 'body', body)
+            // verify required parameter 'applicationProperty' is not null or undefined
+            assertParamExists('updateRepositoryHostedPropertyValue', 'applicationProperty', applicationProperty)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/properties/{app_key}/{property_name}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -26623,7 +28384,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(applicationProperty, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -26636,19 +28397,19 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        updateUserHostedPropertyValue: async (selectedUser: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        updateUserHostedPropertyValue: async (selectedUser: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'selectedUser' is not null or undefined
             assertParamExists('updateUserHostedPropertyValue', 'selectedUser', selectedUser)
             // verify required parameter 'appKey' is not null or undefined
             assertParamExists('updateUserHostedPropertyValue', 'appKey', appKey)
             // verify required parameter 'propertyName' is not null or undefined
             assertParamExists('updateUserHostedPropertyValue', 'propertyName', propertyName)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('updateUserHostedPropertyValue', 'body', body)
+            // verify required parameter 'applicationProperty' is not null or undefined
+            assertParamExists('updateUserHostedPropertyValue', 'applicationProperty', applicationProperty)
             const localVarPath = `/users/{selected_user}/properties/{app_key}/{property_name}`
                 .replace(`{${"selected_user"}}`, encodeURIComponent(String(selectedUser)))
                 .replace(`{${"app_key"}}`, encodeURIComponent(String(appKey)))
@@ -26680,7 +28441,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(applicationProperty, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -26834,12 +28595,12 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateCommitHostedPropertyValue(workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateCommitHostedPropertyValue(workspace, repoSlug, commit, appKey, propertyName, body, options);
+        async updateCommitHostedPropertyValue(workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateCommitHostedPropertyValue(workspace, repoSlug, commit, appKey, propertyName, applicationProperty, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PropertiesApi.updateCommitHostedPropertyValue']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -26852,12 +28613,12 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} pullrequestId The pull request ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updatePullRequestHostedPropertyValue(workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePullRequestHostedPropertyValue(workspace, repoSlug, pullrequestId, appKey, propertyName, body, options);
+        async updatePullRequestHostedPropertyValue(workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updatePullRequestHostedPropertyValue(workspace, repoSlug, pullrequestId, appKey, propertyName, applicationProperty, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PropertiesApi.updatePullRequestHostedPropertyValue']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -26869,12 +28630,12 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateRepositoryHostedPropertyValue(workspace: string, repoSlug: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryHostedPropertyValue(workspace, repoSlug, appKey, propertyName, body, options);
+        async updateRepositoryHostedPropertyValue(workspace: string, repoSlug: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryHostedPropertyValue(workspace, repoSlug, appKey, propertyName, applicationProperty, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PropertiesApi.updateRepositoryHostedPropertyValue']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -26885,12 +28646,12 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
-         * @param {ApplicationProperty} body The application property to create or update.
+         * @param {ApplicationProperty} applicationProperty The application property to create or update.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async updateUserHostedPropertyValue(selectedUser: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.updateUserHostedPropertyValue(selectedUser, appKey, propertyName, body, options);
+        async updateUserHostedPropertyValue(selectedUser: string, appKey: string, propertyName: string, applicationProperty: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateUserHostedPropertyValue(selectedUser, appKey, propertyName, applicationProperty, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PropertiesApi.updateUserHostedPropertyValue']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -26992,7 +28753,7 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
          * @throws {RequiredError}
          */
         updateCommitHostedPropertyValue(requestParameters: PropertiesApiUpdateCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.updateCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(axios, basePath));
         },
         /**
          * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
@@ -27002,7 +28763,7 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
          * @throws {RequiredError}
          */
         updatePullRequestHostedPropertyValue(requestParameters: PropertiesApiUpdatePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.updatePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updatePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(axios, basePath));
         },
         /**
          * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
@@ -27012,7 +28773,7 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
          * @throws {RequiredError}
          */
         updateRepositoryHostedPropertyValue(requestParameters: PropertiesApiUpdateRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.updateRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(axios, basePath));
         },
         /**
          * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
@@ -27022,7 +28783,7 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
          * @throws {RequiredError}
          */
         updateUserHostedPropertyValue(requestParameters: PropertiesApiUpdateUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.updateUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.updateUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -27383,7 +29144,7 @@ export interface PropertiesApiUpdateCommitHostedPropertyValueRequest {
     /**
      * The application property to create or update.
      */
-    readonly body: ApplicationProperty
+    readonly applicationProperty: ApplicationProperty
 }
 
 /**
@@ -27418,7 +29179,7 @@ export interface PropertiesApiUpdatePullRequestHostedPropertyValueRequest {
     /**
      * The application property to create or update.
      */
-    readonly body: ApplicationProperty
+    readonly applicationProperty: ApplicationProperty
 }
 
 /**
@@ -27448,7 +29209,7 @@ export interface PropertiesApiUpdateRepositoryHostedPropertyValueRequest {
     /**
      * The application property to create or update.
      */
-    readonly body: ApplicationProperty
+    readonly applicationProperty: ApplicationProperty
 }
 
 /**
@@ -27473,7 +29234,7 @@ export interface PropertiesApiUpdateUserHostedPropertyValueRequest {
     /**
      * The application property to create or update.
      */
-    readonly body: ApplicationProperty
+    readonly applicationProperty: ApplicationProperty
 }
 
 /**
@@ -27576,7 +29337,7 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
      * @throws {RequiredError}
      */
     public updateCommitHostedPropertyValue(requestParameters: PropertiesApiUpdateCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
-        return PropertiesApiFp(this.configuration).updateCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PropertiesApiFp(this.configuration).updateCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -27587,7 +29348,7 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
      * @throws {RequiredError}
      */
     public updatePullRequestHostedPropertyValue(requestParameters: PropertiesApiUpdatePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
-        return PropertiesApiFp(this.configuration).updatePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PropertiesApiFp(this.configuration).updatePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -27598,7 +29359,7 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
      * @throws {RequiredError}
      */
     public updateRepositoryHostedPropertyValue(requestParameters: PropertiesApiUpdateRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
-        return PropertiesApiFp(this.configuration).updateRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PropertiesApiFp(this.configuration).updateRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -27609,7 +29370,7 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
      * @throws {RequiredError}
      */
     public updateUserHostedPropertyValue(requestParameters: PropertiesApiUpdateUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
-        return PropertiesApiFp(this.configuration).updateUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PropertiesApiFp(this.configuration).updateUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, requestParameters.applicationProperty, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -28048,11 +29809,11 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @summary Create a pull request
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Pullrequest} [body] The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title.
+         * @param {Pullrequest} [pullrequest] The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPost: async (repoSlug: string, workspace: string, body?: Pullrequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPost: async (repoSlug: string, workspace: string, pullrequest?: Pullrequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
@@ -28088,7 +29849,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -28375,11 +30136,11 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestComment} body The contents of the updated comment.
+         * @param {PullrequestComment} pullrequestComment The contents of the updated comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut: async (commentId: number, pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut: async (commentId: number, pullRequestId: number, repoSlug: string, workspace: string, pullrequestComment: PullrequestComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commentId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut', 'commentId', commentId)
             // verify required parameter 'pullRequestId' is not null or undefined
@@ -28388,8 +30149,8 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut', 'body', body)
+            // verify required parameter 'pullrequestComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut', 'pullrequestComment', pullrequestComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments/{comment_id}`
                 .replace(`{${"comment_id"}}`, encodeURIComponent(String(commentId)))
                 .replace(`{${"pull_request_id"}}`, encodeURIComponent(String(pullRequestId)))
@@ -28423,7 +30184,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequestComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -28603,19 +30364,19 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestComment} body The comment object.
+         * @param {PullrequestComment} pullrequestComment The comment object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost: async (pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost: async (pullRequestId: number, repoSlug: string, workspace: string, pullrequestComment: PullrequestComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'pullRequestId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost', 'pullRequestId', pullRequestId)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost', 'body', body)
+            // verify required parameter 'pullrequestComment' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost', 'pullrequestComment', pullrequestComment)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/comments`
                 .replace(`{${"pull_request_id"}}`, encodeURIComponent(String(pullRequestId)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -28648,7 +30409,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequestComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -28925,11 +30686,11 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {boolean} [async] Default value is false.   When set to true, runs merge asynchronously and immediately returns a 202 with polling link to the task-status API in the Location header.   When set to false, runs merge and waits for it to complete, returning 200 when it succeeds. If the duration of the merge exceeds a timeout threshold, the API returns a 202 with polling link to the task-status API in the Location header.
-         * @param {PullrequestMergeParameters} [body] 
+         * @param {PullrequestMergeParameters} [pullrequestMergeParameters] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost: async (pullRequestId: number, repoSlug: string, workspace: string, async?: boolean, body?: PullrequestMergeParameters, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost: async (pullRequestId: number, repoSlug: string, workspace: string, async?: boolean, pullrequestMergeParameters?: PullrequestMergeParameters, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'pullRequestId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost', 'pullRequestId', pullRequestId)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -28972,7 +30733,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequestMergeParameters, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -29093,11 +30854,11 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Pullrequest} [body] The pull request that is to be updated.
+         * @param {Pullrequest} [pullrequest] The pull request that is to be updated.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut: async (pullRequestId: number, repoSlug: string, workspace: string, body?: Pullrequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut: async (pullRequestId: number, repoSlug: string, workspace: string, pullrequest?: Pullrequest, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'pullRequestId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut', 'pullRequestId', pullRequestId)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -29136,7 +30897,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequest, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -29386,19 +31147,19 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestTaskCreate} body The contents of the task
+         * @param {PullrequestTaskCreate} pullrequestTaskCreate The contents of the task
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost: async (pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestTaskCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost: async (pullRequestId: number, repoSlug: string, workspace: string, pullrequestTaskCreate: PullrequestTaskCreate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'pullRequestId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost', 'pullRequestId', pullRequestId)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost', 'body', body)
+            // verify required parameter 'pullrequestTaskCreate' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost', 'pullrequestTaskCreate', pullrequestTaskCreate)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks`
                 .replace(`{${"pull_request_id"}}`, encodeURIComponent(String(pullRequestId)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -29431,7 +31192,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequestTaskCreate, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -29559,11 +31320,11 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {number} taskId The ID of the task.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestTaskUpdate} body The updated state and content of the task.
+         * @param {PullrequestTaskUpdate} pullrequestTaskUpdate The updated state and content of the task.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut: async (pullRequestId: number, repoSlug: string, taskId: number, workspace: string, body: PullrequestTaskUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut: async (pullRequestId: number, repoSlug: string, taskId: number, workspace: string, pullrequestTaskUpdate: PullrequestTaskUpdate, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'pullRequestId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut', 'pullRequestId', pullRequestId)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -29572,8 +31333,8 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut', 'taskId', taskId)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut', 'body', body)
+            // verify required parameter 'pullrequestTaskUpdate' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut', 'pullrequestTaskUpdate', pullrequestTaskUpdate)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/tasks/{task_id}`
                 .replace(`{${"pull_request_id"}}`, encodeURIComponent(String(pullRequestId)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -29607,7 +31368,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(pullrequestTaskUpdate, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -29801,12 +31562,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @summary Create a pull request
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Pullrequest} [body] The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title.
+         * @param {Pullrequest} [pullrequest] The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPost(repoSlug: string, workspace: string, body?: Pullrequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPost(repoSlug: string, workspace: string, pullrequest?: Pullrequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPost(repoSlug, workspace, pullrequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -29895,12 +31656,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestComment} body The contents of the updated comment.
+         * @param {PullrequestComment} pullrequestComment The contents of the updated comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(commentId: number, pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestComment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(commentId, pullRequestId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(commentId: number, pullRequestId: number, repoSlug: string, workspace: string, pullrequestComment: PullrequestComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestComment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(commentId, pullRequestId, repoSlug, workspace, pullrequestComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -29958,12 +31719,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestComment} body The comment object.
+         * @param {PullrequestComment} pullrequestComment The comment object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestComment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(pullRequestId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(pullRequestId: number, repoSlug: string, workspace: string, pullrequestComment: PullrequestComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestComment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(pullRequestId, repoSlug, workspace, pullrequestComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30050,12 +31811,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
          * @param {boolean} [async] Default value is false.   When set to true, runs merge asynchronously and immediately returns a 202 with polling link to the task-status API in the Location header.   When set to false, runs merge and waits for it to complete, returning 200 when it succeeds. If the duration of the merge exceeds a timeout threshold, the API returns a 202 with polling link to the task-status API in the Location header.
-         * @param {PullrequestMergeParameters} [body] 
+         * @param {PullrequestMergeParameters} [pullrequestMergeParameters] 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(pullRequestId: number, repoSlug: string, workspace: string, async?: boolean, body?: PullrequestMergeParameters, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(pullRequestId, repoSlug, workspace, async, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(pullRequestId: number, repoSlug: string, workspace: string, async?: boolean, pullrequestMergeParameters?: PullrequestMergeParameters, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(pullRequestId, repoSlug, workspace, async, pullrequestMergeParameters, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30097,12 +31858,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Pullrequest} [body] The pull request that is to be updated.
+         * @param {Pullrequest} [pullrequest] The pull request that is to be updated.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(pullRequestId: number, repoSlug: string, workspace: string, body?: Pullrequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(pullRequestId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(pullRequestId: number, repoSlug: string, workspace: string, pullrequest?: Pullrequest, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Pullrequest>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(pullRequestId, repoSlug, workspace, pullrequest, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30178,12 +31939,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestTaskCreate} body The contents of the task
+         * @param {PullrequestTaskCreate} pullrequestTaskCreate The contents of the task
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(pullRequestId: number, repoSlug: string, workspace: string, body: PullrequestTaskCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestCommentTask>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(pullRequestId, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(pullRequestId: number, repoSlug: string, workspace: string, pullrequestTaskCreate: PullrequestTaskCreate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestCommentTask>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(pullRequestId, repoSlug, workspace, pullrequestTaskCreate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30227,12 +31988,12 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {number} taskId The ID of the task.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {PullrequestTaskUpdate} body The updated state and content of the task.
+         * @param {PullrequestTaskUpdate} pullrequestTaskUpdate The updated state and content of the task.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(pullRequestId: number, repoSlug: string, taskId: number, workspace: string, body: PullrequestTaskUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestCommentTask>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(pullRequestId, repoSlug, taskId, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(pullRequestId: number, repoSlug: string, taskId: number, workspace: string, pullrequestTaskUpdate: PullrequestTaskUpdate, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestCommentTask>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(pullRequestId, repoSlug, taskId, workspace, pullrequestTaskUpdate, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -30349,7 +32110,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pullrequest> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequest, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of the pull request\'s activity log.  This handler serves both a v20 and internal endpoint. The v20 endpoint returns reviewer comments, updates, approvals and request changes. The internal endpoint includes those plus tasks and attachments.  Comments created on a file or a line of code have an inline property.  Comment example: ``` {     \"pagelen\": 20,     \"values\": [         {             \"comment\": {                 \"links\": {                     \"self\": {                         \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695/comments/118571088\"                     },                     \"html\": {                         \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695/_/diff#comment-118571088\"                     }                 },                 \"deleted\": false,                 \"pullrequest\": {                     \"type\": \"pullrequest\",                     \"id\": 5695,                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695\"                         }                     },                     \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\"                 },                 \"content\": {                     \"raw\": \"inline with to a dn from lines\",                     \"markup\": \"markdown\",                     \"html\": \"<p>inline with to a dn from lines</p>\",                     \"type\": \"rendered\"                 },                 \"created_on\": \"2019-09-27T00:33:46.039178+00:00\",                 \"user\": {                     \"display_name\": \"Name Lastname\",                     \"uuid\": \"{}\",                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/users/%7B%7D\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/%7B%7D/\"                         },                         \"avatar\": {                             \"href\": \"https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/:/128\"                         }                     },                     \"type\": \"user\",                     \"nickname\": \"Name\",                     \"account_id\": \"\"                 },                 \"created_on\": \"2019-09-27T00:33:46.039178+00:00\",                 \"user\": {                     \"display_name\": \"Name Lastname\",                     \"uuid\": \"{}\",                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/users/%7B%7D\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/%7B%7D/\"                         },                         \"avatar\": {                             \"href\": \"https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/:/128\"                         }                     },                     \"type\": \"user\",                     \"nickname\": \"Name\",                     \"account_id\": \"\"                 },                 \"updated_on\": \"2019-09-27T00:33:46.055384+00:00\",                 \"inline\": {                     \"context_lines\": \"\",                     \"to\": null,                     \"path\": \"\",                     \"outdated\": false,                     \"from\": 211                 },                 \"type\": \"pullrequest_comment\",                 \"id\": 118571088             },             \"pull_request\": {                 \"type\": \"pullrequest\",                 \"id\": 5695,                 \"links\": {                     \"self\": {                         \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695\"                     },                     \"html\": {                         \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695\"                     }                 },                 \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\"             }         }     ] } ```  Updates include a state property of OPEN, MERGED, or DECLINED.  Update example: ``` {     \"pagelen\": 20,     \"values\": [         {             \"update\": {                 \"description\": \"\",                 \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\",                 \"destination\": {                     \"commit\": {                         \"type\": \"commit\",                         \"hash\": \"6a2c16e4a152\",                         \"links\": {                             \"self\": {                                 \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/commit/6a2c16e4a152\"                             },                             \"html\": {                                 \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/commits/6a2c16e4a152\"                             }                         }                     },                     \"branch\": {                         \"name\": \"master\"                     },                     \"repository\": {                         \"name\": \"Atlaskit-MK-2\",                         \"type\": \"repository\",                         \"full_name\": \"atlassian/atlaskit-mk-2\",                         \"links\": {                             \"self\": {                                 \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2\"                             },                             \"html\": {                                 \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2\"                             },                             \"avatar\": {                                 \"href\": \"https://bytebucket.org/ravatar/%7B%7D?ts=js\"                             }                         },                         \"uuid\": \"{}\"                     }                 },                 \"reason\": \"\",                 \"source\": {                     \"commit\": {                         \"type\": \"commit\",                         \"hash\": \"728c8bad1813\",                         \"links\": {                             \"self\": {                                 \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/commit/728c8bad1813\"                             },                             \"html\": {                                 \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/commits/728c8bad1813\"                             }                         }                     },                     \"branch\": {                         \"name\": \"username/NONE-add-onClick-prop-for-accessibility\"                     },                     \"repository\": {                         \"name\": \"Atlaskit-MK-2\",                         \"type\": \"repository\",                         \"full_name\": \"atlassian/atlaskit-mk-2\",                         \"links\": {                             \"self\": {                                 \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2\"                             },                             \"html\": {                                 \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2\"                             },                             \"avatar\": {                                 \"href\": \"https://bytebucket.org/ravatar/%7B%7D?ts=js\"                             }                         },                         \"uuid\": \"{}\"                     }                 },                 \"state\": \"OPEN\",                 \"author\": {                     \"display_name\": \"Name Lastname\",                     \"uuid\": \"{}\",                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/users/%7B%7D\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/%7B%7D/\"                         },                         \"avatar\": {                             \"href\": \"https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/:/128\"                         }                     },                     \"type\": \"user\",                     \"nickname\": \"Name\",                     \"account_id\": \"\"                 },                 \"date\": \"2019-05-10T06:48:25.305565+00:00\"             },             \"pull_request\": {                 \"type\": \"pullrequest\",                 \"id\": 5695,                 \"links\": {                     \"self\": {                         \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695\"                     },                     \"html\": {                         \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695\"                     }                 },                 \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\"             }         }     ] } ```  Approval example: ``` {     \"pagelen\": 20,     \"values\": [         {             \"approval\": {                 \"date\": \"2019-09-27T00:37:19.849534+00:00\",                 \"pullrequest\": {                     \"type\": \"pullrequest\",                     \"id\": 5695,                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695\"                         }                     },                     \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\"                 },                 \"user\": {                     \"display_name\": \"Name Lastname\",                     \"uuid\": \"{}\",                     \"links\": {                         \"self\": {                             \"href\": \"https://api.bitbucket.org/2.0/users/%7B%7D\"                         },                         \"html\": {                             \"href\": \"https://bitbucket.org/%7B%7D/\"                         },                         \"avatar\": {                             \"href\": \"https://avatar-management--avatars.us-west-2.prod.public.atl-paas.net/:/128\"                         }                     },                     \"type\": \"user\",                     \"nickname\": \"Name\",                     \"account_id\": \"\"                 }             },             \"pull_request\": {                 \"type\": \"pullrequest\",                 \"id\": 5695,                 \"links\": {                     \"self\": {                         \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/atlaskit-mk-2/pullrequests/5695\"                     },                     \"html\": {                         \"href\": \"https://bitbucket.org/atlassian/atlaskit-mk-2/pull-requests/5695\"                     }                 },                 \"title\": \"username/NONE: small change from onFocus to onClick to handle tabbing through the page and not expand the editor unless a click event triggers it\"             }         }     ] } ```
@@ -30409,7 +32170,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestComment> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestComment, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -30449,7 +32210,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestComment> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of the pull request\'s commits.  These are the commits that are being merged into the destination branch when the pull requests gets accepted.
@@ -30509,7 +32270,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pullrequest> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.async, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.async, requestParameters.pullrequestMergeParameters, options).then((request) => request(axios, basePath));
         },
         /**
          * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
@@ -30539,7 +32300,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pullrequest> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequest, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -30589,7 +32350,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestCommentTask> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestTaskCreate, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes a specific pull request task.
@@ -30619,7 +32380,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestCommentTask> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, requestParameters.pullrequestTaskUpdate, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns all workspace pull requests authored by the specified user.  By default only open pull requests are returned. This can be controlled using the `state` query parameter. To retrieve pull requests that are in one of multiple states, repeat the `state` parameter for each individual state.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
@@ -31145,7 +32906,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPostReq
     /**
      * The new pull request.  The request URL you POST to becomes the destination repository URL. For this reason, you must specify an explicit source repository in the request object if you want to pull from a different repository (fork).  Since not all elements are required or even mutable, you only need to include the elements you want to initialize, such as the source branch and the title.
      */
-    readonly body?: Pullrequest
+    readonly pullrequest?: Pullrequest
 }
 
 /**
@@ -31285,7 +33046,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
     /**
      * The contents of the updated comment.
      */
-    readonly body: PullrequestComment
+    readonly pullrequestComment: PullrequestComment
 }
 
 /**
@@ -31380,7 +33141,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
     /**
      * The comment object.
      */
-    readonly body: PullrequestComment
+    readonly pullrequestComment: PullrequestComment
 }
 
 /**
@@ -31507,7 +33268,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
      */
     readonly async?: boolean
 
-    readonly body?: PullrequestMergeParameters
+    readonly pullrequestMergeParameters?: PullrequestMergeParameters
 }
 
 /**
@@ -31577,7 +33338,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
     /**
      * The pull request that is to be updated.
      */
-    readonly body?: Pullrequest
+    readonly pullrequest?: Pullrequest
 }
 
 /**
@@ -31707,7 +33468,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
     /**
      * The contents of the task
      */
-    readonly body: PullrequestTaskCreate
+    readonly pullrequestTaskCreate: PullrequestTaskCreate
 }
 
 /**
@@ -31787,7 +33548,7 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
     /**
      * The updated state and content of the task.
      */
-    readonly body: PullrequestTaskUpdate
+    readonly pullrequestTaskUpdate: PullrequestTaskUpdate
 }
 
 /**
@@ -31910,7 +33671,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPostRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -31976,7 +33737,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32020,7 +33781,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPostRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32086,7 +33847,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.async, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.async, requestParameters.pullrequestMergeParameters, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32119,7 +33880,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPutRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequest, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32174,7 +33935,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPostRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksPost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.pullrequestTaskCreate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32207,7 +33968,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPutRequest, options?: RawAxiosRequestConfig) {
-        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdTasksTaskIdPut(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, requestParameters.pullrequestTaskUpdate, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -32682,21 +34443,21 @@ export const RefsApiAxiosParamCreator = function (configuration?: Configuration)
             };
         },
         /**
-         * Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+         * Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
          * @summary Create a tag
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Tag} body 
+         * @param {Tag} tag 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugRefsTagsPost: async (repoSlug: string, workspace: string, body: Tag, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugRefsTagsPost: async (repoSlug: string, workspace: string, tag: Tag, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugRefsTagsPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugRefsTagsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugRefsTagsPost', 'body', body)
+            // verify required parameter 'tag' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugRefsTagsPost', 'tag', tag)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/refs/tags`
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
@@ -32728,7 +34489,7 @@ export const RefsApiAxiosParamCreator = function (configuration?: Configuration)
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(tag, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -32867,16 +34628,16 @@ export const RefsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+         * Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
          * @summary Create a tag
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Tag} body 
+         * @param {Tag} tag 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugRefsTagsPost(repoSlug: string, workspace: string, body: Tag, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tag>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugRefsTagsPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugRefsTagsPost(repoSlug: string, workspace: string, tag: Tag, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Tag>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugRefsTagsPost(repoSlug, workspace, tag, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RefsApi.repositoriesWorkspaceRepoSlugRefsTagsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -32971,14 +34732,14 @@ export const RefsApiFactory = function (configuration?: Configuration, basePath?
             return localVarFp.repositoriesWorkspaceRepoSlugRefsTagsNameGet(requestParameters.name, requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
-         * Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+         * Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
          * @summary Create a tag
          * @param {RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters: RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Tag> {
-            return localVarFp.repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.tag, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -33060,7 +34821,7 @@ export interface RefsApiInterface {
     repositoriesWorkspaceRepoSlugRefsTagsNameGet(requestParameters: RefsApiRepositoriesWorkspaceRepoSlugRefsTagsNameGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Tag>;
 
     /**
-     * Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+     * Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
      * @summary Create a tag
      * @param {RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -33254,7 +35015,7 @@ export interface RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest {
      */
     readonly workspace: string
 
-    readonly body: Tag
+    readonly tag: Tag
 }
 
 /**
@@ -33350,14 +35111,14 @@ export class RefsApi extends BaseAPI implements RefsApiInterface {
     }
 
     /**
-     * Creates a new tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.
+     * Creates a new annotated tag in the specified repository.  The payload of the POST should consist of a JSON document that contains the name of the tag and the target hash.  ``` curl https://api.bitbucket.org/2.0/repositories/jdoe/myrepo/refs/tags \\ -s -u jdoe -X POST -H \"Content-Type: application/json\" \\ -d \'{     \"name\" : \"new-tag-name\",     \"target\" : {         \"hash\" : \"a1b2c3d4e5f6\",     } }\' ```  This endpoint does support using short hash prefixes for the commit hash, but it may return a 400 response if the provided prefix is ambiguous. Using a full commit hash is the preferred approach.  A message for the tag object may optionally be provided. If it is omitted or the provided message is empty, a default message of \"Added tag <tagname> for changeset <shorthash>\" will be used.
      * @summary Create a tag
      * @param {RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters: RefsApiRepositoriesWorkspaceRepoSlugRefsTagsPostRequest, options?: RawAxiosRequestConfig) {
-        return RefsApiFp(this.configuration).repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RefsApiFp(this.configuration).repositoriesWorkspaceRepoSlugRefsTagsPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.tag, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -33375,11 +35136,11 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit for which to retrieve reports.
          * @param {string} reportId Uuid or external-if of the report for which to get annotations for.
-         * @param {Array<ReportAnnotation>} body The annotations to create or update
+         * @param {Array<ReportAnnotation>} reportAnnotation The annotations to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        bulkCreateOrUpdateAnnotations: async (workspace: string, repoSlug: string, commit: string, reportId: string, body: Array<ReportAnnotation>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        bulkCreateOrUpdateAnnotations: async (workspace: string, repoSlug: string, commit: string, reportId: string, reportAnnotation: Array<ReportAnnotation>, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('bulkCreateOrUpdateAnnotations', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -33388,8 +35149,8 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('bulkCreateOrUpdateAnnotations', 'commit', commit)
             // verify required parameter 'reportId' is not null or undefined
             assertParamExists('bulkCreateOrUpdateAnnotations', 'reportId', reportId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('bulkCreateOrUpdateAnnotations', 'body', body)
+            // verify required parameter 'reportAnnotation' is not null or undefined
+            assertParamExists('bulkCreateOrUpdateAnnotations', 'reportAnnotation', reportAnnotation)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}/annotations`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -33423,7 +35184,7 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(reportAnnotation, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -33438,11 +35199,11 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
          * @param {string} annotationId Either the uuid or external-id of the annotation.
-         * @param {ReportAnnotation} body The annotation to create or update
+         * @param {ReportAnnotation} reportAnnotation The annotation to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createOrUpdateAnnotation: async (workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, body: ReportAnnotation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createOrUpdateAnnotation: async (workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, reportAnnotation: ReportAnnotation, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createOrUpdateAnnotation', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -33453,8 +35214,8 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('createOrUpdateAnnotation', 'reportId', reportId)
             // verify required parameter 'annotationId' is not null or undefined
             assertParamExists('createOrUpdateAnnotation', 'annotationId', annotationId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createOrUpdateAnnotation', 'body', body)
+            // verify required parameter 'reportAnnotation' is not null or undefined
+            assertParamExists('createOrUpdateAnnotation', 'reportAnnotation', reportAnnotation)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}/annotations/{annotationId}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -33489,7 +35250,7 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(reportAnnotation, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -33503,11 +35264,11 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
-         * @param {Report} body The report to create or update
+         * @param {Report} report The report to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        createOrUpdateReport: async (workspace: string, repoSlug: string, commit: string, reportId: string, body: Report, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        createOrUpdateReport: async (workspace: string, repoSlug: string, commit: string, reportId: string, report: Report, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('createOrUpdateReport', 'workspace', workspace)
             // verify required parameter 'repoSlug' is not null or undefined
@@ -33516,8 +35277,8 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             assertParamExists('createOrUpdateReport', 'commit', commit)
             // verify required parameter 'reportId' is not null or undefined
             assertParamExists('createOrUpdateReport', 'reportId', reportId)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('createOrUpdateReport', 'body', body)
+            // verify required parameter 'report' is not null or undefined
+            assertParamExists('createOrUpdateReport', 'report', report)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/commit/{commit}/reports/{reportId}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -33551,7 +35312,7 @@ export const ReportsApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(report, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -33918,12 +35679,12 @@ export const ReportsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit for which to retrieve reports.
          * @param {string} reportId Uuid or external-if of the report for which to get annotations for.
-         * @param {Array<ReportAnnotation>} body The annotations to create or update
+         * @param {Array<ReportAnnotation>} reportAnnotation The annotations to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async bulkCreateOrUpdateAnnotations(workspace: string, repoSlug: string, commit: string, reportId: string, body: Array<ReportAnnotation>, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ReportAnnotation>>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.bulkCreateOrUpdateAnnotations(workspace, repoSlug, commit, reportId, body, options);
+        async bulkCreateOrUpdateAnnotations(workspace: string, repoSlug: string, commit: string, reportId: string, reportAnnotation: Array<ReportAnnotation>, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Array<ReportAnnotation>>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.bulkCreateOrUpdateAnnotations(workspace, repoSlug, commit, reportId, reportAnnotation, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ReportsApi.bulkCreateOrUpdateAnnotations']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -33936,12 +35697,12 @@ export const ReportsApiFp = function(configuration?: Configuration) {
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
          * @param {string} annotationId Either the uuid or external-id of the annotation.
-         * @param {ReportAnnotation} body The annotation to create or update
+         * @param {ReportAnnotation} reportAnnotation The annotation to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createOrUpdateAnnotation(workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, body: ReportAnnotation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReportAnnotation>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateAnnotation(workspace, repoSlug, commit, reportId, annotationId, body, options);
+        async createOrUpdateAnnotation(workspace: string, repoSlug: string, commit: string, reportId: string, annotationId: string, reportAnnotation: ReportAnnotation, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ReportAnnotation>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateAnnotation(workspace, repoSlug, commit, reportId, annotationId, reportAnnotation, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ReportsApi.createOrUpdateAnnotation']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -33953,12 +35714,12 @@ export const ReportsApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug The repository.
          * @param {string} commit The commit the report belongs to.
          * @param {string} reportId Either the uuid or external-id of the report.
-         * @param {Report} body The report to create or update
+         * @param {Report} report The report to create or update
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async createOrUpdateReport(workspace: string, repoSlug: string, commit: string, reportId: string, body: Report, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Report>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateReport(workspace, repoSlug, commit, reportId, body, options);
+        async createOrUpdateReport(workspace: string, repoSlug: string, commit: string, reportId: string, report: Report, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Report>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createOrUpdateReport(workspace, repoSlug, commit, reportId, report, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['ReportsApi.createOrUpdateReport']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -34077,7 +35838,7 @@ export const ReportsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         bulkCreateOrUpdateAnnotations(requestParameters: ReportsApiBulkCreateOrUpdateAnnotationsRequest, options?: RawAxiosRequestConfig): AxiosPromise<Array<ReportAnnotation>> {
-            return localVarFp.bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.reportAnnotation, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates or updates an individual annotation for the specified report. Annotations are individual findings that have been identified as part of a report, for example, a line of code that represents a vulnerability. These annotations can be attached to a specific file and even a specific line in that file, however, that is optional. Annotations are not mandatory and a report can contain up to 1000 annotations.  Just as reports, annotation needs to be uploaded with a unique ID that can later be used to identify the report as an alternative to the generated [UUID](https://developer.atlassian.com/bitbucket/api/2/reference/meta/uri-uuid#uuid). If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-annotation001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mySystem-001/annotations/mysystem-annotation001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"annotation_type\": \"VULNERABILITY\",     \"summary\": \"This line represents a security thread.\",     \"severity\": \"HIGH\",     \"path\": \"my-service/src/main/java/com/myCompany/mysystem/logic/Main.java\",     \"line\": 42 }\' ```  ### Possible field values: annotation_type: VULNERABILITY, CODE_SMELL, BUG result: PASSED, FAILED, IGNORED, SKIPPED severity: HIGH, MEDIUM, LOW, CRITICAL  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
@@ -34087,7 +35848,7 @@ export const ReportsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         createOrUpdateAnnotation(requestParameters: ReportsApiCreateOrUpdateAnnotationRequest, options?: RawAxiosRequestConfig): AxiosPromise<ReportAnnotation> {
-            return localVarFp.createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.reportAnnotation, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates or updates a report for the specified commit. To upload a report, make sure to generate an ID that is unique across all reports for that commit. If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mysystem-001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"details\": \"This pull request introduces 10 new dependency vulnerabilities.\",     \"report_type\": \"SECURITY\",     \"reporter\": \"mySystem\",     \"link\": \"http://www.mysystem.com/reports/001\",     \"result\": \"FAILED\",     \"data\": [         {             \"title\": \"Duration (seconds)\",             \"type\": \"DURATION\",             \"value\": 14         },         {             \"title\": \"Safe to merge?\",             \"type\": \"BOOLEAN\",             \"value\": false         }     ] }\' ```  ### Possible field values: report_type: SECURITY, COVERAGE, TEST, BUG result: PASSED, FAILED, PENDING data.type: BOOLEAN, DATE, DURATION, LINK, NUMBER, PERCENTAGE, TEXT  #### Data field formats | Type  Field   | Value Field Type  | Value Field Display | |:--------------|:------------------|:--------------------| | None/ Omitted | Number, String or Boolean (not an array or object) | Plain text | | BOOLEAN | Boolean | The value will be read as a JSON boolean and displayed as \'Yes\' or \'No\'. | | DATE  | Number | The value will be read as a JSON number in the form of a Unix timestamp (milliseconds) and will be displayed as a relative date if the date is less than one week ago, otherwise  it will be displayed as an absolute date. | | DURATION | Number | The value will be read as a JSON number in milliseconds and will be displayed in a human readable duration format. | | LINK | Object: `{\"text\": \"Link text here\", \"href\": \"https://link.to.annotation/in/external/tool\"}` | The value will be read as a JSON object containing the fields \"text\" and \"href\" and will be displayed as a clickable link on the report. | | NUMBER | Number | The value will be read as a JSON number and large numbers will be  displayed in a human readable format (e.g. 14.3k). | | PERCENTAGE | Number (between 0 and 100) | The value will be read as a JSON number between 0 and 100 and will be displayed with a percentage sign. | | TEXT | String | The value will be read as a JSON string and will be displayed as-is |  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
@@ -34097,7 +35858,7 @@ export const ReportsApiFactory = function (configuration?: Configuration, basePa
          * @throws {RequiredError}
          */
         createOrUpdateReport(requestParameters: ReportsApiCreateOrUpdateReportRequest, options?: RawAxiosRequestConfig): AxiosPromise<Report> {
-            return localVarFp.createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.report, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes a single Annotation matching the provided ID.
@@ -34276,7 +36037,7 @@ export interface ReportsApiBulkCreateOrUpdateAnnotationsRequest {
     /**
      * The annotations to create or update
      */
-    readonly body: Array<ReportAnnotation>
+    readonly reportAnnotation: Array<ReportAnnotation>
 }
 
 /**
@@ -34311,7 +36072,7 @@ export interface ReportsApiCreateOrUpdateAnnotationRequest {
     /**
      * The annotation to create or update
      */
-    readonly body: ReportAnnotation
+    readonly reportAnnotation: ReportAnnotation
 }
 
 /**
@@ -34341,7 +36102,7 @@ export interface ReportsApiCreateOrUpdateReportRequest {
     /**
      * The report to create or update
      */
-    readonly body: Report
+    readonly report: Report
 }
 
 /**
@@ -34511,7 +36272,7 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
      * @throws {RequiredError}
      */
     public bulkCreateOrUpdateAnnotations(requestParameters: ReportsApiBulkCreateOrUpdateAnnotationsRequest, options?: RawAxiosRequestConfig) {
-        return ReportsApiFp(this.configuration).bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ReportsApiFp(this.configuration).bulkCreateOrUpdateAnnotations(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.reportAnnotation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -34522,7 +36283,7 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
      * @throws {RequiredError}
      */
     public createOrUpdateAnnotation(requestParameters: ReportsApiCreateOrUpdateAnnotationRequest, options?: RawAxiosRequestConfig) {
-        return ReportsApiFp(this.configuration).createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ReportsApiFp(this.configuration).createOrUpdateAnnotation(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.annotationId, requestParameters.reportAnnotation, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -34533,7 +36294,7 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
      * @throws {RequiredError}
      */
     public createOrUpdateReport(requestParameters: ReportsApiCreateOrUpdateReportRequest, options?: RawAxiosRequestConfig) {
-        return ReportsApiFp(this.configuration).createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return ReportsApiFp(this.configuration).createOrUpdateReport(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.reportId, requestParameters.report, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -34611,7 +36372,7 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
 export const RepositoriesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List public repositories
          * @param {string} [after] Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
          * @param {RepositoriesGetRoleEnum} [role] Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user 
@@ -34927,11 +36688,11 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          * @summary Fork a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] A repository object. This can be left blank.
+         * @param {Repository} [repository] A repository object. This can be left blank.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugForksPost: async (repoSlug: string, workspace: string, body?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugForksPost: async (repoSlug: string, workspace: string, repository?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugForksPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
@@ -34967,7 +36728,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(repository, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -35539,19 +37300,19 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          * @param {string} groupSlug Slug of the requested group.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut: async (groupSlug: string, repoSlug: string, workspace: string, body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut: async (groupSlug: string, repoSlug: string, workspace: string, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'groupSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut', 'groupSlug', groupSlug)
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut', 'body', body)
+            // verify required parameter 'bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut', 'bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema', bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/permissions-config/groups/{group_slug}`
                 .replace(`{${"group_slug"}}`, encodeURIComponent(String(groupSlug)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
@@ -35584,7 +37345,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -35752,19 +37513,19 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} selectedUserId This can either be the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;, OR an Atlassian Account ID. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut: async (repoSlug: string, selectedUserId: string, workspace: string, body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut: async (repoSlug: string, selectedUserId: string, workspace: string, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut', 'repoSlug', repoSlug)
             // verify required parameter 'selectedUserId' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut', 'selectedUserId', selectedUserId)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut', 'body', body)
+            // verify required parameter 'bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut', 'bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema', bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/permissions-config/users/{selected_user_id}`
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
                 .replace(`{${"selected_user_id"}}`, encodeURIComponent(String(selectedUserId)))
@@ -35797,7 +37558,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -35809,11 +37570,11 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          * @summary Create a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them.
+         * @param {Repository} [repository] The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPost: async (repoSlug: string, workspace: string, body?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPost: async (repoSlug: string, workspace: string, repository?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPost', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
@@ -35849,7 +37610,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(repository, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -35861,11 +37622,11 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          * @summary Update a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them. 
+         * @param {Repository} [repository] The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them. 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugPut: async (repoSlug: string, workspace: string, body?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        repositoriesWorkspaceRepoSlugPut: async (repoSlug: string, workspace: string, repository?: Repository, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'repoSlug' is not null or undefined
             assertParamExists('repositoriesWorkspaceRepoSlugPut', 'repoSlug', repoSlug)
             // verify required parameter 'workspace' is not null or undefined
@@ -35901,7 +37662,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(repository, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -36163,7 +37924,7 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions for a user
          * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
          * @param {string} [sort]  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
@@ -36173,6 +37934,61 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
          */
         userPermissionsRepositoriesGet: async (q?: string, sort?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/user/permissions/repositories`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["account", "repository"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            if (q !== undefined) {
+                localVarQueryParameter['q'] = q;
+            }
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+         * @summary List repository permissions in a workspace for a user
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+         * @param {string} [sort]  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesWorkspacePermissionsRepositoriesGet: async (workspace: string, q?: string, sort?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('userWorkspacesWorkspacePermissionsRepositoriesGet', 'workspace', workspace)
+            const localVarPath = `/user/workspaces/{workspace}/permissions/repositories`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -36224,7 +38040,7 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = RepositoriesApiAxiosParamCreator(configuration)
     return {
         /**
-         * Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List public repositories
          * @param {string} [after] Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
          * @param {RepositoriesGetRoleEnum} [role] Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user 
@@ -36312,12 +38128,12 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
          * @summary Fork a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] A repository object. This can be left blank.
+         * @param {Repository} [repository] A repository object. This can be left blank.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugForksPost(repoSlug: string, workspace: string, body?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugForksPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugForksPost(repoSlug: string, workspace: string, repository?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugForksPost(repoSlug, workspace, repository, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugForksPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -36487,12 +38303,12 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
          * @param {string} groupSlug Slug of the requested group.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(groupSlug: string, repoSlug: string, workspace: string, body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryGroupPermission>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(groupSlug, repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(groupSlug: string, repoSlug: string, workspace: string, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryGroupPermission>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(groupSlug, repoSlug, workspace, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -36547,12 +38363,12 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} selectedUserId This can either be the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;, OR an Atlassian Account ID. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} body The permission to grant
+         * @param {BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema} bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema The permission to grant
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(repoSlug: string, selectedUserId: string, workspace: string, body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryUserPermission>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(repoSlug, selectedUserId, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(repoSlug: string, selectedUserId: string, workspace: string, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<RepositoryUserPermission>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(repoSlug, selectedUserId, workspace, bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -36562,12 +38378,12 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
          * @summary Create a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them.
+         * @param {Repository} [repository] The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPost(repoSlug: string, workspace: string, body?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPost(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPost(repoSlug: string, workspace: string, repository?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPost(repoSlug, workspace, repository, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -36577,12 +38393,12 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
          * @summary Update a repository
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Repository} [body] The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them. 
+         * @param {Repository} [repository] The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them. 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugPut(repoSlug: string, workspace: string, body?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPut(repoSlug, workspace, body, options);
+        async repositoriesWorkspaceRepoSlugPut(repoSlug: string, workspace: string, repository?: Repository, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Repository>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPut(repoSlug, workspace, repository, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -36656,7 +38472,7 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions for a user
          * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
          * @param {string} [sort]  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
@@ -36670,6 +38486,21 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.userPermissionsRepositoriesGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+         * @summary List repository permissions in a workspace for a user
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} [q]  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+         * @param {string} [sort]  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async userWorkspacesWorkspacePermissionsRepositoriesGet(workspace: string, q?: string, sort?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedRepositoryPermissions>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.userWorkspacesWorkspacePermissionsRepositoriesGet(workspace, q, sort, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.userWorkspacesWorkspacePermissionsRepositoriesGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -36680,7 +38511,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
     const localVarFp = RepositoriesApiFp(configuration)
     return {
         /**
-         * Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List public repositories
          * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -36738,7 +38569,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugForksPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugForksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Repository> {
-            return localVarFp.repositoriesWorkspaceRepoSlugForksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugForksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the object describing this repository.
@@ -36858,7 +38689,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<RepositoryGroupPermission> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.repoSlug, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of explicit user permissions for the given repository. This endpoint does not support BBQL features.
@@ -36898,7 +38729,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<RepositoryUserPermission> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters.repoSlug, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters.repoSlug, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options).then((request) => request(axios, basePath));
         },
         /**
          * Creates a new repository.  Note: In order to set the project for the newly created repository, pass in either the project key or the project UUID as part of the request body as shown in the examples below:  ``` $ curl -X POST -H \"Content-Type: application/json\" -d \'{     \"scm\": \"git\",     \"project\": {         \"key\": \"MARS\"     } }\' https://api.bitbucket.org/2.0/repositories/teamsinspace/hablanding ```  or  ``` $ curl -X POST -H \"Content-Type: application/json\" -d \'{     \"scm\": \"git\",     \"project\": {         \"key\": \"{ba516952-992a-4c2d-acbd-17d502922f96}\"     } }\' https://api.bitbucket.org/2.0/repositories/teamsinspace/hablanding ```  The project must be assigned for all repositories. If the project is not provided, the repository is automatically assigned to the oldest project in the workspace.  Note: In the examples above, the workspace ID `teamsinspace`, and/or the repository name `hablanding` can be replaced by UUIDs.
@@ -36908,7 +38739,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Repository> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(axios, basePath));
         },
         /**
          * Since this endpoint can be used to both update and to create a repository, the request body depends on the intent.  #### Creation  See the POST documentation for the repository endpoint for an example of the request body.  #### Update  Note: Changing the `name` of the repository will cause the location to be changed. This is because the URL of the repo is derived from the name (a process called slugification). In such a scenario, it is possible for the request to fail if the newly created slug conflicts with an existing repository\'s slug. But if there is no conflict, the new location will be returned in the `Location` header of the response.
@@ -36918,7 +38749,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          * @throws {RequiredError}
          */
         repositoriesWorkspaceRepoSlugPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<Repository> {
-            return localVarFp.repositoriesWorkspaceRepoSlugPut(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.repositoriesWorkspaceRepoSlugPut(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(axios, basePath));
         },
         /**
          * This endpoints is used to retrieve the contents of a single file, or the contents of a directory at a specified revision.  #### Raw file contents  When `path` points to a file, this endpoint returns the raw contents. The response\'s Content-Type is derived from the filename extension (not from the contents). The file contents are not processed and no character encoding/recoding is performed and as a result no character encoding is included as part of the Content-Type.  The `Content-Disposition` header will be \"attachment\" to prevent browsers from running executable files.  If the file is managed by LFS, then a 301 redirect pointing to Atlassian\'s media services platform is returned.  The response includes an ETag that is based on the contents of the file and its attributes. This means that an empty `__init__.py` always returns the same ETag, regardless on the directory it lives in, or the commit it is on.  #### File meta data  When the request for a file path includes the query parameter `?format=meta`, instead of returning the file\'s raw contents, Bitbucket instead returns the JSON object describing the file\'s properties:  ```javascript $ curl https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef/tests/__init__.py?format=meta {   \"links\": {     \"self\": {       \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/__init__.py\"     },     \"meta\": {       \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/__init__.py?format=meta\"     }   },   \"path\": \"tests/__init__.py\",   \"commit\": {     \"type\": \"commit\",     \"hash\": \"eefd5ef5d3df01aed629f650959d6706d54cd335\",     \"links\": {       \"self\": {         \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/commit/eefd5ef5d3df01aed629f650959d6706d54cd335\"       },       \"html\": {         \"href\": \"https://bitbucket.org/atlassian/bbql/commits/eefd5ef5d3df01aed629f650959d6706d54cd335\"       }     }   },   \"attributes\": [],   \"type\": \"commit_file\",   \"size\": 0 } ```  File objects contain an `attributes` element that contains a list of possible modifiers. Currently defined values are:  * `link` -- indicates that the entry is a symbolic link. The contents     of the file represent the path the link points to. * `executable` -- indicates that the file has the executable bit set. * `subrepository` -- indicates that the entry points to a submodule or     subrepo. The contents of the file is the SHA1 of the repository     pointed to. * `binary` -- indicates whether Bitbucket thinks the file is binary.  This endpoint can provide an alternative to how a HEAD request can be used to check for the existence of a file, or a file\'s size without incurring the overhead of receiving its full contents.   #### Directory listings  When `path` points to a directory instead of a file, the response is a paginated list of directory and file objects in the same order as the underlying SCM system would return them.  For example:  ```javascript $ curl https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef/tests {   \"pagelen\": 10,   \"values\": [     {       \"path\": \"tests/test_project\",       \"type\": \"commit_directory\",       \"links\": {         \"self\": {           \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/test_project/\"         },         \"meta\": {           \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/test_project/?format=meta\"         }       },       \"commit\": {         \"type\": \"commit\",         \"hash\": \"eefd5ef5d3df01aed629f650959d6706d54cd335\",         \"links\": {           \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/commit/eefd5ef5d3df01aed629f650959d6706d54cd335\"           },           \"html\": {             \"href\": \"https://bitbucket.org/atlassian/bbql/commits/eefd5ef5d3df01aed629f650959d6706d54cd335\"           }         }       }     },     {       \"links\": {         \"self\": {           \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/__init__.py\"         },         \"meta\": {           \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/__init__.py?format=meta\"         }       },       \"path\": \"tests/__init__.py\",       \"commit\": {         \"type\": \"commit\",         \"hash\": \"eefd5ef5d3df01aed629f650959d6706d54cd335\",         \"links\": {           \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/commit/eefd5ef5d3df01aed629f650959d6706d54cd335\"           },           \"html\": {             \"href\": \"https://bitbucket.org/atlassian/bbql/commits/eefd5ef5d3df01aed629f650959d6706d54cd335\"           }         }       },       \"attributes\": [],       \"type\": \"commit_file\",       \"size\": 0     }   ],   \"page\": 1,   \"size\": 2 } ```  When listing the contents of the repo\'s root directory, the use of a trailing slash at the end of the URL is required.  The response by default is not recursive, meaning that only the direct contents of a path are returned. The response does not recurse down into subdirectories. In order to \"walk\" the entire directory tree, the client can either parse each response and follow the `self` links of each `commit_directory` object, or can specify a `max_depth` to recurse to.  The max_depth parameter will do a breadth-first search to return the contents of the subdirectories up to the depth specified. Breadth-first search was chosen as it leads to the least amount of file system operations for git. If the `max_depth` parameter is specified to be too large, the call will time out and return a 555.  Each returned object is either a `commit_file`, or a `commit_directory`, both of which contain a `path` element. This path is the absolute path from the root of the repository. Each object also contains a `commit` object which embeds the commit the file is on. Note that this is merely the commit that was used in the URL. It is *not* the commit that last modified the file.  Directory objects have 2 representations. Their `self` link returns the paginated contents of the directory. The `meta` link on the other hand returns the actual `directory` object itself, e.g.:  ```javascript {   \"path\": \"tests/test_project\",   \"type\": \"commit_directory\",   \"links\": {     \"self\": {       \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/test_project/\"     },     \"meta\": {       \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bbql/src/eefd5ef5d3df01aed629f650959d6706d54cd335/tests/test_project/?format=meta\"     }   },   \"commit\": { ... } } ```  #### Querying, filtering and sorting  Like most API endpoints, this API supports the Bitbucket querying/filtering syntax and so you could filter a directory listing to only include entries that match certain criteria. For instance, to list all binary files over 1kb use the expression:  `size > 1024 and attributes = \"binary\"`  which after urlencoding yields the query string:  `?q=size%3E1024+and+attributes%3D%22binary%22`  To change the ordering of the response, use the `?sort` parameter:  `.../src/eefd5ef/?sort=-size`  See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
@@ -36961,7 +38792,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
             return localVarFp.repositoriesWorkspaceRepoSlugWatchersGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
-         * Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions for a user
          * @param {RepositoriesApiUserPermissionsRepositoriesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -36971,6 +38802,16 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
         userPermissionsRepositoriesGet(requestParameters: RepositoriesApiUserPermissionsRepositoriesGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions> {
             return localVarFp.userPermissionsRepositoriesGet(requestParameters.q, requestParameters.sort, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+         * @summary List repository permissions in a workspace for a user
+         * @param {RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters: RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions> {
+            return localVarFp.userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters.workspace, requestParameters.q, requestParameters.sort, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -36979,7 +38820,7 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
  */
 export interface RepositoriesApiInterface {
     /**
-     * Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List public repositories
      * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -37232,7 +39073,7 @@ export interface RepositoriesApiInterface {
     repositoriesWorkspaceRepoSlugWatchersGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugWatchersGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedAccounts>;
 
     /**
-     * Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
      * @summary List repository permissions for a user
      * @param {RepositoriesApiUserPermissionsRepositoriesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -37240,6 +39081,15 @@ export interface RepositoriesApiInterface {
      * @throws {RequiredError}
      */
     userPermissionsRepositoriesGet(requestParameters?: RepositoriesApiUserPermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions>;
+
+    /**
+     * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+     * @summary List repository permissions in a workspace for a user
+     * @param {RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters: RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions>;
 
 }
 
@@ -37400,7 +39250,7 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugForksPostRequest {
     /**
      * A repository object. This can be left blank.
      */
-    readonly body?: Repository
+    readonly repository?: Repository
 }
 
 /**
@@ -37615,7 +39465,7 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigGr
     /**
      * The permission to grant
      */
-    readonly body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
+    readonly bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
 }
 
 /**
@@ -37695,7 +39545,7 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigUs
     /**
      * The permission to grant
      */
-    readonly body: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
+    readonly bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema: BitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema
 }
 
 /**
@@ -37715,7 +39565,7 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugPostRequest {
     /**
      * The repository that is to be created. Note that most object elements are optional. Elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored as the URL implies them.
      */
-    readonly body?: Repository
+    readonly repository?: Repository
 }
 
 /**
@@ -37735,7 +39585,7 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugPutRequest {
     /**
      * The repository that is to be updated.  Note that the elements \&quot;owner\&quot; and \&quot;full_name\&quot; are ignored since the URL implies them. 
      */
-    readonly body?: Repository
+    readonly repository?: Repository
 }
 
 /**
@@ -37874,11 +39724,31 @@ export interface RepositoriesApiUserPermissionsRepositoriesGetRequest {
 }
 
 /**
+ * Request parameters for userWorkspacesWorkspacePermissionsRepositoriesGet operation in RepositoriesApi.
+ */
+export interface RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+     */
+    readonly workspace: string
+
+    /**
+     *  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+     */
+    readonly q?: string
+
+    /**
+     *  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).
+     */
+    readonly sort?: string
+}
+
+/**
  * RepositoriesApi - object-oriented interface
  */
 export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface {
     /**
-     * Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List public repositories
      * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -37941,7 +39811,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugForksPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugForksPostRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugForksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugForksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38073,7 +39943,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPutRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPermissionsConfigGroupsGroupSlugPut(requestParameters.groupSlug, requestParameters.repoSlug, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38117,7 +39987,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPutRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters.repoSlug, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPermissionsConfigUsersSelectedUserIdPut(requestParameters.repoSlug, requestParameters.selectedUserId, requestParameters.workspace, requestParameters.bitbucketAppsPermissionsSerializersRepoPermissionUpdateSchema, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38128,7 +39998,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPostRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38139,7 +40009,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      * @throws {RequiredError}
      */
     public repositoriesWorkspaceRepoSlugPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugPutRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPut(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugPut(requestParameters.repoSlug, requestParameters.workspace, requestParameters.repository, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38187,7 +40057,7 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
     }
 
     /**
-     * Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
      * @summary List repository permissions for a user
      * @param {RepositoriesApiUserPermissionsRepositoriesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -38196,6 +40066,17 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      */
     public userPermissionsRepositoriesGet(requestParameters: RepositoriesApiUserPermissionsRepositoriesGetRequest = {}, options?: RawAxiosRequestConfig) {
         return RepositoriesApiFp(this.configuration).userPermissionsRepositoriesGet(requestParameters.q, requestParameters.sort, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
+     * @summary List repository permissions in a workspace for a user
+     * @param {RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters: RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters.workspace, requestParameters.q, requestParameters.sort, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -38384,11 +40265,11 @@ export const SSHApiAxiosParamCreator = function (configuration?: Configuration) 
          * @summary Update a SSH key
          * @param {string} keyId The SSH key\&#39;s UUID value.
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
-         * @param {SshAccountKey} [body] The updated SSH key object
+         * @param {SshAccountKey} [sshAccountKey] The updated SSH key object
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        usersSelectedUserSshKeysKeyIdPut: async (keyId: string, selectedUser: string, body?: SshAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        usersSelectedUserSshKeysKeyIdPut: async (keyId: string, selectedUser: string, sshAccountKey?: SshAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'keyId' is not null or undefined
             assertParamExists('usersSelectedUserSshKeysKeyIdPut', 'keyId', keyId)
             // verify required parameter 'selectedUser' is not null or undefined
@@ -38424,7 +40305,7 @@ export const SSHApiAxiosParamCreator = function (configuration?: Configuration) 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(sshAccountKey, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -38436,11 +40317,11 @@ export const SSHApiAxiosParamCreator = function (configuration?: Configuration) 
          * @summary Add a new SSH key
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
          * @param {string} [expiresOn] The date or date-time of when the key will expire, in [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) format. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
-         * @param {SshAccountKey} [body] The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis).
+         * @param {SshAccountKey} [sshAccountKey] The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        usersSelectedUserSshKeysPost: async (selectedUser: string, expiresOn?: string, body?: SshAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        usersSelectedUserSshKeysPost: async (selectedUser: string, expiresOn?: string, sshAccountKey?: SshAccountKey, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'selectedUser' is not null or undefined
             assertParamExists('usersSelectedUserSshKeysPost', 'selectedUser', selectedUser)
             const localVarPath = `/users/{selected_user}/ssh-keys`
@@ -38477,7 +40358,7 @@ export const SSHApiAxiosParamCreator = function (configuration?: Configuration) 
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(sshAccountKey, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -38539,12 +40420,12 @@ export const SSHApiFp = function(configuration?: Configuration) {
          * @summary Update a SSH key
          * @param {string} keyId The SSH key\&#39;s UUID value.
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
-         * @param {SshAccountKey} [body] The updated SSH key object
+         * @param {SshAccountKey} [sshAccountKey] The updated SSH key object
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async usersSelectedUserSshKeysKeyIdPut(keyId: string, selectedUser: string, body?: SshAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SshAccountKey>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserSshKeysKeyIdPut(keyId, selectedUser, body, options);
+        async usersSelectedUserSshKeysKeyIdPut(keyId: string, selectedUser: string, sshAccountKey?: SshAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SshAccountKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserSshKeysKeyIdPut(keyId, selectedUser, sshAccountKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SSHApi.usersSelectedUserSshKeysKeyIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -38554,12 +40435,12 @@ export const SSHApiFp = function(configuration?: Configuration) {
          * @summary Add a new SSH key
          * @param {string} selectedUser This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;. 
          * @param {string} [expiresOn] The date or date-time of when the key will expire, in [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) format. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
-         * @param {SshAccountKey} [body] The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis).
+         * @param {SshAccountKey} [sshAccountKey] The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis).
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async usersSelectedUserSshKeysPost(selectedUser: string, expiresOn?: string, body?: SshAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SshAccountKey>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserSshKeysPost(selectedUser, expiresOn, body, options);
+        async usersSelectedUserSshKeysPost(selectedUser: string, expiresOn?: string, sshAccountKey?: SshAccountKey, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SshAccountKey>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.usersSelectedUserSshKeysPost(selectedUser, expiresOn, sshAccountKey, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SSHApi.usersSelectedUserSshKeysPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -38611,7 +40492,7 @@ export const SSHApiFactory = function (configuration?: Configuration, basePath?:
          * @throws {RequiredError}
          */
         usersSelectedUserSshKeysKeyIdPut(requestParameters: SSHApiUsersSelectedUserSshKeysKeyIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<SshAccountKey> {
-            return localVarFp.usersSelectedUserSshKeysKeyIdPut(requestParameters.keyId, requestParameters.selectedUser, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.usersSelectedUserSshKeysKeyIdPut(requestParameters.keyId, requestParameters.selectedUser, requestParameters.sshAccountKey, options).then((request) => request(axios, basePath));
         },
         /**
          * Adds a new SSH public key to the specified user account and returns the resulting key.  Example:  ``` $ curl -X POST -H \"Content-Type: application/json\" -d \'{\"key\": \"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKqP3Cr632C2dNhhgKVcon4ldUSAeKiku2yP9O9/bDtY user@myhost\"}\' https://api.bitbucket.org/2.0/users/{ed08f5e1-605b-4f4a-aee4-6c97628a673e}/ssh-keys ```
@@ -38621,7 +40502,7 @@ export const SSHApiFactory = function (configuration?: Configuration, basePath?:
          * @throws {RequiredError}
          */
         usersSelectedUserSshKeysPost(requestParameters: SSHApiUsersSelectedUserSshKeysPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<SshAccountKey> {
-            return localVarFp.usersSelectedUserSshKeysPost(requestParameters.selectedUser, requestParameters.expiresOn, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.usersSelectedUserSshKeysPost(requestParameters.selectedUser, requestParameters.expiresOn, requestParameters.sshAccountKey, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -38734,7 +40615,7 @@ export interface SSHApiUsersSelectedUserSshKeysKeyIdPutRequest {
     /**
      * The updated SSH key object
      */
-    readonly body?: SshAccountKey
+    readonly sshAccountKey?: SshAccountKey
 }
 
 /**
@@ -38754,7 +40635,7 @@ export interface SSHApiUsersSelectedUserSshKeysPostRequest {
     /**
      * The new SSH key object. Note that the username property has been deprecated due to [privacy changes](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#removal-of-usernames-from-user-referencing-apis).
      */
-    readonly body?: SshAccountKey
+    readonly sshAccountKey?: SshAccountKey
 }
 
 /**
@@ -38802,7 +40683,7 @@ export class SSHApi extends BaseAPI implements SSHApiInterface {
      * @throws {RequiredError}
      */
     public usersSelectedUserSshKeysKeyIdPut(requestParameters: SSHApiUsersSelectedUserSshKeysKeyIdPutRequest, options?: RawAxiosRequestConfig) {
-        return SSHApiFp(this.configuration).usersSelectedUserSshKeysKeyIdPut(requestParameters.keyId, requestParameters.selectedUser, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SSHApiFp(this.configuration).usersSelectedUserSshKeysKeyIdPut(requestParameters.keyId, requestParameters.selectedUser, requestParameters.sshAccountKey, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -38813,7 +40694,7 @@ export class SSHApi extends BaseAPI implements SSHApiInterface {
      * @throws {RequiredError}
      */
     public usersSelectedUserSshKeysPost(requestParameters: SSHApiUsersSelectedUserSshKeysPostRequest, options?: RawAxiosRequestConfig) {
-        return SSHApiFp(this.configuration).usersSelectedUserSshKeysPost(requestParameters.selectedUser, requestParameters.expiresOn, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SSHApiFp(this.configuration).usersSelectedUserSshKeysPost(requestParameters.selectedUser, requestParameters.expiresOn, requestParameters.sshAccountKey, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -39263,7 +41144,7 @@ export class SearchApi extends BaseAPI implements SearchApiInterface {
 export const SnippetsApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
          * @summary List snippets
          * @param {SnippetsGetRoleEnum} [role] Filter down the result based on the authenticated user\&#39;s role (&#x60;owner&#x60;, &#x60;contributor&#x60;, or &#x60;member&#x60;).
          * @param {*} [options] Override http request option.
@@ -39312,13 +41193,13 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Creates a new snippet under the authenticated user\'s account.  Snippets can contain multiple files. Both text and binary files are supported.  The simplest way to create a new snippet from a local file:      $ curl -u username:password -X POST https://api.bitbucket.org/2.0/snippets               -F file=@image.png  Creating snippets through curl has a few limitations and so let\'s look at a more complicated scenario.  Snippets are created with a multipart POST. Both `multipart/form-data` and `multipart/related` are supported. Both allow the creation of snippets with both meta data (title, etc), as well as multiple text and binary files.  The main difference is that `multipart/related` can use rich encoding for the meta data (currently JSON).   multipart/related (RFC-2387) ----------------------------  This is the most advanced and efficient way to create a paste.      POST /2.0/snippets/evzijst HTTP/1.1     Content-Length: 1188     Content-Type: multipart/related; start=\"snippet\"; boundary=\"===============1438169132528273974==\"     MIME-Version: 1.0      --===============1438169132528273974==     Content-Type: application/json; charset=\"utf-8\"     MIME-Version: 1.0     Content-ID: snippet      {       \"title\": \"My snippet\",       \"is_private\": true,       \"scm\": \"git\",       \"files\": {           \"foo.txt\": {},           \"image.png\": {}         }     }      --===============1438169132528273974==     Content-Type: text/plain; charset=\"us-ascii\"     MIME-Version: 1.0     Content-Transfer-Encoding: 7bit     Content-ID: \"foo.txt\"     Content-Disposition: attachment; filename=\"foo.txt\"      foo      --===============1438169132528273974==     Content-Type: image/png     MIME-Version: 1.0     Content-Transfer-Encoding: base64     Content-ID: \"image.png\"     Content-Disposition: attachment; filename=\"image.png\"      iVBORw0KGgoAAAANSUhEUgAAABQAAAAoCAYAAAD+MdrbAAABD0lEQVR4Ae3VMUoDQRTG8ccUaW2m     TKONFxArJYJamCvkCnZTaa+VnQdJSBFl2SMsLFrEWNjZBZs0JgiL/+KrhhVmJRbCLPx4O+/DT2TB     cbblJxf+UWFVVRNsEGAtgvJxnLm2H+A5RQ93uIl+3632PZyl/skjfOn9Gvdwmlcw5aPUwimG+NT5     EnNN036IaZePUuIcK533NVfal7/5yjWeot2z9ta1cAczHEf7I+3J0ws9Cgx0fsOFpmlfwKcWPuBQ     73Oc4FHzBaZ8llq4q1mr5B2mOUCt815qYR8eB1hG2VJ7j35q4RofaH7IG+Xrf/PfJhfmwtfFYoIN     AqxFUD6OMxcvkO+UfKfkOyXfKdsv/AYCHMLVkHAFWgAAAABJRU5ErkJggg==     --===============1438169132528273974==--  The request contains multiple parts and is structured as follows.  The first part is the JSON document that describes the snippet\'s properties or meta data. It either has to be the first part, or the request\'s `Content-Type` header must contain the `start` parameter to point to it.  The remaining parts are the files of which there can be zero or more. Each file part should contain the `Content-ID` MIME header through which the JSON meta data\'s `files` element addresses it. The value should be the name of the file.  `Content-Disposition` is an optional MIME header. The header\'s optional `filename` parameter can be used to specify the file name that Bitbucket should use when writing the file to disk. When present, `filename` takes precedence over the value of `Content-ID`.  When the JSON body omits the `files` element, the remaining parts are not ignored. Instead, each file is added to the new snippet as if its name was explicitly linked (the use of the `files` elements is mandatory for some operations like deleting or renaming files).   multipart/form-data -------------------  The use of JSON for the snippet\'s meta data is optional. Meta data can also be supplied as regular form fields in a more conventional `multipart/form-data` request:      $ curl -X POST -u credentials https://api.bitbucket.org/2.0/snippets               -F title=\"My snippet\"               -F file=@foo.txt -F file=@image.png      POST /2.0/snippets HTTP/1.1     Content-Length: 951     Content-Type: multipart/form-data; boundary=----------------------------63a4b224c59f      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"     Content-Type: text/plain      foo      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"image.png\"     Content-Type: application/octet-stream      ?PNG      IHDR?1??I.....     ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"title\"      My snippet     ------------------------------63a4b224c59f--  Here the meta data properties are included as flat, top-level form fields. The file attachments use the `file` field name. To attach multiple files, simply repeat the field.  The advantage of `multipart/form-data` over `multipart/related` is that it can be easier to build clients.  Essentially all properties are optional, `title` and `files` included.   Sharing and Visibility ----------------------  Snippets can be either public (visible to anyone on Bitbucket, as well as anonymous users), or private (visible only to members of the workspace). This is controlled through the snippet\'s `is_private` element:  * **is_private=false** -- everyone, including anonymous users can view   the snippet * **is_private=true** -- only workspace members can view the snippet  To create the snippet under a workspace, just append the workspace ID to the URL. See [`/2.0/snippets/{workspace}`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-post).
          * @summary Create a snippet
-         * @param {Snippet} body The new snippet object.
+         * @param {Snippet} snippet The new snippet object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        snippetsPost: async (body: Snippet, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('snippetsPost', 'body', body)
+        snippetsPost: async (snippet: Snippet, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'snippet' is not null or undefined
+            assertParamExists('snippetsPost', 'snippet', snippet)
             const localVarPath = `/snippets`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -39348,7 +41229,7 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(snippet, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -39467,19 +41348,19 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
          * @param {number} commentId The id of the comment.
          * @param {string} encodedId The snippet id.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {SnippetComment} body The contents to update the comment to.
+         * @param {SnippetComment} snippetComment The contents to update the comment to.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        snippetsWorkspaceEncodedIdCommentsCommentIdPut: async (commentId: number, encodedId: string, workspace: string, body: SnippetComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        snippetsWorkspaceEncodedIdCommentsCommentIdPut: async (commentId: number, encodedId: string, workspace: string, snippetComment: SnippetComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'commentId' is not null or undefined
             assertParamExists('snippetsWorkspaceEncodedIdCommentsCommentIdPut', 'commentId', commentId)
             // verify required parameter 'encodedId' is not null or undefined
             assertParamExists('snippetsWorkspaceEncodedIdCommentsCommentIdPut', 'encodedId', encodedId)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('snippetsWorkspaceEncodedIdCommentsCommentIdPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('snippetsWorkspaceEncodedIdCommentsCommentIdPut', 'body', body)
+            // verify required parameter 'snippetComment' is not null or undefined
+            assertParamExists('snippetsWorkspaceEncodedIdCommentsCommentIdPut', 'snippetComment', snippetComment)
             const localVarPath = `/snippets/{workspace}/{encoded_id}/comments/{comment_id}`
                 .replace(`{${"comment_id"}}`, encodeURIComponent(String(commentId)))
                 .replace(`{${"encoded_id"}}`, encodeURIComponent(String(encodedId)))
@@ -39512,7 +41393,7 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(snippetComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -39573,17 +41454,17 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
          * @summary Create a comment on a snippet
          * @param {string} encodedId The snippet id.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {SnippetComment} body The contents of the new comment.
+         * @param {SnippetComment} snippetComment The contents of the new comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        snippetsWorkspaceEncodedIdCommentsPost: async (encodedId: string, workspace: string, body: SnippetComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        snippetsWorkspaceEncodedIdCommentsPost: async (encodedId: string, workspace: string, snippetComment: SnippetComment, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'encodedId' is not null or undefined
             assertParamExists('snippetsWorkspaceEncodedIdCommentsPost', 'encodedId', encodedId)
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('snippetsWorkspaceEncodedIdCommentsPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('snippetsWorkspaceEncodedIdCommentsPost', 'body', body)
+            // verify required parameter 'snippetComment' is not null or undefined
+            assertParamExists('snippetsWorkspaceEncodedIdCommentsPost', 'snippetComment', snippetComment)
             const localVarPath = `/snippets/{workspace}/{encoded_id}/comments`
                 .replace(`{${"encoded_id"}}`, encodeURIComponent(String(encodedId)))
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
@@ -39615,7 +41496,7 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(snippetComment, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -40502,15 +42383,15 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
          * Identical to [`/snippets`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-post), except that the new snippet will be created under the workspace specified in the path parameter `{workspace}`.
          * @summary Create a snippet for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Snippet} body The new snippet object.
+         * @param {Snippet} snippet The new snippet object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        snippetsWorkspacePost: async (workspace: string, body: Snippet, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        snippetsWorkspacePost: async (workspace: string, snippet: Snippet, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
             assertParamExists('snippetsWorkspacePost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('snippetsWorkspacePost', 'body', body)
+            // verify required parameter 'snippet' is not null or undefined
+            assertParamExists('snippetsWorkspacePost', 'snippet', snippet)
             const localVarPath = `/snippets/{workspace}`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -40541,7 +42422,7 @@ export const SnippetsApiAxiosParamCreator = function (configuration?: Configurat
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+            localVarRequestOptions.data = serializeDataIfNeeded(snippet, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -40558,7 +42439,7 @@ export const SnippetsApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = SnippetsApiAxiosParamCreator(configuration)
     return {
         /**
-         * Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
          * @summary List snippets
          * @param {SnippetsGetRoleEnum} [role] Filter down the result based on the authenticated user\&#39;s role (&#x60;owner&#x60;, &#x60;contributor&#x60;, or &#x60;member&#x60;).
          * @param {*} [options] Override http request option.
@@ -40574,12 +42455,12 @@ export const SnippetsApiFp = function(configuration?: Configuration) {
         /**
          * Creates a new snippet under the authenticated user\'s account.  Snippets can contain multiple files. Both text and binary files are supported.  The simplest way to create a new snippet from a local file:      $ curl -u username:password -X POST https://api.bitbucket.org/2.0/snippets               -F file=@image.png  Creating snippets through curl has a few limitations and so let\'s look at a more complicated scenario.  Snippets are created with a multipart POST. Both `multipart/form-data` and `multipart/related` are supported. Both allow the creation of snippets with both meta data (title, etc), as well as multiple text and binary files.  The main difference is that `multipart/related` can use rich encoding for the meta data (currently JSON).   multipart/related (RFC-2387) ----------------------------  This is the most advanced and efficient way to create a paste.      POST /2.0/snippets/evzijst HTTP/1.1     Content-Length: 1188     Content-Type: multipart/related; start=\"snippet\"; boundary=\"===============1438169132528273974==\"     MIME-Version: 1.0      --===============1438169132528273974==     Content-Type: application/json; charset=\"utf-8\"     MIME-Version: 1.0     Content-ID: snippet      {       \"title\": \"My snippet\",       \"is_private\": true,       \"scm\": \"git\",       \"files\": {           \"foo.txt\": {},           \"image.png\": {}         }     }      --===============1438169132528273974==     Content-Type: text/plain; charset=\"us-ascii\"     MIME-Version: 1.0     Content-Transfer-Encoding: 7bit     Content-ID: \"foo.txt\"     Content-Disposition: attachment; filename=\"foo.txt\"      foo      --===============1438169132528273974==     Content-Type: image/png     MIME-Version: 1.0     Content-Transfer-Encoding: base64     Content-ID: \"image.png\"     Content-Disposition: attachment; filename=\"image.png\"      iVBORw0KGgoAAAANSUhEUgAAABQAAAAoCAYAAAD+MdrbAAABD0lEQVR4Ae3VMUoDQRTG8ccUaW2m     TKONFxArJYJamCvkCnZTaa+VnQdJSBFl2SMsLFrEWNjZBZs0JgiL/+KrhhVmJRbCLPx4O+/DT2TB     cbblJxf+UWFVVRNsEGAtgvJxnLm2H+A5RQ93uIl+3632PZyl/skjfOn9Gvdwmlcw5aPUwimG+NT5     EnNN036IaZePUuIcK533NVfal7/5yjWeot2z9ta1cAczHEf7I+3J0ws9Cgx0fsOFpmlfwKcWPuBQ     73Oc4FHzBaZ8llq4q1mr5B2mOUCt815qYR8eB1hG2VJ7j35q4RofaH7IG+Xrf/PfJhfmwtfFYoIN     AqxFUD6OMxcvkO+UfKfkOyXfKdsv/AYCHMLVkHAFWgAAAABJRU5ErkJggg==     --===============1438169132528273974==--  The request contains multiple parts and is structured as follows.  The first part is the JSON document that describes the snippet\'s properties or meta data. It either has to be the first part, or the request\'s `Content-Type` header must contain the `start` parameter to point to it.  The remaining parts are the files of which there can be zero or more. Each file part should contain the `Content-ID` MIME header through which the JSON meta data\'s `files` element addresses it. The value should be the name of the file.  `Content-Disposition` is an optional MIME header. The header\'s optional `filename` parameter can be used to specify the file name that Bitbucket should use when writing the file to disk. When present, `filename` takes precedence over the value of `Content-ID`.  When the JSON body omits the `files` element, the remaining parts are not ignored. Instead, each file is added to the new snippet as if its name was explicitly linked (the use of the `files` elements is mandatory for some operations like deleting or renaming files).   multipart/form-data -------------------  The use of JSON for the snippet\'s meta data is optional. Meta data can also be supplied as regular form fields in a more conventional `multipart/form-data` request:      $ curl -X POST -u credentials https://api.bitbucket.org/2.0/snippets               -F title=\"My snippet\"               -F file=@foo.txt -F file=@image.png      POST /2.0/snippets HTTP/1.1     Content-Length: 951     Content-Type: multipart/form-data; boundary=----------------------------63a4b224c59f      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"     Content-Type: text/plain      foo      ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"file\"; filename=\"image.png\"     Content-Type: application/octet-stream      ?PNG      IHDR?1??I.....     ------------------------------63a4b224c59f     Content-Disposition: form-data; name=\"title\"      My snippet     ------------------------------63a4b224c59f--  Here the meta data properties are included as flat, top-level form fields. The file attachments use the `file` field name. To attach multiple files, simply repeat the field.  The advantage of `multipart/form-data` over `multipart/related` is that it can be easier to build clients.  Essentially all properties are optional, `title` and `files` included.   Sharing and Visibility ----------------------  Snippets can be either public (visible to anyone on Bitbucket, as well as anonymous users), or private (visible only to members of the workspace). This is controlled through the snippet\'s `is_private` element:  * **is_private=false** -- everyone, including anonymous users can view   the snippet * **is_private=true** -- only workspace members can view the snippet  To create the snippet under a workspace, just append the workspace ID to the URL. See [`/2.0/snippets/{workspace}`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-post).
          * @summary Create a snippet
-         * @param {Snippet} body The new snippet object.
+         * @param {Snippet} snippet The new snippet object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async snippetsPost(body: Snippet, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Snippet>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsPost(body, options);
+        async snippetsPost(snippet: Snippet, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Snippet>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsPost(snippet, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SnippetsApi.snippetsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -40620,12 +42501,12 @@ export const SnippetsApiFp = function(configuration?: Configuration) {
          * @param {number} commentId The id of the comment.
          * @param {string} encodedId The snippet id.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {SnippetComment} body The contents to update the comment to.
+         * @param {SnippetComment} snippetComment The contents to update the comment to.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async snippetsWorkspaceEncodedIdCommentsCommentIdPut(commentId: number, encodedId: string, workspace: string, body: SnippetComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SnippetComment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspaceEncodedIdCommentsCommentIdPut(commentId, encodedId, workspace, body, options);
+        async snippetsWorkspaceEncodedIdCommentsCommentIdPut(commentId: number, encodedId: string, workspace: string, snippetComment: SnippetComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SnippetComment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspaceEncodedIdCommentsCommentIdPut(commentId, encodedId, workspace, snippetComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SnippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -40649,12 +42530,12 @@ export const SnippetsApiFp = function(configuration?: Configuration) {
          * @summary Create a comment on a snippet
          * @param {string} encodedId The snippet id.
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {SnippetComment} body The contents of the new comment.
+         * @param {SnippetComment} snippetComment The contents of the new comment.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async snippetsWorkspaceEncodedIdCommentsPost(encodedId: string, workspace: string, body: SnippetComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SnippetComment>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspaceEncodedIdCommentsPost(encodedId, workspace, body, options);
+        async snippetsWorkspaceEncodedIdCommentsPost(encodedId: string, workspace: string, snippetComment: SnippetComment, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SnippetComment>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspaceEncodedIdCommentsPost(encodedId, workspace, snippetComment, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SnippetsApi.snippetsWorkspaceEncodedIdCommentsPost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -40912,12 +42793,12 @@ export const SnippetsApiFp = function(configuration?: Configuration) {
          * Identical to [`/snippets`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-post), except that the new snippet will be created under the workspace specified in the path parameter `{workspace}`.
          * @summary Create a snippet for a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {Snippet} body The new snippet object.
+         * @param {Snippet} snippet The new snippet object.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async snippetsWorkspacePost(workspace: string, body: Snippet, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Snippet>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspacePost(workspace, body, options);
+        async snippetsWorkspacePost(workspace: string, snippet: Snippet, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<Snippet>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.snippetsWorkspacePost(workspace, snippet, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['SnippetsApi.snippetsWorkspacePost']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
@@ -40932,7 +42813,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
     const localVarFp = SnippetsApiFp(configuration)
     return {
         /**
-         * Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
          * @summary List snippets
          * @param {SnippetsApiSnippetsGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -40950,7 +42831,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         snippetsPost(requestParameters: SnippetsApiSnippetsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Snippet> {
-            return localVarFp.snippetsPost(requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.snippetsPost(requestParameters.snippet, options).then((request) => request(axios, basePath));
         },
         /**
          * Deletes a snippet comment.  Comments can only be removed by the comment author, snippet creator, or workspace admin.
@@ -40980,7 +42861,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters: SnippetsApiSnippetsWorkspaceEncodedIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<SnippetComment> {
-            return localVarFp.snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.encodedId, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.encodedId, requestParameters.workspace, requestParameters.snippetComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Used to retrieve a paginated list of all comments for a specific snippet.  This resource works identical to commit and pull request comments.  The default sorting is oldest to newest and can be overridden with the `sort` query parameter.
@@ -41000,7 +42881,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         snippetsWorkspaceEncodedIdCommentsPost(requestParameters: SnippetsApiSnippetsWorkspaceEncodedIdCommentsPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<SnippetComment> {
-            return localVarFp.snippetsWorkspaceEncodedIdCommentsPost(requestParameters.encodedId, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.snippetsWorkspaceEncodedIdCommentsPost(requestParameters.encodedId, requestParameters.workspace, requestParameters.snippetComment, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns the changes (commits) made on this snippet.
@@ -41181,7 +43062,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
          * @throws {RequiredError}
          */
         snippetsWorkspacePost(requestParameters: SnippetsApiSnippetsWorkspacePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Snippet> {
-            return localVarFp.snippetsWorkspacePost(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+            return localVarFp.snippetsWorkspacePost(requestParameters.workspace, requestParameters.snippet, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -41191,7 +43072,7 @@ export const SnippetsApiFactory = function (configuration?: Configuration, baseP
  */
 export interface SnippetsApiInterface {
     /**
-     * Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
      * @summary List snippets
      * @param {SnippetsApiSnippetsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -41436,7 +43317,7 @@ export interface SnippetsApiSnippetsPostRequest {
     /**
      * The new snippet object.
      */
-    readonly body: Snippet
+    readonly snippet: Snippet
 }
 
 /**
@@ -41501,7 +43382,7 @@ export interface SnippetsApiSnippetsWorkspaceEncodedIdCommentsCommentIdPutReques
     /**
      * The contents to update the comment to.
      */
-    readonly body: SnippetComment
+    readonly snippetComment: SnippetComment
 }
 
 /**
@@ -41536,7 +43417,7 @@ export interface SnippetsApiSnippetsWorkspaceEncodedIdCommentsPostRequest {
     /**
      * The contents of the new comment.
      */
-    readonly body: SnippetComment
+    readonly snippetComment: SnippetComment
 }
 
 /**
@@ -41856,7 +43737,7 @@ export interface SnippetsApiSnippetsWorkspacePostRequest {
     /**
      * The new snippet object.
      */
-    readonly body: Snippet
+    readonly snippet: Snippet
 }
 
 /**
@@ -41864,7 +43745,7 @@ export interface SnippetsApiSnippetsWorkspacePostRequest {
  */
 export class SnippetsApi extends BaseAPI implements SnippetsApiInterface {
     /**
-     * Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.  This endpoint is deprecated. We recommend you use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).
+     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**  Returns all snippets. Like pull requests, repositories and workspaces, the full set of snippets is defined by what the current user has access to.  This includes all snippets owned by any of the workspaces the user is a member of, or snippets by other users that the current user is either watching or has collaborated on (for instance by commenting on it).  To limit the set of returned snippets, apply the `?role=[owner|contributor|member]` query parameter where the roles are defined as follows:  * `owner`: all snippets owned by the current user * `contributor`: all snippets owned by, or watched by the current user * `member`: created in a workspaces or watched by the current user  When no role is specified, all public snippets are returned, as well as all privately owned snippets watched or commented on.  The returned response is a normal paginated JSON list. This endpoint only supports `application/json` responses and no `multipart/form-data` or `multipart/related`. As a result, it is not possible to include the file contents.
      * @summary List snippets
      * @param {SnippetsApiSnippetsGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -41883,7 +43764,7 @@ export class SnippetsApi extends BaseAPI implements SnippetsApiInterface {
      * @throws {RequiredError}
      */
     public snippetsPost(requestParameters: SnippetsApiSnippetsPostRequest, options?: RawAxiosRequestConfig) {
-        return SnippetsApiFp(this.configuration).snippetsPost(requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SnippetsApiFp(this.configuration).snippetsPost(requestParameters.snippet, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -41916,7 +43797,7 @@ export class SnippetsApi extends BaseAPI implements SnippetsApiInterface {
      * @throws {RequiredError}
      */
     public snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters: SnippetsApiSnippetsWorkspaceEncodedIdCommentsCommentIdPutRequest, options?: RawAxiosRequestConfig) {
-        return SnippetsApiFp(this.configuration).snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.encodedId, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SnippetsApiFp(this.configuration).snippetsWorkspaceEncodedIdCommentsCommentIdPut(requestParameters.commentId, requestParameters.encodedId, requestParameters.workspace, requestParameters.snippetComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -41938,7 +43819,7 @@ export class SnippetsApi extends BaseAPI implements SnippetsApiInterface {
      * @throws {RequiredError}
      */
     public snippetsWorkspaceEncodedIdCommentsPost(requestParameters: SnippetsApiSnippetsWorkspaceEncodedIdCommentsPostRequest, options?: RawAxiosRequestConfig) {
-        return SnippetsApiFp(this.configuration).snippetsWorkspaceEncodedIdCommentsPost(requestParameters.encodedId, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SnippetsApiFp(this.configuration).snippetsWorkspaceEncodedIdCommentsPost(requestParameters.encodedId, requestParameters.workspace, requestParameters.snippetComment, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -42137,7 +44018,7 @@ export class SnippetsApi extends BaseAPI implements SnippetsApiInterface {
      * @throws {RequiredError}
      */
     public snippetsWorkspacePost(requestParameters: SnippetsApiSnippetsWorkspacePostRequest, options?: RawAxiosRequestConfig) {
-        return SnippetsApiFp(this.configuration).snippetsWorkspacePost(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+        return SnippetsApiFp(this.configuration).snippetsWorkspacePost(requestParameters.workspace, requestParameters.snippet, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -42806,6 +44687,7 @@ export class SourceApi extends BaseAPI implements SourceApiInterface {
         return SourceApiFp(this.configuration).repositoriesWorkspaceRepoSlugSrcPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.message, requestParameters.author, requestParameters.parents, requestParameters.files, requestParameters.branch, options).then((request) => request(this.axios, this.basePath));
     }
 }
+
 
 
 /**
@@ -44521,7 +46403,7 @@ export type HookEventsSubjectTypeGetSubjectTypeEnum = typeof HookEventsSubjectTy
 export const WorkspacesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * **This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List workspaces for the current user
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
          * @param {string} [sort]  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details. 
@@ -44573,7 +46455,103 @@ export const WorkspacesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
+         * @summary List workspaces for the current user
+         * @param {string} [sort] Name of a response property to sort results (only slug is supported).
+         * @param {boolean} [administrator] Filter workspaces based on which ones the caller has admin permissions or not.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesGet: async (sort?: string, administrator?: boolean, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            const localVarPath = `/user/workspaces`;
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["account"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            if (sort !== undefined) {
+                localVarQueryParameter['sort'] = sort;
+            }
+
+            if (administrator !== undefined) {
+                localVarQueryParameter['administrator'] = administrator;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns the caller\'s effective role; as in, the highest level of privilege the caller has for the workspace. If the calling user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `create-project` * `collaborator` (deprecated; see this [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/) for more details) * `member`
+         * @summary Get user permission on a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesWorkspacePermissionGet: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('userWorkspacesWorkspacePermissionGet', 'workspace', workspace)
+            const localVarPath = `/user/workspaces/{workspace}/permission`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["account"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * **This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
          * @summary List workspaces for user
          * @param {WorkspacesGetRoleEnum} [role]              Filters the workspaces based on the authenticated user\&#39;s role on each workspace.              * **member**: returns a list of all the workspaces which the caller is a member of                 at least one workspace group or repository             * **collaborator**: returns a list of workspaces which the caller has write access                 to at least one repository in the workspace             * **owner**: returns a list of workspaces which the caller has administrator access             
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
@@ -45317,6 +47295,51 @@ export const WorkspacesApiAxiosParamCreator = function (configuration?: Configur
                 options: localVarRequestOptions,
             };
         },
+        /**
+         * Returns the system public GPG key(s). In most cases a single key is returned. During a key rotation period, two keys may be returned.
+         * @summary Get the workspace system GPG public key(s)
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        workspacesWorkspaceSettingsGpgPublicKeyGet: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('workspacesWorkspaceSettingsGpgPublicKeyGet', 'workspace', workspace)
+            const localVarPath = `/workspaces/{workspace}/settings/gpg/public-key`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["account"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
     }
 };
 
@@ -45327,7 +47350,7 @@ export const WorkspacesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = WorkspacesApiAxiosParamCreator(configuration)
     return {
         /**
-         * Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * **This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List workspaces for the current user
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
          * @param {string} [sort]  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details. 
@@ -45342,7 +47365,34 @@ export const WorkspacesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
+         * @summary List workspaces for the current user
+         * @param {string} [sort] Name of a response property to sort results (only slug is supported).
+         * @param {boolean} [administrator] Filter workspaces based on which ones the caller has admin permissions or not.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async userWorkspacesGet(sort?: string, administrator?: boolean, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWorkspaceAccess>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.userWorkspacesGet(sort, administrator, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.userWorkspacesGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns the caller\'s effective role; as in, the highest level of privilege the caller has for the workspace. If the calling user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `create-project` * `collaborator` (deprecated; see this [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/) for more details) * `member`
+         * @summary Get user permission on a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async userWorkspacesWorkspacePermissionGet(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WorkspaceMembership>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.userWorkspacesWorkspacePermissionGet(workspace, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.userWorkspacesWorkspacePermissionGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * **This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
          * @summary List workspaces for user
          * @param {WorkspacesGetRoleEnum} [role]              Filters the workspaces based on the authenticated user\&#39;s role on each workspace.              * **member**: returns a list of all the workspaces which the caller is a member of                 at least one workspace group or repository             * **collaborator**: returns a list of workspaces which the caller has write access                 to at least one repository in the workspace             * **owner**: returns a list of workspaces which the caller has administrator access             
          * @param {string} [q]  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.
@@ -45552,6 +47602,19 @@ export const WorkspacesApiFp = function(configuration?: Configuration) {
             const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspacePullrequestsSelectedUserGet']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
+        /**
+         * Returns the system public GPG key(s). In most cases a single key is returned. During a key rotation period, two keys may be returned.
+         * @summary Get the workspace system GPG public key(s)
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async workspacesWorkspaceSettingsGpgPublicKeyGet(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceSettingsGpgPublicKeyGet(workspace, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceSettingsGpgPublicKeyGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
     }
 };
 
@@ -45562,7 +47625,7 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
     const localVarFp = WorkspacesApiFp(configuration)
     return {
         /**
-         * Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * **This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List workspaces for the current user
          * @param {WorkspacesApiUserPermissionsWorkspacesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -45573,7 +47636,27 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
             return localVarFp.userPermissionsWorkspacesGet(requestParameters.q, requestParameters.sort, options).then((request) => request(axios, basePath));
         },
         /**
-         * Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+         * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
+         * @summary List workspaces for the current user
+         * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesGet(requestParameters: WorkspacesApiUserWorkspacesGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWorkspaceAccess> {
+            return localVarFp.userWorkspacesGet(requestParameters.sort, requestParameters.administrator, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns the caller\'s effective role; as in, the highest level of privilege the caller has for the workspace. If the calling user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `create-project` * `collaborator` (deprecated; see this [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/) for more details) * `member`
+         * @summary Get user permission on a workspace
+         * @param {WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        userWorkspacesWorkspacePermissionGet(requestParameters: WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkspaceMembership> {
+            return localVarFp.userWorkspacesWorkspacePermissionGet(requestParameters.workspace, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * **This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
          * @summary List workspaces for user
          * @param {WorkspacesApiWorkspacesGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -45723,6 +47806,16 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
         workspacesWorkspacePullrequestsSelectedUserGet(requestParameters: WorkspacesApiWorkspacesWorkspacePullrequestsSelectedUserGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPullrequests> {
             return localVarFp.workspacesWorkspacePullrequestsSelectedUserGet(requestParameters.selectedUser, requestParameters.workspace, requestParameters.state, options).then((request) => request(axios, basePath));
         },
+        /**
+         * Returns the system public GPG key(s). In most cases a single key is returned. During a key rotation period, two keys may be returned.
+         * @summary Get the workspace system GPG public key(s)
+         * @param {WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        workspacesWorkspaceSettingsGpgPublicKeyGet(requestParameters: WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.workspacesWorkspaceSettingsGpgPublicKeyGet(requestParameters.workspace, options).then((request) => request(axios, basePath));
+        },
     };
 };
 
@@ -45731,7 +47824,7 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
  */
 export interface WorkspacesApiInterface {
     /**
-     * Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+     * **This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
      * @summary List workspaces for the current user
      * @param {WorkspacesApiUserPermissionsWorkspacesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -45741,7 +47834,25 @@ export interface WorkspacesApiInterface {
     userPermissionsWorkspacesGet(requestParameters?: WorkspacesApiUserPermissionsWorkspacesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWorkspaceMemberships>;
 
     /**
-     * Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+     * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
+     * @summary List workspaces for the current user
+     * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    userWorkspacesGet(requestParameters?: WorkspacesApiUserWorkspacesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWorkspaceAccess>;
+
+    /**
+     * Returns the caller\'s effective role; as in, the highest level of privilege the caller has for the workspace. If the calling user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `create-project` * `collaborator` (deprecated; see this [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/) for more details) * `member`
+     * @summary Get user permission on a workspace
+     * @param {WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    userWorkspacesWorkspacePermissionGet(requestParameters: WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WorkspaceMembership>;
+
+    /**
+     * **This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
      * @summary List workspaces for user
      * @param {WorkspacesApiWorkspacesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -45876,6 +47987,15 @@ export interface WorkspacesApiInterface {
      */
     workspacesWorkspacePullrequestsSelectedUserGet(requestParameters: WorkspacesApiWorkspacesWorkspacePullrequestsSelectedUserGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedPullrequests>;
 
+    /**
+     * Returns the system public GPG key(s). In most cases a single key is returned. During a key rotation period, two keys may be returned.
+     * @summary Get the workspace system GPG public key(s)
+     * @param {WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    workspacesWorkspaceSettingsGpgPublicKeyGet(requestParameters: WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
 }
 
 /**
@@ -45891,6 +48011,31 @@ export interface WorkspacesApiUserPermissionsWorkspacesGetRequest {
      *  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details. 
      */
     readonly sort?: string
+}
+
+/**
+ * Request parameters for userWorkspacesGet operation in WorkspacesApi.
+ */
+export interface WorkspacesApiUserWorkspacesGetRequest {
+    /**
+     * Name of a response property to sort results (only slug is supported).
+     */
+    readonly sort?: string
+
+    /**
+     * Filter workspaces based on which ones the caller has admin permissions or not.
+     */
+    readonly administrator?: boolean
+}
+
+/**
+ * Request parameters for userWorkspacesWorkspacePermissionGet operation in WorkspacesApi.
+ */
+export interface WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+     */
+    readonly workspace: string
 }
 
 /**
@@ -46119,11 +48264,21 @@ export interface WorkspacesApiWorkspacesWorkspacePullrequestsSelectedUserGetRequ
 }
 
 /**
+ * Request parameters for workspacesWorkspaceSettingsGpgPublicKeyGet operation in WorkspacesApi.
+ */
+export interface WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+     */
+    readonly workspace: string
+}
+
+/**
  * WorkspacesApi - object-oriented interface
  */
 export class WorkspacesApi extends BaseAPI implements WorkspacesApiInterface {
     /**
-     * Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+     * **This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
      * @summary List workspaces for the current user
      * @param {WorkspacesApiUserPermissionsWorkspacesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -46135,7 +48290,29 @@ export class WorkspacesApi extends BaseAPI implements WorkspacesApiInterface {
     }
 
     /**
-     * Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  This endpoint is deprecated and will be replaced with a new endpoint by end of calendar year 2025.
+     * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
+     * @summary List workspaces for the current user
+     * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public userWorkspacesGet(requestParameters: WorkspacesApiUserWorkspacesGetRequest = {}, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).userWorkspacesGet(requestParameters.sort, requestParameters.administrator, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the caller\'s effective role; as in, the highest level of privilege the caller has for the workspace. If the calling user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `create-project` * `collaborator` (deprecated; see this [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/) for more details) * `member`
+     * @summary Get user permission on a workspace
+     * @param {WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public userWorkspacesWorkspacePermissionGet(requestParameters: WorkspacesApiUserWorkspacesWorkspacePermissionGetRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).userWorkspacesWorkspacePermissionGet(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * **This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
      * @summary List workspaces for user
      * @param {WorkspacesApiWorkspacesGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -46298,6 +48475,17 @@ export class WorkspacesApi extends BaseAPI implements WorkspacesApiInterface {
      */
     public workspacesWorkspacePullrequestsSelectedUserGet(requestParameters: WorkspacesApiWorkspacesWorkspacePullrequestsSelectedUserGetRequest, options?: RawAxiosRequestConfig) {
         return WorkspacesApiFp(this.configuration).workspacesWorkspacePullrequestsSelectedUserGet(requestParameters.selectedUser, requestParameters.workspace, requestParameters.state, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the system public GPG key(s). In most cases a single key is returned. During a key rotation period, two keys may be returned.
+     * @summary Get the workspace system GPG public key(s)
+     * @param {WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public workspacesWorkspaceSettingsGpgPublicKeyGet(requestParameters: WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).workspacesWorkspaceSettingsGpgPublicKeyGet(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
     }
 }
 

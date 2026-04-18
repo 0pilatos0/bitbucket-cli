@@ -504,7 +504,7 @@ const { status, data } = await apiInstance.retrieveUserHostedPropertyValue(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateCommitHostedPropertyValue**
-> updateCommitHostedPropertyValue(body)
+> updateCommitHostedPropertyValue(applicationProperty)
 
 Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
 
@@ -525,7 +525,7 @@ let repoSlug: string; //The repository. (default to undefined)
 let commit: string; //The commit. (default to undefined)
 let appKey: string; //The key of the Connect app. (default to undefined)
 let propertyName: string; //The name of the property. (default to undefined)
-let body: ApplicationProperty; //The application property to create or update.
+let applicationProperty: ApplicationProperty; //The application property to create or update.
 
 const { status, data } = await apiInstance.updateCommitHostedPropertyValue(
     workspace,
@@ -533,7 +533,7 @@ const { status, data } = await apiInstance.updateCommitHostedPropertyValue(
     commit,
     appKey,
     propertyName,
-    body
+    applicationProperty
 );
 ```
 
@@ -541,7 +541,7 @@ const { status, data } = await apiInstance.updateCommitHostedPropertyValue(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **ApplicationProperty**| The application property to create or update. | |
+| **applicationProperty** | **ApplicationProperty**| The application property to create or update. | |
 | **workspace** | [**string**] | The repository container; either the workspace slug or the UUID in curly braces. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **commit** | [**string**] | The commit. | defaults to undefined|
@@ -571,7 +571,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updatePullRequestHostedPropertyValue**
-> updatePullRequestHostedPropertyValue(body)
+> updatePullRequestHostedPropertyValue(applicationProperty)
 
 Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
 
@@ -592,7 +592,7 @@ let repoSlug: string; //The repository. (default to undefined)
 let pullrequestId: string; //The pull request ID. (default to undefined)
 let appKey: string; //The key of the Connect app. (default to undefined)
 let propertyName: string; //The name of the property. (default to undefined)
-let body: ApplicationProperty; //The application property to create or update.
+let applicationProperty: ApplicationProperty; //The application property to create or update.
 
 const { status, data } = await apiInstance.updatePullRequestHostedPropertyValue(
     workspace,
@@ -600,7 +600,7 @@ const { status, data } = await apiInstance.updatePullRequestHostedPropertyValue(
     pullrequestId,
     appKey,
     propertyName,
-    body
+    applicationProperty
 );
 ```
 
@@ -608,7 +608,7 @@ const { status, data } = await apiInstance.updatePullRequestHostedPropertyValue(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **ApplicationProperty**| The application property to create or update. | |
+| **applicationProperty** | **ApplicationProperty**| The application property to create or update. | |
 | **workspace** | [**string**] | The repository container; either the workspace slug or the UUID in curly braces. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **pullrequestId** | [**string**] | The pull request ID. | defaults to undefined|
@@ -638,7 +638,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateRepositoryHostedPropertyValue**
-> updateRepositoryHostedPropertyValue(body)
+> updateRepositoryHostedPropertyValue(applicationProperty)
 
 Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
 
@@ -658,14 +658,14 @@ let workspace: string; //The repository container; either the workspace slug or 
 let repoSlug: string; //The repository. (default to undefined)
 let appKey: string; //The key of the Connect app. (default to undefined)
 let propertyName: string; //The name of the property. (default to undefined)
-let body: ApplicationProperty; //The application property to create or update.
+let applicationProperty: ApplicationProperty; //The application property to create or update.
 
 const { status, data } = await apiInstance.updateRepositoryHostedPropertyValue(
     workspace,
     repoSlug,
     appKey,
     propertyName,
-    body
+    applicationProperty
 );
 ```
 
@@ -673,7 +673,7 @@ const { status, data } = await apiInstance.updateRepositoryHostedPropertyValue(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **ApplicationProperty**| The application property to create or update. | |
+| **applicationProperty** | **ApplicationProperty**| The application property to create or update. | |
 | **workspace** | [**string**] | The repository container; either the workspace slug or the UUID in curly braces. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **appKey** | [**string**] | The key of the Connect app. | defaults to undefined|
@@ -702,7 +702,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **updateUserHostedPropertyValue**
-> updateUserHostedPropertyValue(body)
+> updateUserHostedPropertyValue(applicationProperty)
 
 Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
 
@@ -721,13 +721,13 @@ const apiInstance = new PropertiesApi(configuration);
 let selectedUser: string; //Either the UUID of the account surrounded by curly-braces, for example `{account UUID}`, OR an Atlassian Account ID. (default to undefined)
 let appKey: string; //The key of the Connect app. (default to undefined)
 let propertyName: string; //The name of the property. (default to undefined)
-let body: ApplicationProperty; //The application property to create or update.
+let applicationProperty: ApplicationProperty; //The application property to create or update.
 
 const { status, data } = await apiInstance.updateUserHostedPropertyValue(
     selectedUser,
     appKey,
     propertyName,
-    body
+    applicationProperty
 );
 ```
 
@@ -735,7 +735,7 @@ const { status, data } = await apiInstance.updateUserHostedPropertyValue(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **ApplicationProperty**| The application property to create or update. | |
+| **applicationProperty** | **ApplicationProperty**| The application property to create or update. | |
 | **selectedUser** | [**string**] | Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID. | defaults to undefined|
 | **appKey** | [**string**] | The key of the Connect app. | defaults to undefined|
 | **propertyName** | [**string**] | The name of the property. | defaults to undefined|

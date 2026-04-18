@@ -5,10 +5,10 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | **object** |  | [optional] [default to undefined]
-**branch_types** | **Set&lt;object&gt;** |  | [optional] [default to undefined]
-**development** | **object** |  | [optional] [default to undefined]
-**production** | **object** |  | [optional] [default to undefined]
+**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
+**branch_types** | [**Set&lt;BranchingModelSettingsBranchTypes&gt;**](BranchingModelSettingsBranchTypes.md) |  | [optional] [default to undefined]
+**development** | [**BranchingModelSettingsDevelopment**](BranchingModelSettingsDevelopment.md) |  | [optional] [default to undefined]
+**production** | [**BranchingModelSettingsProduction**](BranchingModelSettingsProduction.md) |  | [optional] [default to undefined]
 
 ## Example
 

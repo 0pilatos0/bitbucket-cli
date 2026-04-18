@@ -45,7 +45,7 @@ export class ReadyPRCommand extends BaseCommand<
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
-          body: {
+          pullrequest: {
             type: 'pullrequest',
             draft: false,
           },

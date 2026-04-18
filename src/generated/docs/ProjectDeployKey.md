@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **label** | **string** | The user-defined label for the deploy key | [optional] [default to undefined]
 **added_on** | **string** |  | [optional] [default to undefined]
 **last_used** | **string** |  | [optional] [default to undefined]
-**links** | **object** |  | [optional] [default to undefined]
+**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
 **created_by** | [**Account**](Account.md) |  | [optional] [default to undefined]
 
 ## Example

@@ -193,11 +193,11 @@ const configuration = new Configuration();
 const apiInstance = new GPGApi(configuration);
 
 let selectedUser: string; //This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: `{account UUID}`.  (default to undefined)
-let body: GPGAccountKey; //The new GPG key object. (optional)
+let gPGAccountKey: GPGAccountKey; //The new GPG key object. (optional)
 
 const { status, data } = await apiInstance.usersSelectedUserGpgKeysPost(
     selectedUser,
-    body
+    gPGAccountKey
 );
 ```
 
@@ -205,7 +205,7 @@ const { status, data } = await apiInstance.usersSelectedUserGpgKeysPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **body** | **GPGAccountKey**| The new GPG key object. | |
+| **gPGAccountKey** | **GPGAccountKey**| The new GPG key object. | |
 | **selectedUser** | [**string**] | This can either be an Atlassian Account ID OR the UUID of the account, surrounded by curly-braces, for example: &#x60;{account UUID}&#x60;.  | defaults to undefined|
 
 

@@ -6,8 +6,8 @@ The mapping of resource/subject types pointing to their individual event types.
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**repository** | **object** |  | [optional] [default to undefined]
-**workspace** | **object** |  | [optional] [default to undefined]
+**repository** | [**SubjectTypesRepository**](SubjectTypesRepository.md) |  | [optional] [default to undefined]
+**workspace** | [**SubjectTypesRepository**](SubjectTypesRepository.md) |  | [optional] [default to undefined]
 
 ## Example
 
