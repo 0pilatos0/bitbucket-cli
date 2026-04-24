@@ -123,7 +123,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     const links = pr.links as { html?: { href?: string } } | undefined;
 
     if (context.globalOptions.json) {
-      this.output.json(pr);
+      await this.output.json(pr);
       return;
     }
 

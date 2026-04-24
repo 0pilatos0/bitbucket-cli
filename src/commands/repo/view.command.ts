@@ -56,7 +56,7 @@ export class ViewRepoCommand extends BaseCommand<ViewRepoOptions, void> {
     const repo = response.data;
 
     if (context.globalOptions.json) {
-      this.output.json(repo);
+      await this.output.json(repo);
       return;
     }
 

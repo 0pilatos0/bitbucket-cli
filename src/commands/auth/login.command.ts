@@ -63,7 +63,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       );
 
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           authenticated: true,
           method: 'oauth',
           user: {
@@ -116,7 +116,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       const user = response.data;
 
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           authenticated: true,
           method: 'api_token',
           user: {

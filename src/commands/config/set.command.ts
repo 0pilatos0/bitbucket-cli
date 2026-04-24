@@ -60,7 +60,7 @@ export class SetConfigCommand extends BaseCommand<
     await this.configService.setValue(key, parsedValue);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         key,
         value: parsedValue,

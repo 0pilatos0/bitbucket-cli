@@ -38,25 +38,160 @@ describe('OutputService', () => {
   });
 
   describe('json', () => {
-    it('should output formatted JSON', () => {
-      output.json({ name: 'test', value: 42 });
+    it('should output formatted JSON', async () => {
+      await output.json({ name: 'test', value: 42 });
 
       expect(consoleLogs).toHaveLength(1);
       expect(consoleLogs[0]).toContain('"name": "test"');
       expect(consoleLogs[0]).toContain('"value": 42');
     });
 
-    it('should handle arrays', () => {
-      output.json([1, 2, 3]);
+    it('should handle arrays', async () => {
+      await output.json([1, 2, 3]);
 
       expect(consoleLogs[0]).toContain('1');
       expect(consoleLogs[0]).toContain('2');
       expect(consoleLogs[0]).toContain('3');
     });
 
-    it('should handle null and undefined', () => {
-      output.json(null);
+    it('should handle null and undefined', async () => {
+      await output.json(null);
       expect(consoleLogs[0]).toBe('null');
+    });
+  });
+
+  describe('json with --json fields projection', () => {
+    it('projects fields on a single object', async () => {
+      output.setJsonFormatOptions({ fields: ['id', 'title'] });
+      await output.json({ id: 1, title: 'hello', state: 'OPEN' });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual({ id: 1, title: 'hello' });
+    });
+
+    it('projects per-item on a top-level array', async () => {
+      output.setJsonFormatOptions({ fields: ['id'] });
+      await output.json([
+        { id: 1, name: 'a' },
+        { id: 2, name: 'b' },
+      ]);
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual([{ id: 1 }, { id: 2 }]);
+    });
+
+    it('drops the wrapper and projects per-item on a known wrapper key', async () => {
+      output.setJsonFormatOptions({ fields: ['id', 'title'] });
+      await output.json({
+        workspace: 'ws',
+        count: 2,
+        pullRequests: [
+          { id: 1, title: 'first', state: 'OPEN' },
+          { id: 2, title: 'second', state: 'OPEN' },
+        ],
+      });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual([
+        { id: 1, title: 'first' },
+        { id: 2, title: 'second' },
+      ]);
+    });
+
+    it('supports dotted-path field selectors', async () => {
+      output.setJsonFormatOptions({ fields: ['id', 'author.display_name'] });
+      await output.json([
+        { id: 1, author: { display_name: 'alice' } },
+        { id: 2, author: { display_name: 'bob' } },
+      ]);
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual([
+        { id: 1, 'author.display_name': 'alice' },
+        { id: 2, 'author.display_name': 'bob' },
+      ]);
+    });
+
+    it('falls back to projecting the wrapper itself when no items array matches', async () => {
+      output.setJsonFormatOptions({ fields: ['workspace', 'count'] });
+      await output.json({
+        workspace: 'ws',
+        count: 0,
+        unrelated: { foo: 'bar' },
+      });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual({ workspace: 'ws', count: 0 });
+    });
+
+    // Lock in wrapper-key parity with the actual JSON shapes produced by
+    // commands in src/commands/**. If a command renames its wrapper key,
+    // this test fails — and either the command or WRAPPER_ARRAY_KEYS needs
+    // to be updated together.
+    it.each([
+      ['pullRequests', 'pr list'],
+      ['repositories', 'repo list'],
+      ['snippets', 'snippet list'],
+      ['comments', 'pr/snippet comments list'],
+      ['reviewers', 'pr reviewers list, repo default-reviewers list'],
+      ['activities', 'pr activity'],
+      ['statuses', 'pr checks'],
+      ['files', 'pr diff --stat / --name-only'],
+      ['values', 'generic paginated payloads'],
+    ])('drops the wrapper for the %s key (used by %s)', async (key) => {
+      output.setJsonFormatOptions({ fields: ['id'] });
+      await output.json({
+        workspace: 'ws',
+        count: 1,
+        [key]: [{ id: 99, other: 'x' }],
+      });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual([{ id: 99 }]);
+    });
+  });
+
+  describe('json with --jq', () => {
+    it('runs the jq expression against the data', async () => {
+      output.setJsonFormatOptions({ jq: '.[] | .id' });
+      await output.json([{ id: 1 }, { id: 2 }, { id: 3 }]);
+
+      // jq emits one value per line.
+      const lines = consoleLogs.join('').trim().split('\n');
+      expect(lines).toEqual(['1', '2', '3']);
+    });
+
+    it('combines field projection with jq filtering', async () => {
+      output.setJsonFormatOptions({
+        fields: ['id', 'title'],
+        jq: '.[] | .title',
+      });
+      await output.json({
+        pullRequests: [
+          { id: 1, title: 'first', state: 'OPEN' },
+          { id: 2, title: 'second', state: 'MERGED' },
+        ],
+      });
+
+      const lines = consoleLogs.join('').trim().split('\n');
+      expect(lines).toEqual(['"first"', '"second"']);
+    });
+
+    it('throws BBError on invalid jq expression', async () => {
+      output.setJsonFormatOptions({ jq: '.invalid syntax [' });
+
+      await expect(output.json({ id: 1 })).rejects.toThrow(/jq evaluation/);
+    });
+  });
+
+  describe('setJsonFormatOptions', () => {
+    it('clears previous options when called with empty object', async () => {
+      output.setJsonFormatOptions({ fields: ['id'] });
+      output.setJsonFormatOptions({});
+      await output.json({ id: 1, title: 'hello' });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual({ id: 1, title: 'hello' });
     });
   });
 

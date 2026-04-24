@@ -23,7 +23,7 @@ export class UninstallCompletionCommand extends BaseCommand<void, void> {
       });
 
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           success: true,
           shellCompletion: {
             command: 'bb',

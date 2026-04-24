@@ -77,7 +77,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         state,

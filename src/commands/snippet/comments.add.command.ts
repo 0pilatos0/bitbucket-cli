@@ -62,7 +62,7 @@ export class AddSnippetCommentCommand extends BaseCommand<
     const commentId = comment.id;
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         snippetId: options.id,
         comment,

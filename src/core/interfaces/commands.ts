@@ -3,12 +3,20 @@
  */
 
 import type { GlobalOptions } from '../../types/config.js';
+import type { BBError } from '../../types/errors.js';
 
 /**
  * Base command context passed to all commands
  */
 export interface CommandContext {
   globalOptions: GlobalOptions;
+  /**
+   * Validation error captured during context construction (e.g. invalid
+   * combinations of `--json` / `--jq`). Deferred so it can be surfaced
+   * through BaseCommand's normal error handling rather than escaping the
+   * Commander action handler as an unhandled rejection.
+   */
+  validationError?: BBError;
 }
 
 /**

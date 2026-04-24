@@ -71,7 +71,7 @@ export class ListCommentsPRCommand extends BaseCommand<
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         pullRequestId: prId,
         count: values.length,
         comments: values,

@@ -71,7 +71,7 @@ export class ListSnippetsCommand extends BaseCommand<
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace,
         count: snippets.length,
         snippets,

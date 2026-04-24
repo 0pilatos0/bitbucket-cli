@@ -62,7 +62,7 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
     await this.defaultReviewerService.remove(repoContext, identifier);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,

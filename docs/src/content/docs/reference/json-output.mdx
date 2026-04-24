@@ -5,15 +5,22 @@ description: Reference for JSON output behavior across all commands
 
 import { Aside } from '@astrojs/starlight/components';
 
-All commands support the global `--json` flag.
+All commands support the global `--json` flag, with optional field selection
+and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting).
 
 Use JSON mode for automation, scripts, and CI/CD pipelines.
 
 ## Quick Usage
 
 ```bash
-# List pull requests as JSON
+# Full JSON output
 bb pr list --json
+
+# Project to a comma-separated field list
+bb pr list --json id,title,state
+
+# Filter through jq (no external jq binary required)
+bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
 
 # Disable color formatting and return JSON
 bb repo view --json --no-color
@@ -24,6 +31,68 @@ Discover the exact JSON shape of any command by running it with `--json` and pip
 ```bash
 bb <command> --json 2>/dev/null | jq .
 ```
+</Aside>
+
+## Field Selection (`--json fields`)
+
+Pass a comma-separated field list to project the output to just those fields,
+matching the way `gh` CLI handles `--json`:
+
+```bash
+bb pr list --json id,title,state
+bb pr list --json id,title,author.display_name
+```
+
+**Rules:**
+
+- Bare `--json` (no field list) keeps the full output — backwards compatible.
+- Top-level field names become the keys of each result object verbatim,
+  including dotted paths (`author.display_name` becomes the literal key
+  `"author.display_name"`).
+- Dotted paths traverse nested objects; missing intermediates yield `null`.
+- For collection commands (`pr list`, `repo list`, etc.), the wrapper envelope
+  is dropped and the field list is projected per-item — the result is a flat
+  array. This matches `gh` CLI semantics.
+
+#### Example: `bb pr list --json id,title,author.display_name`
+
+```json
+[
+  { "id": 42, "title": "Add feature", "author.display_name": "Alice" },
+  { "id": 41, "title": "Fix bug",     "author.display_name": "Bob" }
+]
+```
+
+## Built-in jq (`--jq`)
+
+The `--jq <expression>` flag pipes the JSON output through an embedded jq
+engine ([jq-wasm](https://www.npmjs.com/package/jq-wasm)) — no external `jq`
+binary required, no `bash` pipe to fail on Windows.
+
+```bash
+# Strings, one per line
+bb pr list --json --jq '.pullRequests[].title'
+
+# Combine with field selection (jq runs after projection)
+bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
+
+# Aggregate
+bb pr list --json --jq '.count'
+```
+
+**Rules:**
+
+- `--jq` requires `--json`. Using `--jq` alone exits non-zero with a clear
+  error (`✗ --jq requires --json`).
+- jq runs *after* field projection, so `.` refers to the projected shape — a
+  flat array when both `--json fields` and a wrapper-style command are
+  involved.
+- Invalid jq expressions exit non-zero with the underlying jq compiler error
+  (error code [8001](/reference/error-codes/#8001---jq_failed)).
+
+<Aside type="caution">
+The embedded jq is jq 1.8.x. Module imports (`include`, `import`) and
+filesystem-dependent features are not supported.
 </Aside>
 
 ## Output Patterns
@@ -275,30 +344,39 @@ These commands have unique output shapes:
 
 ## jq Examples
 
+The same expressions work with the built-in `--jq` flag or with an external
+`jq` binary. The built-in form avoids the dependency and works identically on
+Windows, macOS, and Linux.
+
 ```bash
-# Print PR titles
+# Print PR titles (built-in)
+bb pr list --json --jq '.pullRequests[].title'
+
+# Print PR titles (external jq, equivalent)
 bb pr list --json | jq -r '.pullRequests[].title'
 
 # Count PRs
-bb pr list --json | jq '.count'
+bb pr list --json --jq '.count'
 
-# Get repository names
-bb repo list --json | jq -r '.repositories[].full_name'
+# Repository names
+bb repo list --json --jq '.repositories[].full_name'
 
-# Extract diff file paths
-bb pr diff 42 --stat --json | jq -r '.files[].path'
+# Diff file paths
+bb pr diff 42 --stat --json --jq '.files[].path'
 
-# Get PR URLs
-bb pr list --json | jq -r '.pullRequests[].links.html.href'
+# PR URLs
+bb pr list --json --jq '.pullRequests[].links.html.href'
 
-# Check auth status
-bb auth status --json | jq '.authenticated'
+# Auth status
+bb auth status --json --jq '.authenticated'
 ```
 
 ## Scripting Notes
 
 - Prefer `--json` in scripts rather than parsing text output.
 - Do not rely on text formatting symbols (`✓`, table separators, colors).
+- Prefer the built-in `--jq` and `--json fields` over external pipes — they
+  avoid an extra binary dependency and behave identically across platforms.
 - If you need stable fields, prefer command-specific documented keys (`pullRequests`, `repositories`, `files`, `success`).
 - `pr list` returns lightweight PR objects. Use `pr view <id>` for full details including `participants` and `reviewers`.
 

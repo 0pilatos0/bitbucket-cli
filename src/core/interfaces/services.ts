@@ -102,11 +102,21 @@ export interface ISnippetFilesService {
 }
 
 /**
+ * Format options that influence how `json()` renders its argument.
+ * Pushed by BaseCommand.run() from CommandContext.globalOptions.
+ */
+export interface JsonFormatOptions {
+  fields?: string[];
+  jq?: string;
+}
+
+/**
  * Output service interface for formatting and displaying output
  */
 export interface IOutputService {
-  json(data: unknown): void;
+  json(data: unknown): Promise<void>;
   jsonError(data: unknown): void;
+  setJsonFormatOptions(options: JsonFormatOptions): void;
   table(headers: string[], rows: string[][]): void;
   success(message: string): void;
   error(message: string): void;

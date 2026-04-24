@@ -72,7 +72,7 @@ export class CheckoutPRCommand extends BaseCommand<
       await this.gitService.checkout(branchName);
       checkedOutBranch = branchName;
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           success: true,
           pullRequestId: prId,
           branch: checkedOutBranch,
@@ -88,7 +88,7 @@ export class CheckoutPRCommand extends BaseCommand<
       );
       checkedOutBranch = localBranchName;
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           success: true,
           pullRequestId: prId,
           branch: checkedOutBranch,

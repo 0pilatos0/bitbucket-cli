@@ -108,7 +108,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         prId
       );
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
@@ -131,7 +131,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
       );
 
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
@@ -151,7 +151,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
       );
 
       if (context.globalOptions.json) {
-        this.output.json({
+        await this.output.json({
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
@@ -171,7 +171,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     );
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         pullRequestId: prId,

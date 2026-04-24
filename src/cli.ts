@@ -13,6 +13,7 @@ import type { CommandContext } from './core/interfaces/commands.js';
 import type { IOutputService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
 import { PR_STATES } from './types/pr.js';
+import { BBError, ErrorCode } from './types/errors.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -167,16 +168,51 @@ const buildHelpText = createHelpTextBuilder(noColor);
 
 const container = bootstrap({ noColor });
 
-// Helper to create command context
+// Helper to create command context. Validation errors from --json/--jq
+// parsing are deferred onto `context.validationError` so they can be raised
+// inside BaseCommand.run() and rendered through the normal error path,
+// instead of escaping a Commander action handler as an unhandled rejection.
 function createContext(program: Command): CommandContext {
   const opts = program.opts();
+  const jsonOpt = opts.json as string | boolean | undefined;
+  const jqOpt = opts.jq as string | undefined;
+
+  const json = jsonOpt !== undefined && jsonOpt !== false;
+  let jsonFields: string[] | undefined;
+  let validationError: BBError | undefined;
+
+  if (typeof jsonOpt === 'string') {
+    const fields = jsonOpt
+      .split(',')
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+    if (fields.length === 0) {
+      validationError = new BBError({
+        code: ErrorCode.JSON_FORMAT_INVALID,
+        message: '--json field list cannot be empty',
+      });
+    } else {
+      jsonFields = fields;
+    }
+  }
+
+  if (!validationError && jqOpt !== undefined && !json) {
+    validationError = new BBError({
+      code: ErrorCode.JSON_FORMAT_INVALID,
+      message: '--jq requires --json',
+    });
+  }
+
   return {
     globalOptions: {
-      json: opts.json,
+      json: json || undefined,
+      jsonFields,
+      jq: jqOpt,
       noColor: opts.color === false,
       workspace: opts.workspace,
       repo: opts.repo,
     },
+    validationError,
   };
 }
 
@@ -231,7 +267,14 @@ cli
   .name('bb')
   .description('A command-line interface for Bitbucket Cloud')
   .version(pkg.version)
-  .option('--json', 'Output as JSON')
+  .option(
+    '--json [fields]',
+    'Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)'
+  )
+  .option(
+    '--jq <expression>',
+    'Filter the JSON output through a jq expression (requires --json)'
+  )
   .option('--no-color', 'Disable color output')
   .option('-w, --workspace <workspace>', 'Specify workspace')
   .option('-r, --repo <repo>', 'Specify repository')

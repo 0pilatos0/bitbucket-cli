@@ -40,6 +40,8 @@ export interface RepoContext {
 
 export interface GlobalOptions {
   json?: boolean;
+  jsonFields?: string[];
+  jq?: string;
   noColor?: boolean;
   workspace?: string;
   repo?: string;

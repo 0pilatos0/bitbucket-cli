@@ -54,7 +54,7 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace,
         count: repos.length,
         repositories: repos,

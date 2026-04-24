@@ -55,7 +55,7 @@ export class ReadyPRCommand extends BaseCommand<
     const pr = response.data;
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         pullRequestId: prId,
         pullRequest: pr,

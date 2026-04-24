@@ -63,7 +63,7 @@ export class ListSnippetCommentsCommand extends BaseCommand<
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace,
         snippetId: options.id,
         count: comments.length,

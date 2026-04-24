@@ -47,7 +47,7 @@ export class StatusCommand extends BaseCommand<void, void> {
 
     if (!hasBasicAuth && !hasOAuth) {
       if (context.globalOptions.json) {
-        this.output.json({ authenticated: false });
+        await this.output.json({ authenticated: false });
         return;
       }
 
@@ -77,7 +77,7 @@ export class StatusCommand extends BaseCommand<void, void> {
         if (authMethod === 'oauth' && config.oauthExpiresAt) {
           jsonOutput.tokenExpiresAt = config.oauthExpiresAt;
         }
-        this.output.json(jsonOutput);
+        await this.output.json(jsonOutput);
         return;
       }
 

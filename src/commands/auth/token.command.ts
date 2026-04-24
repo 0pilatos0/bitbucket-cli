@@ -30,7 +30,7 @@ export class TokenCommand extends BaseCommand<void, void> {
       const accessToken = await this.oauthService.getValidAccessToken();
 
       if (context.globalOptions.json) {
-        this.output.json({ token: accessToken, type: 'bearer' });
+        await this.output.json({ token: accessToken, type: 'bearer' });
         return;
       }
 
@@ -52,7 +52,7 @@ export class TokenCommand extends BaseCommand<void, void> {
     ).toString('base64');
 
     if (context.globalOptions.json) {
-      this.output.json({ token, type: 'basic' });
+      await this.output.json({ token, type: 'basic' });
       return;
     }
 
