@@ -78,7 +78,7 @@ export class CreateRepoCommand extends BaseCommand<
     const repo = response.data;
 
     if (context.globalOptions.json) {
-      this.output.json(repo);
+      await this.output.json(repo);
       return;
     }
 

@@ -255,11 +255,14 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
 
   return {
     logs,
-    json(data: unknown) {
+    async json(data: unknown) {
       logs.push(`json:${JSON.stringify(data)}`);
     },
     jsonError(data: unknown) {
       logs.push(`jsonError:${JSON.stringify(data)}`);
+    },
+    setJsonFormatOptions() {
+      // No-op in tests; commands log raw payloads via `json:` prefix.
     },
     table(headers: string[], rows: string[][]) {
       logs.push(`table:${headers.join(',')}`);

@@ -48,7 +48,7 @@ export class ApprovePRCommand extends BaseCommand<
     );
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         pullRequestId: prId,
       });

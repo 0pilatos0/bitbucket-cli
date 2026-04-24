@@ -27,11 +27,21 @@ export abstract class BaseCommand<
     options: TOptions,
     context: CommandContext
   ): Promise<TResult> {
+    this.output.setJsonFormatOptions({
+      fields: context.globalOptions.jsonFields,
+      jq: context.globalOptions.jq,
+    });
+
     try {
+      if (context.validationError) {
+        throw context.validationError;
+      }
       return await this.execute(options, context);
     } catch (error) {
       this.handleError(error, context);
       throw error;
+    } finally {
+      this.output.setJsonFormatOptions({});
     }
   }
 

@@ -333,6 +333,92 @@ describe('BaseCommand', () => {
         expect((error as BBError).code).toBe(ErrorCode.CONFIG_INVALID_KEY);
       }
     });
+
+    it('should raise context.validationError before invoking execute', async () => {
+      let executed = false;
+      class ExecuteSpy extends BaseCommand<{ option?: string }, void> {
+        public readonly name = 'spy';
+        public readonly description = 'spy';
+        async execute(): Promise<void> {
+          executed = true;
+        }
+      }
+      const command = new ExecuteSpy(output);
+      const validationError = new BBError({
+        code: ErrorCode.JSON_FORMAT_INVALID,
+        message: '--jq requires --json',
+      });
+
+      await expect(
+        command.run({}, { globalOptions: {}, validationError })
+      ).rejects.toBe(validationError);
+
+      expect(executed).toBe(false);
+      expect(output.logs).toContain('error:--jq requires --json');
+    });
+
+    it('should render context.validationError as JSON when --json is set', async () => {
+      class ExecuteSpy extends BaseCommand<{ option?: string }, void> {
+        public readonly name = 'spy';
+        public readonly description = 'spy';
+        async execute(): Promise<void> {}
+      }
+      const command = new ExecuteSpy(output);
+      const validationError = new BBError({
+        code: ErrorCode.JSON_FORMAT_INVALID,
+        message: '--json field list cannot be empty',
+      });
+
+      await expect(
+        command.run({}, { globalOptions: { json: true }, validationError })
+      ).rejects.toBe(validationError);
+
+      expect(output.logs).toContain(
+        'jsonError:{"name":"BBError","code":8002,"message":"--json field list cannot be empty"}'
+      );
+    });
+
+    it('should push and clear json format options around execute()', async () => {
+      const calls: Array<{ fields?: string[]; jq?: string }> = [];
+      const spyOutput = {
+        ...output,
+        setJsonFormatOptions(opts: { fields?: string[]; jq?: string }) {
+          calls.push({ ...opts });
+        },
+      };
+      const command = new TestCommand(spyOutput);
+
+      await command.run(
+        {},
+        {
+          globalOptions: {
+            json: true,
+            jsonFields: ['id', 'title'],
+            jq: '.[] | .id',
+          },
+        }
+      );
+
+      // First call sets the options, finally{} resets to {}.
+      expect(calls).toEqual([{ fields: ['id', 'title'], jq: '.[] | .id' }, {}]);
+    });
+
+    it('should reset json format options even when execute throws', async () => {
+      const calls: Array<{ fields?: string[]; jq?: string }> = [];
+      const spyOutput = {
+        ...output,
+        setJsonFormatOptions(opts: { fields?: string[]; jq?: string }) {
+          calls.push({ ...opts });
+        },
+      };
+      const command = new TestCommandWithError(spyOutput);
+
+      await expect(
+        command.run({}, { globalOptions: { json: true, jsonFields: ['id'] } })
+      ).rejects.toThrow('Test error');
+
+      expect(calls).toEqual([{ fields: ['id'], jq: undefined }, {}]);
+    });
   });
 
   describe('parseIntOption', () => {

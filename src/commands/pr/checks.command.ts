@@ -54,7 +54,7 @@ export class ChecksPRCommand extends BaseCommand<
     const summary = this.getSummary(statuses);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         pullRequestId: prId,
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,

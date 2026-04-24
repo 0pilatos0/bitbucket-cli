@@ -122,7 +122,7 @@ export class CommentPRCommand extends BaseCommand<
       if (inline) {
         jsonOutput.inline = inline;
       }
-      this.output.json(jsonOutput);
+      await this.output.json(jsonOutput);
       return;
     }
 

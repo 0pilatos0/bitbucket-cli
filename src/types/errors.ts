@@ -36,6 +36,10 @@ export enum ErrorCode {
   // Network errors (7xxx)
   NETWORK_ERROR = 7001,
 
+  // Output formatting errors (8xxx)
+  JQ_FAILED = 8001,
+  JSON_FORMAT_INVALID = 8002,
+
   // Unknown
   UNKNOWN = 9999,
 }

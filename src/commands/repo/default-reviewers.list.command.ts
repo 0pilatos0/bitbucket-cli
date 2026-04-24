@@ -43,7 +43,7 @@ export class ListDefaultReviewersCommand extends BaseCommand<
     const reviewers = await this.defaultReviewerService.list(repoContext, mode);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         mode,

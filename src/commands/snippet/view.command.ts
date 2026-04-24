@@ -70,7 +70,7 @@ export class ViewSnippetCommand extends BaseCommand<
         options.file
       );
       if (context.globalOptions.json) {
-        this.output.json({ file: options.file, content });
+        await this.output.json({ file: options.file, content });
         return;
       }
       this.output.text(content);
@@ -87,7 +87,7 @@ export class ViewSnippetCommand extends BaseCommand<
         );
       }
       if (context.globalOptions.json) {
-        this.output.json({ snippet, files: contents });
+        await this.output.json({ snippet, files: contents });
         return;
       }
       this.renderSnippet(snippet, fileNames);
@@ -100,7 +100,7 @@ export class ViewSnippetCommand extends BaseCommand<
     }
 
     if (context.globalOptions.json) {
-      this.output.json(snippet);
+      await this.output.json(snippet);
       return;
     }
 

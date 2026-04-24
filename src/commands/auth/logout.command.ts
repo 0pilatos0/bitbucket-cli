@@ -33,7 +33,7 @@ export class LogoutCommand extends BaseCommand<void, void> {
     }
 
     if (context.globalOptions.json) {
-      this.output.json({ authenticated: false, success: true });
+      await this.output.json({ authenticated: false, success: true });
       return;
     }
 

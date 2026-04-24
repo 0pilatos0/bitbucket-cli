@@ -51,7 +51,7 @@ export class ViewPRCommand extends BaseCommand<
     const pr = response.data;
 
     if (context.globalOptions.json) {
-      this.output.json(pr);
+      await this.output.json(pr);
       return;
     }
 

@@ -369,13 +369,25 @@ describe('CLI command registration', () => {
     ]);
   });
 
-  it('should register global --workspace, --repo, --json and --no-color options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq and --no-color options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
+    expect(hasOption(cli, '--jq')).toBe(true);
     expect(hasOption(cli, '--no-color')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
+  });
+
+  it('should make --json accept an optional field-list argument', () => {
+    const jsonOption = cli.options.find((option) => option.long === '--json');
+    expect(jsonOption?.optional).toBe(true);
+    expect(jsonOption?.required).toBe(false);
+  });
+
+  it('should make --jq require a value argument', () => {
+    const jqOption = cli.options.find((option) => option.long === '--jq');
+    expect(jqOption?.required).toBe(true);
   });
 
   it('should register all auth subcommands', () => {

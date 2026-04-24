@@ -42,7 +42,7 @@ export class CloneCommand extends BaseCommand<
     const targetDir = directory || this.extractRepoName(repository);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         success: true,
         repository,
         path: targetDir,

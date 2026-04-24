@@ -18,6 +18,7 @@ When commands fail, the CLI returns structured errors with specific error codes.
 | 5xxx | Validation | Invalid input or missing required fields |
 | 6xxx | Context | Repository/workspace detection issues |
 | 7xxx | Network | Transport/network failures before API response |
+| 8xxx | Output formatting | `--json fields` and `--jq` evaluation issues |
 
 ---
 
@@ -293,6 +294,33 @@ bb config set defaultWorkspace myworkspace
 - Check internet and DNS connectivity
 - Verify proxy/TLS settings if applicable
 - Retry the command after connectivity is restored
+
+---
+
+## Output Formatting Errors (8xxx)
+
+### 8001 - JQ_FAILED
+
+**Message:** jq evaluation failed: `<jq compiler error>`
+
+**Cause:** The expression passed to `--jq` is invalid or produced a runtime error.
+
+**Solution:**
+- Test the expression interactively against the full output first:
+```bash
+bb pr list --json | jq '<expression>'
+```
+- The embedded jq is jq 1.8.x; module imports (`include`, `import`) are not supported.
+- Remember `--jq` runs *after* field projection — when combined with `--json fields`, the input is already a flat array (the wrapper has been dropped).
+
+### 8002 - JSON_FORMAT_INVALID
+
+**Message:** `--jq requires --json` or similar formatting validation failure.
+
+**Cause:** Incompatible combination of output flags.
+
+**Solution:**
+- `--jq` requires `--json`. Add `--json` (with or without a field list).
 
 ---
 

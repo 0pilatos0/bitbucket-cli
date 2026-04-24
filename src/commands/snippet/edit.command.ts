@@ -98,7 +98,7 @@ export class EditSnippetCommand extends BaseCommand<
         });
 
     if (context.globalOptions.json) {
-      this.output.json(snippet);
+      await this.output.json(snippet);
       return;
     }
 

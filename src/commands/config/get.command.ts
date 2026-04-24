@@ -56,7 +56,7 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
     const value = normalizeReadableConfigValue(key, rawValue as unknown);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         key,
         value: value ?? null,
       });

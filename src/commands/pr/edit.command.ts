@@ -134,7 +134,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
     const links = pr.links as { html?: { href?: string } } | undefined;
 
     if (context.globalOptions.json) {
-      this.output.json(pr);
+      await this.output.json(pr);
       return;
     }
 

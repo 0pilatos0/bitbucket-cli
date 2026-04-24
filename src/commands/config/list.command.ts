@@ -73,7 +73,7 @@ export class ListConfigCommand extends BaseCommand<void, void> {
     }
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         configPath: this.configService.getConfigPath(),
         config: displayConfig,
       });

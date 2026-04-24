@@ -94,7 +94,7 @@ export class ActivityPRCommand extends BaseCommand<
     });
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         pullRequestId: prId,

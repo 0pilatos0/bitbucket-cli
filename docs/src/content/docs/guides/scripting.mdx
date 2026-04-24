@@ -20,31 +20,57 @@ bb pr view 42 --json
 For list-style commands, results are limited by default. Pass `--limit` when
 your automation needs more rows.
 
-### Parsing with jq
+### Built-in Field Selection and jq
 
-[jq](https://jqlang.github.io/jq/) is the standard tool for processing JSON:
+Two flags inspired by the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting)
+let you slice and filter output without an external `jq` binary:
 
 ```bash
-# List all PR titles
+# Project to a comma-separated field list
+bb pr list --json id,title,state
+
+# Pipe through embedded jq (requires --json)
+bb pr list --json --jq '.pullRequests[].title'
+
+# Combine both
+bb pr list --json id,title,state \
+  --jq '.[] | select(.state == "OPEN") | .title'
+```
+
+When `--json fields` is passed against a list-style command, the wrapper
+envelope is dropped and the field list is projected per-item — the result is
+a flat array. See [JSON Output reference](/reference/json-output/) for details.
+
+### Parsing with jq
+
+The built-in `--jq` matches the syntax of the standalone
+[jq](https://jqlang.github.io/jq/) binary, so existing expressions work
+either way:
+
+```bash
+# Built-in (no external dependency, cross-platform)
+bb pr list --json --jq '.pullRequests[].title'
+
+# External jq (equivalent)
 bb pr list --json | jq '.pullRequests[].title'
 
 # Get PR count
-bb pr list --json | jq '.count'
+bb pr list --json --jq '.count'
 
 # Filter by state
-bb pr list -s MERGED --json | jq '.count'
+bb pr list -s MERGED --json --jq '.count'
 
-# Get specific fields
-bb pr list --json | jq '.pullRequests[] | {id, title, author: .author.display_name}'
+# Project specific fields
+bb pr list --json --jq '.pullRequests[] | {id, title, author: .author.display_name}'
 
 # Filter by author
-bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
+bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
 
-# Get PR URLs
-bb pr list --json | jq -r '.pullRequests[].links.html.href'
+# PR URLs
+bb pr list --json --jq '.pullRequests[].links.html.href'
 
-# Get web diff URL for a PR
-bb pr diff 42 --web --json | jq -r '.url'
+# Web diff URL for a PR
+bb pr diff 42 --web --json --jq '.url'
 ```
 
 ### Common jq Patterns

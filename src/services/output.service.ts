@@ -3,17 +3,64 @@
  */
 
 import chalk from 'chalk';
-import type { IOutputService } from '../core/interfaces/services.js';
+import type {
+  IOutputService,
+  JsonFormatOptions,
+} from '../core/interfaces/services.js';
+import { BBError, ErrorCode } from '../types/errors.js';
+import { projectFields } from './output.project.js';
+
+// Wrapper objects produced by list-style commands have a single canonical
+// "items" key. When `--json fields` is passed, project across that array
+// instead of the wrapper. Order matters: the first match wins. Keys must
+// match the actual JSON output produced by the commands in src/commands/**.
+const WRAPPER_ARRAY_KEYS: readonly string[] = [
+  'pullRequests', // pr list
+  'repositories', // repo list
+  'snippets', // snippet list
+  'comments', // pr comments list, snippet comments list
+  'reviewers', // pr reviewers list, repo default-reviewers list
+  'activities', // pr activity
+  'statuses', // pr checks
+  'files', // pr diff --stat / --name-only
+  'values', // generic fallback for paginated payloads
+];
 
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
+  private jsonFormatOptions: JsonFormatOptions = {};
 
   constructor(options?: { noColor?: boolean }) {
     this.noColor = options?.noColor ?? false;
   }
 
-  public json(data: unknown): void {
-    console.log(JSON.stringify(data, null, 2));
+  public setJsonFormatOptions(options: JsonFormatOptions): void {
+    this.jsonFormatOptions = { ...options };
+  }
+
+  public async json(data: unknown): Promise<void> {
+    const { fields, jq } = this.jsonFormatOptions;
+
+    let result: unknown = data;
+    if (fields && fields.length > 0) {
+      result = projectByFieldsRespectingWrapper(result, fields);
+    }
+
+    if (jq) {
+      const jqOutput = await runJq(result, jq);
+      // jq terminates each value with a newline; strip the trailing one so
+      // console.log doesn't double it. Preserve internal newlines between
+      // emitted values.
+      const trimmed = jqOutput.endsWith('\n')
+        ? jqOutput.slice(0, -1)
+        : jqOutput;
+      if (trimmed.length > 0) {
+        console.log(trimmed);
+      }
+      return;
+    }
+
+    console.log(JSON.stringify(result, null, 2));
   }
 
   public jsonError(data: unknown): void {
@@ -149,4 +196,64 @@ export class OutputService implements IOutputService {
   public underline(text: string): string {
     return this.format(text, chalk.underline);
   }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
+}
+
+/**
+ * Apply field projection. If the input is an array, project per-item. If it
+ * is a wrapper object whose first matching `WRAPPER_ARRAY_KEYS` entry holds
+ * an array, project per-item on that array and return just the array (matches
+ * `gh` semantics — drops the wrapper). Otherwise project on the object.
+ */
+function projectByFieldsRespectingWrapper(
+  data: unknown,
+  fields: string[]
+): unknown {
+  if (Array.isArray(data)) {
+    return data.map((item) => projectFields(item, fields));
+  }
+
+  if (isPlainObject(data)) {
+    for (const key of WRAPPER_ARRAY_KEYS) {
+      const inner = data[key];
+      if (Array.isArray(inner)) {
+        return inner.map((item) => projectFields(item, fields));
+      }
+    }
+    return projectFields(data, fields);
+  }
+
+  return projectFields(data, fields);
+}
+
+async function runJq(data: unknown, expression: string): Promise<string> {
+  const jq = await import('jq-wasm');
+  let result: { stdout: string; stderr: string; exitCode: number };
+  try {
+    result = await jq.raw(data as object, expression);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new BBError({
+      code: ErrorCode.JQ_FAILED,
+      message: `jq evaluation failed: ${message}`,
+      context: { expression },
+    });
+  }
+
+  if (result.exitCode !== 0) {
+    throw new BBError({
+      code: ErrorCode.JQ_FAILED,
+      message: `jq evaluation failed: ${result.stderr.trim() || 'unknown error'}`,
+      context: { expression, exitCode: result.exitCode },
+    });
+  }
+  return result.stdout;
 }

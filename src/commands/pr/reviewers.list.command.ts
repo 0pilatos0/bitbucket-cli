@@ -54,7 +54,7 @@ export class ListReviewersPRCommand extends BaseCommand<
     const reviewers = Array.from(pr.reviewers ?? []);
 
     if (context.globalOptions.json) {
-      this.output.json({
+      await this.output.json({
         pullRequestId: prId,
         count: reviewers.length,
         reviewers,
