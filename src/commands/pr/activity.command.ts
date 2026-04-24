@@ -191,11 +191,11 @@ export class ActivityPRCommand extends BaseCommand<
       activity.comment?.user ??
       activity.comment?.author ??
       activity.approval?.user ??
-      activity.update?.author ??
       activity.changes_requested?.user ??
       activity.merge?.user ??
       activity.decline?.user ??
       activity.commit?.author?.user ??
+      activity.update?.author ??
       activity.user;
 
     return getUserDisplayName(user) ?? 'Unknown';
@@ -205,11 +205,11 @@ export class ActivityPRCommand extends BaseCommand<
     const date =
       activity.comment?.created_on ??
       activity.approval?.date ??
-      activity.update?.date ??
       activity.changes_requested?.date ??
       activity.merge?.date ??
       activity.decline?.date ??
-      activity.commit?.date;
+      activity.commit?.date ??
+      activity.update?.date;
 
     if (!date) {
       return '-';
