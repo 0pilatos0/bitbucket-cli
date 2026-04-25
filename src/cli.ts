@@ -15,6 +15,7 @@ import type { VersionService } from './services/version.service.js';
 import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
+import { resolveLocale } from './services/locale.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -67,6 +68,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--no-unicode',
   '--workspace',
   '--repo',
+  '--locale',
 ];
 
 const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
@@ -140,6 +142,32 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   }
 }
 
+/**
+ * Pull the value of `--locale <locale>` (or `--locale=<locale>`) out of
+ * argv before Commander parses it, mirroring how `--no-color` is handled.
+ * The locale must influence `OutputService` construction during bootstrap,
+ * which runs before any Commander action handlers fire.
+ */
+export function extractLocaleArg(argv: string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === undefined) {
+      continue;
+    }
+    if (arg === '--locale') {
+      const next = argv[i + 1];
+      if (typeof next === 'string' && !next.startsWith('-')) {
+        return next;
+      }
+      return undefined;
+    }
+    if (arg.startsWith('--locale=')) {
+      return arg.slice('--locale='.length);
+    }
+  }
+  return undefined;
+}
+
 export function resolveNoColorSetting(
   argv: string[],
   env: NodeJS.ProcessEnv
@@ -187,8 +215,12 @@ export function resolveNoUnicodeSetting(
 const noColor = resolveNoColorSetting(process.argv, process.env);
 const noUnicode = resolveNoUnicodeSetting(process.argv, process.env);
 const buildHelpText = createHelpTextBuilder(noColor);
+const locale = resolveLocale({
+  explicit: extractLocaleArg(process.argv),
+  env: process.env,
+});
 
-const container = bootstrap({ noColor, noUnicode });
+const container = bootstrap({ noColor, noUnicode, locale });
 
 // Helper to create command context. Validation errors from --json/--jq
 // parsing are deferred onto `context.validationError` so they can be raised
@@ -303,6 +335,10 @@ cli
     '--no-unicode',
     'Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE'
   )
+  .option(
+    '--locale <locale>',
+    'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
+  )
   .option('-w, --workspace <workspace>', 'Specify workspace')
   .option('-r, --repo <repo>', 'Specify repository')
   .addHelpText(
@@ -316,6 +352,8 @@ cli
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
         DEBUG: "Enable HTTP debug logging when 'true'",
+        BB_LOCALE:
+          'BCP-47 locale tag for date/time formatting; --locale takes precedence',
       },
       seeAlso: [
         {
@@ -348,16 +386,14 @@ cli
     try {
       const result = await versionService.checkForUpdate();
       if (result?.updateAvailable) {
-        const separator = output.symbol('─', '-').repeat(50);
-        const warnSym = output.symbol('⚠', '!!');
         output.text('');
-        output.text(separator);
-        output.text(
-          `${warnSym} A new version is available: ${result.latestVersion} (you have ${result.currentVersion})`
+        output.separator(50);
+        output.warning(
+          `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})\n` +
+            `  Run '${versionService.getInstallCommand()}' to update\n` +
+            `  Or disable with 'bb config set skipVersionCheck true'`
         );
-        output.text(`  Run '${versionService.getInstallCommand()}' to update`);
-        output.text(`  Or disable with 'bb config set skipVersionCheck true'`);
-        output.text(separator);
+        output.separator(50);
       }
     } catch {
       // Silently ignore version check errors

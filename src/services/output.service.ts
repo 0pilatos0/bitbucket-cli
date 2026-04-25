@@ -8,7 +8,16 @@ import type {
   JsonFormatOptions,
 } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
+import { DEFAULT_LOCALE } from './locale.js';
 import { projectFields } from './output.project.js';
+
+const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+};
 
 // Strip dangerous terminal control sequences from text before printing so
 // attacker-controlled API data (PR titles, descriptions, branch names,
@@ -49,15 +58,25 @@ const WRAPPER_ARRAY_KEYS: readonly string[] = [
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
   private readonly noUnicode: boolean;
+  private readonly locale: string;
   private jsonFormatOptions: JsonFormatOptions = {};
 
-  constructor(options?: { noColor?: boolean; noUnicode?: boolean }) {
+  constructor(options?: {
+    noColor?: boolean;
+    noUnicode?: boolean;
+    locale?: string;
+  }) {
     this.noColor = options?.noColor ?? false;
     this.noUnicode = options?.noUnicode ?? false;
+    this.locale = options?.locale ?? DEFAULT_LOCALE;
   }
 
   public setJsonFormatOptions(options: JsonFormatOptions): void {
     this.jsonFormatOptions = { ...options };
+  }
+
+  public isJsonMode(): boolean {
+    return this.jsonFormatOptions.json === true;
   }
 
   public async json(data: unknown): Promise<void> {
@@ -154,6 +173,14 @@ export class OutputService implements IOutputService {
     console.log(stripControl(message));
   }
 
+  public separator(width = 60): void {
+    if (width <= 0) {
+      console.log('');
+      return;
+    }
+    console.log(this.format(this.symbol('─', '-').repeat(width), chalk.gray));
+  }
+
   public truncate(text: string, maxLength: number, suffix = '...'): string {
     if (maxLength <= 0 || text.length <= maxLength) {
       return text;
@@ -166,13 +193,13 @@ export class OutputService implements IOutputService {
 
   public formatDate(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    try {
+      return d.toLocaleDateString(this.locale, DATE_FORMAT_OPTIONS);
+    } catch {
+      // Invalid BCP-47 tag: fall back to the historical default so a typo
+      // in --locale or LANG doesn't crash a date-rendering command.
+      return d.toLocaleDateString(DEFAULT_LOCALE, DATE_FORMAT_OPTIONS);
+    }
   }
 
   /**

@@ -9,7 +9,6 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { SnippetsApi } from '../../generated/api.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface DeleteSnippetCommentOptions {
   workspace?: string;
@@ -44,14 +43,10 @@ export class DeleteSnippetCommentCommand extends BaseCommand<
 
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    if (!options.yes) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message:
-          `This will permanently delete comment #${commentId} on snippet ${options.snippetId}.\n` +
-          'Use --yes to confirm deletion.',
-      });
-    }
+    this.requireConfirmation(
+      options.yes,
+      `This will permanently delete comment #${commentId} on snippet ${options.snippetId}.`
+    );
 
     await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdDelete({
       workspace,

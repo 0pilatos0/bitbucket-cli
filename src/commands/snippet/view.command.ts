@@ -139,7 +139,7 @@ export class ViewSnippetCommand extends BaseCommand<
     this.output.text(
       `${this.output.bold(String(snippet.id ?? ''))}  ${snippet.title ?? 'Untitled'}  ${this.output.gray(`[${visibility}]`)}`
     );
-    this.output.text(this.output.gray(this.output.symbol('─', '-').repeat(60)));
+    this.output.separator();
 
     const creator = getUserDisplayName(snippet.creator);
     if (creator) {

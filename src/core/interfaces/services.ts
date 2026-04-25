@@ -121,6 +121,7 @@ export interface ISnippetFilesService {
 export interface JsonFormatOptions {
   fields?: string[];
   jq?: string;
+  json?: boolean;
 }
 
 /**
@@ -130,12 +131,20 @@ export interface IOutputService {
   json(data: unknown): Promise<void>;
   jsonError(data: unknown): void;
   setJsonFormatOptions(options: JsonFormatOptions): void;
+  isJsonMode(): boolean;
   table(headers: string[], rows: string[][]): void;
   success(message: string): void;
   error(message: string): void;
   warning(message: string): void;
   info(message: string): void;
   text(message: string): void;
+  /**
+   * Render a horizontal visual section divider. Used for framing rich
+   * command output (e.g. `pr view`). Centralizing this keeps the separator
+   * style consistent across commands and lets callers avoid raw repeat
+   * strings. Default width is 60 characters.
+   */
+  separator(width?: number): void;
   /**
    * Truncate `text` to fit within `maxLength` characters, appending `suffix`
    * when truncation occurs. Returns the input unchanged when it already fits
