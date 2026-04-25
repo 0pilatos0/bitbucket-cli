@@ -126,6 +126,20 @@ export class APIError extends BBError {
   }
 }
 
+/**
+ * If `error` is a 404 APIError, replace its message with a contextual one
+ * that names the missing resource. Other errors are rethrown unchanged.
+ */
+export function rethrowWithNotFoundContext(
+  error: unknown,
+  notFoundMessage: string
+): never {
+  if (error instanceof APIError && error.statusCode === 404) {
+    throw new APIError(notFoundMessage, 404, error.response, error.context);
+  }
+  throw error;
+}
+
 export class GitError extends BBError {
   public readonly command: string;
   public readonly exitCode: number;

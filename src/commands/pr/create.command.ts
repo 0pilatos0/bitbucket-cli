@@ -59,7 +59,9 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     if (!options.title) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
-        message: 'Pull request title is required. Use --title option.',
+        message: this.appendHelpHint(
+          'Pull request title is required. Use --title option.'
+        ),
       });
     }
 

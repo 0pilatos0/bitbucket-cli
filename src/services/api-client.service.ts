@@ -211,7 +211,8 @@ export function createApiClient(
       } else if (error.request) {
         throw new BBError({
           code: ErrorCode.NETWORK_ERROR,
-          message: 'Network error: Unable to reach Bitbucket API',
+          message:
+            "Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.",
           cause: error,
         });
       } else {

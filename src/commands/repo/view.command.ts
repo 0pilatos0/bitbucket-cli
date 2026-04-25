@@ -11,6 +11,7 @@ import type {
 import type { RepositoriesApi } from '../../generated/api.js';
 import { getCloneLinks, getLinkHref } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
 export interface ViewRepoOptions extends GlobalOptions {
   repository?: string;
@@ -47,11 +48,17 @@ export class ViewRepoCommand extends BaseCommand<ViewRepoOptions, void> {
     const repoContext =
       await this.contextService.requireRepoContext(contextOptions);
 
-    const response =
-      await this.repositoriesApi.repositoriesWorkspaceRepoSlugGet({
+    const response = await this.repositoriesApi
+      .repositoriesWorkspaceRepoSlugGet({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
-      });
+      })
+      .catch((error: unknown) =>
+        rethrowWithNotFoundContext(
+          error,
+          `Repository ${repoContext.workspace}/${repoContext.repoSlug} not found.`
+        )
+      );
 
     const repo = response.data;
 
