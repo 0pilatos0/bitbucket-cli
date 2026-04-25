@@ -58,6 +58,10 @@ export class OutputService implements IOutputService {
     this.jsonFormatOptions = { ...options };
   }
 
+  public isJsonMode(): boolean {
+    return this.jsonFormatOptions.json === true;
+  }
+
   public async json(data: unknown): Promise<void> {
     const { fields, jq } = this.jsonFormatOptions;
 

@@ -30,6 +30,7 @@ export abstract class BaseCommand<
     this.output.setJsonFormatOptions({
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
+      json: context.globalOptions.json,
     });
 
     try {

@@ -262,6 +262,7 @@ export function createMockContextService(
 
 export function createMockOutputService(): IOutputService & { logs: string[] } {
   const logs: string[] = [];
+  let jsonMode = false;
 
   return {
     logs,
@@ -271,8 +272,11 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     jsonError(data: unknown) {
       logs.push(`jsonError:${JSON.stringify(data)}`);
     },
-    setJsonFormatOptions() {
-      // No-op in tests; commands log raw payloads via `json:` prefix.
+    setJsonFormatOptions(options) {
+      jsonMode = options.json === true;
+    },
+    isJsonMode() {
+      return jsonMode;
     },
     table(headers: string[], rows: string[][]) {
       logs.push(`table:${headers.join(',')}`);
