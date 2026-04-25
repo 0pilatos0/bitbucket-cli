@@ -2,7 +2,7 @@
  * PR command tests
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, mock } from 'bun:test';
 import { ListPRsCommand } from '../../src/commands/pr/list.command.js';
 import { ViewPRCommand } from '../../src/commands/pr/view.command.js';
 import { CreatePRCommand } from '../../src/commands/pr/create.command.js';
@@ -2199,6 +2199,42 @@ describe('DiffPRCommand', () => {
     const summary = output.logs.find((log) => log.includes('file changed'));
     expect(summary).toBeDefined();
     expect(summary).toContain('1 file changed');
+  });
+
+  it('should pass the URL verbatim to open() without shell interpolation when --web is set', async () => {
+    const openCalls: string[] = [];
+    mock.module('open', () => ({
+      default: async (url: string) => {
+        openCalls.push(url);
+      },
+    }));
+
+    const maliciousUrl =
+      'https://bitbucket.org/workspace/repo/pull-requests/1/?x=" & echo pwned `id`';
+    const prs = [
+      {
+        ...mockPullRequest,
+        links: { html: { href: maliciousUrl } },
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService();
+    const output = createMockOutputService();
+
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    );
+    await command.execute({ id: '1', web: true }, { globalOptions: {} });
+
+    expect(openCalls).toHaveLength(1);
+    expect(openCalls[0]).toBe(`${maliciousUrl}/diff`);
   });
 
   it('should use the PR html link when building a --web URL', async () => {
