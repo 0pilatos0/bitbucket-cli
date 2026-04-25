@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.16.2
+
+### Patch Changes
+
+- [#232](https://github.com/0pilatos0/bitbucket-cli/pull/232) [`e46e142`](https://github.com/0pilatos0/bitbucket-cli/commit/e46e1426fb58fb09ac2f0d2eff408358d99e5563) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Route API client retry messages through `IOutputService.warning()` so they no longer bypass the output layer. Retries are now silenced in `--json` mode (preventing stderr noise from leaking into structured pipelines) and outside JSON mode they render with the standard `⚠` prefix and respect `--no-color`. `DEBUG=true` HTTP traces continue to use raw `console.debug` by design — they are an opt-in developer channel.
+
+- [#231](https://github.com/0pilatos0/bitbucket-cli/pull/231) [`edd3023`](https://github.com/0pilatos0/bitbucket-cli/commit/edd3023514e56adf6bf75938d765987aa760cd87) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Standardize empty-result messages on `output.info()` so all list/query
+  commands present a consistent blue `ℹ` icon when there is nothing to show.
+
+  Updated commands:
+  - `repo list` — `No repositories found`
+  - `pr list` — `No <state> pull requests found`
+  - `snippet list` — `No snippets found`
+  - `config list` — `No configuration set`
+  - `pr view` — `No reviewers assigned` (was a gray plain-text line)
+
+  The eight other commands that emit empty-result messages already use
+  `output.info()`; they are unchanged.
+
+- [#233](https://github.com/0pilatos0/bitbucket-cli/pull/233) [`37e7d0e`](https://github.com/0pilatos0/bitbucket-cli/commit/37e7d0e2c27ad6718fcaac03d0d923aa490f33ab) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Standardize the `--yes` confirmation pattern across destructive commands.
+  The duplicated check and `BBError` throw is extracted into
+  `BaseCommand.requireConfirmation()`, and the trailing instruction is now a
+  consistent `Use --yes to confirm.` (previously a mix of
+  `Use --yes to confirm.` and `Use --yes to confirm deletion.`).
+
+  Affected commands:
+  - `repo delete`
+  - `repo default-reviewers remove`
+  - `pr comments delete`
+  - `snippet delete`
+  - `snippet comments delete`
+
+  The warning text describing the action being gated is unchanged.
+
 ## 1.16.1
 
 ### Patch Changes
