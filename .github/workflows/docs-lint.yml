@@ -57,6 +57,13 @@ jobs:
         with:
           bun-version: ${{ env.BUN_VERSION }}
 
+      # Astro's build CLI shells out to Node and requires >=22.12, so a Node
+      # toolchain must be present even though dependencies are installed via Bun.
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
       - name: Cache Bun dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
