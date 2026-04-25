@@ -775,7 +775,7 @@ describe('DeleteSnippetCommand', () => {
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });
 
@@ -984,6 +984,6 @@ describe('DeleteSnippetCommentCommand', () => {
         { snippetId: 'kypj', commentId: '1', workspace: 'workspace' },
         makeContext()
       )
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });
