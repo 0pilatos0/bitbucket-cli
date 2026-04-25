@@ -67,10 +67,10 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
     options: BrowseOptions,
     context: CommandContext
   ): Promise<BrowseResult> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     this.validateFlagCombination(options);
 
@@ -154,7 +154,10 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
 
     if (target && target.length > 0) {
       if (PR_NUMBER_PATTERN.test(target)) {
-        return this.urlBuilder.pullRequest(ctx, Number.parseInt(target, 10));
+        return this.urlBuilder.pullRequest(
+          ctx,
+          this.parsePositiveInt(target, 'target')
+        );
       }
       if (SHA_PATTERN.test(target)) {
         return this.urlBuilder.commit(ctx, target);
@@ -248,22 +251,6 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
       // browse useful even with `--workspace`/`--repo` overrides.
       return 'HEAD';
     }
-  }
-
-  private parsePositiveInt(value: string, name: string): number {
-    const parsed = Number.parseInt(value, 10);
-    if (
-      !Number.isFinite(parsed) ||
-      parsed <= 0 ||
-      String(parsed) !== value.trim()
-    ) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_INVALID,
-        message: this.appendHelpHint(`--${name} must be a positive integer.`),
-        context: { [name]: value },
-      });
-    }
-    return parsed;
   }
 
   private async openInBrowser(url: string): Promise<void> {

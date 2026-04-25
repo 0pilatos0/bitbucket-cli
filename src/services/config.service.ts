@@ -130,7 +130,18 @@ export class ConfigService implements IConfigService, ICredentialStore {
       await this.verifyPermissions(this.configFile, CONFIG_FILE_MODE, 'file');
 
       const data = await fs.readFile(this.configFile, 'utf-8');
-      this.configCache = JSON.parse(data) as BBConfig;
+      try {
+        this.configCache = JSON.parse(data) as BBConfig;
+      } catch (parseError) {
+        throw new BBError({
+          code: ErrorCode.CONFIG_READ_FAILED,
+          message:
+            `Config file is not valid JSON: ${this.configFile}. ` +
+            'Fix the file by hand or remove it and run `bb auth login` again.',
+          cause: parseError instanceof Error ? parseError : undefined,
+          context: { configFile: this.configFile },
+        });
+      }
       return this.configCache;
     } catch (error) {
       // File doesn't exist - return empty config

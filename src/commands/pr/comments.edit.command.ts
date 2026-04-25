@@ -36,13 +36,13 @@ export class EditCommentPRCommand extends BaseCommand<
     } & EditCommentPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.prId, 'pr-id');
-    const commentId = this.parseIntOption(options.commentId, 'comment-id');
+    const prId = this.parsePositiveInt(options.prId, 'pr-id');
+    const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(

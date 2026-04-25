@@ -32,12 +32,12 @@ export class ReadyPRCommand extends BaseCommand<
     options: { id: string } & ReadyPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(

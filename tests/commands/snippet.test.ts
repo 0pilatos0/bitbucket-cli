@@ -945,7 +945,7 @@ describe('EditSnippetCommentCommand', () => {
         },
         makeContext()
       )
-    ).rejects.toThrow('must be a valid integer');
+    ).rejects.toThrow('must be a positive integer');
   });
 });
 

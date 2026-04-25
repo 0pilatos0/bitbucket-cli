@@ -7,6 +7,7 @@ import type {
   IGitService,
   IConfigService,
 } from '../core/interfaces/services.js';
+import type { CommandContext } from '../core/interfaces/commands.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import type { RepoContext, GlobalOptions } from '../types/config.js';
 
@@ -163,6 +164,16 @@ export class ContextService implements IContextService {
     }
 
     return result.context;
+  }
+
+  public async requireRepoContextFor(
+    options: Partial<GlobalOptions>,
+    context: CommandContext
+  ): Promise<RepoContext> {
+    return this.requireRepoContext({
+      ...context.globalOptions,
+      ...options,
+    });
   }
 
   private buildRepoNotFoundMessage(

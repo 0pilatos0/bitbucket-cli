@@ -36,10 +36,10 @@ export class AddDefaultReviewerCommand extends BaseCommand<
     options: AddDefaultReviewerOptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     // Bitbucket's default-reviewers PUT accepts account_id or {uuid} in the
     // URL path, but not the nickname. Resolve via the users API first so

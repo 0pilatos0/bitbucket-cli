@@ -148,6 +148,16 @@ export class OutputService implements IOutputService {
     console.log(stripControl(message));
   }
 
+  public truncate(text: string, maxLength: number, suffix = '...'): string {
+    if (maxLength <= 0 || text.length <= maxLength) {
+      return text;
+    }
+    if (suffix.length >= maxLength) {
+      return text.slice(0, maxLength);
+    }
+    return text.slice(0, maxLength - suffix.length) + suffix;
+  }
+
   public formatDate(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
     return d.toLocaleDateString('en-US', {
@@ -260,7 +270,20 @@ function projectByFieldsRespectingWrapper(
 }
 
 async function runJq(data: unknown, expression: string): Promise<string> {
-  const jq = await import('jq-wasm');
+  let jq: typeof import('jq-wasm');
+  try {
+    jq = await import('jq-wasm');
+  } catch (error) {
+    throw new BBError({
+      code: ErrorCode.JQ_FAILED,
+      message:
+        'Failed to load the embedded jq runtime (jq-wasm). ' +
+        'Reinstall the CLI or report this issue.',
+      cause: error instanceof Error ? error : undefined,
+      context: { expression },
+    });
+  }
+
   let result: { stdout: string; stderr: string; exitCode: number };
   try {
     result = await jq.raw(data as object, expression);

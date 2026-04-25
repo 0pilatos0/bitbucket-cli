@@ -36,12 +36,12 @@ export class CheckoutPRCommand extends BaseCommand<
     options: { id: string } & CheckoutPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const prResponse =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(

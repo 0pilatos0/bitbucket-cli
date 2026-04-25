@@ -87,6 +87,10 @@ class TestCommandWithParseHelpers extends BaseCommand<
     return this.parseIntOption(value, name);
   }
 
+  public callParsePositiveInt(value: string, name: string): number {
+    return this.parsePositiveInt(value, name);
+  }
+
   public callParseEnumOption<T extends string>(
     value: string,
     name: string,
@@ -442,6 +446,60 @@ describe('BaseCommand', () => {
       expect(() => command.callParseIntOption('', 'limit')).toThrow(
         '--limit must be a valid integer'
       );
+    });
+  });
+
+  describe('parsePositiveInt', () => {
+    it('returns the integer for a positive value', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callParsePositiveInt('42', 'id')).toBe(42);
+    });
+
+    it('rejects zero', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParsePositiveInt('0', 'id')).toThrow(
+        '--id must be a positive integer'
+      );
+    });
+
+    it('rejects negative numbers', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParsePositiveInt('-1', 'id')).toThrow(
+        '--id must be a positive integer'
+      );
+    });
+
+    it('rejects non-canonical input like "1abc"', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParsePositiveInt('1abc', 'id')).toThrow(
+        '--id must be a positive integer'
+      );
+    });
+
+    it('rejects decimals like "1.5"', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParsePositiveInt('1.5', 'id')).toThrow(
+        '--id must be a positive integer'
+      );
+    });
+
+    it('rejects empty string', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() => command.callParsePositiveInt('', 'id')).toThrow(
+        '--id must be a positive integer'
+      );
+    });
+
+    it('accepts a value with surrounding whitespace', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callParsePositiveInt('  7  ', 'id')).toBe(7);
     });
   });
 

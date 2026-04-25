@@ -826,7 +826,7 @@ describe('ViewPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a valid integer/);
+    ).rejects.toThrow(/--id must be a positive integer/);
   });
 
   it('should render "No reviewers assigned" when there are no reviewer participants', async () => {
@@ -1119,7 +1119,7 @@ describe('ActivityPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a valid integer/);
+    ).rejects.toThrow(/--id must be a positive integer/);
   });
 
   it('should reject an invalid --type value', async () => {
@@ -1737,7 +1737,7 @@ describe('MergePRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a valid integer/);
+    ).rejects.toThrow(/--id must be a positive integer/);
   });
 });
 
@@ -2688,8 +2688,8 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-      expect((error as BBError).message).toBe(
-        '--line-to must be a positive integer'
+      expect((error as BBError).message).toMatch(
+        /^--line-to must be a positive integer\./
       );
     }
   });
@@ -2717,8 +2717,8 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-      expect((error as BBError).message).toBe(
-        '--line-to must be a positive integer'
+      expect((error as BBError).message).toMatch(
+        /^--line-to must be a positive integer\./
       );
     }
   });
@@ -2746,8 +2746,8 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
-      expect((error as BBError).message).toBe(
-        '--line-from must be a positive integer'
+      expect((error as BBError).message).toMatch(
+        /^--line-from must be a positive integer\./
       );
     }
   });

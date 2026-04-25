@@ -68,43 +68,26 @@ export class CommentPRCommand extends BaseCommand<
       });
     }
 
-    if (options.lineTo) {
-      const parsed = Number.parseInt(options.lineTo, 10);
-      if (Number.isNaN(parsed) || parsed < 1) {
-        throw new BBError({
-          code: ErrorCode.VALIDATION_INVALID,
-          message: '--line-to must be a positive integer',
-        });
-      }
-    }
+    const lineTo = options.lineTo
+      ? this.parsePositiveInt(options.lineTo, 'line-to')
+      : undefined;
+    const lineFrom = options.lineFrom
+      ? this.parsePositiveInt(options.lineFrom, 'line-from')
+      : undefined;
 
-    if (options.lineFrom) {
-      const parsed = Number.parseInt(options.lineFrom, 10);
-      if (Number.isNaN(parsed) || parsed < 1) {
-        throw new BBError({
-          code: ErrorCode.VALIDATION_INVALID,
-          message: '--line-from must be a positive integer',
-        });
-      }
-    }
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
-
-    const prId = Number.parseInt(options.id, 10);
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     // Build inline object when --file is provided
     const inline = options.file
       ? {
           path: options.file,
-          ...(options.lineTo
-            ? { to: Number.parseInt(options.lineTo, 10) }
-            : {}),
-          ...(options.lineFrom
-            ? { from: Number.parseInt(options.lineFrom, 10) }
-            : {}),
+          ...(lineTo !== undefined ? { to: lineTo } : {}),
+          ...(lineFrom !== undefined ? { from: lineFrom } : {}),
         }
       : undefined;
 

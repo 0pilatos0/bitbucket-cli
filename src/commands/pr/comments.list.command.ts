@@ -43,12 +43,12 @@ export class ListCommentsPRCommand extends BaseCommand<
     options: { id: string } & ListCommentsPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
     const limit = parseLimit(options.limit);
 
     const values = await collectPages<PullrequestComment>({
@@ -72,6 +72,8 @@ export class ListCommentsPRCommand extends BaseCommand<
 
     if (context.globalOptions.json) {
       await this.output.json({
+        workspace: repoContext.workspace,
+        repoSlug: repoContext.repoSlug,
         pullRequestId: prId,
         count: values.length,
         comments: values,
@@ -93,7 +95,7 @@ export class ListCommentsPRCommand extends BaseCommand<
           ? '[deleted]'
           : options.truncate === false
             ? content
-            : content.slice(0, 60) + (content.length > 60 ? '...' : ''),
+            : this.output.truncate(content, 60),
         this.output.formatDate(comment.created_on ?? ''),
       ];
     });

@@ -11,11 +11,21 @@ export interface GitExecResult {
   exitCode: number;
 }
 
+/**
+ * Default timeout for `git` subprocess calls. Network-bound commands like
+ * `git clone` or `git fetch` against a slow remote can legitimately take a
+ * while, so this default is generous; callers that want a tighter bound can
+ * pass `cwd` plus a custom `timeoutMs`.
+ */
+const DEFAULT_GIT_TIMEOUT_MS = 60_000;
+
 export class GitService implements IGitService {
   private readonly cwd: string;
+  private readonly timeoutMs: number;
 
-  constructor(cwd?: string) {
+  constructor(cwd?: string, options: { timeoutMs?: number } = {}) {
     this.cwd = cwd ?? process.cwd();
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
   }
 
   private async exec(args: string[], cwd?: string): Promise<GitExecResult> {
@@ -25,15 +35,39 @@ export class GitService implements IGitService {
       stderr: 'pipe',
     });
 
-    const stdout = await new Response(proc.stdout).text();
-    const stderr = await new Response(proc.stderr).text();
-    const exitCode = await proc.exited;
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill();
+      } catch {
+        // The process may have already exited between the timer firing and
+        // the kill landing; that's fine, we surface the timeout below either
+        // way.
+      }
+    }, this.timeoutMs);
 
-    return {
-      stdout: stdout.trim(),
-      stderr: stderr.trim(),
-      exitCode,
-    };
+    try {
+      const stdout = await new Response(proc.stdout).text();
+      const stderr = await new Response(proc.stderr).text();
+      const exitCode = await proc.exited;
+
+      if (timedOut) {
+        throw new GitError(
+          `git ${args.join(' ')} timed out after ${this.timeoutMs}ms`,
+          `git ${args.join(' ')}`,
+          exitCode
+        );
+      }
+
+      return {
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        exitCode,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async execOrError(args: string[], cwd?: string): Promise<string> {
@@ -108,6 +142,6 @@ export class GitService implements IGitService {
    * Create a new instance with a different working directory
    */
   public withCwd(cwd: string): GitService {
-    return new GitService(cwd);
+    return new GitService(cwd, { timeoutMs: this.timeoutMs });
   }
 }

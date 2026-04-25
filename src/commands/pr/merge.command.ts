@@ -43,12 +43,12 @@ export class MergePRCommand extends BaseCommand<
     options: { id: string } & MergePROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const request: {
       type: 'pullrequest_merge_parameters';

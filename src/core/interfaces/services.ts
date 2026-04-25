@@ -10,6 +10,7 @@ import type {
   RepoContext,
   GlobalOptions,
 } from '../../types/config.js';
+import type { CommandContext } from './commands.js';
 
 /**
  * Application config interface — reading and writing general settings
@@ -68,6 +69,17 @@ export interface IContextService {
   getRepoContextFromGit(): Promise<RepoContext | null>;
   getRepoContext(options: GlobalOptions): Promise<RepoContext | null>;
   requireRepoContext(options: GlobalOptions): Promise<RepoContext>;
+  /**
+   * Convenience used by command implementations: merges the global options
+   * carried on `context` with command-local options before resolving the repo
+   * context. Replaces the boilerplate
+   * `requireRepoContext({ ...context.globalOptions, ...options })` that
+   * previously appeared in every command.
+   */
+  requireRepoContextFor(
+    options: Partial<GlobalOptions>,
+    context: CommandContext
+  ): Promise<RepoContext>;
   requireWorkspace(explicit?: string): Promise<string>;
 }
 
@@ -124,6 +136,13 @@ export interface IOutputService {
   warning(message: string): void;
   info(message: string): void;
   text(message: string): void;
+  /**
+   * Truncate `text` to fit within `maxLength` characters, appending `suffix`
+   * when truncation occurs. Returns the input unchanged when it already fits
+   * or when `maxLength` is <= 0. The default ellipsis is the three-dot ASCII
+   * sequence to match historical output and stay safe across terminals.
+   */
+  truncate(text: string, maxLength: number, suffix?: string): string;
   format(text: string, formatter: (text: string) => string): string;
   dim(text: string): string;
   highlight(text: string): string;
