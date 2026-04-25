@@ -83,13 +83,16 @@ jobs:
         run: bun run docs:build
 
       - name: Run link checker
-        # --skip filters noisy/false-positive external hosts (rate-limited or
-        # bot-blocked). The primary value is catching broken anchors and
-        # internal links inside the built site.
+        # --skip filters noisy/false-positive external hosts. github.com and
+        # npmjs.com aggressively rate-limit / bot-block CI runners and produce
+        # spurious 403/429 responses. The primary value of this check is
+        # catching broken anchors and internal links inside the built site.
         run: |
           bunx --bun linkinator@6 docs/dist \
             --recurse \
             --silent \
             --skip "https://bitbucket.org" \
             --skip "https://status.bitbucket.org" \
-            --skip "https://analytics.paulvanderlei.com"
+            --skip "https://analytics.paulvanderlei.com" \
+            --skip "https://github.com" \
+            --skip "https://www.npmjs.com"
