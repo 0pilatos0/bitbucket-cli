@@ -11,7 +11,6 @@ import type {
 import type { UsersApi } from '../../generated/api.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface RemoveDefaultReviewerOptions extends GlobalOptions {
   username: string;
@@ -43,15 +42,11 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
       context
     );
 
-    if (!options.yes) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message:
-          `This will remove ${options.username} from the default reviewers of ` +
-          `${repoContext.workspace}/${repoContext.repoSlug}.\n` +
-          'Use --yes to confirm.',
-      });
-    }
+    this.requireConfirmation(
+      options.yes,
+      `This will remove ${options.username} from the default reviewers of ` +
+        `${repoContext.workspace}/${repoContext.repoSlug}.`
+    );
 
     // Same as add: resolve via the users API so nicknames work.
     const userResponse = await this.usersApi.usersSelectedUserGet({

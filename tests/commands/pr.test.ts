@@ -3024,7 +3024,7 @@ describe('DeleteCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });
 

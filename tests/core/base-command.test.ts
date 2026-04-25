@@ -98,6 +98,13 @@ class TestCommandWithParseHelpers extends BaseCommand<
   ): T {
     return this.parseEnumOption(value, name, allowed);
   }
+
+  public callRequireConfirmation(
+    confirmed: boolean | undefined,
+    warning: string
+  ): void {
+    return this.requireConfirmation(confirmed, warning);
+  }
 }
 
 describe('BaseCommand', () => {
@@ -500,6 +507,54 @@ describe('BaseCommand', () => {
       const command = new TestCommandWithParseHelpers(output);
 
       expect(command.callParsePositiveInt('  7  ', 'id')).toBe(7);
+    });
+  });
+
+  describe('requireConfirmation', () => {
+    it('returns without throwing when confirmed is true', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(true, 'This will delete things.')
+      ).not.toThrow();
+    });
+
+    it('throws BBError when confirmed is false', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(false, 'This will delete things.')
+      ).toThrow(BBError);
+    });
+
+    it('throws BBError when confirmed is undefined', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(undefined, 'This will delete things.')
+      ).toThrow(BBError);
+    });
+
+    it('uses VALIDATION_REQUIRED error code', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      try {
+        command.callRequireConfirmation(undefined, 'This will delete things.');
+        expect(true).toBe(false); // should not reach here
+      } catch (error) {
+        expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      }
+    });
+
+    it('embeds the warning and standardized confirmation suffix', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(
+          undefined,
+          'This will permanently delete repo/x.'
+        )
+      ).toThrow('This will permanently delete repo/x.\nUse --yes to confirm.');
     });
   });
 
