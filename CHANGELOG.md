@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.17.0
+
+### Minor Changes
+
+- [#238](https://github.com/0pilatos0/bitbucket-cli/pull/238) [`6e5edc7`](https://github.com/0pilatos0/bitbucket-cli/commit/6e5edc780319767b54fc35fae29fd62d96bee1c8) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add a global `--no-truncate` flag that disables column truncation in table output across `bb pr list`, `bb pr activity`, `bb pr checks`, `bb pr edit`, `bb pr comments list`, `bb repo list`, and `bb snippet comments list`. The previously command-local `--no-truncate` flag on `bb pr comments list` is now subsumed by the global flag and no longer needs to be passed separately. JSON output is unaffected.
+
+- [#235](https://github.com/0pilatos0/bitbucket-cli/pull/235) [`1e388e6`](https://github.com/0pilatos0/bitbucket-cli/commit/1e388e64a0a735bb82b48e66f79a094e3a2a923b) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add locale-aware date formatting. Dates rendered by `bb` now follow the user's
+  locale instead of being hard-coded to `en-US`. The locale is resolved in this
+  order: `--locale <tag>` global flag, `BB_LOCALE` env var, the standard POSIX
+  chain (`LC_TIME` → `LC_ALL` → `LANG`), and finally `en-US` as a fallback. An
+  invalid tag silently falls back to `en-US` instead of throwing.
+
+- [#237](https://github.com/0pilatos0/bitbucket-cli/pull/237) [`8e7e8b7`](https://github.com/0pilatos0/bitbucket-cli/commit/8e7e8b74b78a4cbda2fd772065bea5fa84f0f9c6) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `--no-unicode` flag and `BB_NO_UNICODE` env var to substitute ASCII fallbacks for Unicode glyphs (separators, arrows, status icons, info/warning/error/success symbols) in non-JSON output. Useful for older terminals, constrained CI environments, or fonts that render the original glyphs as boxes. Mirrors the `gh` CLI's `GH_NO_UNICODE`.
+
+- [#239](https://github.com/0pilatos0/bitbucket-cli/pull/239) [`71f88c9`](https://github.com/0pilatos0/bitbucket-cli/commit/71f88c9c5e6363fe2158f8b4c45fd45ca8769f97) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add a spinner progress indicator for long-running operations.
+
+  `IOutputService` now exposes a `spinner(text)` factory returning an
+  `ISpinner` handle (`start` / `stop` / `succeed` / `fail` / `setText`). The
+  spinner auto-disables in JSON mode (would corrupt machine-readable output),
+  non-TTY streams (pipes, redirects, CI), and tests — every method is a safe
+  no-op there, so callers can instrument commands without branching on the
+  runtime environment.
+
+  `OutputService` tracks the active spinner and stops it before any other
+  write (`success`, `error`, `warning`, `info`, `text`, `table`, `json`,
+  `jsonError`), so a forgotten spinner can never interleave with regular
+  output. Two concurrent spinners cannot fight over the same line either —
+  creating a new spinner stops the previous one.
+
+  Instrumented the high-priority long-running commands listed in the
+  proposal:
+  - `bb pr create` — "Creating pull request..."
+  - `bb pr merge` — "Merging pull request #{id}..."
+  - `bb repo clone` — "Cloning {repo}..."
+
+  Implementation is dependency-free (no `ora`); the `Spinner` class lives in
+  `src/services/spinner.ts` and renders 10-frame braille animation with
+  ANSI cursor hide/show and line-clear sequences. Cursor restore is wired
+  to `SIGINT`, `SIGTERM`, and `exit` so an interrupted CLI doesn't leave
+  the cursor hidden.
+
+### Patch Changes
+
+- [#236](https://github.com/0pilatos0/bitbucket-cli/pull/236) [`ac59b02`](https://github.com/0pilatos0/bitbucket-cli/commit/ac59b02a613834eb61dcbcf2d3abf3c87237b008) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Centralize horizontal section dividers behind a new `output.separator()` helper so all framed command output (e.g. `pr view`, `pr checks`, `snippet view`, the version-update banner) uses a consistent gray Unicode rule. The version-update banner now renders through `output.warning()` so it picks up proper warning styling instead of an inline `⚠` glyph.
+
 ## 1.16.2
 
 ### Patch Changes
