@@ -76,7 +76,7 @@ export class ViewPRCommand extends BaseCommand<
     this.output.text(
       `${this.output.bold(`#${pr.id}`)} ${pr.title}${draftLabel} ${stateColor(`[${pr.state}]`)}`
     );
-    this.output.text(this.output.gray('─'.repeat(60)));
+    this.output.text(this.output.gray(this.output.symbol('─', '-').repeat(60)));
   }
 
   private renderDescription(pr: Pullrequest): void {
@@ -95,7 +95,7 @@ export class ViewPRCommand extends BaseCommand<
       | undefined;
     const sourceBranch = this.output.cyan(source?.branch?.name ?? 'unknown');
     const destBranch = this.output.cyan(destination?.branch?.name ?? 'unknown');
-    const arrow = this.output.gray(' → ');
+    const arrow = this.output.gray(this.output.symbol(' → ', ' -> '));
 
     this.output.text(
       `${this.output.dim('Branch:')}   ${sourceBranch}${arrow}${destBranch}`
@@ -143,8 +143,8 @@ export class ViewPRCommand extends BaseCommand<
     }
 
     const closeBranchIndicator = pr.close_source_branch
-      ? this.output.green('✓')
-      : this.output.gray('✗');
+      ? this.output.green(this.output.symbol('✓', 'yes'))
+      : this.output.gray(this.output.symbol('✗', 'no'));
     this.output.text(
       `${this.output.dim('Close Src:')} ${closeBranchIndicator} ${this.output.gray('(close source branch on merge)')}`
     );
@@ -183,20 +183,29 @@ export class ViewPRCommand extends BaseCommand<
     label: string;
   } {
     if (reviewer.approved) {
-      return { icon: this.output.green('✓'), label: 'approved' };
+      return {
+        icon: this.output.green(this.output.symbol('✓', '[OK]')),
+        label: 'approved',
+      };
     }
 
     if (reviewer.state === 'changes_requested') {
-      return { icon: this.output.red('✗'), label: 'changes requested' };
+      return {
+        icon: this.output.red(this.output.symbol('✗', '[X]')),
+        label: 'changes requested',
+      };
     }
 
-    return { icon: this.output.yellow('○'), label: 'pending' };
+    return {
+      icon: this.output.yellow(this.output.symbol('○', '[ ]')),
+      label: 'pending',
+    };
   }
 
   private renderFooter(pr: Pullrequest): void {
     const links = pr.links as { html?: { href?: string } } | undefined;
     this.output.text('');
-    this.output.text(this.output.gray('─'.repeat(60)));
+    this.output.text(this.output.gray(this.output.symbol('─', '-').repeat(60)));
     this.output.text(
       `${this.output.dim('URL:')} ${this.output.underline(this.output.blue(links?.html?.href ?? ''))}`
     );

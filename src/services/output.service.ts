@@ -48,10 +48,12 @@ const WRAPPER_ARRAY_KEYS: readonly string[] = [
 
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
+  private readonly noUnicode: boolean;
   private jsonFormatOptions: JsonFormatOptions = {};
 
-  constructor(options?: { noColor?: boolean }) {
+  constructor(options?: { noColor?: boolean; noUnicode?: boolean }) {
     this.noColor = options?.noColor ?? false;
+    this.noUnicode = options?.noUnicode ?? false;
   }
 
   public setJsonFormatOptions(options: JsonFormatOptions): void {
@@ -125,23 +127,27 @@ export class OutputService implements IOutputService {
   }
 
   public success(message: string): void {
-    const symbol = this.format('✓', chalk.green);
+    const symbol = this.format(this.symbol('✓', 'OK'), chalk.green);
     console.log(`${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
-    const symbol = this.format('✗', chalk.red);
+    const symbol = this.format(this.symbol('✗', 'ERR'), chalk.red);
     console.error(`${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
-    const symbol = this.format('⚠', chalk.yellow);
+    const symbol = this.format(this.symbol('⚠', '!!'), chalk.yellow);
     console.warn(`${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
-    const symbol = this.format('ℹ', chalk.blue);
+    const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
     console.log(`${symbol} ${stripControl(message)}`);
+  }
+
+  public symbol(unicode: string, ascii: string): string {
+    return this.noUnicode ? ascii : unicode;
   }
 
   public text(message: string): void {

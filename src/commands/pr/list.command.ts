@@ -95,6 +95,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
       return;
     }
 
+    const arrow = this.output.symbol('→', '->');
     const rows = values.map((pr: Pullrequest) => {
       const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
       const source = pr.source as { branch?: { name?: string } } | undefined;
@@ -105,7 +106,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         `#${pr.id}`,
         this.output.truncate(title ?? '', 50),
         pr.author?.display_name ?? 'Unknown',
-        `${source?.branch?.name ?? 'unknown'} → ${destination?.branch?.name ?? 'unknown'}`,
+        `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
       ];
     });
 

@@ -260,8 +260,11 @@ export function createMockContextService(
   return new ContextService(gitService, configService);
 }
 
-export function createMockOutputService(): IOutputService & { logs: string[] } {
+export function createMockOutputService(
+  options: { noUnicode?: boolean } = {}
+): IOutputService & { logs: string[] } {
   const logs: string[] = [];
+  const noUnicode = options.noUnicode ?? false;
 
   return {
     logs,
@@ -301,6 +304,9 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
         return text.slice(0, maxLength);
       }
       return text.slice(0, maxLength - suffix.length) + suffix;
+    },
+    symbol(unicode: string, ascii: string) {
+      return noUnicode ? ascii : unicode;
     },
     format(text: string, formatter: (text: string) => string) {
       return formatter(text);

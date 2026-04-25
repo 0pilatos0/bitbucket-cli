@@ -7,6 +7,7 @@ import type { Command } from 'commander';
 import {
   getCompletionParent,
   resolveNoColorSetting,
+  resolveNoUnicodeSetting,
   withGlobalOptions,
 } from '../src/cli.js';
 import { cli } from '../src/cli.js';
@@ -213,6 +214,42 @@ describe('resolveNoColorSetting', () => {
   });
 });
 
+describe('resolveNoUnicodeSetting', () => {
+  it('should disable unicode when --no-unicode is passed', () => {
+    const noUnicode = resolveNoUnicodeSetting(
+      ['node', 'bb', '--no-unicode'],
+      {} as NodeJS.ProcessEnv
+    );
+
+    expect(noUnicode).toBe(true);
+  });
+
+  it('should disable unicode when BB_NO_UNICODE env var is set', () => {
+    const noUnicode = resolveNoUnicodeSetting(['node', 'bb'], {
+      BB_NO_UNICODE: '1',
+    } as NodeJS.ProcessEnv);
+
+    expect(noUnicode).toBe(true);
+  });
+
+  it('should not disable unicode when BB_NO_UNICODE is empty', () => {
+    const noUnicode = resolveNoUnicodeSetting(['node', 'bb'], {
+      BB_NO_UNICODE: '',
+    } as NodeJS.ProcessEnv);
+
+    expect(noUnicode).toBe(false);
+  });
+
+  it('should default to false when neither flag nor env var is present', () => {
+    const noUnicode = resolveNoUnicodeSetting(
+      ['node', 'bb'],
+      {} as NodeJS.ProcessEnv
+    );
+
+    expect(noUnicode).toBe(false);
+  });
+});
+
 describe('CLI option wiring', () => {
   it('should reserve -w for global --workspace and keep pr diff --web long-only', () => {
     const workspaceOption = cli.options.find(
@@ -273,6 +310,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('BB_API_TOKEN');
     expect(output).toContain('NO_COLOR');
     expect(output).toContain('FORCE_COLOR');
+    expect(output).toContain('BB_NO_UNICODE');
     expect(output).toContain('DEBUG');
   });
 
@@ -437,6 +475,7 @@ describe('CLI command registration', () => {
     expect(hasOption(cli, '--json')).toBe(true);
     expect(hasOption(cli, '--jq')).toBe(true);
     expect(hasOption(cli, '--no-color')).toBe(true);
+    expect(hasOption(cli, '--no-unicode')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
   });

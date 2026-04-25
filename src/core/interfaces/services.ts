@@ -143,6 +143,13 @@ export interface IOutputService {
    * sequence to match historical output and stay safe across terminals.
    */
   truncate(text: string, maxLength: number, suffix?: string): string;
+  /**
+   * Return `unicode` when the terminal can render Unicode glyphs, otherwise
+   * `ascii`. Lets callers keep a single inline expression for symbols
+   * (separators, arrows, status dots) that need an ASCII fallback under
+   * `--no-unicode` / `BB_NO_UNICODE`.
+   */
+  symbol(unicode: string, ascii: string): string;
   format(text: string, formatter: (text: string) => string): string;
   dim(text: string): string;
   highlight(text: string): string;
