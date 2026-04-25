@@ -94,6 +94,7 @@ import { BrowseCommand } from './commands/browse.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
+  locale?: string;
 }
 
 type Ctor<T> = new (...args: never[]) => T;
@@ -163,7 +164,11 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
     ServiceTokens.OutputService,
-    () => new OutputService({ noColor: options.noColor })
+    () =>
+      new OutputService({
+        noColor: options.noColor,
+        locale: options.locale,
+      })
   );
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.ConfigService,

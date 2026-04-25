@@ -91,7 +91,7 @@ export class ChecksPRCommand extends BaseCommand<
     this.output.text('');
     const title = this.output.bold('Pull Request #' + prId);
     this.output.text(`${title} - ${count} check${count === 1 ? '' : 's'}`);
-    this.output.text(this.output.gray('-'.repeat(60)));
+    this.output.separator();
   }
 
   private renderStatuses(

@@ -76,7 +76,7 @@ export class ViewPRCommand extends BaseCommand<
     this.output.text(
       `${this.output.bold(`#${pr.id}`)} ${pr.title}${draftLabel} ${stateColor(`[${pr.state}]`)}`
     );
-    this.output.text(this.output.gray('─'.repeat(60)));
+    this.output.separator();
   }
 
   private renderDescription(pr: Pullrequest): void {
@@ -196,7 +196,7 @@ export class ViewPRCommand extends BaseCommand<
   private renderFooter(pr: Pullrequest): void {
     const links = pr.links as { html?: { href?: string } } | undefined;
     this.output.text('');
-    this.output.text(this.output.gray('─'.repeat(60)));
+    this.output.separator();
     this.output.text(
       `${this.output.dim('URL:')} ${this.output.underline(this.output.blue(links?.html?.href ?? ''))}`
     );

@@ -139,6 +139,13 @@ export interface IOutputService {
   info(message: string): void;
   text(message: string): void;
   /**
+   * Render a horizontal visual section divider. Used for framing rich
+   * command output (e.g. `pr view`). Centralizing this keeps the separator
+   * style consistent across commands and lets callers avoid raw repeat
+   * strings. Default width is 60 characters.
+   */
+  separator(width?: number): void;
+  /**
    * Truncate `text` to fit within `maxLength` characters, appending `suffix`
    * when truncation occurs. Returns the input unchanged when it already fits
    * or when `maxLength` is <= 0. The default ellipsis is the three-dot ASCII

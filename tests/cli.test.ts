@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'bun:test';
 import type { Command } from 'commander';
 import {
+  extractLocaleArg,
   getCompletionParent,
   resolveNoColorSetting,
   withGlobalOptions,
@@ -213,6 +214,42 @@ describe('resolveNoColorSetting', () => {
   });
 });
 
+describe('extractLocaleArg', () => {
+  it('returns the value passed as a separate argument', () => {
+    expect(
+      extractLocaleArg(['node', 'bb', 'pr', 'list', '--locale', 'de-DE'])
+    ).toBe('de-DE');
+  });
+
+  it('supports the --locale=value form', () => {
+    expect(
+      extractLocaleArg(['node', 'bb', 'pr', 'list', '--locale=ja-JP'])
+    ).toBe('ja-JP');
+  });
+
+  it('returns undefined when --locale is absent', () => {
+    expect(extractLocaleArg(['node', 'bb', 'pr', 'list'])).toBeUndefined();
+  });
+
+  it('returns undefined when --locale is followed by another flag', () => {
+    // Without a value Commander would also error; treat it as unset rather
+    // than swallowing the next flag as the locale value.
+    expect(
+      extractLocaleArg(['node', 'bb', '--locale', '--json'])
+    ).toBeUndefined();
+  });
+
+  it('returns undefined when --locale is the trailing token', () => {
+    expect(extractLocaleArg(['node', 'bb', '--locale'])).toBeUndefined();
+  });
+
+  it('returns the empty string for --locale=""', () => {
+    // Preserves the literal value so resolveLocale can decide how to treat
+    // it (whitespace-only values are normalised to "fall through").
+    expect(extractLocaleArg(['node', 'bb', '--locale='])).toBe('');
+  });
+});
+
 describe('CLI option wiring', () => {
   it('should reserve -w for global --workspace and keep pr diff --web long-only', () => {
     const workspaceOption = cli.options.find(
@@ -274,6 +311,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('NO_COLOR');
     expect(output).toContain('FORCE_COLOR');
     expect(output).toContain('DEBUG');
+    expect(output).toContain('BB_LOCALE');
   });
 
   it('should include merge strategies and examples in pr merge help', () => {
@@ -431,13 +469,14 @@ describe('CLI command registration', () => {
     ]);
   });
 
-  it('should register global --workspace, --repo, --json, --jq, --no-color and --no-truncate options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-truncate and --locale options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
     expect(hasOption(cli, '--jq')).toBe(true);
     expect(hasOption(cli, '--no-color')).toBe(true);
     expect(hasOption(cli, '--no-truncate')).toBe(true);
+    expect(hasOption(cli, '--locale')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
   });
