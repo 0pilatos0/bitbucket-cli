@@ -17,6 +17,18 @@ Environment variables allow you to configure the CLI without storing credentials
 | `FORCE_COLOR` | Force-enable color output globally | `1` |
 | `DEBUG` | Enable HTTP debug logging (logs request method, URL, status, and response body for every API call) | `true` |
 
+### Internal / System Variables
+
+These variables are read by the CLI but are normally set by the runtime, your
+shell, or your operating system rather than by you. They are documented here
+so they aren't surprising during troubleshooting.
+
+| Variable | Set By | Description |
+|----------|--------|-------------|
+| `NODE_ENV` | Test runners | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
+| `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually. |
+| `APPDATA` | Windows | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set. |
+
 ## Configuration Priority
 
 Repository context is resolved in this order (highest priority first):

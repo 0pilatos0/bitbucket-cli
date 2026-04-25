@@ -1,0 +1,153 @@
+---
+title: Token Scopes
+description: Required Bitbucket API token scopes for each bb command
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+When you authenticate with an [API token](/getting-started/authentication/#api-token-for-cicd-and-headless-environments),
+you choose which scopes the token grants. This page maps every `bb` command to
+the minimum scope required to run it, so you can mint a token with exactly the
+permissions a workflow needs and nothing more.
+
+<Aside type="tip">
+OAuth logins (`bb auth login` without `-u`/`-p`) request a fixed scope set up
+front and don't need this table. Use this reference when generating an API
+token at [Bitbucket API tokens](https://bitbucket.org/account/settings/api-tokens/).
+</Aside>
+
+## Scope Reference
+
+Bitbucket Cloud API token scopes follow the format `<action>:<resource>:bitbucket`.
+The CLI uses these scopes:
+
+| Scope | Grants |
+|-------|--------|
+| `read:user:bitbucket` | Read your own user profile (required by `bb auth status`, used to verify any login) |
+| `read:repository:bitbucket` | List and view repositories, list default reviewers |
+| `write:repository:bitbucket` | Create repositories, manage default reviewers |
+| `admin:repository:bitbucket` | Delete repositories |
+| `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, and reviewers |
+| `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark PRs ready; add/edit/delete comments; add/remove reviewers |
+| `read:snippet:bitbucket` | List and view snippets |
+| `write:snippet:bitbucket` | Create, edit, and delete snippets |
+
+## Command → Scope Map
+
+### Auth (`bb auth …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb auth login` | `read:user:bitbucket` (verifies the credentials) |
+| `bb auth logout` | _(none — local-only for API tokens; OAuth revoke uses the existing token)_ |
+| `bb auth status` | `read:user:bitbucket` |
+| `bb auth token` | _(none — prints the locally-stored token)_ |
+
+### Repositories (`bb repo …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb repo list` | `read:repository:bitbucket` |
+| `bb repo view` | `read:repository:bitbucket` |
+| `bb repo clone` | `read:repository:bitbucket` (plus your normal git auth) |
+| `bb repo create` | `write:repository:bitbucket` |
+| `bb repo delete` | `admin:repository:bitbucket` |
+| `bb repo default-reviewers list` | `read:repository:bitbucket` |
+| `bb repo default-reviewers add` | `write:repository:bitbucket` |
+| `bb repo default-reviewers remove` | `write:repository:bitbucket` |
+
+### Pull Requests (`bb pr …`)
+
+Read-only PR commands — `list`, `view`, `diff`, `checkout`, `activity`,
+`checks`, `comments list`, `reviewers list` — only need
+`read:pullrequest:bitbucket` (plus `read:repository:bitbucket` for repository
+context).
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb pr list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr view` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr diff` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr checkout` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr activity` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr checks` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr comments list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr reviewers list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr create` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr edit` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr ready` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr approve` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr decline` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr merge` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr comments add` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr comments edit` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr comments delete` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr reviewers add` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+| `bb pr reviewers remove` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+
+### Snippets (`bb snippet …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb snippet list` | `read:snippet:bitbucket` |
+| `bb snippet view` | `read:snippet:bitbucket` |
+| `bb snippet create` | `write:snippet:bitbucket` |
+| `bb snippet edit` | `write:snippet:bitbucket` |
+| `bb snippet delete` | `write:snippet:bitbucket` |
+
+### Local-only commands
+
+These don't hit the API and don't need any scope:
+
+- `bb config` (all subcommands)
+- `bb completion`
+- `bb` (root, including the version-check)
+
+## Common Profiles
+
+Pick the profile that matches your workflow and grant only those scopes when
+creating the token.
+
+### Read-only automation (status checks, dashboards)
+
+```
+read:user:bitbucket
+read:repository:bitbucket
+read:pullrequest:bitbucket
+```
+
+### Bot account that creates and merges PRs
+
+```
+read:user:bitbucket
+read:repository:bitbucket
+read:pullrequest:bitbucket
+write:pullrequest:bitbucket
+```
+
+### Repo provisioning automation
+
+```
+read:user:bitbucket
+read:repository:bitbucket
+write:repository:bitbucket
+admin:repository:bitbucket
+```
+
+<Aside type="caution" title="Principle of least privilege">
+Don't grant `write:` or `admin:` scopes to a token unless the script that uses
+it actually needs them. A leaked read-only token is far less damaging than a
+leaked admin token.
+</Aside>
+
+## Troubleshooting
+
+If a command exits with [`2003` API_FORBIDDEN](/reference/error-codes/#2003---api_forbidden),
+your token is missing the scope listed in the table above. Mint a new token
+with the required scope (you can't add scopes to an existing token) and
+re-authenticate:
+
+```bash
+bb auth logout
+bb auth login -u your-username -p new-token
+```

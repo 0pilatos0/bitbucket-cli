@@ -104,6 +104,7 @@ export default defineConfig({
             { label: "JSON Output", slug: "reference/json-output" },
             { label: "Error Codes", slug: "reference/error-codes" },
             { label: "Configuration File", slug: "reference/configuration" },
+            { label: "Token Scopes", slug: "reference/token-scopes" },
           ],
         },
         {
