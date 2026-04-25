@@ -66,6 +66,42 @@ function generatePkcePair(): { verifier: string; challenge: string } {
   return { verifier, challenge };
 }
 
+const OAUTH_ERROR_DESCRIPTION_MAX_LENGTH = 200;
+
+/**
+ * Extract a sanitized `error_description` from an OAuth token-endpoint error
+ * body. Returns undefined if the body isn't a JSON object with a string
+ * `error_description`. The result is trimmed to a single line and capped in
+ * length so attacker-influenced responses can't bloat the user-facing message.
+ */
+function extractOAuthErrorDescription(body: string): string | undefined {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    return undefined;
+  }
+  if (
+    typeof parsed !== 'object' ||
+    parsed === null ||
+    !('error_description' in parsed)
+  ) {
+    return undefined;
+  }
+  const description = (parsed as { error_description: unknown })
+    .error_description;
+  if (typeof description !== 'string') {
+    return undefined;
+  }
+  const sanitized = description.replace(/\s+/g, ' ').trim();
+  if (sanitized.length === 0) {
+    return undefined;
+  }
+  return sanitized.length > OAUTH_ERROR_DESCRIPTION_MAX_LENGTH
+    ? `${sanitized.slice(0, OAUTH_ERROR_DESCRIPTION_MAX_LENGTH)}…`
+    : sanitized;
+}
+
 export class OAuthService {
   constructor(
     private readonly configService: IConfigService,
@@ -146,10 +182,12 @@ export class OAuthService {
 
     if (!response.ok) {
       const errorBody = await response.text();
+      const description = extractOAuthErrorDescription(errorBody);
+      const baseMessage = `Failed to refresh OAuth token. Run 'bb auth login' to re-authenticate.`;
       throw new BBError({
         code: ErrorCode.AUTH_EXPIRED,
-        message: `Failed to refresh OAuth token. Run 'bb auth login' to re-authenticate.`,
-        context: { status: response.status, body: errorBody },
+        message: description ? `${baseMessage} (${description})` : baseMessage,
+        context: { status: response.status },
       });
     }
 
@@ -369,10 +407,12 @@ export class OAuthService {
 
     if (!response.ok) {
       const errorBody = await response.text();
+      const description = extractOAuthErrorDescription(errorBody);
+      const baseMessage = `Failed to exchange authorization code. Please try again.`;
       throw new BBError({
         code: ErrorCode.AUTH_INVALID,
-        message: `Failed to exchange authorization code. Please try again.`,
-        context: { status: response.status, body: errorBody },
+        message: description ? `${baseMessage} (${description})` : baseMessage,
+        context: { status: response.status },
       });
     }
 
