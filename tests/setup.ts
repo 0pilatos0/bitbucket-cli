@@ -293,6 +293,9 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     text(message: string) {
       logs.push(`text:${message}`);
     },
+    separator(width = 60) {
+      logs.push(`separator:${width}`);
+    },
     truncate(text: string, maxLength: number, suffix = '...') {
       if (maxLength <= 0 || text.length <= maxLength) {
         return text;

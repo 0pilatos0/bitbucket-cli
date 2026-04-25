@@ -301,6 +301,38 @@ describe('OutputService', () => {
     });
   });
 
+  describe('separator', () => {
+    it('should render a 60-character Unicode line by default', () => {
+      output.separator();
+
+      expect(consoleLogs).toHaveLength(1);
+      // Strip ANSI color codes for the character/length assertion
+      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      expect(plain).toBe('─'.repeat(60));
+    });
+
+    it('should respect a custom width', () => {
+      output.separator(20);
+
+      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      expect(plain).toBe('─'.repeat(20));
+    });
+
+    it('should print an empty line for non-positive widths', () => {
+      output.separator(0);
+      output.separator(-5);
+
+      expect(consoleLogs).toEqual(['', '']);
+    });
+
+    it('should emit no ANSI codes when noColor is true', () => {
+      const noColorOutput = new OutputService({ noColor: true });
+      noColorOutput.separator(10);
+
+      expect(consoleLogs[0]).toBe('─'.repeat(10));
+    });
+  });
+
   describe('formatDate', () => {
     it('should format ISO date string', () => {
       const result = output.formatDate('2024-06-15T10:30:00.000Z');

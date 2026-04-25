@@ -322,13 +322,13 @@ cli
       const result = await versionService.checkForUpdate();
       if (result?.updateAvailable) {
         output.text('');
-        output.text('─'.repeat(50));
-        output.text(
-          `⚠ A new version is available: ${result.latestVersion} (you have ${result.currentVersion})`
+        output.separator(50);
+        output.warning(
+          `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})\n` +
+            `  Run '${versionService.getInstallCommand()}' to update\n` +
+            `  Or disable with 'bb config set skipVersionCheck true'`
         );
-        output.text(`  Run '${versionService.getInstallCommand()}' to update`);
-        output.text(`  Or disable with 'bb config set skipVersionCheck true'`);
-        output.text('─'.repeat(50));
+        output.separator(50);
       }
     } catch {
       // Silently ignore version check errors
