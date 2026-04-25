@@ -28,6 +28,7 @@ export abstract class BaseCommand<
     context: CommandContext
   ): Promise<TResult> {
     this.output.setJsonFormatOptions({
+      json: !!context.globalOptions.json,
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
     });

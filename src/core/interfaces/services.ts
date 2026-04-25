@@ -119,8 +119,36 @@ export interface ISnippetFilesService {
  * Pushed by BaseCommand.run() from CommandContext.globalOptions.
  */
 export interface JsonFormatOptions {
+  /**
+   * Whether the active command was invoked with `--json`. Drives the spinner
+   * suppression logic — animations on stdout would corrupt JSON output.
+   */
+  json?: boolean;
   fields?: string[];
   jq?: string;
+}
+
+/**
+ * Animated progress indicator handle returned by `IOutputService.spinner()`.
+ *
+ * Implementations must auto-disable in environments that cannot animate
+ * cleanly (non-TTY streams, JSON mode, tests). Disabled spinners turn every
+ * method into a safe no-op, so callers can instrument commands without
+ * branching on the runtime environment.
+ *
+ * Methods return `this` to support fluent calls.
+ */
+export interface ISpinner {
+  /** Begin the animation. Idempotent. */
+  start(): ISpinner;
+  /** Stop the animation and restore the cursor. Idempotent. */
+  stop(): ISpinner;
+  /** Stop the animation; print an optional success line if enabled. */
+  succeed(message?: string): ISpinner;
+  /** Stop the animation; print an optional failure line if enabled. */
+  fail(message?: string): ISpinner;
+  /** Update the text shown next to the spinner. */
+  setText(text: string): ISpinner;
 }
 
 /**
@@ -130,6 +158,12 @@ export interface IOutputService {
   json(data: unknown): Promise<void>;
   jsonError(data: unknown): void;
   setJsonFormatOptions(options: JsonFormatOptions): void;
+  /**
+   * Create a progress spinner with the given initial text. Returns a handle
+   * the caller is responsible for stopping. Implementations must auto-disable
+   * the animation in JSON mode, non-TTY streams, and tests.
+   */
+  spinner(text: string): ISpinner;
   table(headers: string[], rows: string[][]): void;
   success(message: string): void;
   error(message: string): void;

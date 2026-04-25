@@ -75,17 +75,24 @@ export class MergePRCommand extends BaseCommand<
       );
     }
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-          pullrequestMergeParameters: request,
-        }
-      );
-
-    const pr = response.data;
+    const spinner = this.output
+      .spinner(`Merging pull request #${prId}...`)
+      .start();
+    let pr;
+    try {
+      const response =
+        await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(
+          {
+            workspace: repoContext.workspace,
+            repoSlug: repoContext.repoSlug,
+            pullRequestId: prId,
+            pullrequestMergeParameters: request,
+          }
+        );
+      pr = response.data;
+    } finally {
+      spinner.stop();
+    }
 
     if (context.globalOptions.json) {
       await this.output.json({

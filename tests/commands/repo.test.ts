@@ -618,4 +618,44 @@ describe('CloneCommand', () => {
       command.execute({ repository: 'myrepo' }, { globalOptions: {} })
     ).rejects.toThrow();
   });
+
+  it('should run a spinner around the git clone call', async () => {
+    const gitService = createMockGitService();
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new CloneCommand(gitService, contextService, output);
+    await command.execute(
+      { repository: 'workspace/repo' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some((log) =>
+        log.startsWith('spinner-start:Cloning workspace/repo')
+      )
+    ).toBe(true);
+    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
+  });
+
+  it('should stop the spinner when the git clone call fails', async () => {
+    const gitService = createMockGitService();
+    gitService.clone = async () => {
+      throw new Error('clone failed');
+    };
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new CloneCommand(gitService, contextService, output);
+    await expect(
+      command.execute({ repository: 'workspace/repo' }, { globalOptions: {} })
+    ).rejects.toThrow('clone failed');
+
+    expect(
+      output.logs.some((log) =>
+        log.startsWith('spinner-start:Cloning workspace/repo')
+      )
+    ).toBe(true);
+    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
+  });
 });

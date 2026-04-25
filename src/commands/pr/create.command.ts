@@ -114,14 +114,21 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       );
     }
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        pullrequest: request,
-      });
-
-    const pr = response.data;
+    const spinner = this.output.spinner('Creating pull request...').start();
+    let pr;
+    try {
+      const response =
+        await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost(
+          {
+            workspace: repoContext.workspace,
+            repoSlug: repoContext.repoSlug,
+            pullrequest: request,
+          }
+        );
+      pr = response.data;
+    } finally {
+      spinner.stop();
+    }
     const links = pr.links as { html?: { href?: string } } | undefined;
 
     if (context.globalOptions.json) {
