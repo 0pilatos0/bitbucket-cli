@@ -1,5 +1,135 @@
 # Changelog
 
+## 1.15.0
+
+### Minor Changes
+
+- [#214](https://github.com/0pilatos0/bitbucket-cli/pull/214) [`8395a68`](https://github.com/0pilatos0/bitbucket-cli/commit/8395a68b22c01a4c69063268ffaf2b6295b14e55) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Make error messages actionable with next-step guidance: auth errors mention both `bb auth login` and the `BB_USERNAME`/`BB_API_TOKEN` env vars; `CONTEXT_REPO_NOT_FOUND` distinguishes between not being in a git repo, missing remote, and non-Bitbucket remotes; 404s on `bb pr view`, `bb repo view`, and `bb snippet view` now name the missing resource; network errors point to `DEBUG=true` and proxy/CA troubleshooting; `bb config get` for hidden keys explains why and points at `bb config list`; `bb pr create` validation includes a `--help` footer; `bb auth login` distinguishes invalid credentials from rate limiting; `bb pr comment` lists the three valid mode combinations.
+
+- [#206](https://github.com/0pilatos0/bitbucket-cli/pull/206) [`1b46ea8`](https://github.com/0pilatos0/bitbucket-cli/commit/1b46ea87c4e693bb736ba708da0a61e113367f3c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - feat(errors): add distinguishable error codes for file-not-found and shell completion failures
+
+  Adds three new error codes so JSON-output-driven scripts can branch on the
+  specific failure mode instead of treating everything as `VALIDATION_INVALID`
+  (5002) or `UNKNOWN` (9999):
+  - `FILE_NOT_FOUND` (5003) — used by `bb snippet create/edit --file`,
+    `bb snippet view --file`, and `bb pr edit --body-file` when a referenced
+    file does not exist on disk or in the snippet
+  - `COMPLETION_INSTALL_FAILED` (9001) — `bb completion install` failures
+  - `COMPLETION_UNINSTALL_FAILED` (9002) — `bb completion uninstall` failures
+
+  `APIError` now also populates `context` with the failed request method,
+  URL and HTTP status, giving scripts structured fields to key on for 404s
+  and other API errors.
+
+  The error-code reference docs are updated with the new codes and clarify
+  the boundary between `AUTH_INVALID` (1002 — credentials rejected at
+  request time) and `AUTH_EXPIRED` (1003 — OAuth token expired _and_ its
+  refresh failed).
+
+### Patch Changes
+
+- [#199](https://github.com/0pilatos0/bitbucket-cli/pull/199) [`76e75a0`](https://github.com/0pilatos0/bitbucket-cli/commit/76e75a0f21608dbeb611be80b9c17e0682c1de35) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: anchor `parseRemoteUrl` regex to reject crafted Bitbucket URLs like `git@bitbucket.org:foo/bar.git.attacker.com/x/y`, and redact query strings from request URL DEBUG logs.
+
+- [#210](https://github.com/0pilatos0/bitbucket-cli/pull/210) [`66b1472`](https://github.com/0pilatos0/bitbucket-cli/commit/66b14722523776cecebcfaeb1ff51ffe0ffc6e5d) Thanks [@0pilatos0](https://github.com/0pilatos0)! - docs: improve docs site navigation, cross-linking, and discoverability
+
+  Several small surface-level fixes that together close the gap between "I had to
+  search" and "I clicked the obvious link". Resolves [#186](https://github.com/0pilatos0/bitbucket-cli/issues/186).
+  - **Changelog page in docs**: new `/help/changelog/` page with a curated
+    summary of recent releases plus a link to the full GitHub `CHANGELOG.md`.
+    Surfaced in the sidebar under Help.
+  - **AI Agents guide linked from README**: the substantial `guides/ai-agents`
+    page is now mentioned under the README's Docs section so it's discoverable
+    from the npm/GitHub landing.
+  - **`See also` section in `bb --help`**: extends `buildHelpText()` with a new
+    `seeAlso` config that renders a labeled list of doc URLs. Wired up on the
+    global help, `bb pr list`, `bb pr create`, `bb config get`, and
+    `bb config set` to point users at the relevant guide.
+  - **`bb config list` advertises settable keys**: after the values table, the
+    command appends `Settable keys: defaultWorkspace, skipVersionCheck, ...`
+    so users discover what they can change without reading `--help` separately.
+  - **Stable anchor for `bb repo default-reviewers`**: explicit `<a id="...">`
+    before the heading so the cross-link from `pr/create-and-edit` survives any
+    future Starlight slug-generator change.
+  - **Quickstart documents the version-check nudge**: explains what the upgrade
+    message means and how to silence it (`bb config set skipVersionCheck true`).
+  - **CLAUDE.md uses a real markdown link to AGENTS.md**: replaces the
+    Claude-specific `@AGENTS.md` syntax (which doesn't render as a link in
+    generic markdown viewers) with `[AGENTS.md](AGENTS.md)` and adds a "must
+    read" pointer list.
+
+- [#213](https://github.com/0pilatos0/bitbucket-cli/pull/213) [`a34fdf8`](https://github.com/0pilatos0/bitbucket-cli/commit/a34fdf85a358bf81f7185907f44d705bfcea8fd8) Thanks [@0pilatos0](https://github.com/0pilatos0)! - docs: add Recipes / Cookbook section with five common workflows — auto-merge when CI is green, bulk reviewer assignment, fork synchronization, reporting & analytics jq patterns, and a retry wrapper for transient failures. Closes [#184](https://github.com/0pilatos0/bitbucket-cli/issues/184).
+
+- [#200](https://github.com/0pilatos0/bitbucket-cli/pull/200) [`3ea4760`](https://github.com/0pilatos0/bitbucket-cli/commit/3ea4760810cf0996548eca2e1d6897868f2fd506) Thanks [@0pilatos0](https://github.com/0pilatos0)! - fix(security): use `open` package in `pr diff --web` instead of shell-string `exec`
+
+  Replaces the platform-specific shell command (`open "${url}"`, `start "" "${url}"`,
+  `xdg-open "${url}"`) in `pr diff --web` with the already-bundled `open` package, so the
+  URL is no longer interpreted by `/bin/sh` or `cmd.exe`. URLs containing shell
+  metacharacters (`&`, `` ` ``, `$`, `"`, `|`, `>`) are now passed verbatim to the
+  browser instead of being parsed as shell syntax.
+
+- [#204](https://github.com/0pilatos0/bitbucket-cli/pull/204) [`2c2aa88`](https://github.com/0pilatos0/bitbucket-cli/commit/2c2aa8848e4f4c8a1952126e9cf0f1e8df20893a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: harden config-file integrity
+  - Write the config via a unique tmp file with `O_EXCL` (`flag: 'wx'`) and an
+    atomic `rename`, so a hostile pre-existing symlink at `config.json` is no
+    longer silently followed and a crash mid-write cannot leave a partially
+    written config behind.
+  - On read, refuse to open `config.json` (or its containing directory) with
+    group/world-accessible permissions — the co-tenant scenario where another
+    user pre-creates the file with `0o644` before the first login is now
+    surfaced as a clear error with the exact `chmod` command to fix it.
+  - Create the config directory with mode `0o700` and the config file with
+    mode `0o600`.
+
+- [#202](https://github.com/0pilatos0/bitbucket-cli/pull/202) [`3586adb`](https://github.com/0pilatos0/bitbucket-cli/commit/3586adba841ea538e5b5cf34903251db2be143ec) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: harden OAuth callback flow
+  - Bind the local OAuth callback server to `127.0.0.1` instead of all
+    interfaces so the auth window is not reachable from the LAN.
+  - Bump the OAuth `state` parameter from 128 to 256 bits.
+  - Add a 10s timeout to every `fetch()` in the OAuth flow (token exchange,
+    refresh, revoke, user-info) so a hung Bitbucket endpoint cannot stall
+    the CLI indefinitely.
+  - Surface token-revocation failures on logout as a warning instead of
+    silently dropping them; local credentials are still cleared.
+
+- [#211](https://github.com/0pilatos0/bitbucket-cli/pull/211) [`bfa6339`](https://github.com/0pilatos0/bitbucket-cli/commit/bfa6339c0d2dce8fc54d9294ed7c98a3a0309756) Thanks [@0pilatos0](https://github.com/0pilatos0)! - improve onboarding and first-run experience
+  - README install section now leads with a Bun preflight (`bun --version`),
+    steps users through Bun + CLI install, and points out
+    `bb completion install` for tab completion.
+  - README gains a short Environment Variables table covering `BB_USERNAME`,
+    `BB_API_TOKEN`, `DEBUG`, `NO_COLOR`, and `FORCE_COLOR`, with a link to the
+    full reference.
+  - `bb` invoked with no subcommand now appends a one-line tip suggesting
+    `bb auth login` when no credentials are configured.
+  - `bb auth login --help` now leads with the recommended method (OAuth),
+    notes the API-token path for CI, and surfaces the app-password
+    deprecation up front.
+
+- [#198](https://github.com/0pilatos0/bitbucket-cli/pull/198) [`71c0767`](https://github.com/0pilatos0/bitbucket-cli/commit/71c0767970074d3febfc64b768ae2157a98d33b2) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: stop persisting the OAuth token-endpoint response body in `BBError.context`. The raw body could include attacker-influenced data when a custom OAuth provider was configured via `--client-id`/`--client-secret`, and surfaced through `--json` error output. The error now exposes only `{ status }` in `context`; if the response is a JSON body with `error_description`, a sanitized, length-capped excerpt is folded into the user-facing `message`.
+
+- [#197](https://github.com/0pilatos0/bitbucket-cli/pull/197) [`cf5390d`](https://github.com/0pilatos0/bitbucket-cli/commit/cf5390db5090a42f30738ecbc50dd1ad0dbe6f47) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: add PKCE (S256) to the OAuth authorization-code flow. The CLI now generates a per-login `code_verifier`, sends `code_challenge` + `code_challenge_method=S256` on the authorize redirect, and supplies the verifier on token exchange. An attacker who intercepts only the authorization code can no longer redeem it.
+
+- [#201](https://github.com/0pilatos0/bitbucket-cli/pull/201) [`fe955aa`](https://github.com/0pilatos0/bitbucket-cli/commit/fe955aa4539a5167d3096e907ad0d0c053eda346) Thanks [@0pilatos0](https://github.com/0pilatos0)! - security: strip ANSI / OSC / control characters from terminal output
+
+  Untrusted strings from the API (PR titles, descriptions, branch names,
+  snippet file names, repo descriptions, etc.) are now sanitized before
+  being printed by `OutputService`. This blocks terminal-spoofing primitives
+  such as OSC-8 hyperlink injection, OSC-0 terminal-title rewrites, and
+  CSI cursor / screen-clear sequences. Chalk-generated SGR color codes
+  composed by commands continue to render normally. JSON output is
+  unchanged.
+
+- [#208](https://github.com/0pilatos0/bitbucket-cli/pull/208) [`3404203`](https://github.com/0pilatos0/bitbucket-cli/commit/3404203516c6b5736767b1ff1734054dd7e76408) Thanks [@0pilatos0](https://github.com/0pilatos0)! - docs(cli): standardize `--help` text coverage across all commands. PR `approve`/`decline`/`ready`/`checkout`, PR `comments edit`/`delete`, PR `reviewers add`/`remove`, snippet `watch`/`unwatch`/`comments delete`/`comments edit`, `auth logout`, and `completion install`/`uninstall` now include multiple realistic examples and (where applicable) `validValues` blocks. `pr merge --strategy` documents the API default. `bb snippet comments add` now also accepts `<message>` as a positional argument for parity with `bb pr comments add`, and its help marks the message as required. A new test guarantees every leaf command exposes an Examples block.
+
+- [#212](https://github.com/0pilatos0/bitbucket-cli/pull/212) [`ff96045`](https://github.com/0pilatos0/bitbucket-cli/commit/ff9604578839e398bdabfd5fbb6c17d19bc93914) Thanks [@0pilatos0](https://github.com/0pilatos0)! - docs: surface `--json <fields>` projection and `--jq` filter throughout README, quickstart, per-command pages, and CLI help
+
+  Adds the `--jq` flag to the README global options, a scripting callout in the
+  quickstart, and `--json fields` / `--jq` examples to the highest-traffic command
+  pages (`pr list`, `pr view`, `pr create`, `repo list`, `snippet list`). The
+  `--jq` description in `bb --help` now includes an inline example, and the
+  `reference/json-output.mdx` page gains a before/after shape comparison and three
+  additional combined projection + jq patterns.
+
+  No CLI behavior changes — `--json [fields]` and `--jq <expression>` already
+  existed; this PR is purely about discoverability.
+
 ## 1.14.0
 
 ### Minor Changes
