@@ -92,12 +92,28 @@ bb pr list --json | jq '.pullRequests | group_by(.author.nickname // .author.dis
 
 ## Exit Codes
 
-The CLI uses standard exit codes:
+The CLI uses a deliberately small exit-code surface:
 
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | Error (authentication, API, validation, etc.) |
+| 1 | Any failure (authentication, API, validation, network, jq, …) |
+
+There is **no `2`/`3`/etc. mapping** — every failure exits with `1`. To branch
+on the specific failure mode in a script, parse the JSON error written to
+stderr and read its `code` field, which corresponds to one of the
+[error codes](/reference/error-codes/).
+
+```bash
+if ! bb pr view 999 --json > out.json 2> err.json; then
+  code=$(jq -r '.code' err.json)
+  case "$code" in
+    1001|1002|1003) echo "auth problem";;
+    2002)            echo "PR not found";;
+    *)               echo "other failure ($code)";;
+  esac
+fi
+```
 
 ### Checking Exit Codes
 
@@ -216,6 +232,10 @@ done
 ---
 
 ## Example Scripts
+
+:::tip[Looking for a recipe?]
+For ready-to-copy workflows — auto-merge on green CI, bulk reviewer assignment, fork sync, jq analytics, and retry wrappers — see the [Recipes section](/recipes/).
+:::
 
 ### Batch PR Approval
 

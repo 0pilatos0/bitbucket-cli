@@ -41,18 +41,30 @@ export class CommentPRCommand extends BaseCommand<
     context: CommandContext
   ): Promise<void> {
     // Validate inline flag combinations
+    const validModesNote =
+      'Valid modes: (1) general comment (no flags); (2) file-level comment (--file + --line-to or --line-from); (3) inline comment with line range (--file + --line-from + --line-to).';
+
     if ((options.lineTo || options.lineFrom) && !options.file) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
-        message: '--file is required when using --line-to or --line-from',
+        message: this.appendHelpHint(
+          `--file is required when using --line-to or --line-from. ${validModesNote}`
+        ),
+        context: {
+          validModes: ['general', 'file', 'inline'],
+        },
       });
     }
 
     if (options.file && !options.lineTo && !options.lineFrom) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
-        message:
-          'At least one of --line-to or --line-from is required when using --file',
+        message: this.appendHelpHint(
+          `At least one of --line-to or --line-from is required when using --file. ${validModesNote}`
+        ),
+        context: {
+          validModes: ['general', 'file', 'inline'],
+        },
       });
     }
 

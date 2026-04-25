@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
+import { BBError, ErrorCode } from '../../src/types/errors.js';
 import { ListSnippetsCommand } from '../../src/commands/snippet/list.command.js';
 import { ViewSnippetCommand } from '../../src/commands/snippet/view.command.js';
 import { CreateSnippetCommand } from '../../src/commands/snippet/create.command.js';
@@ -424,7 +425,7 @@ describe('ViewSnippetCommand', () => {
     expect(output.logs.some((log) => log === 'text:hello content')).toBe(true);
   });
 
-  it('should reject --file when file is not in snippet', async () => {
+  it('should reject --file when file is not in snippet with FILE_NOT_FOUND', async () => {
     const output = createMockOutputService();
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
@@ -433,12 +434,17 @@ describe('ViewSnippetCommand', () => {
     const { service } = createMockSnippetFilesService();
     const cmd = new ViewSnippetCommand(api, service, contextService, output);
 
-    await expect(
-      cmd.run(
+    try {
+      await cmd.run(
         { id: 'kypj', workspace: 'workspace', file: 'missing.txt' },
         makeContext()
-      )
-    ).rejects.toThrow('File not found in snippet');
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.FILE_NOT_FOUND);
+      expect((error as BBError).message).toContain('File not found in snippet');
+    }
   });
 
   it('should print all files with --files', async () => {
@@ -566,7 +572,7 @@ describe('CreateSnippetCommand', () => {
     );
   });
 
-  it('should throw when file does not exist', async () => {
+  it('should throw FILE_NOT_FOUND when file does not exist', async () => {
     const output = createMockOutputService();
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
@@ -574,12 +580,20 @@ describe('CreateSnippetCommand', () => {
     const { service } = createMockSnippetFilesService();
     const cmd = new CreateSnippetCommand(service, contextService, output);
 
-    await expect(
-      cmd.run(
+    try {
+      await cmd.run(
         { title: 'Test', file: ['nonexistent-file-xyz.txt'] },
         makeContext()
-      )
-    ).rejects.toThrow('File not found');
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.FILE_NOT_FOUND);
+      expect((error as BBError).message).toContain('File not found');
+      expect((error as BBError).context).toEqual({
+        file: 'nonexistent-file-xyz.txt',
+      });
+    }
   });
 
   it('should reject --public and --private together', async () => {
@@ -701,7 +715,7 @@ describe('EditSnippetCommand', () => {
     ).rejects.toThrow('cannot both be set');
   });
 
-  it('should reject --file pointing to missing file', async () => {
+  it('should reject --file pointing to missing file with FILE_NOT_FOUND', async () => {
     const output = createMockOutputService();
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
@@ -709,16 +723,20 @@ describe('EditSnippetCommand', () => {
     const { service } = createMockSnippetFilesService();
     const cmd = new EditSnippetCommand(service, contextService, output);
 
-    await expect(
-      cmd.run(
+    try {
+      await cmd.run(
         {
           id: 'kypj',
           file: ['nonexistent-xyz.txt'],
           workspace: 'workspace',
         },
         makeContext()
-      )
-    ).rejects.toThrow('File not found');
+      );
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.FILE_NOT_FOUND);
+    }
   });
 });
 

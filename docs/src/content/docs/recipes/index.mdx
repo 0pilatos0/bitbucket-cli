@@ -1,0 +1,47 @@
+---
+title: Recipes
+description: Cookbook of common Bitbucket CLI workflows — auto-merge, bulk reviewer assignment, fork sync, jq analytics, and retry wrappers.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+A cookbook of ready-to-copy workflows that combine `bb` commands with `jq` and shell to solve the patterns we see most often. Each recipe is a complete, runnable script — drop it into a CI job or a dotfile and adjust workspace/repo names.
+
+If you are looking for the *primitives* these recipes are built on, see the [Scripting & Automation guide](/guides/scripting/) and the [CI/CD Integration guide](/guides/cicd/).
+
+## Available recipes
+
+<CardGrid>
+  <LinkCard
+    title="Auto-merge when CI is green"
+    href="/recipes/auto-merge-on-ci-green/"
+    description="Poll bb pr checks until all checks pass, then merge — the GitOps-friendly way."
+  />
+  <LinkCard
+    title="Bulk reviewer assignment"
+    href="/recipes/bulk-reviewer-assignment/"
+    description="Assign a fixed list of reviewers across many open PRs (team rotations, onboarding)."
+  />
+  <LinkCard
+    title="Fork synchronization"
+    href="/recipes/fork-synchronization/"
+    description="Fetch upstream, rebase your fork, and push the result for fork-based contribution flows."
+  />
+  <LinkCard
+    title="Reporting & analytics with jq"
+    href="/recipes/reporting-analytics/"
+    description="Count PRs per state, sum diff sizes, group by author, and export to CSV."
+  />
+  <LinkCard
+    title="Retry wrapper for transient failures"
+    href="/recipes/retry-wrapper/"
+    description="A shell wrapper that retries bb invocations with exponential backoff for persistent flakes."
+  />
+</CardGrid>
+
+## Conventions used in these recipes
+
+- All recipes assume `bb auth login` has already succeeded (interactively or via `BB_USERNAME` / `BB_API_TOKEN` env vars).
+- `WORKSPACE` and `REPO` are referenced as shell variables — set them at the top of the script or export them from your CI environment.
+- The CLI already retries transient HTTP 429 / 5xx errors up to 3 times with exponential backoff. The [retry wrapper recipe](/recipes/retry-wrapper/) is only for failures that persist past that.
+- `--json` output shapes are stable; see the [JSON Output reference](/reference/json-output/) for the envelope structure of list-style commands.

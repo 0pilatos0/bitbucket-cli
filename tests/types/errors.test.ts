@@ -229,11 +229,17 @@ describe('ErrorCode', () => {
   it('should have validation errors in 5xxx range', () => {
     expect(ErrorCode.VALIDATION_REQUIRED).toBe(5001);
     expect(ErrorCode.VALIDATION_INVALID).toBe(5002);
+    expect(ErrorCode.FILE_NOT_FOUND).toBe(5003);
   });
 
   it('should have context errors in 6xxx range', () => {
     expect(ErrorCode.CONTEXT_REPO_NOT_FOUND).toBe(6001);
     expect(ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND).toBe(6002);
+  });
+
+  it('should have completion errors in 9xxx range', () => {
+    expect(ErrorCode.COMPLETION_INSTALL_FAILED).toBe(9001);
+    expect(ErrorCode.COMPLETION_UNINSTALL_FAILED).toBe(9002);
   });
 
   it('should have unknown error as 9999', () => {

@@ -293,7 +293,38 @@ Some action commands include the full resource in the response:
 
 Used by: `pr diff` (with `--stat`, `--web`, `--name-only`, or default diff mode)
 
-Returns context metadata plus mode-specific data:
+Returns context metadata plus mode-specific data. Every mode includes the same
+context envelope (`workspace`, `repoSlug`, `pullRequestId`, `mode`); the
+remaining fields depend on the mode.
+
+| Mode | Trigger | Mode-specific fields |
+|------|---------|----------------------|
+| `diff` | (default) | `diff` (string — the raw unified diff text) |
+| `stat` | `--stat` | `filesChanged`, `totalAdditions`, `totalDeletions`, `files[]` |
+| `name-only` | `--name-only` | `files[]` (string array of paths) |
+| `web` | `--web` | `url` |
+
+#### `bb pr diff 42 --json` (default mode)
+
+The default mode returns the raw unified diff as a single string under `diff`.
+Newlines are preserved, so the value is suitable for piping to `git apply` or
+writing to a `.patch` file.
+
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "pullRequestId": 42,
+  "mode": "diff",
+  "diff": "diff --git a/src/index.ts b/src/index.ts\nindex abc123..def456 100644\n--- a/src/index.ts\n+++ b/src/index.ts\n@@ -1,3 +1,4 @@\n import { foo } from './foo';\n+import { bar } from './bar';\n \n export const main = () => {\n"
+}
+```
+
+Extract just the diff text in scripts:
+
+```bash
+bb pr diff 42 --json --jq '.diff' > pr-42.patch
+```
 
 #### `bb pr diff 42 --stat --json`
 
@@ -445,9 +476,41 @@ Error JSON fields:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `name` | string | Error class name (always `BBError`) |
+| `name` | string | Error class name (usually `BBError`; can also be `APIError`, `AuthError`, `GitError`, `ValidationError`) |
 | `code` | number | Numeric [error code](/reference/error-codes/) |
 | `message` | string | Human-readable message |
-| `context` | object | Optional structured metadata |
+| `context` | object | Optional structured metadata. Shape depends on `code` — see the table below |
+
+The Bitbucket API response body is **not** nested inside the error JSON.
+`APIError` keeps the upstream HTTP status and response body as instance
+properties for the in-process error path, but only `name`, `code`, `message`,
+and `context` are serialized to stderr. Likewise, `cause` (the underlying
+`Error`) and stack traces are never exposed in `--json` mode.
+
+#### `context` fields by error code
+
+The `context` object is omitted when there's nothing useful to attach. When
+present, the shape is:
+
+| Code | Typical `context` keys |
+|------|------------------------|
+| `1001` AUTH_REQUIRED | _(none)_ |
+| `1002` AUTH_INVALID | `status` (HTTP status, OAuth verification failures only) |
+| `1003` AUTH_EXPIRED | `status` (HTTP status from the token endpoint) |
+| `2001`–`2005` API_* | _(none — the upstream HTTP status code is in `APIError.statusCode` in-process but is not serialized)_ |
+| `3001` GIT_NOT_REPOSITORY | _(none)_ |
+| `3002` GIT_COMMAND_FAILED | `command`, `exitCode` |
+| `3003` GIT_REMOTE_NOT_FOUND | `remote` |
+| `4001` CONFIG_READ_FAILED | _(none)_ |
+| `4002` CONFIG_WRITE_FAILED | _(none)_ |
+| `4003` CONFIG_INVALID_KEY | `key` |
+| `5001` VALIDATION_REQUIRED | `field` (when thrown by `ValidationError`) |
+| `5002` VALIDATION_INVALID | varies — usually `{ key, value }`, the offending option name, or the rejected ID |
+| `6001` CONTEXT_REPO_NOT_FOUND | _(none)_ |
+| `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_ |
+| `7001` NETWORK_ERROR | _(usually none; OAuth revoke failures include `status`, `body`)_ |
+| `8001` JQ_FAILED | `expression`, optional `exitCode` |
+| `8002` JSON_FORMAT_INVALID | _(none)_ |
+| `9999` UNKNOWN | _(none)_ |
 
 In automation, always check the process exit code before parsing stdout JSON.

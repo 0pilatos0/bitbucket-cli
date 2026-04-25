@@ -93,12 +93,40 @@ export abstract class BaseCommand<
     message?: string
   ): T {
     if (value === undefined || value === null || value === '') {
+      const baseMessage = message || `Option --${name} is required`;
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
-        message: message || `Option --${name} is required`,
+        message: this.appendHelpHint(baseMessage),
       });
     }
     return value;
+  }
+
+  /**
+   * Append a `--help` footer pointing back at the active command path so
+   * users can discover the full option list when validation fails.
+   */
+  protected appendHelpHint(message: string): string {
+    const commandPath = this.getCommandPath();
+    const target = commandPath ? `bb ${commandPath} --help` : 'bb --help';
+    return `${message} Run \`${target}\` for usage.`;
+  }
+
+  private getCommandPath(): string {
+    const argv = process.argv.slice(2);
+    const tokens: string[] = [];
+    for (const arg of argv) {
+      if (arg.startsWith('-')) break;
+      tokens.push(arg);
+    }
+    // The trailing token is typically a positional argument value (e.g. PR id);
+    // include only the leading subcommands. The simplest reliable signal is to
+    // stop once we have the first two tokens, matching the `bb <group> <cmd>`
+    // shape used throughout the CLI. Fall back to whatever we have.
+    if (tokens.length >= 2) {
+      return `${tokens[0]} ${tokens[1]}`;
+    }
+    return tokens.join(' ');
   }
 
   /**

@@ -12,6 +12,7 @@ import type { BaseCommand } from './core/base-command.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type { IOutputService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
+import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
 
@@ -288,6 +289,20 @@ cli
         FORCE_COLOR: "Force color output when set (and not '0')",
         DEBUG: "Enable HTTP debug logging when 'true'",
       },
+      seeAlso: [
+        {
+          label: 'Quick Start',
+          url: 'https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/',
+        },
+        {
+          label: 'Scripting',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'Changelog',
+          url: 'https://bitbucket-cli.paulvanderlei.com/help/changelog/',
+        },
+      ],
     })
   )
   .action(async () => {
@@ -317,6 +332,28 @@ cli
     } catch {
       // Silently ignore version check errors
     }
+
+    // Nudge unauthenticated users toward `bb auth login`. First-run users hit
+    // this path immediately after install, so it's the right moment to point
+    // at the next step.
+    try {
+      const configService = container.resolve<IConfigService>(
+        ServiceTokens.ConfigService
+      );
+      const config = await configService.getConfig();
+      const hasBasicAuth = Boolean(config.username && config.apiToken);
+      const hasOAuth = Boolean(
+        config.oauthAccessToken && config.oauthRefreshToken
+      );
+      if (!hasBasicAuth && !hasOAuth) {
+        output.text('');
+        output.text(
+          `Tip: Run '${output.highlight('bb auth login')}' to get started.`
+        );
+      }
+    } catch {
+      // Don't let an unreadable config disrupt the help screen.
+    }
   });
 
 // Auth commands
@@ -338,6 +375,12 @@ authCmd
   .option(
     '--client-secret <clientSecret>',
     'Custom OAuth consumer client secret'
+  )
+  .addHelpText(
+    'before',
+    '\nDefault: OAuth (browser-based, recommended).\n' +
+      'For CI/CD: API token via --app-password or BB_API_TOKEN env var.\n' +
+      'Note: Bitbucket app passwords are deprecated; use OAuth or an API token.\n'
   )
   .addHelpText(
     'after',
@@ -362,7 +405,12 @@ authCmd
 authCmd
   .command('logout')
   .description('Log out of Bitbucket')
-  .addHelpText('after', buildHelpText({ examples: ['bb auth logout'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb auth logout', 'bb auth logout --json'],
+    })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.LogoutCommand, undefined, cli);
   });
@@ -641,6 +689,16 @@ prCmd
         'default-reviewers':
           'false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)',
       },
+      seeAlso: [
+        {
+          label: 'Repository Context',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/repository-context/',
+        },
+        {
+          label: 'Default reviewers',
+          url: 'https://bitbucket-cli.paulvanderlei.com/commands/repo/#bb-repo-default-reviewers',
+        },
+      ],
     })
   )
   .action(async (options) => {
@@ -676,6 +734,16 @@ prCmd
         'Valid states': [...PR_STATES],
       },
       defaults: { state: 'OPEN', limit: '25' },
+      seeAlso: [
+        {
+          label: 'Scripting & Automation',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'JSON Output',
+          url: 'https://bitbucket-cli.paulvanderlei.com/reference/json-output/',
+        },
+      ],
     })
   )
   .action(async (options) => {
@@ -814,6 +882,10 @@ prCmd
           'rebase_merge',
         ],
       },
+      defaults: {
+        strategy:
+          "the repository's configured merge strategy (typically merge_commit)",
+      },
     })
   )
   .action(async (id, options) => {
@@ -829,7 +901,16 @@ prCmd
 prCmd
   .command('approve <id>')
   .description('Approve a pull request')
-  .addHelpText('after', buildHelpText({ examples: ['bb pr approve 42'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr approve 42',
+        'bb pr approve 42 --json',
+        'bb pr approve 42 -w my-workspace -r my-repo',
+      ],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -843,7 +924,16 @@ prCmd
 prCmd
   .command('decline <id>')
   .description('Decline a pull request')
-  .addHelpText('after', buildHelpText({ examples: ['bb pr decline 42'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr decline 42',
+        'bb pr decline 42 --json',
+        'bb pr decline 42 -w my-workspace -r my-repo',
+      ],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -857,7 +947,16 @@ prCmd
 prCmd
   .command('ready <id>')
   .description('Mark a draft pull request as ready for review')
-  .addHelpText('after', buildHelpText({ examples: ['bb pr ready 42'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr ready 42',
+        'bb pr ready 42 --json',
+        'bb pr ready 42 -w my-workspace -r my-repo',
+      ],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -871,7 +970,15 @@ prCmd
 prCmd
   .command('checkout <id>')
   .description('Checkout a pull request locally')
-  .addHelpText('after', buildHelpText({ examples: ['bb pr checkout 42'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr checkout 42',
+        'bb pr checkout 42 -w my-workspace -r my-repo',
+      ],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -976,7 +1083,10 @@ prCommentsCmd
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb pr comments edit 42 12345 "Updated comment"'],
+      examples: [
+        'bb pr comments edit 42 12345 "Updated comment"',
+        'bb pr comments edit 42 12345 "Updated comment" --json',
+      ],
     })
   )
   .action(async (prId, commentId, message, options) => {
@@ -996,7 +1106,10 @@ prCommentsCmd
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb pr comments delete 42 12345 --yes'],
+      examples: [
+        'bb pr comments delete 42 12345',
+        'bb pr comments delete 42 12345 --yes',
+      ],
     })
   )
   .action(async (prId, commentId, options) => {
@@ -1037,7 +1150,12 @@ prReviewersCmd
   .description('Add a reviewer to a pull request')
   .addHelpText(
     'after',
-    buildHelpText({ examples: ['bb pr reviewers add 42 jdoe'] })
+    buildHelpText({
+      examples: [
+        'bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"',
+        'bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
+      ],
+    })
   )
   .action(async (id, username, options) => {
     const context = createContext(cli);
@@ -1054,7 +1172,12 @@ prReviewersCmd
   .description('Remove a reviewer from a pull request')
   .addHelpText(
     'after',
-    buildHelpText({ examples: ['bb pr reviewers remove 42 jdoe'] })
+    buildHelpText({
+      examples: [
+        'bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"',
+        'bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
+      ],
+    })
   )
   .action(async (id, username, options) => {
     const context = createContext(cli);
@@ -1211,7 +1334,12 @@ snippetCmd
 snippetCmd
   .command('watch <id>')
   .description('Watch a snippet')
-  .addHelpText('after', buildHelpText({ examples: ['bb snippet watch kypj'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb snippet watch kypj', 'bb snippet watch kypj -w my-team'],
+    })
+  )
   .action(async (id, options) => {
     const context = createContext(cli);
     await runCommand(
@@ -1227,7 +1355,12 @@ snippetCmd
   .description('Stop watching a snippet')
   .addHelpText(
     'after',
-    buildHelpText({ examples: ['bb snippet unwatch kypj'] })
+    buildHelpText({
+      examples: [
+        'bb snippet unwatch kypj',
+        'bb snippet unwatch kypj -w my-team',
+      ],
+    })
   )
   .action(async (id, options) => {
     const context = createContext(cli);
@@ -1268,20 +1401,28 @@ snippetCommentsCmd
   });
 
 snippetCommentsCmd
-  .command('add <id>')
-  .description('Add a comment to a snippet')
-  .option('-m, --message <text>', 'Comment message')
+  .command('add <id> [message]')
+  .description('Add a comment to a snippet (message is required)')
+  .option(
+    '-m, --message <text>',
+    'Comment message (alternative to the positional [message] argument; one of the two is required)'
+  )
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb snippet comments add kypj -m "Great snippet!"'],
+      examples: [
+        'bb snippet comments add kypj "Great snippet!"',
+        'bb snippet comments add kypj -m "Great snippet!"',
+        'bb snippet comments add kypj "Great snippet!" --json',
+      ],
     })
   )
-  .action(async (id, options) => {
+  .action(async (id, message, options) => {
     const context = createContext(cli);
+    const resolvedMessage = message ?? options.message;
     await runCommand(
       ServiceTokens.AddSnippetCommentCommand,
-      withGlobalOptions({ id, ...options }, context),
+      withGlobalOptions({ id, ...options, message: resolvedMessage }, context),
       cli,
       context
     );
@@ -1293,7 +1434,10 @@ snippetCommentsCmd
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb snippet comments edit kypj 123 "Updated comment"'],
+      examples: [
+        'bb snippet comments edit kypj 123 "Updated comment"',
+        'bb snippet comments edit kypj 123 "Updated comment" --json',
+      ],
     })
   )
   .action(async (snippetId, commentId, message, options) => {
@@ -1313,7 +1457,10 @@ snippetCommentsCmd
   .addHelpText(
     'after',
     buildHelpText({
-      examples: ['bb snippet comments delete kypj 123 --yes'],
+      examples: [
+        'bb snippet comments delete kypj 123',
+        'bb snippet comments delete kypj 123 --yes',
+      ],
     })
   )
   .action(async (snippetId, commentId, options) => {
@@ -1345,6 +1492,7 @@ configCmd
           'defaultWorkspace',
           'skipVersionCheck',
           'versionCheckInterval',
+          'prCreateIncludeDefaultReviewers',
         ],
       },
     })
@@ -1369,8 +1517,15 @@ configCmd
           'defaultWorkspace (string)',
           'skipVersionCheck (true/false)',
           'versionCheckInterval (positive integer, seconds)',
+          'prCreateIncludeDefaultReviewers (true/false)',
         ],
       },
+      seeAlso: [
+        {
+          label: 'Configuration File',
+          url: 'https://bitbucket-cli.paulvanderlei.com/reference/configuration/',
+        },
+      ],
     })
   )
   .action(async (key, value) => {
@@ -1400,7 +1555,15 @@ const completionCmd = new Command('completion').description(
 completionCmd
   .command('install')
   .description('Install shell completions for bash, zsh, or fish')
-  .addHelpText('after', buildHelpText({ examples: ['bb completion install'] }))
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb completion install', 'bb completion install --json'],
+      validValues: {
+        'Supported shells': ['bash', 'zsh', 'fish'],
+      },
+    })
+  )
   .action(async () => {
     await runCommand(ServiceTokens.InstallCompletionCommand, undefined, cli);
   });
@@ -1410,7 +1573,12 @@ completionCmd
   .description('Uninstall shell completions')
   .addHelpText(
     'after',
-    buildHelpText({ examples: ['bb completion uninstall'] })
+    buildHelpText({
+      examples: ['bb completion uninstall', 'bb completion uninstall --json'],
+      validValues: {
+        'Supported shells': ['bash', 'zsh', 'fish'],
+      },
+    })
   )
   .action(async () => {
     await runCommand(ServiceTokens.UninstallCompletionCommand, undefined, cli);

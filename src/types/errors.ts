@@ -28,6 +28,7 @@ export enum ErrorCode {
   // Validation errors (5xxx)
   VALIDATION_REQUIRED = 5001,
   VALIDATION_INVALID = 5002,
+  FILE_NOT_FOUND = 5003,
 
   // Context errors (6xxx)
   CONTEXT_REPO_NOT_FOUND = 6001,
@@ -39,6 +40,10 @@ export enum ErrorCode {
   // Output formatting errors (8xxx)
   JQ_FAILED = 8001,
   JSON_FORMAT_INVALID = 8002,
+
+  // Completion errors (9xxx, before UNKNOWN)
+  COMPLETION_INSTALL_FAILED = 9001,
+  COMPLETION_UNINSTALL_FAILED = 9002,
 
   // Unknown
   UNKNOWN = 9999,
@@ -119,6 +124,20 @@ export class APIError extends BBError {
           : ErrorCode.API_REQUEST_FAILED;
     }
   }
+}
+
+/**
+ * If `error` is a 404 APIError, replace its message with a contextual one
+ * that names the missing resource. Other errors are rethrown unchanged.
+ */
+export function rethrowWithNotFoundContext(
+  error: unknown,
+  notFoundMessage: string
+): never {
+  if (error instanceof APIError && error.statusCode === 404) {
+    throw new APIError(notFoundMessage, 404, error.response, error.context);
+  }
+  throw error;
 }
 
 export class GitError extends BBError {

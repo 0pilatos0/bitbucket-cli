@@ -10,6 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
 export interface ViewPROptions extends GlobalOptions {}
 
@@ -39,13 +40,17 @@ export class ViewPRCommand extends BaseCommand<
 
     const prId = this.parseIntOption(options.id, 'id');
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-        }
+    const response = await this.pullrequestsApi
+      .repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet({
+        workspace: repoContext.workspace,
+        repoSlug: repoContext.repoSlug,
+        pullRequestId: prId,
+      })
+      .catch((error: unknown) =>
+        rethrowWithNotFoundContext(
+          error,
+          `Pull request #${prId} not found in ${repoContext.workspace}/${repoContext.repoSlug}.`
+        )
       );
 
     const pr = response.data;

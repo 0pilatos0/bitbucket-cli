@@ -98,12 +98,25 @@ export default defineConfig({
           ],
         },
         {
+          label: "Recipes",
+          badge: { text: 'New', variant: 'tip' },
+          items: [
+            { label: "Overview", slug: "recipes" },
+            { label: "Auto-merge on green CI", slug: "recipes/auto-merge-on-ci-green" },
+            { label: "Bulk reviewer assignment", slug: "recipes/bulk-reviewer-assignment" },
+            { label: "Fork synchronization", slug: "recipes/fork-synchronization" },
+            { label: "Reporting & analytics", slug: "recipes/reporting-analytics" },
+            { label: "Retry wrapper", slug: "recipes/retry-wrapper" },
+          ],
+        },
+        {
           label: "Reference",
           items: [
             { label: "Environment Variables", slug: "reference/environment-variables" },
             { label: "JSON Output", slug: "reference/json-output" },
             { label: "Error Codes", slug: "reference/error-codes" },
             { label: "Configuration File", slug: "reference/configuration" },
+            { label: "Token Scopes", slug: "reference/token-scopes" },
           ],
         },
         {
@@ -111,6 +124,11 @@ export default defineConfig({
           items: [
             { label: "Troubleshooting", slug: "help/troubleshooting" },
             { label: "FAQ", slug: "help/faq" },
+            {
+              label: "Changelog",
+              slug: "help/changelog",
+              badge: { text: "New", variant: "tip" },
+            },
           ],
         },
       ],

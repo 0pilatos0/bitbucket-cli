@@ -2598,9 +2598,10 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
-      expect((error as BBError).message).toBe(
+      expect((error as BBError).message).toContain(
         '--file is required when using --line-to or --line-from'
       );
+      expect((error as BBError).message).toContain('Valid modes:');
     }
   });
 
@@ -2627,9 +2628,10 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
-      expect((error as BBError).message).toBe(
+      expect((error as BBError).message).toContain(
         '--file is required when using --line-to or --line-from'
       );
+      expect((error as BBError).message).toContain('Valid modes:');
     }
   });
 
@@ -2656,9 +2658,10 @@ describe('CommentPRCommand', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
-      expect((error as BBError).message).toBe(
+      expect((error as BBError).message).toContain(
         'At least one of --line-to or --line-from is required when using --file'
       );
+      expect((error as BBError).message).toContain('Valid modes:');
     }
   });
 
