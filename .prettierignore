@@ -39,3 +39,6 @@ docs/
 
 # Git
 .git/
+
+# Conductor workspace metadata (gitignored)
+.context/

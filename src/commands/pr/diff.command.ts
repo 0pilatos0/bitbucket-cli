@@ -2,8 +2,6 @@
  * PR diff command implementation
  */
 
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
@@ -20,8 +18,6 @@ import {
 } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
-
-const execAsync = promisify(exec);
 
 export interface DiffPROptions extends GlobalOptions {
   id?: string;
@@ -183,19 +179,8 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
 
   private async openInBrowser(url: string): Promise<void> {
     this.output.info(`Opening ${url} in your browser...`);
-
-    const platform = process.platform;
-    let command: string;
-
-    if (platform === 'darwin') {
-      command = `open "${url}"`;
-    } else if (platform === 'win32') {
-      command = `start "" "${url}"`;
-    } else {
-      command = `xdg-open "${url}"`;
-    }
-
-    await execAsync(command);
+    const open = (await import('open')).default;
+    await open(url);
   }
 
   private async getWebDiffUrl(
