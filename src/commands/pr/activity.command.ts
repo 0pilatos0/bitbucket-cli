@@ -122,7 +122,11 @@ export class ActivityPRCommand extends BaseCommand<
         activityType.toUpperCase(),
         this.getActorName(activity),
         this.formatActivityDate(activity),
-        this.buildActivityDetails(activity, activityType),
+        this.buildActivityDetails(
+          activity,
+          activityType,
+          context.globalOptions
+        ),
       ];
     });
 
@@ -220,20 +224,23 @@ export class ActivityPRCommand extends BaseCommand<
 
   private buildActivityDetails(
     activity: PullrequestActivity,
-    type: string
+    type: string,
+    globalOptions: GlobalOptions
   ): string {
     switch (type) {
       case 'comment': {
         const content = getRawContent(activity.comment?.content) ?? '';
         const id = activity.comment?.id ? `#${activity.comment.id}` : '';
-        const snippet = this.output.truncate(content, 80);
+        const snippet = this.truncateText(content, 80, globalOptions);
         return [id, snippet].filter(Boolean).join(' ');
       }
       case 'approval':
         return 'approved';
       case 'changes_requested': {
         const reason = activity.changes_requested?.reason;
-        return reason ? this.output.truncate(reason, 80) : 'changes requested';
+        return reason
+          ? this.truncateText(reason, 80, globalOptions)
+          : 'changes requested';
       }
       case 'merge':
         return this.formatCommitDetail(activity.merge?.commit?.hash, 'merged');
@@ -246,7 +253,7 @@ export class ActivityPRCommand extends BaseCommand<
           return `state: ${activity.update.state}`;
         }
         if (activity.update?.title) {
-          return `title: ${this.output.truncate(activity.update.title, 60)}`;
+          return `title: ${this.truncateText(activity.update.title, 60, globalOptions)}`;
         }
         if (activity.update?.description) {
           return 'description updated';

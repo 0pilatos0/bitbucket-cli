@@ -65,6 +65,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--version',
   '--json',
   '--no-color',
+  '--no-truncate',
   '--workspace',
   '--repo',
   '--locale',
@@ -243,6 +244,7 @@ function createContext(program: Command): CommandContext {
       jsonFields,
       jq: jqOpt,
       noColor: opts.color === false,
+      noTruncate: opts.truncate === false,
       workspace: opts.workspace,
       repo: opts.repo,
     },
@@ -310,6 +312,10 @@ cli
     'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
   )
   .option('--no-color', 'Disable color output')
+  .option(
+    '--no-truncate',
+    'Show full values in table output without truncation'
+  )
   .option(
     '--locale <locale>',
     'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
@@ -1075,7 +1081,6 @@ prCommentsCmd
   .command('list <id>')
   .description('List comments on a pull request')
   .option('--limit <number>', 'Maximum number of comments (default: 25)')
-  .option('--no-truncate', 'Show full comment content without truncation')
   .addHelpText(
     'after',
     buildHelpText({

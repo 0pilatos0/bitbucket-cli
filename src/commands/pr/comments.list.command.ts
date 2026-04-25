@@ -21,7 +21,6 @@ import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
   limit?: string;
-  truncate?: boolean;
 }
 
 export class ListCommentsPRCommand extends BaseCommand<
@@ -93,9 +92,7 @@ export class ListCommentsPRCommand extends BaseCommand<
         getUserDisplayName(comment.user) ?? 'Unknown',
         comment.deleted
           ? '[deleted]'
-          : options.truncate === false
-            ? content
-            : this.output.truncate(content, 60),
+          : this.truncateText(content, 60, context.globalOptions),
         this.output.formatDate(comment.created_on ?? ''),
       ];
     });

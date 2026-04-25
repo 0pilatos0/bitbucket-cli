@@ -166,6 +166,23 @@ export abstract class BaseCommand<
   }
 
   /**
+   * Truncate `text` for table/list rendering, honoring the global
+   * `--no-truncate` flag carried on `context.globalOptions`. Pass the
+   * `globalOptions` (or any object with `noTruncate`) so commands don't
+   * each have to thread the flag through their own helpers.
+   */
+  protected truncateText(
+    text: string,
+    maxLength: number,
+    opts: { noTruncate?: boolean } = {}
+  ): string {
+    if (opts.noTruncate) {
+      return text;
+    }
+    return this.output.truncate(text, maxLength);
+  }
+
+  /**
    * Gate a destructive action on an explicit confirmation flag (typically
    * `--yes`). Throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.

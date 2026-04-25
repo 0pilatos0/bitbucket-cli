@@ -83,7 +83,7 @@ export class ListSnippetCommentsCommand extends BaseCommand<
         String(comment.id ?? ''),
         getUserDisplayName(comment.user) ?? 'Unknown',
         this.output.formatDate(comment.created_on ?? ''),
-        this.output.truncate(content, 60),
+        this.truncateText(content, 60, context.globalOptions),
       ];
     });
 
