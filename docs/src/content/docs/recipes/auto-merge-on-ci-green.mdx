@@ -1,0 +1,157 @@
+---
+title: Auto-merge when CI is green
+description: Poll bb pr checks until all CI checks have passed, then merge the pull request — a safe, GitOps-friendly auto-merge pattern.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The "merge approved PRs" pattern in the [CI/CD guide](/guides/cicd/#merge-approved-prs-automatically) only checks `participants[].approved` — it ignores the actual CI status. This recipe adds the missing piece: poll [`bb pr checks`](/commands/pr/activity-and-checks/#bb-pr-checks) until every status is `SUCCESSFUL`, then merge.
+
+## What "all-green" means
+
+`bb pr checks <id> --json` returns a stable envelope. The relevant shape:
+
+```json
+{
+  "pullRequestId": 42,
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "summary": {
+    "successful": 3,
+    "failed": 0,
+    "pending": 0
+  },
+  "statuses": [
+    {
+      "key": "build",
+      "name": "Build & Test",
+      "state": "SUCCESSFUL",
+      "description": "Build #1234 succeeded",
+      "url": "https://ci.example.com/build/1234",
+      "updatedOn": "2025-01-01T12:00:00Z"
+    }
+  ]
+}
+```
+
+Possible `state` values: `SUCCESSFUL`, `FAILED`, `INPROGRESS`, `STOPPED`.
+
+A PR is considered all-green when **at least one check exists** *and* every status is `SUCCESSFUL`. Treat zero checks as "not ready" — most teams want at least one passing build before auto-merge fires.
+
+### jq filter for all-green
+
+```bash
+# Returns "true" only if ≥1 check exists and every state is SUCCESSFUL
+bb pr checks 42 --json --jq '
+  (.statuses | length) > 0
+  and (.statuses | all(.state == "SUCCESSFUL"))
+'
+```
+
+If you want to also gate on approval:
+
+```bash
+bb pr view 42 --json --jq '
+  [.participants[] | select(.approved == true)] | length > 0
+'
+```
+
+## Recipe: poll-then-merge
+
+Drop this into a scheduled CI job or run locally. It polls a single PR until checks settle, then merges.
+
+```bash
+#!/bin/bash
+# auto-merge-on-green.sh - Wait for CI to pass, then merge.
+set -euo pipefail
+
+WORKSPACE="${WORKSPACE:-myworkspace}"
+REPO="${REPO:-myrepo}"
+PR_ID="${1:?Usage: $0 <pr-id>}"
+TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-1800}"   # 30 minutes
+POLL_INTERVAL="${POLL_INTERVAL:-30}"
+
+deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
+
+while true; do
+  if [ "$(date +%s)" -gt "$deadline" ]; then
+    echo "Timed out waiting for PR #$PR_ID checks" >&2
+    exit 1
+  fi
+
+  checks_json=$(bb pr checks "$PR_ID" -w "$WORKSPACE" -r "$REPO" --json)
+
+  failed=$(echo "$checks_json" | jq '.summary.failed')
+  pending=$(echo "$checks_json" | jq '.summary.pending')
+  total=$(echo "$checks_json" | jq '.statuses | length')
+
+  if [ "$failed" -gt 0 ]; then
+    echo "PR #$PR_ID has $failed failed check(s); aborting." >&2
+    exit 1
+  fi
+
+  if [ "$total" -gt 0 ] && [ "$pending" -eq 0 ]; then
+    echo "All $total checks passed for PR #$PR_ID — merging."
+    break
+  fi
+
+  echo "PR #$PR_ID: $pending pending / $total total — sleeping ${POLL_INTERVAL}s"
+  sleep "$POLL_INTERVAL"
+done
+
+bb pr merge "$PR_ID" \
+  -w "$WORKSPACE" -r "$REPO" \
+  --strategy squash --close-source-branch
+```
+
+### Usage
+
+```bash
+WORKSPACE=myworkspace REPO=myrepo ./auto-merge-on-green.sh 42
+```
+
+## Recipe: scan all open PRs
+
+Run this on a schedule (cron, GitHub Actions cron trigger, Bitbucket Pipelines schedule). It merges every approved PR whose checks are all green and skips the rest silently.
+
+```bash
+#!/bin/bash
+# auto-merge-scan.sh - Merge every approved, all-green PR.
+set -euo pipefail
+
+WORKSPACE="${WORKSPACE:-myworkspace}"
+REPO="${REPO:-myrepo}"
+
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '.pullRequests[].id')
+
+for pr_id in $open_prs; do
+  approved=$(bb pr view "$pr_id" -w "$WORKSPACE" -r "$REPO" --json --jq '
+    [.participants[] | select(.approved == true)] | length > 0
+  ')
+  [ "$approved" = "true" ] || { echo "PR #$pr_id: not approved"; continue; }
+
+  green=$(bb pr checks "$pr_id" -w "$WORKSPACE" -r "$REPO" --json --jq '
+    (.statuses | length) > 0
+    and (.statuses | all(.state == "SUCCESSFUL"))
+  ')
+  [ "$green" = "true" ] || { echo "PR #$pr_id: checks not green"; continue; }
+
+  echo "Merging PR #$pr_id"
+  if ! bb pr merge "$pr_id" -w "$WORKSPACE" -r "$REPO" \
+        --strategy squash --close-source-branch; then
+    echo "PR #$pr_id: merge failed (conflicts or branch policy)" >&2
+  fi
+
+  sleep 2   # gentle pacing across many PRs
+done
+```
+
+<Aside type="caution">
+`bb pr merge` will still fail if the destination branch has *branch restrictions* (e.g., required reviewer counts, merge checks). The script above logs that and continues. Don't treat a passing CI job and an approval as sufficient policy on their own — Bitbucket's branch restrictions are the ultimate gate.
+</Aside>
+
+## Related
+
+- [`bb pr checks`](/commands/pr/activity-and-checks/#bb-pr-checks) — the underlying command
+- [`bb pr merge`](/commands/pr/review-and-merge/) — merge strategies and flags
+- [Scripting & Automation](/guides/scripting/) — JSON output, exit codes, jq patterns

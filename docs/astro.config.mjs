@@ -98,6 +98,18 @@ export default defineConfig({
           ],
         },
         {
+          label: "Recipes",
+          badge: { text: 'New', variant: 'tip' },
+          items: [
+            { label: "Overview", slug: "recipes" },
+            { label: "Auto-merge on green CI", slug: "recipes/auto-merge-on-ci-green" },
+            { label: "Bulk reviewer assignment", slug: "recipes/bulk-reviewer-assignment" },
+            { label: "Fork synchronization", slug: "recipes/fork-synchronization" },
+            { label: "Reporting & analytics", slug: "recipes/reporting-analytics" },
+            { label: "Retry wrapper", slug: "recipes/retry-wrapper" },
+          ],
+        },
+        {
           label: "Reference",
           items: [
             { label: "Environment Variables", slug: "reference/environment-variables" },

@@ -343,6 +343,10 @@ jobs:
 
 ### Merge Approved PRs Automatically
 
+:::tip[Need CI-status gating too?]
+The script below merges as soon as any reviewer has approved. To also wait for **all CI checks to pass** before merging — the more common production pattern — see the [Auto-merge on green CI recipe](/recipes/auto-merge-on-ci-green/).
+:::
+
 ```bash
 #!/bin/bash
 # auto-merge.sh - Run in CI on schedule
