@@ -1,0 +1,97 @@
+name: Bug Report
+description: Report a problem or unexpected behavior in the CLI.
+title: '[Bug]: '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report! Please fill out the
+        sections below so we can reproduce and fix the issue quickly.
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Please confirm the following before submitting.
+      options:
+        - label: I have searched [existing issues](https://github.com/0pilatos0/bitbucket-cli/issues?q=is%3Aissue) and this is not a duplicate.
+          required: true
+        - label: I am running the latest version of `@pilatos/bitbucket-cli`.
+          required: true
+        - label: This is not a security vulnerability (those go through [private reporting](https://github.com/0pilatos0/bitbucket-cli/security/advisories/new)).
+          required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear and concise description of the bug.
+      placeholder: When I run `bb pr list`, ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands and inputs required to reproduce the bug.
+      placeholder: |
+        1. Run `bb auth login`
+        2. Run `bb pr list --json`
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: I expected ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include the full error output. Please scrub any tokens, repository names, or other sensitive data.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: bb-version
+    attributes:
+      label: '`bb` version'
+      description: Output of `bb --version`.
+      placeholder: 1.16.0
+    validations:
+      required: true
+
+  - type: input
+    id: bun-version
+    attributes:
+      label: Bun version
+      description: Output of `bun --version`.
+      placeholder: 1.1.x
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Linux
+        - Windows (WSL)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Logs with `--debug`, screenshots, related issues, or anything else that might help.

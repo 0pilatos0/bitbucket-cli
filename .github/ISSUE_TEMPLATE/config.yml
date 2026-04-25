@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://bitbucket-cli.paulvanderlei.com
+    about: Check the docs for usage, commands, and configuration before opening an issue.
+  - name: Question or Discussion
+    url: https://github.com/0pilatos0/bitbucket-cli/discussions
+    about: Ask questions, share ideas, or discuss usage with the community.
+  - name: Security Vulnerability
+    url: https://github.com/0pilatos0/bitbucket-cli/security/advisories/new
+    about: Report a security vulnerability privately. Do not open a public issue.
