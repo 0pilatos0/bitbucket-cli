@@ -532,6 +532,134 @@ describe('OutputService', () => {
     });
   });
 
+  describe('control character sanitization', () => {
+    // Untrusted strings (PR titles, descriptions, branch names, snippet
+    // names, repo descriptions) flow into `text/info/success/warning/error`
+    // and `table()` cells. Without sanitization an attacker can inject:
+    //   * OSC-8 hyperlinks (\x1b]8;;<url>\x1b\\Click\x1b]8;;\x1b\\)
+    //   * Terminal title rewrites (\x1b]0;evil\x07)
+    //   * Cursor / screen manipulation (\x1b[2J\x1b[H)
+    //   * Older OSC fontsetting sequences with a CVE history
+    // This block locks in the strip behavior for every text output method
+    // and the table renderer.
+    it.each([
+      ['text', 'log'],
+      ['info', 'log'],
+      ['success', 'log'],
+      ['warning', 'warn'],
+      ['error', 'error'],
+    ] as const)(
+      '%s strips ESC, OSC and cursor-manipulation sequences',
+      (method, channel) => {
+        const payloads = [
+          '\x1b[2Jevil',
+          '\x1b]0;Untrusted Title\x07suffix',
+          '\x1b]8;;https://evil.example.com\x1b\\Click here\x1b]8;;\x1b\\',
+          'before\x07after',
+          'tab\x08bs',
+        ];
+
+        for (const payload of payloads) {
+          consoleLogs.length = 0;
+          consoleErrors.length = 0;
+          consoleWarns.length = 0;
+
+          (output as unknown as Record<string, (m: string) => void>)[method](
+            payload
+          );
+
+          const sink =
+            channel === 'log'
+              ? consoleLogs
+              : channel === 'warn'
+                ? consoleWarns
+                : consoleErrors;
+          const printed = sink.join('');
+          // No raw ESC byte should survive sanitization.
+          expect(printed).not.toContain('\x1b');
+          // BEL and BS should also be stripped.
+          expect(printed).not.toContain('\x07');
+          expect(printed).not.toContain('\x08');
+        }
+      }
+    );
+
+    it('table() strips control chars from headers and cells', () => {
+      output.table(
+        ['NA\x1b]0;evil\x07ME', 'VAL\x1b[2JUE'],
+        [
+          ['\x1b]8;;https://evil\x1b\\foo\x1b]8;;\x1b\\', 'b\x07ar'],
+          ['baz', '\x1b[31Jqux'],
+        ]
+      );
+
+      const printed = consoleLogs.join('\n');
+      expect(printed).not.toContain('\x1b');
+      expect(printed).not.toContain('\x07');
+      // Visible characters survive stripping.
+      expect(printed).toContain('NAME');
+      expect(printed).toContain('VALUE');
+      expect(printed).toContain('foo');
+      expect(printed).toContain('bar');
+      expect(printed).toContain('baz');
+      expect(printed).toContain('qux');
+    });
+
+    it('table() column widths are computed from sanitized cell lengths', () => {
+      // If we used raw lengths, the OSC sequence would inflate the width and
+      // the visible alignment would break.
+      output.table(
+        ['A', 'B'],
+        [['\x1b]8;;https://evil\x1b\\x\x1b]8;;\x1b\\', 'y']]
+      );
+
+      const printed = consoleLogs.join('\n');
+      expect(printed).not.toContain('\x1b');
+      // Width should match 'x' (1 char), not the raw escape-laden string.
+      const dataRow = consoleLogs[2];
+      expect(dataRow).toMatch(/^x\s+y\s*$/);
+    });
+
+    it('preserves chalk SGR codes embedded by callers', () => {
+      // Callers commonly compose colored strings before handing them to
+      // text() — e.g. `output.text(`${output.bold('#42')} ${pr.title}`)`.
+      // Stripping must not destroy the SGR codes chalk produced.
+      const originalLevel = chalk.level;
+      chalk.level = 3;
+      try {
+        const colored = chalk.bold('#42');
+        const composed = `${colored} normal`;
+        output.text(composed);
+
+        expect(consoleLogs[0]).toContain('\x1b[1m');
+        expect(consoleLogs[0]).toContain('#42');
+        expect(consoleLogs[0]).toContain('normal');
+      } finally {
+        chalk.level = originalLevel;
+      }
+    });
+
+    it('strips dangerous CSI codes mixed with chalk SGR', () => {
+      // Attacker could try to splice cursor manipulation between chalk
+      // sequences. SGR survives, the rest gets stripped.
+      const originalLevel = chalk.level;
+      chalk.level = 3;
+      try {
+        const composed = `${chalk.red('safe')}\x1b[2Jevil`;
+        output.text(composed);
+
+        const printed = consoleLogs[0]!;
+        expect(printed).toContain('\x1b[31m'); // chalk red foreground
+        expect(printed).toContain('safe');
+        expect(printed).toContain('evil');
+        // Screen-clear sequence is gone.
+        expect(printed).not.toContain('\x1b[2J');
+      } finally {
+        chalk.level = originalLevel;
+      }
+    });
+  });
+
   describe('formatDate edge cases', () => {
     it('should produce a stable formatted string for a fixed date', () => {
       const result = output.formatDate('2024-06-15T10:30:00Z');
