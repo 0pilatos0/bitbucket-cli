@@ -37,7 +37,12 @@ export class CloneCommand extends BaseCommand<
     const { repository, directory } = options;
 
     const repoUrl = await this.resolveRepositoryUrl(repository);
-    await this.gitService.clone(repoUrl, directory);
+    const spinner = this.output.spinner(`Cloning ${repository}...`).start();
+    try {
+      await this.gitService.clone(repoUrl, directory);
+    } finally {
+      spinner.stop();
+    }
 
     const targetDir = directory || this.extractRepoName(repository);
 

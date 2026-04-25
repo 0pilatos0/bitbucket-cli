@@ -1622,6 +1622,7 @@ interface CreatePRHarnessOptions {
   authorUuid?: string;
   config?: Parameters<typeof createMockConfigService>[0];
   capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
+  createPRThrows?: boolean;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -1652,6 +1653,9 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     params
   ) => {
     captured.body = params.pullrequest;
+    if (options.createPRThrows) {
+      throw new Error('PR creation failed');
+    }
     return originalPost(params);
   };
 
@@ -1890,6 +1894,38 @@ describe('CreatePRCommand', () => {
     ).toBe(true);
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
+
+  it('should run a spinner for the duration of the API call', async () => {
+    const { command, output } = buildCreatePRCommand();
+    await command.execute({ title: 'My PR' }, { globalOptions: {} });
+
+    const startIdx = output.logs.findIndex((log) =>
+      log.startsWith('spinner-start:Creating pull request')
+    );
+    const stopIdx = output.logs.findIndex((log) => log === 'spinner-stop');
+    const successIdx = output.logs.findIndex((log) =>
+      log.startsWith('success:')
+    );
+
+    expect(startIdx).toBeGreaterThanOrEqual(0);
+    expect(stopIdx).toBeGreaterThan(startIdx);
+    expect(successIdx).toBeGreaterThan(stopIdx);
+  });
+
+  it('should stop the spinner even when the API call fails', async () => {
+    const { command, output } = buildCreatePRCommand({
+      createPRThrows: true,
+    });
+
+    await expect(
+      command.execute({ title: 'My PR' }, { globalOptions: {} })
+    ).rejects.toThrow();
+
+    expect(output.logs.some((log) => log.startsWith('spinner-start:'))).toBe(
+      true
+    );
+    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
+  });
 });
 
 describe('MergePRCommand', () => {
@@ -1968,6 +2004,25 @@ describe('MergePRCommand', () => {
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
     ).rejects.toThrow(/--id must be a positive integer/);
+  });
+
+  it('should run a spinner labeled with the PR id', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) =>
+        log.startsWith('spinner-start:Merging pull request #1')
+      )
+    ).toBe(true);
+    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
   });
 });
 

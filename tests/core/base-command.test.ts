@@ -398,14 +398,14 @@ describe('BaseCommand', () => {
     });
 
     it('should push and clear json format options around execute()', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+      const calls: Array<{ json?: boolean; fields?: string[]; jq?: string }> =
         [];
       const spyOutput = {
         ...output,
         setJsonFormatOptions(opts: {
+          json?: boolean;
           fields?: string[];
           jq?: string;
-          json?: boolean;
         }) {
           calls.push({ ...opts });
         },
@@ -425,20 +425,20 @@ describe('BaseCommand', () => {
 
       // First call sets the options, finally{} resets to {}.
       expect(calls).toEqual([
-        { fields: ['id', 'title'], jq: '.[] | .id', json: true },
+        { json: true, fields: ['id', 'title'], jq: '.[] | .id' },
         {},
       ]);
     });
 
     it('should reset json format options even when execute throws', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+      const calls: Array<{ json?: boolean; fields?: string[]; jq?: string }> =
         [];
       const spyOutput = {
         ...output,
         setJsonFormatOptions(opts: {
+          json?: boolean;
           fields?: string[];
           jq?: string;
-          json?: boolean;
         }) {
           calls.push({ ...opts });
         },
@@ -450,7 +450,7 @@ describe('BaseCommand', () => {
       ).rejects.toThrow('Test error');
 
       expect(calls).toEqual([
-        { fields: ['id'], jq: undefined, json: true },
+        { json: true, fields: ['id'], jq: undefined },
         {},
       ]);
     });

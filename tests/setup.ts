@@ -11,6 +11,7 @@ import type {
   IGitService,
   IContextService,
   IOutputService,
+  ISpinner,
 } from '../src/core/interfaces/services.js';
 import type { BBError } from '../src/types/errors.js';
 import type {
@@ -277,6 +278,35 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     },
     isJsonMode() {
       return jsonMode;
+    },
+    spinner(text: string) {
+      // Records lifecycle events but never animates. Tests can assert on the
+      // captured prefixes (`spinner-start:`, `spinner-stop:`,
+      // `spinner-succeed:`, `spinner-fail:`, `spinner-text:`).
+      const spinner: ISpinner = {
+        start() {
+          logs.push(`spinner-start:${text}`);
+          return spinner;
+        },
+        stop() {
+          logs.push('spinner-stop');
+          return spinner;
+        },
+        succeed(message?: string) {
+          logs.push(`spinner-succeed:${message ?? ''}`);
+          return spinner;
+        },
+        fail(message?: string) {
+          logs.push(`spinner-fail:${message ?? ''}`);
+          return spinner;
+        },
+        setText(next: string) {
+          text = next;
+          logs.push(`spinner-text:${next}`);
+          return spinner;
+        },
+      };
+      return spinner;
     },
     table(headers: string[], rows: string[][]) {
       logs.push(`table:${headers.join(',')}`);
