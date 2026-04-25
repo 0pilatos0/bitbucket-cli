@@ -17,7 +17,7 @@ updates. Please upgrade to the most recent version before reporting an issue.
 Instead, report them privately using GitHub's
 [private vulnerability reporting](https://github.com/0pilatos0/bitbucket-cli/security/advisories/new)
 feature. If that is not available to you, email the maintainer at
-**paul.vanderlei@davanti-wics.com** with the subject line
+**paulvanderlei@hotmail.nl** with the subject line
 `SECURITY: bitbucket-cli`.
 
 Please include as much of the following as you can:
