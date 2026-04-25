@@ -1140,6 +1140,44 @@ describe('ActivityPRCommand', () => {
       command.execute({ id: '1', type: 'commetn' }, { globalOptions: {} })
     ).rejects.toThrow(/--type must be one of/);
   });
+
+  it('should use changes_requested actor when both changes_requested and update are set', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      activityPages: [
+        [
+          {
+            changes_requested: {
+              user: { ...mockUser, display_name: 'CR User' },
+              reason: 'Needs work',
+              date: '2024-03-01T00:00:00.000Z',
+            },
+            update: {
+              author: { ...mockUser, display_name: 'Update Author' },
+              date: '2024-03-02T00:00:00.000Z',
+              title: 'Updated title',
+            },
+          },
+        ],
+      ],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(1);
+    expect(rows[0][1]).toBe('CR User');
+    expect(rows[0][2]).toContain('2024-03-01');
+  });
 });
 
 describe('ListCommentsPRCommand', () => {
