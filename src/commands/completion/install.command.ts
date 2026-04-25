@@ -40,7 +40,7 @@ export class InstallCompletionCommand extends BaseCommand<void, void> {
       );
     } catch (error) {
       throw new BBError({
-        code: ErrorCode.UNKNOWN,
+        code: ErrorCode.COMPLETION_INSTALL_FAILED,
         message: `Failed to install completions: ${error}`,
         cause: error instanceof Error ? error : undefined,
       });
