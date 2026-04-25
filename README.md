@@ -89,6 +89,8 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 - [Quick Start Guide](https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/)
 - [Command Reference](https://bitbucket-cli.paulvanderlei.com/commands/auth/)
 - [Guides](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) (Scripting, CI/CD)
+- AI assistant integration (Claude Code, Cursor, Windsurf): see [Guides &gt; AI Agents](https://bitbucket-cli.paulvanderlei.com/guides/ai-agents/)
+- [Changelog](https://bitbucket-cli.paulvanderlei.com/help/changelog/) — what's new in recent releases
 - [Help](https://bitbucket-cli.paulvanderlei.com/help/troubleshooting/) (Troubleshooting, FAQ)
 
 ---

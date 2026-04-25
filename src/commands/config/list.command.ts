@@ -9,6 +9,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
+  SETTABLE_CONFIG_KEYS,
   coerceBooleanConfigValue,
   coerceVersionCheckIntervalValue,
 } from '../../types/config.js';
@@ -92,9 +93,15 @@ export class ListConfigCommand extends BaseCommand<void, void> {
 
     if (rows.length === 0) {
       this.output.text('No configuration set');
-      return;
+    } else {
+      this.output.table(['KEY', 'VALUE'], rows);
     }
 
-    this.output.table(['KEY', 'VALUE'], rows);
+    this.output.text('');
+    this.output.text(
+      this.output.dim(
+        `Settable keys: ${SETTABLE_CONFIG_KEYS.join(', ')}. Run 'bb config set --help' for details.`
+      )
+    );
   }
 }

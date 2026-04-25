@@ -288,6 +288,20 @@ cli
         FORCE_COLOR: "Force color output when set (and not '0')",
         DEBUG: "Enable HTTP debug logging when 'true'",
       },
+      seeAlso: [
+        {
+          label: 'Quick Start',
+          url: 'https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/',
+        },
+        {
+          label: 'Scripting',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'Changelog',
+          url: 'https://bitbucket-cli.paulvanderlei.com/help/changelog/',
+        },
+      ],
     })
   )
   .action(async () => {
@@ -646,6 +660,16 @@ prCmd
         'default-reviewers':
           'false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)',
       },
+      seeAlso: [
+        {
+          label: 'Repository Context',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/repository-context/',
+        },
+        {
+          label: 'Default reviewers',
+          url: 'https://bitbucket-cli.paulvanderlei.com/commands/repo/#bb-repo-default-reviewers',
+        },
+      ],
     })
   )
   .action(async (options) => {
@@ -681,6 +705,16 @@ prCmd
         'Valid states': [...PR_STATES],
       },
       defaults: { state: 'OPEN', limit: '25' },
+      seeAlso: [
+        {
+          label: 'Scripting & Automation',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'JSON Output',
+          url: 'https://bitbucket-cli.paulvanderlei.com/reference/json-output/',
+        },
+      ],
     })
   )
   .action(async (options) => {
@@ -1429,6 +1463,7 @@ configCmd
           'defaultWorkspace',
           'skipVersionCheck',
           'versionCheckInterval',
+          'prCreateIncludeDefaultReviewers',
         ],
       },
     })
@@ -1453,8 +1488,15 @@ configCmd
           'defaultWorkspace (string)',
           'skipVersionCheck (true/false)',
           'versionCheckInterval (positive integer, seconds)',
+          'prCreateIncludeDefaultReviewers (true/false)',
         ],
       },
+      seeAlso: [
+        {
+          label: 'Configuration File',
+          url: 'https://bitbucket-cli.paulvanderlei.com/reference/configuration/',
+        },
+      ],
     })
   )
   .action(async (key, value) => {

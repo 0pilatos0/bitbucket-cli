@@ -7,11 +7,17 @@
 
 import { Chalk } from 'chalk';
 
+export interface SeeAlsoEntry {
+  label: string;
+  url: string;
+}
+
 export interface HelpTextConfig {
   examples?: string[];
   validValues?: Record<string, string[]>;
   defaults?: Record<string, string>;
   envVars?: Record<string, string>;
+  seeAlso?: SeeAlsoEntry[];
 }
 
 interface ColorFns {
@@ -61,6 +67,15 @@ export function createHelpTextBuilder(noColor: boolean) {
       );
       for (const [name, desc] of Object.entries(config.envVars)) {
         sections.push(`  ${c.bold(name.padEnd(maxLen + 2))}${c.dim(desc)}`);
+      }
+    }
+
+    if (config.seeAlso?.length) {
+      if (sections.length) sections.push('');
+      sections.push(c.bold('See also:'));
+      const maxLen = Math.max(...config.seeAlso.map((e) => e.label.length));
+      for (const { label, url } of config.seeAlso) {
+        sections.push(`  ${c.bold(label.padEnd(maxLen + 2))}${c.cyan(url)}`);
       }
     }
 

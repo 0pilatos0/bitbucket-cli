@@ -4,7 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Reference
 
-See @AGENTS.md for full coding conventions, DI patterns, and command architecture.
+See [AGENTS.md](AGENTS.md) for full coding conventions, DI patterns, and command architecture.
+
+**Must read sections:**
+
+- [Code Style Guidelines](AGENTS.md#code-style-guidelines) — runtime, imports, formatting, types, naming
+- [Error Handling](AGENTS.md#error-handling) — `BBError` / `ErrorCode` usage and `BaseCommand.run()` flow
+- [Command Pattern](AGENTS.md#command-pattern) — extending `BaseCommand` and `CommandContext`
+- [Output and JSON](AGENTS.md#output-and-json) — `IOutputService` and `--json` handling
+- [Dependency Injection](AGENTS.md#dependency-injection) — bootstrap registration via `ServiceTokens`
 
 ## Commands
 
