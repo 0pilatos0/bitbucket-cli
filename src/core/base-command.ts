@@ -28,9 +28,9 @@ export abstract class BaseCommand<
     context: CommandContext
   ): Promise<TResult> {
     this.output.setJsonFormatOptions({
+      json: !!context.globalOptions.json,
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
-      json: context.globalOptions.json,
     });
 
     try {
@@ -163,6 +163,23 @@ export abstract class BaseCommand<
       });
     }
     return parsed;
+  }
+
+  /**
+   * Truncate `text` for table/list rendering, honoring the global
+   * `--no-truncate` flag carried on `context.globalOptions`. Pass the
+   * `globalOptions` (or any object with `noTruncate`) so commands don't
+   * each have to thread the flag through their own helpers.
+   */
+  protected truncateText(
+    text: string,
+    maxLength: number,
+    opts: { noTruncate?: boolean } = {}
+  ): string {
+    if (opts.noTruncate) {
+      return text;
+    }
+    return this.output.truncate(text, maxLength);
   }
 
   /**

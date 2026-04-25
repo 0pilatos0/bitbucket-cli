@@ -5,11 +5,13 @@
 import chalk from 'chalk';
 import type {
   IOutputService,
+  ISpinner,
   JsonFormatOptions,
 } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { DEFAULT_LOCALE } from './locale.js';
 import { projectFields } from './output.project.js';
+import { Spinner, createNoopSpinner } from './spinner.js';
 
 const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   year: 'numeric',
@@ -60,6 +62,7 @@ export class OutputService implements IOutputService {
   private readonly noUnicode: boolean;
   private readonly locale: string;
   private jsonFormatOptions: JsonFormatOptions = {};
+  private activeSpinner: ISpinner | null = null;
 
   constructor(options?: {
     noColor?: boolean;
@@ -79,7 +82,41 @@ export class OutputService implements IOutputService {
     return this.jsonFormatOptions.json === true;
   }
 
+  public spinner(text: string): ISpinner {
+    // Disabled in JSON mode (would corrupt stdout), non-TTY streams (no point
+    // animating into a pipe), and tests (deterministic output, no escape
+    // sequences leaking into snapshots). The disabled path returns a no-op
+    // spinner so callers see a uniform handle.
+    const enabled =
+      !this.isJsonMode() &&
+      !!process.stdout.isTTY &&
+      process.env.NODE_ENV !== 'test';
+
+    if (!enabled) {
+      return createNoopSpinner();
+    }
+
+    // Stop any prior spinner so two concurrent animations don't fight over
+    // the same line. Commands that nest spinners are responsible for ordering;
+    // this guard simply prevents corruption.
+    this.activeSpinner?.stop();
+
+    const spinner: ISpinner = new Spinner(text, {
+      enabled: true,
+      noColor: this.noColor,
+      stream: process.stdout,
+      onStop: () => {
+        if (this.activeSpinner === spinner) {
+          this.activeSpinner = null;
+        }
+      },
+    });
+    this.activeSpinner = spinner;
+    return spinner;
+  }
+
   public async json(data: unknown): Promise<void> {
+    this.stopActiveSpinner();
     const { fields, jq } = this.jsonFormatOptions;
 
     let result: unknown = data;
@@ -105,10 +142,12 @@ export class OutputService implements IOutputService {
   }
 
   public jsonError(data: unknown): void {
+    this.stopActiveSpinner();
     console.error(JSON.stringify(data));
   }
 
   public table(headers: string[], rows: string[][]): void {
+    this.stopActiveSpinner();
     if (rows.length === 0) {
       return;
     }
@@ -146,21 +185,25 @@ export class OutputService implements IOutputService {
   }
 
   public success(message: string): void {
+    this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✓', 'OK'), chalk.green);
     console.log(`${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
+    this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✗', 'ERR'), chalk.red);
     console.error(`${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
+    this.stopActiveSpinner();
     const symbol = this.format(this.symbol('⚠', '!!'), chalk.yellow);
     console.warn(`${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
+    this.stopActiveSpinner();
     const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
     console.log(`${symbol} ${stripControl(message)}`);
   }
@@ -170,15 +213,30 @@ export class OutputService implements IOutputService {
   }
 
   public text(message: string): void {
+    this.stopActiveSpinner();
     console.log(stripControl(message));
   }
 
   public separator(width = 60): void {
+    this.stopActiveSpinner();
     if (width <= 0) {
       console.log('');
       return;
     }
     console.log(this.format(this.symbol('─', '-').repeat(width), chalk.gray));
+  }
+
+  /**
+   * Stop and forget the currently active spinner, if any. Called by every
+   * write-emitting method so a forgotten spinner can never interleave with
+   * regular output. Safe to call when no spinner is active.
+   */
+  private stopActiveSpinner(): void {
+    if (this.activeSpinner) {
+      const spinner = this.activeSpinner;
+      this.activeSpinner = null;
+      spinner.stop();
+    }
   }
 
   public truncate(text: string, maxLength: number, suffix = '...'): string {

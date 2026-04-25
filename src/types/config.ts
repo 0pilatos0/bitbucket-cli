@@ -44,6 +44,7 @@ export interface GlobalOptions {
   jq?: string;
   noColor?: boolean;
   noUnicode?: boolean;
+  noTruncate?: boolean;
   workspace?: string;
   repo?: string;
 }

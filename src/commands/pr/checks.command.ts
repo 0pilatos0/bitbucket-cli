@@ -70,7 +70,7 @@ export class ChecksPRCommand extends BaseCommand<
     }
 
     this.renderHeader(prId, statuses.length);
-    this.renderStatuses(statuses, summary);
+    this.renderStatuses(statuses, summary, context.globalOptions);
   }
 
   private formatStatusForJson(status: Commitstatus): Record<string, unknown> {
@@ -96,7 +96,8 @@ export class ChecksPRCommand extends BaseCommand<
 
   private renderStatuses(
     statuses: Commitstatus[],
-    summary: { successful: number; failed: number; pending: number }
+    summary: { successful: number; failed: number; pending: number },
+    globalOptions: GlobalOptions
   ): void {
     const rows = statuses.map((status) => {
       const stateIcon = this.getStateIcon(status.state);
@@ -107,7 +108,7 @@ export class ChecksPRCommand extends BaseCommand<
       return [
         `${stateIcon} ${stateLabel}`,
         this.output.bold(name),
-        this.output.truncate(description, 40),
+        this.truncateText(description, 40, globalOptions),
         status.updated_on ? this.output.formatDate(status.updated_on) : '-',
       ];
     });

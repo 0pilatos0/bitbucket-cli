@@ -104,7 +104,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         | undefined;
       return [
         `#${pr.id}`,
-        this.output.truncate(title ?? '', 50),
+        this.truncateText(title ?? '', 50, context.globalOptions),
         pr.author?.display_name ?? 'Unknown',
         `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
       ];

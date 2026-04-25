@@ -70,7 +70,7 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     const rows = repos.map((repo) => [
       repo.full_name ?? '',
       repo.is_private ? 'private' : 'public',
-      (repo.description || '').substring(0, 50),
+      this.truncateText(repo.description ?? '', 50, context.globalOptions),
     ]);
 
     this.output.table(['REPOSITORY', 'VISIBILITY', 'DESCRIPTION'], rows);

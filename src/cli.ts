@@ -66,6 +66,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--json',
   '--no-color',
   '--no-unicode',
+  '--no-truncate',
   '--workspace',
   '--repo',
   '--locale',
@@ -264,6 +265,7 @@ function createContext(program: Command): CommandContext {
       jq: jqOpt,
       noColor: opts.color === false,
       noUnicode: opts.unicode === false || noUnicode,
+      noTruncate: opts.truncate === false,
       workspace: opts.workspace,
       repo: opts.repo,
     },
@@ -334,6 +336,10 @@ cli
   .option(
     '--no-unicode',
     'Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE'
+  )
+  .option(
+    '--no-truncate',
+    'Show full values in table output without truncation'
   )
   .option(
     '--locale <locale>',
@@ -1102,7 +1108,6 @@ prCommentsCmd
   .command('list <id>')
   .description('List comments on a pull request')
   .option('--limit <number>', 'Maximum number of comments (default: 25)')
-  .option('--no-truncate', 'Show full comment content without truncation')
   .addHelpText(
     'after',
     buildHelpText({

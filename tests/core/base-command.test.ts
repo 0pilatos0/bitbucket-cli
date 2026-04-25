@@ -99,6 +99,14 @@ class TestCommandWithParseHelpers extends BaseCommand<
     return this.parseEnumOption(value, name, allowed);
   }
 
+  public callTruncateText(
+    text: string,
+    maxLength: number,
+    opts: { noTruncate?: boolean } = {}
+  ): string {
+    return this.truncateText(text, maxLength, opts);
+  }
+
   public callRequireConfirmation(
     confirmed: boolean | undefined,
     warning: string
@@ -390,14 +398,14 @@ describe('BaseCommand', () => {
     });
 
     it('should push and clear json format options around execute()', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+      const calls: Array<{ json?: boolean; fields?: string[]; jq?: string }> =
         [];
       const spyOutput = {
         ...output,
         setJsonFormatOptions(opts: {
+          json?: boolean;
           fields?: string[];
           jq?: string;
-          json?: boolean;
         }) {
           calls.push({ ...opts });
         },
@@ -417,20 +425,20 @@ describe('BaseCommand', () => {
 
       // First call sets the options, finally{} resets to {}.
       expect(calls).toEqual([
-        { fields: ['id', 'title'], jq: '.[] | .id', json: true },
+        { json: true, fields: ['id', 'title'], jq: '.[] | .id' },
         {},
       ]);
     });
 
     it('should reset json format options even when execute throws', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+      const calls: Array<{ json?: boolean; fields?: string[]; jq?: string }> =
         [];
       const spyOutput = {
         ...output,
         setJsonFormatOptions(opts: {
+          json?: boolean;
           fields?: string[];
           jq?: string;
-          json?: boolean;
         }) {
           calls.push({ ...opts });
         },
@@ -442,7 +450,7 @@ describe('BaseCommand', () => {
       ).rejects.toThrow('Test error');
 
       expect(calls).toEqual([
-        { fields: ['id'], jq: undefined, json: true },
+        { json: true, fields: ['id'], jq: undefined },
         {},
       ]);
     });
@@ -523,6 +531,63 @@ describe('BaseCommand', () => {
       const command = new TestCommandWithParseHelpers(output);
 
       expect(command.callParsePositiveInt('  7  ', 'id')).toBe(7);
+    });
+  });
+
+  describe('truncateText', () => {
+    it('returns text unchanged when shorter than maxLength', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callTruncateText('short', 10)).toBe('short');
+    });
+
+    it('truncates with ellipsis when text exceeds maxLength', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callTruncateText('this is a longer string', 10)).toBe(
+        'this is...'
+      );
+    });
+
+    it('returns full text when noTruncate flag is set', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      const long = 'this is a longer string that would normally be cut';
+      expect(command.callTruncateText(long, 10, { noTruncate: true })).toBe(
+        long
+      );
+    });
+
+    it('truncates when noTruncate is explicitly false', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(
+        command.callTruncateText('this is a longer string', 10, {
+          noTruncate: false,
+        })
+      ).toBe('this is...');
+    });
+
+    it('treats missing options as truncating (default behavior)', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callTruncateText('this is a longer string', 10)).toBe(
+        'this is...'
+      );
+    });
+
+    it('accepts a GlobalOptions-shaped object so callers can pass context.globalOptions', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      // Mimics passing context.globalOptions: extra fields are ignored.
+      const globalOptions = {
+        json: true,
+        workspace: 'ws',
+        noTruncate: true,
+      };
+      expect(
+        command.callTruncateText('this is a longer string', 10, globalOptions)
+      ).toBe('this is a longer string');
     });
   });
 
