@@ -56,6 +56,7 @@ export interface IGitService {
   checkout(branch: string): Promise<void>;
   checkoutNewBranch(branch: string, startPoint?: string): Promise<void>;
   getCurrentBranch(): Promise<string>;
+  getCurrentCommit(): Promise<string>;
   getRemoteUrl(remote?: string): Promise<string>;
 }
 

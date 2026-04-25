@@ -13,6 +13,7 @@ import {
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
+  UrlBuilderService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
 import { createRequire } from 'node:module';
@@ -87,6 +88,9 @@ import { ListConfigCommand } from './commands/config/list.command.js';
 // Completion commands
 import { InstallCompletionCommand } from './commands/completion/install.command.js';
 import { UninstallCompletionCommand } from './commands/completion/uninstall.command.js';
+
+// Top-level commands
+import { BrowseCommand } from './commands/browse.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
@@ -202,6 +206,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.DefaultReviewerService,
     DefaultReviewerService,
     [ServiceTokens.PullrequestsApi]
+  );
+
+  // URL builder is a pure helper with no dependencies; register a fresh
+  // singleton so tests can swap the base via `registerInstance` if needed.
+  container.register(
+    ServiceTokens.UrlBuilderService,
+    () => new UrlBuilderService()
   );
 
   // Auth commands
@@ -572,6 +583,14 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ListConfigCommand,
     [ServiceTokens.ConfigService, ServiceTokens.OutputService]
   );
+
+  // Top-level commands
+  registerCommand(container, ServiceTokens.BrowseCommand, BrowseCommand, [
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
+    ServiceTokens.UrlBuilderService,
+    ServiceTokens.OutputService,
+  ]);
 
   // Completion commands
   registerCommand(

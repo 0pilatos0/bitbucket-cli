@@ -157,6 +157,12 @@ export const ServiceTokens = {
   // Services - Default Reviewers
   DefaultReviewerService: 'DefaultReviewerService',
 
+  // Services - URL builder (Bitbucket web URL construction)
+  UrlBuilderService: 'UrlBuilderService',
+
+  // Commands - Top level
+  BrowseCommand: 'BrowseCommand',
+
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',
   ListPRsCommand: 'ListPRsCommand',

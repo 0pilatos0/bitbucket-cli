@@ -87,6 +87,15 @@ jobs:
         # npmjs.com aggressively rate-limit / bot-block CI runners and produce
         # spurious 403/429 responses. The primary value of this check is
         # catching broken anchors and internal links inside the built site.
+        #
+        # We also skip the production domain (bitbucket-cli.paulvanderlei.com).
+        # Astro emits absolute canonical/og:url tags back to `site`, so every
+        # page contains a self-referential production URL. Following those in
+        # CI means any newly-added page 404s on the live site (the page only
+        # exists locally until the PR is merged and deployed) — a chicken-and-
+        # egg failure that has nothing to do with broken authoring. Internal
+        # navigation between pages is already covered by relative links inside
+        # the built site, which linkinator validates locally.
         run: |
           bunx --bun linkinator@6 docs/dist \
             --recurse \
@@ -94,5 +103,6 @@ jobs:
             --skip "https://bitbucket.org" \
             --skip "https://status.bitbucket.org" \
             --skip "https://analytics.paulvanderlei.com" \
+            --skip "https://bitbucket-cli.paulvanderlei.com" \
             --skip "https://github.com" \
             --skip "https://www.npmjs.com"

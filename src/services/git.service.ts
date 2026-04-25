@@ -86,6 +86,10 @@ export class GitService implements IGitService {
     return this.execOrError(['rev-parse', '--abbrev-ref', 'HEAD']);
   }
 
+  public async getCurrentCommit(): Promise<string> {
+    return this.execOrError(['rev-parse', 'HEAD']);
+  }
+
   public async getRemoteUrl(remote: string = 'origin'): Promise<string> {
     const result = await this.exec(['remote', 'get-url', remote]);
 

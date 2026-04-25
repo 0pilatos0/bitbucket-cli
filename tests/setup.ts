@@ -190,7 +190,9 @@ export function createMockGitService(
   options: {
     isRepo?: boolean;
     currentBranch?: string;
+    currentCommit?: string;
     remoteUrl?: string;
+    throwOnGetCurrentBranch?: boolean;
   } = {}
 ): IGitService {
   return {
@@ -210,7 +212,15 @@ export function createMockGitService(
       // Mock implementation
     },
     async getCurrentBranch() {
+      if (options.throwOnGetCurrentBranch) {
+        throw { code: 3002, message: 'Not a git repo' } as BBError;
+      }
       return options.currentBranch ?? 'main';
+    },
+    async getCurrentCommit() {
+      return (
+        options.currentCommit ?? 'abcdef0123456789abcdef0123456789abcdef01'
+      );
     },
     async getRemoteUrl() {
       if (options.remoteUrl) {
