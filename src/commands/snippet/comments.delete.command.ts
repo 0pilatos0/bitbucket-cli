@@ -42,7 +42,7 @@ export class DeleteSnippetCommentCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    const commentId = this.parseIntOption(options.commentId, 'comment-id');
+    const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
     if (!options.yes) {
       throw new BBError({

@@ -293,6 +293,15 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     text(message: string) {
       logs.push(`text:${message}`);
     },
+    truncate(text: string, maxLength: number, suffix = '...') {
+      if (maxLength <= 0 || text.length <= maxLength) {
+        return text;
+      }
+      if (suffix.length >= maxLength) {
+        return text.slice(0, maxLength);
+      }
+      return text.slice(0, maxLength - suffix.length) + suffix;
+    },
     format(text: string, formatter: (text: string) => string) {
       return formatter(text);
     },

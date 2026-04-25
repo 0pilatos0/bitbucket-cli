@@ -38,10 +38,10 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
     options: RemoveDefaultReviewerOptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     if (!options.yes) {
       throw new BBError({

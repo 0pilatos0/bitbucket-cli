@@ -39,14 +39,14 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
     options: EditPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     let prId: number;
     if (options.id) {
-      prId = Number.parseInt(options.id, 10);
+      prId = this.parsePositiveInt(options.id, 'id');
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
 
@@ -144,10 +144,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
     this.output.success(`Updated pull request #${pr.id}`);
     this.output.text(`  ${this.output.dim('Title:')} ${pr.title}`);
     if (pr.description) {
-      const truncatedDesc =
-        pr.description.length > 100
-          ? pr.description.substring(0, 100) + '...'
-          : pr.description;
+      const truncatedDesc = this.output.truncate(pr.description, 100);
       this.output.text(`  ${this.output.dim('Description:')} ${truncatedDesc}`);
     }
     this.output.text(`  ${this.output.dim('URL:')} ${links?.html?.href}`);

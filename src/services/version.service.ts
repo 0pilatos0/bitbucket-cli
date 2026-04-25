@@ -68,8 +68,14 @@ export class VersionService {
         latestVersion,
         updateAvailable,
       };
-    } catch {
-      // Silently fail - don't bother user with network errors
+    } catch (error) {
+      // The version check is opportunistic — never block the CLI on it.
+      // Surface the failure to DEBUG callers so a user who's diagnosing
+      // "why am I not seeing the update banner?" can see the cause.
+      if (process.env.DEBUG === 'true') {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`[version-check] skipped: ${message}`);
+      }
       return null;
     }
   }

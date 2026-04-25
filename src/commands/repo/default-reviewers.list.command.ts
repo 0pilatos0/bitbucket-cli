@@ -34,10 +34,10 @@ export class ListDefaultReviewersCommand extends BaseCommand<
     options: ListDefaultReviewersOptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     const mode = options.repoOnly ? 'direct' : 'effective';
     const reviewers = await this.defaultReviewerService.list(repoContext, mode);

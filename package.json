@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun --external tabtab",
+    "build": "bun build src/index.ts --outdir dist --target bun --sourcemap --external tabtab",
     "test": "bun test",
     "lint": "tsc --noEmit",
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts",

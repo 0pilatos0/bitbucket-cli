@@ -41,6 +41,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Lint docs (error codes & env vars)
+        run: bun run lint:docs
+
       - name: Check formatting
         run: bun run format:check
 

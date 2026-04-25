@@ -44,21 +44,14 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     options: DiffPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     let prId: number;
     if (options.id) {
-      prId = Number.parseInt(options.id, 10);
-      if (Number.isNaN(prId)) {
-        throw new BBError({
-          code: ErrorCode.VALIDATION_INVALID,
-          message: 'Invalid PR ID',
-          context: { id: options.id },
-        });
-      }
+      prId = this.parsePositiveInt(options.id, 'id');
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
 

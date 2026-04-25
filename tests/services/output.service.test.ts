@@ -320,6 +320,29 @@ describe('OutputService', () => {
     });
   });
 
+  describe('truncate', () => {
+    it('returns the input unchanged when it fits', () => {
+      expect(output.truncate('hello', 10)).toBe('hello');
+    });
+
+    it('appends the default ellipsis when the input is too long', () => {
+      expect(output.truncate('hello world', 8)).toBe('hello...');
+    });
+
+    it('honors a custom suffix', () => {
+      expect(output.truncate('hello world', 8, '…')).toBe('hello w…');
+    });
+
+    it('returns the input unchanged when maxLength <= 0', () => {
+      expect(output.truncate('hello', 0)).toBe('hello');
+      expect(output.truncate('hello', -1)).toBe('hello');
+    });
+
+    it('falls back to a hard slice when the suffix is longer than maxLength', () => {
+      expect(output.truncate('hello world', 2, '...')).toBe('he');
+    });
+  });
+
   describe('noColor option', () => {
     it('should strip colors when noColor is true', () => {
       const noColorOutput = new OutputService({ noColor: true });

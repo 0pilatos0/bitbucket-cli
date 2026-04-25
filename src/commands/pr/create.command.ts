@@ -65,10 +65,10 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       });
     }
 
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     let sourceBranch = options.source;
     if (!sourceBranch) {

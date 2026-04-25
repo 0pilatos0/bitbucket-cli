@@ -33,12 +33,12 @@ export class ChecksPRCommand extends BaseCommand<
     options: { id: string } & ChecksPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const response =
       await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(
@@ -107,7 +107,7 @@ export class ChecksPRCommand extends BaseCommand<
       return [
         `${stateIcon} ${stateLabel}`,
         this.output.bold(name),
-        this.truncate(description, 40),
+        this.output.truncate(description, 40),
         status.updated_on ? this.output.formatDate(status.updated_on) : '-',
       ];
     });
@@ -171,12 +171,5 @@ export class ChecksPRCommand extends BaseCommand<
       },
       { successful: 0, failed: 0, pending: 0 }
     );
-  }
-
-  private truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return text.substring(0, maxLength - 3) + '...';
   }
 }

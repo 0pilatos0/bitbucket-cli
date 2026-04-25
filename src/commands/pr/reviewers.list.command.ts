@@ -34,12 +34,12 @@ export class ListReviewersPRCommand extends BaseCommand<
     options: ListReviewersPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(
@@ -55,6 +55,8 @@ export class ListReviewersPRCommand extends BaseCommand<
 
     if (context.globalOptions.json) {
       await this.output.json({
+        workspace: repoContext.workspace,
+        repoSlug: repoContext.repoSlug,
         pullRequestId: prId,
         count: reviewers.length,
         reviewers,

@@ -55,12 +55,12 @@ export class ActivityPRCommand extends BaseCommand<
     options: { id: string } & ActivityPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
     const filterTypes = this.parseTypeFilter(options.type);
     const limit = parseLimit(options.limit);
 
@@ -226,14 +226,14 @@ export class ActivityPRCommand extends BaseCommand<
       case 'comment': {
         const content = getRawContent(activity.comment?.content) ?? '';
         const id = activity.comment?.id ? `#${activity.comment.id}` : '';
-        const snippet = this.truncate(content, 80);
+        const snippet = this.output.truncate(content, 80);
         return [id, snippet].filter(Boolean).join(' ');
       }
       case 'approval':
         return 'approved';
       case 'changes_requested': {
         const reason = activity.changes_requested?.reason;
-        return reason ? this.truncate(reason, 80) : 'changes requested';
+        return reason ? this.output.truncate(reason, 80) : 'changes requested';
       }
       case 'merge':
         return this.formatCommitDetail(activity.merge?.commit?.hash, 'merged');
@@ -246,7 +246,7 @@ export class ActivityPRCommand extends BaseCommand<
           return `state: ${activity.update.state}`;
         }
         if (activity.update?.title) {
-          return `title: ${this.truncate(activity.update.title, 60)}`;
+          return `title: ${this.output.truncate(activity.update.title, 60)}`;
         }
         if (activity.update?.description) {
           return 'description updated';
@@ -265,12 +265,5 @@ export class ActivityPRCommand extends BaseCommand<
 
     const shortHash = hash.slice(0, 7);
     return label ? `${label} ${shortHash}` : shortHash;
-  }
-
-  private truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return text.substring(0, maxLength - 3) + '...';
   }
 }

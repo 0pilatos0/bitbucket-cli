@@ -373,8 +373,13 @@ export class OAuthService {
         try {
           const open = (await import('open')).default;
           await open(authUrl);
-        } catch {
-          // If browser can't be opened, user can copy the URL
+        } catch (err) {
+          // The CLI keeps working — the user can copy the printed URL — but
+          // tell DEBUG users why nothing opened.
+          if (process.env.DEBUG === 'true') {
+            const message = err instanceof Error ? err.message : String(err);
+            console.error(`[oauth] could not open browser: ${message}`);
+          }
         }
         console.error(`If the browser doesn't open, visit:\n${authUrl}\n`);
       });

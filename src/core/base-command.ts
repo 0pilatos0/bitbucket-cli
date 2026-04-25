@@ -145,6 +145,26 @@ export abstract class BaseCommand<
   }
 
   /**
+   * Parse a string option as a positive integer (>= 1), throwing on invalid
+   * input. Use for IDs, limits, line numbers, and any other count-like option
+   * where zero or negative values would be meaningless. Strict: rejects
+   * trailing/leading non-digit characters (e.g. "1abc", "1.5") so user typos
+   * surface immediately rather than silently truncating.
+   */
+  protected parsePositiveInt(value: string, name: string): number {
+    const trimmed = value.trim();
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed < 1 || String(parsed) !== trimmed) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: this.appendHelpHint(`--${name} must be a positive integer.`),
+        context: { [name]: value },
+      });
+    }
+    return parsed;
+  }
+
+  /**
    * Validate a string option against a set of allowed values
    */
   protected parseEnumOption<T extends string>(

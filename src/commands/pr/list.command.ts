@@ -40,10 +40,10 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     options: ListPRsOptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
     const state = options.state
       ? this.parseEnumOption(options.state, 'state', PR_STATES)
@@ -103,20 +103,13 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         | undefined;
       return [
         `#${pr.id}`,
-        this.truncate(title ?? '', 50),
+        this.output.truncate(title ?? '', 50),
         pr.author?.display_name ?? 'Unknown',
         `${source?.branch?.name ?? 'unknown'} → ${destination?.branch?.name ?? 'unknown'}`,
       ];
     });
 
     this.output.table(['ID', 'TITLE', 'AUTHOR', 'BRANCHES'], rows);
-  }
-
-  private truncate(text: string, maxLength: number): string {
-    if (text.length <= maxLength) {
-      return text;
-    }
-    return text.substring(0, maxLength - 3) + '...';
   }
 
   private async buildMineFilter(): Promise<string | undefined> {

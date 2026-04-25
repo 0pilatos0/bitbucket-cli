@@ -241,6 +241,49 @@ describe('ContextService', () => {
     });
   });
 
+  describe('requireRepoContextFor', () => {
+    it('merges context.globalOptions with command options before resolving', async () => {
+      const gitService = createMockGitService({ isRepo: false });
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      const result = await service.requireRepoContextFor(
+        {},
+        { globalOptions: { workspace: 'gws', repo: 'grepo' } }
+      );
+
+      expect(result).toEqual({ workspace: 'gws', repoSlug: 'grepo' });
+    });
+
+    it('lets command-local options override globals', async () => {
+      const gitService = createMockGitService({ isRepo: false });
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      const result = await service.requireRepoContextFor(
+        { workspace: 'local-ws', repo: 'local-repo' },
+        { globalOptions: { workspace: 'gws', repo: 'grepo' } }
+      );
+
+      expect(result).toEqual({
+        workspace: 'local-ws',
+        repoSlug: 'local-repo',
+      });
+    });
+
+    it('throws CONTEXT_REPO_NOT_FOUND when nothing resolves', async () => {
+      const gitService = createMockGitService({ isRepo: false });
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      await expect(
+        service.requireRepoContextFor({}, { globalOptions: {} })
+      ).rejects.toMatchObject({
+        code: ErrorCode.CONTEXT_REPO_NOT_FOUND,
+      });
+    });
+  });
+
   describe('requireWorkspace', () => {
     it('returns the explicit value when provided', async () => {
       const service = new ContextService(

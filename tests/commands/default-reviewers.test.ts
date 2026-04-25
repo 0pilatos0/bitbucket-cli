@@ -88,6 +88,12 @@ function createContextService(): IContextService {
     async requireRepoContext() {
       return { workspace: 'ws', repoSlug: 'repo' };
     },
+    async requireRepoContextFor() {
+      return { workspace: 'ws', repoSlug: 'repo' };
+    },
+    async requireWorkspace() {
+      return 'ws';
+    },
   };
 }
 

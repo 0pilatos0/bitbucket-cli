@@ -33,12 +33,12 @@ export class ViewPRCommand extends BaseCommand<
     options: { id: string } & ViewPROptions,
     context: CommandContext
   ): Promise<void> {
-    const repoContext = await this.contextService.requireRepoContext({
-      ...context.globalOptions,
-      ...options,
-    });
+    const repoContext = await this.contextService.requireRepoContextFor(
+      options,
+      context
+    );
 
-    const prId = this.parseIntOption(options.id, 'id');
+    const prId = this.parsePositiveInt(options.id, 'id');
 
     const response = await this.pullrequestsApi
       .repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet({
