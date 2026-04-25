@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.16.0
+
+### Minor Changes
+
+- [#217](https://github.com/0pilatos0/bitbucket-cli/pull/217) [`d6c532f`](https://github.com/0pilatos0/bitbucket-cli/commit/d6c532faa980da2e5f8e2c4cfa49e88f18aabbdc) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb browse` command for opening Bitbucket Cloud pages in the browser.
+
+  Mirrors `gh browse`: `bb browse` opens the repo home, `bb browse src/cli.ts:42` opens a file at a line, `bb browse 217` opens PR [#217](https://github.com/0pilatos0/bitbucket-cli/issues/217), `bb browse abc1234` opens a commit, and resource flags (`--pr`, `--prs`, `--branch`, `--branches`, `--commit`, `--commits`, `--pipelines`, `--pipeline`, `--downloads`, `--issues`, `--issue`, `--wiki`, `--settings`) target specific pages. Use `--no-browser` to print the URL or `--json url` for scripting. Adds a reusable `UrlBuilderService` for centralized Bitbucket URL construction and `GitService.getCurrentCommit()` for HEAD-commit defaulting.
+
+### Patch Changes
+
+- [#219](https://github.com/0pilatos0/bitbucket-cli/pull/219) [`145212b`](https://github.com/0pilatos0/bitbucket-cli/commit/145212b15344db872bacdac3d007d47c9fe480d1) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Reconcile drift between CLI help, docs, and code (issue [#181](https://github.com/0pilatos0/bitbucket-cli/issues/181)).
+  - `bb auth login --app-password`: clarify that app passwords are deprecated and the flag opts into API token auth.
+  - `bb pr list --mine`: tighten help text to say "PRs where you are a reviewer (not authored by you)" so the meaning isn't ambiguous.
+  - `bb pr reviewers add` / `remove`: rename the positional from `<username>` to `<user>`, document that it accepts an account ID or `{uuid}`, and update examples (Bitbucket Cloud no longer accepts the legacy login name).
+  - `bb snippet create --file` / `bb snippet edit --file`: note in help that the flag is variadic and can be repeated.
+  - Docs: add the auto-managed `lastVersionCheck` config key to the configuration reference and include `default-reviewers` in the `bb repo <Tab>` completion example.
+
 ## 1.15.0
 
 ### Minor Changes
