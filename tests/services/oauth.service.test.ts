@@ -260,6 +260,100 @@ describe('OAuthService', () => {
       }
     });
 
+    it('should not leak the refresh token endpoint body into BBError.context (#195)', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'bad-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+      const service = new OAuthService(configService, configService);
+
+      // A hostile token endpoint can return any string here — verify it
+      // doesn't get persisted into the structured --json error contract.
+      const hostileBody = 'attacker-controlled-string';
+      mockFetch([
+        {
+          ok: false,
+          status: 401,
+          text: async () => hostileBody,
+        },
+      ]);
+
+      try {
+        await service.refreshAccessToken();
+        expect(true).toBe(false);
+      } catch (err: any) {
+        expect(err.code).toBe(ErrorCode.AUTH_EXPIRED);
+        expect(err.context).toEqual({ status: 401 });
+        expect(err.context).not.toHaveProperty('body');
+        expect(JSON.stringify(err.toJSON())).not.toContain(hostileBody);
+      }
+    });
+
+    it('should fold a sanitized error_description into the refresh error message', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'bad-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+      const service = new OAuthService(configService, configService);
+
+      mockFetch([
+        {
+          ok: false,
+          status: 401,
+          text: async () =>
+            JSON.stringify({
+              error: 'invalid_grant',
+              error_description: 'Refresh token is invalid',
+            }),
+        },
+      ]);
+
+      try {
+        await service.refreshAccessToken();
+        expect(true).toBe(false);
+      } catch (err: any) {
+        expect(err.message).toContain('Refresh token is invalid');
+        expect(err.context).toEqual({ status: 401 });
+      }
+    });
+
+    it('should cap the sanitized error_description length', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'bad-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+      const service = new OAuthService(configService, configService);
+
+      const longDescription = 'X'.repeat(1000);
+      mockFetch([
+        {
+          ok: false,
+          status: 401,
+          text: async () =>
+            JSON.stringify({
+              error: 'invalid_grant',
+              error_description: longDescription,
+            }),
+        },
+      ]);
+
+      try {
+        await service.refreshAccessToken();
+        expect(true).toBe(false);
+      } catch (err: any) {
+        // Cap is 200 chars + ellipsis; total message should be much shorter
+        // than the raw description.
+        expect(err.message.length).toBeLessThan(longDescription.length);
+        expect(err.message).toContain('…');
+      }
+    });
+
     it('should use custom client credentials when stored', async () => {
       const configService = createMockConfigService({
         authMethod: 'oauth',
@@ -646,7 +740,46 @@ describe('OAuthService', () => {
       };
       expect(err.code).toBe(ErrorCode.AUTH_INVALID);
       expect(err.message).toContain('Failed to exchange authorization code');
-      expect(err.context).toEqual({ status: 400, body: 'invalid_grant' });
+      // Body must NOT be persisted into context — see #195. The token-endpoint
+      // response body can be attacker-influenced when --client-id points at a
+      // hostile OAuth provider.
+      expect(err.context).toEqual({ status: 400 });
+      expect(err.context).not.toHaveProperty('body');
+    });
+
+    it('should not leak token endpoint body into context, even with JSON error_description', async () => {
+      const configService = createMockConfigService({});
+      const service = new OAuthService(configService, configService);
+
+      mockFetch([
+        {
+          ok: false,
+          status: 400,
+          text: async () =>
+            JSON.stringify({
+              error: 'invalid_grant',
+              error_description: 'Authorization code is invalid or expired',
+            }),
+        },
+      ]);
+
+      const authorizeOutcome = outcome(service.authorize());
+      const authUrl = await waitForBrowserOpen();
+      const state = extractState(authUrl);
+
+      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+
+      const result = await authorizeOutcome;
+      const err = result.error as {
+        code: number;
+        message: string;
+        context: Record<string, unknown>;
+      };
+      expect(err.code).toBe(ErrorCode.AUTH_INVALID);
+      expect(err.context).toEqual({ status: 400 });
+      expect(err.context).not.toHaveProperty('body');
+      // Sanitized excerpt may be folded into the message.
+      expect(err.message).toContain('Authorization code is invalid or expired');
     });
 
     it('should reject with AUTH_INVALID when user info fetch fails', async () => {
