@@ -13,10 +13,12 @@ import { BBError, ErrorCode } from '../types/errors.js';
 const BITBUCKET_AUTHORIZE_URL = 'https://bitbucket.org/site/oauth2/authorize';
 const BITBUCKET_TOKEN_URL = 'https://bitbucket.org/site/oauth2/access_token';
 
+const CALLBACK_HOST = '127.0.0.1';
 const CALLBACK_PORT = 19872;
 const CALLBACK_PATH = '/callback';
 const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`;
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+const FETCH_TIMEOUT_MS = 10_000;
 
 // Default OAuth consumer credentials for the CLI. These ship with every copy
 // of the binary and are NOT secret — this is the standard pattern for public
@@ -45,7 +47,7 @@ interface TokenResponse {
 }
 
 function generateState(): string {
-  return randomBytes(16).toString('hex');
+  return randomBytes(32).toString('hex');
 }
 
 function base64UrlEncode(buf: Buffer): string {
@@ -139,6 +141,7 @@ export class OAuthService {
         Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
       },
       body: params.toString(),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -163,28 +166,36 @@ export class OAuthService {
   }
 
   /**
-   * Revoke the current OAuth token
+   * Revoke the current OAuth token. Throws on failure so callers can surface
+   * the issue to the user — a still-valid token at Bitbucket is a security
+   * concern that should not be silently dropped.
    */
   public async revokeToken(): Promise<void> {
-    try {
-      const credentials = await this.credentialStore.getOAuthCredentials();
-      const clientId = await this.getClientId();
+    const credentials = await this.credentialStore.getOAuthCredentials();
+    const clientId = await this.getClientId();
 
-      const clientSecret = await this.getClientSecret();
-      const params = new URLSearchParams({
-        token: credentials.accessToken,
-      });
+    const clientSecret = await this.getClientSecret();
+    const params = new URLSearchParams({
+      token: credentials.accessToken,
+    });
 
-      await fetch('https://bitbucket.org/site/oauth2/revoke', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        },
-        body: params.toString(),
+    const response = await fetch('https://bitbucket.org/site/oauth2/revoke', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      },
+      body: params.toString(),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
+      throw new BBError({
+        code: ErrorCode.NETWORK_ERROR,
+        message: `Failed to revoke OAuth token (HTTP ${response.status}).`,
+        context: { status: response.status, body: errorBody },
       });
-    } catch {
-      // Best-effort revocation — don't fail logout if this errors
     }
   }
 
@@ -319,7 +330,7 @@ export class OAuthService {
         }
       });
 
-      server.listen(CALLBACK_PORT, async () => {
+      server.listen(CALLBACK_PORT, CALLBACK_HOST, async () => {
         // Open browser
         try {
           const open = (await import('open')).default;
@@ -353,6 +364,7 @@ export class OAuthService {
         Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
       },
       body: params.toString(),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
@@ -372,6 +384,7 @@ export class OAuthService {
   ): Promise<{ username: string; displayName: string; accountId: string }> {
     const response = await fetch('https://api.bitbucket.org/2.0/user', {
       headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) {
