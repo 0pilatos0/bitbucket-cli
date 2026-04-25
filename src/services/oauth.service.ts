@@ -3,7 +3,7 @@
  */
 
 import { createServer, type Server } from 'node:http';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type {
   IConfigService,
   ICredentialStore,
@@ -48,6 +48,22 @@ function generateState(): string {
   return randomBytes(16).toString('hex');
 }
 
+function base64UrlEncode(buf: Buffer): string {
+  return buf
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function generatePkcePair(): { verifier: string; challenge: string } {
+  const verifier = base64UrlEncode(randomBytes(32));
+  const challenge = base64UrlEncode(
+    createHash('sha256').update(verifier).digest()
+  );
+  return { verifier, challenge };
+}
+
 export class OAuthService {
   constructor(
     private readonly configService: IConfigService,
@@ -67,8 +83,9 @@ export class OAuthService {
   }> {
     const resolvedClientId = clientId ?? (await this.getClientId());
     const state = generateState();
+    const { verifier, challenge } = generatePkcePair();
 
-    const authUrl = this.buildAuthUrl(resolvedClientId, state);
+    const authUrl = this.buildAuthUrl(resolvedClientId, state, challenge);
 
     // Start local server before opening browser
     const { code } = await this.waitForCallback(authUrl, state);
@@ -77,6 +94,7 @@ export class OAuthService {
     const tokenResponse = await this.exchangeCode(
       code,
       resolvedClientId,
+      verifier,
       clientSecret
     );
 
@@ -192,13 +210,19 @@ export class OAuthService {
     return customSecret ?? DEFAULT_CLIENT_SECRET;
   }
 
-  private buildAuthUrl(clientId: string, state: string): string {
+  private buildAuthUrl(
+    clientId: string,
+    state: string,
+    codeChallenge: string
+  ): string {
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'code',
       redirect_uri: CALLBACK_URL,
       scope: OAUTH_SCOPES,
       state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'S256',
     });
     return `${BITBUCKET_AUTHORIZE_URL}?${params.toString()}`;
   }
@@ -311,6 +335,7 @@ export class OAuthService {
   private async exchangeCode(
     code: string,
     clientId: string,
+    codeVerifier: string,
     clientSecretOverride?: string
   ): Promise<TokenResponse> {
     const clientSecret = clientSecretOverride ?? (await this.getClientSecret());
@@ -318,6 +343,7 @@ export class OAuthService {
       grant_type: 'authorization_code',
       code,
       redirect_uri: CALLBACK_URL,
+      code_verifier: codeVerifier,
     });
 
     const response = await fetch(BITBUCKET_TOKEN_URL, {

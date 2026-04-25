@@ -12,6 +12,7 @@ import {
   mock,
 } from 'bun:test';
 import { createServer, type Server } from 'node:http';
+import { createHash } from 'node:crypto';
 import { OAuthService } from '../../src/services/oauth.service.js';
 import { createMockConfigService } from '../setup.js';
 import { ErrorCode } from '../../src/types/errors.js';
@@ -752,6 +753,43 @@ describe('OAuthService', () => {
           openMock.mockImplementation(async () => undefined);
         }
       }
+    });
+
+    it('should send a PKCE S256 challenge on authorize and the matching verifier on token exchange', async () => {
+      const configService = createMockConfigService({});
+      const service = new OAuthService(configService, configService);
+
+      const fetchMock = mockFetch([tokenResponse(), userResponse()]);
+
+      const authorizePromise = service.authorize();
+      const authUrl = await waitForBrowserOpen();
+
+      const url = new URL(authUrl);
+      const challenge = url.searchParams.get('code_challenge');
+      const method = url.searchParams.get('code_challenge_method');
+      expect(method).toBe('S256');
+      expect(challenge).toBeTruthy();
+      expect(challenge).not.toContain('+');
+      expect(challenge).not.toContain('/');
+      expect(challenge).not.toContain('=');
+
+      const state = extractState(authUrl);
+      await originalFetch(`${CALLBACK_URL}?code=the-code&state=${state}`);
+      await authorizePromise;
+
+      const tokenCall = fetchMock.getCalls()[0];
+      const body = tokenCall.options.body as string;
+      const params = new URLSearchParams(body);
+      const verifier = params.get('code_verifier');
+      expect(verifier).toBeTruthy();
+
+      const expectedChallenge = createHash('sha256')
+        .update(verifier as string)
+        .digest('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/, '');
+      expect(expectedChallenge).toBe(challenge as string);
     });
 
     it('should forward an override client secret to the token exchange', async () => {
