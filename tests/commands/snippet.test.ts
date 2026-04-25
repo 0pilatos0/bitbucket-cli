@@ -266,9 +266,7 @@ describe('ListSnippetsCommand', () => {
 
     await cmd.run({ workspace: 'workspace' }, makeContext());
 
-    expect(output.logs.some((log) => log.includes('No snippets found'))).toBe(
-      true
-    );
+    expect(output.logs).toContain('info:No snippets found');
   });
 
   it('should resolve workspace from config when not provided', async () => {
