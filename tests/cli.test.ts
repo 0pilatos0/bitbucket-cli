@@ -361,6 +361,7 @@ describe('CLI command registration', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
       'auth',
+      'browse',
       'completion',
       'config',
       'pr',

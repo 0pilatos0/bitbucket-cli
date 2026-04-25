@@ -12,6 +12,11 @@ export { OAuthService } from './oauth.service.js';
 export { SnippetFilesService } from './snippet-files.service.js';
 export { updatePullRequestReviewers } from './reviewer.service.js';
 export { DefaultReviewerService } from './default-reviewer.service.js';
+export {
+  UrlBuilderService,
+  BITBUCKET_WEB_BASE,
+} from './url-builder.service.js';
+export type { IUrlBuilderService } from './url-builder.service.js';
 export type {
   DefaultReviewerEntry,
   DefaultReviewerMode,

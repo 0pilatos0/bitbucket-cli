@@ -71,6 +71,31 @@ describe('GitService', () => {
     });
   });
 
+  describe('getCurrentCommit', () => {
+    it('should return the current commit SHA', async () => {
+      await Bun.spawn(['git', 'init'], { cwd: testDir }).exited;
+      await Bun.spawn(['git', 'config', 'user.email', 'test@test.com'], {
+        cwd: testDir,
+      }).exited;
+      await Bun.spawn(['git', 'config', 'user.name', 'Test'], { cwd: testDir })
+        .exited;
+      await writeFile(join(testDir, 'test.txt'), 'test');
+      await Bun.spawn(['git', 'add', '.'], { cwd: testDir }).exited;
+      await Bun.spawn(['git', 'commit', '-m', 'Initial'], { cwd: testDir })
+        .exited;
+
+      const sha = await gitService.getCurrentCommit();
+
+      expect(sha).toMatch(/^[0-9a-f]{40}$/);
+    });
+
+    it('should throw error for non-git directory', async () => {
+      await expect(gitService.getCurrentCommit()).rejects.toMatchObject({
+        code: ErrorCode.GIT_COMMAND_FAILED,
+      });
+    });
+  });
+
   describe('getRemoteUrl', () => {
     it('should throw error when no remote exists', async () => {
       await Bun.spawn(['git', 'init'], { cwd: testDir }).exited;
