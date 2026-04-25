@@ -352,7 +352,7 @@ describe('OAuthService', () => {
       expect(body).toContain('token=token-to-revoke');
     });
 
-    it('should not throw when revocation fails', async () => {
+    it('should throw when revocation returns non-ok status', async () => {
       const configService = createMockConfigService({
         authMethod: 'oauth',
         oauthAccessToken: 'token',
@@ -361,21 +361,24 @@ describe('OAuthService', () => {
       });
       const service = new OAuthService(configService, configService);
 
-      mockFetch([{ ok: false, status: 500 }]);
+      mockFetch([{ ok: false, status: 500, text: async () => 'oops' }]);
 
-      // Should not throw
-      await service.revokeToken();
+      const result = await outcome(service.revokeToken());
+      expect(result.error).toBeDefined();
+      const err = result.error as { code: number; message: string };
+      expect(err.code).toBe(ErrorCode.NETWORK_ERROR);
+      expect(err.message).toContain('500');
     });
 
-    it('should not throw when no credentials exist', async () => {
+    it('should throw when no credentials exist', async () => {
       const configService = createMockConfigService({});
       const service = new OAuthService(configService, configService);
 
-      // getOAuthCredentials will throw, but revokeToken catches it
-      await service.revokeToken();
+      const result = await outcome(service.revokeToken());
+      expect(result.error).toBeDefined();
     });
 
-    it('should swallow fetch network errors', async () => {
+    it('should propagate fetch network errors', async () => {
       const configService = createMockConfigService({
         authMethod: 'oauth',
         oauthAccessToken: 'token',
@@ -388,7 +391,9 @@ describe('OAuthService', () => {
         throw new Error('network down');
       }) as typeof fetch;
 
-      await service.revokeToken();
+      const result = await outcome(service.revokeToken());
+      expect(result.error).toBeDefined();
+      expect((result.error as Error).message).toContain('network down');
     });
   });
 
@@ -448,6 +453,8 @@ describe('OAuthService', () => {
       expect(authUrl).toContain('scope=');
 
       const state = extractState(authUrl);
+      // OAuth state must be at least 256 bits (64 hex chars).
+      expect(state).toMatch(/^[0-9a-f]{64}$/);
 
       const callbackResponse = await originalFetch(
         `${CALLBACK_URL}?code=the-code&state=${state}`
@@ -702,7 +709,9 @@ describe('OAuthService', () => {
 
       await new Promise<void>((resolve, reject) => {
         blocker.once('error', reject);
-        blocker.listen(CALLBACK_PORT, () => resolve());
+        // Match the loopback bind the OAuth service now uses; binding to a
+        // different interface would leave the port available on 127.0.0.1.
+        blocker.listen(CALLBACK_PORT, '127.0.0.1', () => resolve());
       });
 
       try {

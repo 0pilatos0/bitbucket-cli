@@ -25,18 +25,32 @@ export class LogoutCommand extends BaseCommand<void, void> {
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const authMethod = await this.credentialStore.getAuthMethod();
 
+    let revokeFailed = false;
     if (authMethod === 'oauth') {
-      await this.oauthService.revokeToken();
+      try {
+        await this.oauthService.revokeToken();
+      } catch {
+        revokeFailed = true;
+      }
       await this.credentialStore.clearOAuthCredentials();
     } else {
       await this.credentialStore.clearCredentials();
     }
 
     if (context.globalOptions.json) {
-      await this.output.json({ authenticated: false, success: true });
+      await this.output.json({
+        authenticated: false,
+        success: true,
+        revokeFailed: revokeFailed || undefined,
+      });
       return;
     }
 
+    if (revokeFailed) {
+      this.output.warning(
+        'Token revocation failed; the access token may still be valid at Bitbucket. Consider revoking it manually.'
+      );
+    }
     this.output.success('Logged out of Bitbucket');
   }
 }
