@@ -78,6 +78,21 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function redactRequestUrl(
+  requestUrl: string | undefined,
+  baseUrl: string | undefined
+): string {
+  const raw = requestUrl ?? '';
+  try {
+    const parsed = new URL(raw, baseUrl);
+    const query = parsed.search ? '?[redacted]' : '';
+    return `${parsed.origin}${parsed.pathname}${query}`;
+  } catch {
+    const queryIdx = raw.indexOf('?');
+    return queryIdx === -1 ? raw : `${raw.slice(0, queryIdx)}?[redacted]`;
+  }
+}
+
 export function createApiClient(
   credentialStore: ICredentialStore,
   oauthService?: OAuthService
@@ -94,7 +109,9 @@ export function createApiClient(
   instance.interceptors.request.use(
     async (config) => {
       if (process.env.DEBUG === 'true') {
-        console.debug(`[HTTP] ${config.method?.toUpperCase()} ${config.url}`);
+        console.debug(
+          `[HTTP] ${config.method?.toUpperCase()} ${redactRequestUrl(config.url, config.baseURL)}`
+        );
       }
 
       const authMethod = await credentialStore.getAuthMethod();

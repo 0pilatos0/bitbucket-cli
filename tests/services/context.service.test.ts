@@ -85,6 +85,41 @@ describe('ContextService', () => {
       expect(service.parseRemoteUrl('not-a-url')).toBeNull();
       expect(service.parseRemoteUrl('')).toBeNull();
     });
+
+    it('should reject SSH URLs with attacker-controlled trailing path', () => {
+      const gitService = createMockGitService();
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      expect(
+        service.parseRemoteUrl('git@bitbucket.org:foo/bar.git.attacker.com/x/y')
+      ).toBeNull();
+    });
+
+    it('should reject HTTPS URLs with attacker-controlled trailing path', () => {
+      const gitService = createMockGitService();
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      expect(
+        service.parseRemoteUrl(
+          'https://bitbucket.org/foo/bar.git.attacker.com/x/y'
+        )
+      ).toBeNull();
+    });
+
+    it('should reject URLs with crafted prefixes', () => {
+      const gitService = createMockGitService();
+      const configService = createMockConfigService();
+      const service = new ContextService(gitService, configService);
+
+      expect(
+        service.parseRemoteUrl('prefix git@bitbucket.org:foo/bar.git')
+      ).toBeNull();
+      expect(
+        service.parseRemoteUrl('xhttps://bitbucket.org/foo/bar.git')
+      ).toBeNull();
+    });
   });
 
   describe('getRepoContextFromGit', () => {

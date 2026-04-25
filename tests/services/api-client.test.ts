@@ -616,6 +616,22 @@ describe('createApiClient - DEBUG response logging redaction', () => {
     expect(output).toContain('[HTTP] GET');
     expect(output).toContain('/some/resource');
   });
+
+  it('redacts query strings from request URL DEBUG logs', async () => {
+    process.env.DEBUG = 'true';
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(mockConfigService());
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/some/resource?token=abc&other=xyz');
+
+    const output = allDebugOutput();
+    expect(output).toContain('[HTTP] GET');
+    expect(output).toContain('/some/resource');
+    expect(output).not.toContain('token=abc');
+    expect(output).not.toContain('other=xyz');
+    expect(output).toContain('[redacted]');
+  });
 });
 
 describe('createApiClient - authentication header', () => {
