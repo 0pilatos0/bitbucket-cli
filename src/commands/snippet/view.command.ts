@@ -59,7 +59,7 @@ export class ViewSnippetCommand extends BaseCommand<
     if (options.file !== undefined) {
       if (!fileNames.includes(options.file)) {
         throw new BBError({
-          code: ErrorCode.VALIDATION_INVALID,
+          code: ErrorCode.FILE_NOT_FOUND,
           message: `File not found in snippet: ${options.file}`,
           context: { file: options.file, available: fileNames },
         });

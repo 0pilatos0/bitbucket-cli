@@ -19,6 +19,7 @@ When commands fail, the CLI returns structured errors with specific error codes.
 | 6xxx | Context | Repository/workspace detection issues |
 | 7xxx | Network | Transport/network failures before API response |
 | 8xxx | Output formatting | `--json fields` and `--jq` evaluation issues |
+| 9xxx | Shell completion / Unknown | Completion install/uninstall failures and uncategorized errors |
 
 ---
 
@@ -39,7 +40,7 @@ bb auth login
 
 **Message:** Invalid credentials
 
-**Cause:** Your username or API token is incorrect.
+**Cause:** Your credentials were rejected by Bitbucket at request time. This is the code emitted for any 401 response that was *not* recovered by an OAuth refresh — e.g. a wrong API token, a revoked password, or basic-auth requests with bad credentials.
 
 **Solution:**
 1. Verify your Bitbucket username
@@ -52,13 +53,13 @@ bb auth login
 
 ### 1003 - AUTH_EXPIRED
 
-**Message:** Token expired
+**Message:** OAuth token expired. Run `bb auth login` to re-authenticate.
 
-**Cause:** Your API token has expired or been revoked.
+**Cause:** Specifically: an OAuth access token expired *and* the reactive refresh attempt also failed (refresh token revoked or expired). For non-OAuth flows, a stale token surfaces as `AUTH_INVALID` (1002) instead.
 
 **Solution:**
-1. Create a new API token in Bitbucket settings
-2. Re-authenticate with the new token
+1. Re-run `bb auth login` to perform a fresh OAuth flow
+2. If that also fails, create a new API token in Bitbucket settings and switch auth methods
 
 ---
 
@@ -241,6 +242,18 @@ Common required fields:
   - PR ID must be a number
   - State must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
 
+### 5003 - FILE_NOT_FOUND
+
+**Message:** File not found: `<path>`
+
+**Cause:** A file referenced by an option (e.g. `--file` for `bb snippet create`/`edit`, `--body-file` for `bb pr edit`) doesn't exist on disk, or a named file isn't present inside a snippet.
+
+**Solution:**
+- Verify the path is correct relative to the current working directory
+- For `bb snippet view --file <name>`, list snippet files first to confirm the name
+
+The `context` field on this error includes the missing path under `file` (or `bodyFile`), which scripts can key on to differentiate it from a generic `VALIDATION_INVALID`.
+
 ---
 
 ## Context Errors (6xxx)
@@ -321,6 +334,31 @@ bb pr list --json | jq '<expression>'
 
 **Solution:**
 - `--jq` requires `--json`. Add `--json` (with or without a field list).
+
+---
+
+## Shell Completion Errors (9xxx)
+
+### 9001 - COMPLETION_INSTALL_FAILED
+
+**Message:** Failed to install completions: `<reason>`
+
+**Cause:** `bb completion install` couldn't write the shell completion hooks — typically because the target shell profile isn't writable, or the underlying `tabtab` install failed.
+
+**Solution:**
+- Check write permissions on your shell rc file (e.g. `~/.zshrc`, `~/.bashrc`)
+- Re-run with `DEBUG=true bb completion install` for the underlying error
+- If the issue persists, install completions manually by following your shell's documentation for `tabtab`
+
+### 9002 - COMPLETION_UNINSTALL_FAILED
+
+**Message:** Failed to uninstall completions: `<reason>`
+
+**Cause:** `bb completion uninstall` couldn't remove the completion hooks — usually because the rc file isn't writable or the entry was already removed manually.
+
+**Solution:**
+- Check write permissions on your shell rc file
+- Manually remove the `tabtab` block from your shell rc file if needed
 
 ---
 

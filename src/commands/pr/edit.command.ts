@@ -93,8 +93,11 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       try {
         body = fs.readFileSync(options.bodyFile, 'utf-8');
       } catch (err) {
+        const isNotFound =
+          err instanceof Error &&
+          (err as NodeJS.ErrnoException).code === 'ENOENT';
         throw new BBError({
-          code: ErrorCode.UNKNOWN,
+          code: isNotFound ? ErrorCode.FILE_NOT_FOUND : ErrorCode.UNKNOWN,
           message: `Failed to read file '${options.bodyFile}': ${err instanceof Error ? err.message : 'Unknown error'}`,
           cause: err instanceof Error ? err : undefined,
           context: { bodyFile: options.bodyFile },

@@ -71,7 +71,7 @@ export class CreateSnippetCommand extends BaseCommand<
     for (const filePath of options.file) {
       if (!fs.existsSync(filePath)) {
         throw new BBError({
-          code: ErrorCode.VALIDATION_INVALID,
+          code: ErrorCode.FILE_NOT_FOUND,
           message: `File not found: ${filePath}`,
           context: { file: filePath },
         });

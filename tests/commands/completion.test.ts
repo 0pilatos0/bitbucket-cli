@@ -7,6 +7,7 @@ import { InstallCompletionCommand } from '../../src/commands/completion/install.
 import { UninstallCompletionCommand } from '../../src/commands/completion/uninstall.command.js';
 import { createMockOutputService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
+import { BBError, ErrorCode } from '../../src/types/errors.js';
 
 describe('Completion Commands', () => {
   let output: ReturnType<typeof createMockOutputService>;
@@ -108,7 +109,15 @@ describe('Completion Commands', () => {
       const command = new InstallCompletionCommand(output);
       const context: CommandContext = { globalOptions: {} };
 
-      await expect(command.execute(undefined, context)).rejects.toBeDefined();
+      try {
+        await command.execute(undefined, context);
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).code).toBe(
+          ErrorCode.COMPLETION_INSTALL_FAILED
+        );
+      }
     });
   });
 
@@ -185,7 +194,15 @@ describe('Completion Commands', () => {
       const command = new UninstallCompletionCommand(output);
       const context: CommandContext = { globalOptions: {} };
 
-      await expect(command.execute(undefined, context)).rejects.toBeDefined();
+      try {
+        await command.execute(undefined, context);
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).code).toBe(
+          ErrorCode.COMPLETION_UNINSTALL_FAILED
+        );
+      }
     });
   });
 });

@@ -36,7 +36,7 @@ export class UninstallCompletionCommand extends BaseCommand<void, void> {
       this.output.success('Shell completions uninstalled successfully!');
     } catch (error) {
       throw new BBError({
-        code: ErrorCode.UNKNOWN,
+        code: ErrorCode.COMPLETION_UNINSTALL_FAILED,
         message: `Failed to uninstall completions: ${error}`,
         cause: error instanceof Error ? error : undefined,
       });
