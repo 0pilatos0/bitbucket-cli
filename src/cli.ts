@@ -12,6 +12,7 @@ import type { BaseCommand } from './core/base-command.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type { IOutputService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
+import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
 
@@ -317,6 +318,28 @@ cli
     } catch {
       // Silently ignore version check errors
     }
+
+    // Nudge unauthenticated users toward `bb auth login`. First-run users hit
+    // this path immediately after install, so it's the right moment to point
+    // at the next step.
+    try {
+      const configService = container.resolve<IConfigService>(
+        ServiceTokens.ConfigService
+      );
+      const config = await configService.getConfig();
+      const hasBasicAuth = Boolean(config.username && config.apiToken);
+      const hasOAuth = Boolean(
+        config.oauthAccessToken && config.oauthRefreshToken
+      );
+      if (!hasBasicAuth && !hasOAuth) {
+        output.text('');
+        output.text(
+          `Tip: Run '${output.highlight('bb auth login')}' to get started.`
+        );
+      }
+    } catch {
+      // Don't let an unreadable config disrupt the help screen.
+    }
   });
 
 // Auth commands
@@ -338,6 +361,12 @@ authCmd
   .option(
     '--client-secret <clientSecret>',
     'Custom OAuth consumer client secret'
+  )
+  .addHelpText(
+    'before',
+    '\nDefault: OAuth (browser-based, recommended).\n' +
+      'For CI/CD: API token via --app-password or BB_API_TOKEN env var.\n' +
+      'Note: Bitbucket app passwords are deprecated; use OAuth or an API token.\n'
   )
   .addHelpText(
     'after',

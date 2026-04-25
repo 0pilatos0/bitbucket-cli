@@ -47,15 +47,28 @@
 
 ## Install
 
-```bash
-npm install -g @pilatos/bitbucket-cli
-```
+> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher. The CLI is installed via npm but runs on the Bun runtime — Node.js is not supported.
 
-```bash
-bb --version
-```
+1. **Install Bun** (if `bun --version` fails):
 
-> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher. The CLI is installed via npm but runs on the Bun runtime — Node.js is not supported. Install Bun first: `curl -fsSL https://bun.sh/install | bash`
+   ```bash
+   curl -fsSL https://bun.sh/install | bash
+   ```
+
+2. **Install the CLI:**
+
+   ```bash
+   npm install -g @pilatos/bitbucket-cli
+   bb --version
+   ```
+
+3. **Tab completion** (optional, recommended):
+
+   ```bash
+   bb completion install
+   ```
+
+   Then restart your shell.
 
 ---
 
@@ -99,6 +112,20 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 - Authenticate: `bb auth login`
 
 > **Note:** Bitbucket app passwords are [deprecated](https://bitbucket.org/blog/deprecating-app-passwords) (new ones can no longer be created). Use OAuth or API tokens instead.
+
+---
+
+## Environment Variables
+
+| Variable       | Description                                                |
+| -------------- | ---------------------------------------------------------- |
+| `BB_USERNAME`  | Bitbucket username (fallback for `bb auth login`)          |
+| `BB_API_TOKEN` | Bitbucket API token (fallback for `bb auth login`; for CI) |
+| `DEBUG`        | Enable HTTP debug logging when set to `true`               |
+| `NO_COLOR`     | Disable color output when set                              |
+| `FORCE_COLOR`  | Force color output when set (and not `0`)                  |
+
+Full reference: [Environment variables](https://bitbucket-cli.paulvanderlei.com/reference/environment-variables/).
 
 ---
 
