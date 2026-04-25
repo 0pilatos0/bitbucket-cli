@@ -30,6 +30,7 @@
     "build": "bun build src/index.ts --outdir dist --target bun --external tabtab",
     "test": "bun test",
     "lint": "tsc --noEmit",
+    "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "generate:api": "openapi-generator-cli generate && bun scripts/patch-generated.ts",
