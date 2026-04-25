@@ -94,10 +94,8 @@ bb auth login
 
 **Solution:**
 1. Check your API token scopes at [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-2. Required scopes depend on the operation:
-   - **Read operations:** `account:read`, `repository:read`, `pullrequest:read`
-   - **Write operations:** `repository:write`, `pullrequest:write`
-   - **Delete operations:** `repository:admin`
+2. See [Token Scopes](/reference/token-scopes/) for the exact scope each `bb` command requires.
+3. If a scope is missing, mint a new token (you can't add scopes to an existing one) and re-authenticate with `bb auth login`.
 
 ### 2004 - API_RATE_LIMITED
 
@@ -341,6 +339,16 @@ DEBUG=true bb <your-command> 2>&1
 ```
 
 ---
+
+## Exit Codes and Error Codes
+
+The process exit code is intentionally minimal — `0` for success and `1` for
+any failure. The numeric error code on this page lives in the JSON error
+payload's `code` field, not in the exit status. To branch on a specific
+failure mode in a script, parse stderr JSON and read `.code`.
+
+See [Exit Codes in the scripting guide](/guides/scripting/#exit-codes) for a
+full example.
 
 ## Handling Errors in Scripts
 

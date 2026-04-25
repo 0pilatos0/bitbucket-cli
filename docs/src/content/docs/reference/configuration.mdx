@@ -110,11 +110,40 @@ bb config set skipVersionCheck true
 bb config set versionCheckInterval 7
 ```
 
+#### Settable Keys
+
+`bb config set` only accepts these four keys (the full list lives in
+`SETTABLE_CONFIG_KEYS` in `src/types/config.ts`). Everything else is either
+managed by the auth flow or written automatically by the CLI.
+
+| Key | Type | Example |
+|-----|------|---------|
+| `defaultWorkspace` | string | `bb config set defaultWorkspace myworkspace` |
+| `skipVersionCheck` | boolean | `bb config set skipVersionCheck true` |
+| `versionCheckInterval` | integer (days, ≥ 1) | `bb config set versionCheckInterval 7` |
+| `prCreateIncludeDefaultReviewers` | boolean | `bb config set prCreateIncludeDefaultReviewers true` |
+
 Typed key validation:
 
 - `skipVersionCheck` accepts only `true` or `false`
 - `versionCheckInterval` accepts only positive integers (`>= 1`)
 - `prCreateIncludeDefaultReviewers` accepts only `true` or `false`
+
+#### `prCreateIncludeDefaultReviewers` and the `--default-reviewers` flag
+
+The config key sets the default behavior for `bb pr create`. The per-command
+flag — `--default-reviewers` or `--no-default-reviewers` — always wins when
+present, so you can opt in or out for a single PR without changing the config.
+
+| Config | Flag | Result |
+|--------|------|--------|
+| unset / `false` | (none) | Default reviewers are **not** added |
+| `true` | (none) | Default reviewers are added |
+| unset / `false` | `--default-reviewers` | Default reviewers are added |
+| `true` | `--no-default-reviewers` | Default reviewers are **not** added |
+
+In short: the flag is an explicit override; the config is only consulted when
+neither `--default-reviewers` nor `--no-default-reviewers` is passed.
 
 Values are stored as native JSON types, so `bb config get <key> --json` returns booleans/numbers for these keys.
 
