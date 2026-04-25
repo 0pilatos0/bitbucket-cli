@@ -152,6 +152,14 @@ export class OutputService implements IOutputService {
     console.log(stripControl(message));
   }
 
+  public separator(width = 60): void {
+    if (width <= 0) {
+      console.log('');
+      return;
+    }
+    console.log(this.format('─'.repeat(width), chalk.gray));
+  }
+
   public truncate(text: string, maxLength: number, suffix = '...'): string {
     if (maxLength <= 0 || text.length <= maxLength) {
       return text;
