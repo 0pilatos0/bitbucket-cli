@@ -244,6 +244,47 @@ describe('ListReposCommand', () => {
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
+
+  it('should truncate long descriptions by default', async () => {
+    const longDescription = 'E'.repeat(80);
+    const repositoriesApi = createMockRepositoriesApi([
+      { ...mockRepository, description: longDescription },
+    ]);
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute({ workspace: 'workspace' }, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows[0]?.[2]).toBe('E'.repeat(47) + '...');
+  });
+
+  it('should show full descriptions when noTruncate is set', async () => {
+    const longDescription = 'E'.repeat(80);
+    const repositoriesApi = createMockRepositoriesApi([
+      { ...mockRepository, description: longDescription },
+    ]);
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace' },
+      { globalOptions: { noTruncate: true } }
+    );
+
+    const rows = getTableRows(output.logs);
+    expect(rows[0]?.[2]).toBe(longDescription);
+  });
 });
 
 describe('ViewRepoCommand', () => {

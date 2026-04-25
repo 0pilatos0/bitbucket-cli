@@ -431,12 +431,13 @@ describe('CLI command registration', () => {
     ]);
   });
 
-  it('should register global --workspace, --repo, --json, --jq and --no-color options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq, --no-color and --no-truncate options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
     expect(hasOption(cli, '--jq')).toBe(true);
     expect(hasOption(cli, '--no-color')).toBe(true);
+    expect(hasOption(cli, '--no-truncate')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
   });

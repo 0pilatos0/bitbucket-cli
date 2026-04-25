@@ -144,7 +144,11 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
     this.output.success(`Updated pull request #${pr.id}`);
     this.output.text(`  ${this.output.dim('Title:')} ${pr.title}`);
     if (pr.description) {
-      const truncatedDesc = this.output.truncate(pr.description, 100);
+      const truncatedDesc = this.truncateText(
+        pr.description,
+        100,
+        context.globalOptions
+      );
       this.output.text(`  ${this.output.dim('Description:')} ${truncatedDesc}`);
     }
     this.output.text(`  ${this.output.dim('URL:')} ${links?.html?.href}`);

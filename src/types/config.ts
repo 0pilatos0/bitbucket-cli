@@ -43,6 +43,7 @@ export interface GlobalOptions {
   jsonFields?: string[];
   jq?: string;
   noColor?: boolean;
+  noTruncate?: boolean;
   workspace?: string;
   repo?: string;
 }

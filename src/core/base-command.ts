@@ -165,6 +165,23 @@ export abstract class BaseCommand<
   }
 
   /**
+   * Truncate `text` for table/list rendering, honoring the global
+   * `--no-truncate` flag carried on `context.globalOptions`. Pass the
+   * `globalOptions` (or any object with `noTruncate`) so commands don't
+   * each have to thread the flag through their own helpers.
+   */
+  protected truncateText(
+    text: string,
+    maxLength: number,
+    opts: { noTruncate?: boolean } = {}
+  ): string {
+    if (opts.noTruncate) {
+      return text;
+    }
+    return this.output.truncate(text, maxLength);
+  }
+
+  /**
    * Validate a string option against a set of allowed values
    */
   protected parseEnumOption<T extends string>(
