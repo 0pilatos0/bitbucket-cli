@@ -1,5 +1,5 @@
 ---
-'bitbucket-cli': patch
+'@pilatos/bitbucket-cli': patch
 ---
 
 fix(security): use `open` package in `pr diff --web` instead of shell-string `exec`
