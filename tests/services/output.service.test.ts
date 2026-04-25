@@ -694,4 +694,54 @@ describe('OutputService', () => {
       expect(result).toMatch(/:\d{2}/); // HH:MM marker
     });
   });
+
+  describe('formatDate locale support', () => {
+    it('defaults to en-US formatting (US-style "Jun 15") when no locale is configured', () => {
+      const defaultOutput = new OutputService();
+      const result = defaultOutput.formatDate('2024-06-15T10:30:00Z');
+
+      // en-US renders the month abbreviation before the day.
+      expect(result).toMatch(/Jun/);
+      expect(result.indexOf('Jun')).toBeLessThan(result.indexOf('15'));
+    });
+
+    it('honours an explicit locale (de-DE renders day before month)', () => {
+      const localized = new OutputService({ locale: 'de-DE' });
+      const result = localized.formatDate('2024-06-15T10:30:00Z');
+
+      expect(result).toContain('15');
+      expect(result).toContain('2024');
+      // de-DE uses "15. Juni 2024 ..." or similar; in either case the day
+      // appears before the year in the rendered string.
+      expect(result.indexOf('15')).toBeLessThan(result.indexOf('2024'));
+    });
+
+    it('honours an explicit locale (ja-JP includes the year-suffix character)', () => {
+      const localized = new OutputService({ locale: 'ja-JP' });
+      const result = localized.formatDate('2024-06-15T10:30:00Z');
+
+      // ja-JP's short-month formatter renders the year with the 年 suffix.
+      expect(result).toContain('2024');
+      expect(result).toContain('年');
+    });
+
+    it('falls back to en-US when given an invalid locale tag', () => {
+      const broken = new OutputService({ locale: 'not a valid tag!!' });
+      const result = broken.formatDate('2024-06-15T10:30:00Z');
+
+      // Identical shape to the default — we should not throw, and we should
+      // produce something a human can read.
+      expect(result).toContain('Jun');
+      expect(result).toContain('15');
+      expect(result).toContain('2024');
+    });
+
+    it('formats a Date instance through the configured locale', () => {
+      const localized = new OutputService({ locale: 'de-DE' });
+      const result = localized.formatDate(new Date('2024-12-25T08:00:00Z'));
+
+      expect(result).toContain('25');
+      expect(result).toContain('2024');
+    });
+  });
 });
