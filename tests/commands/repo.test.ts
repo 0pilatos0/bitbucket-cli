@@ -222,9 +222,7 @@ describe('ListReposCommand', () => {
     );
     await command.execute({ workspace: 'empty' }, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) => log.includes('No repositories found'))
-    ).toBe(true);
+    expect(output.logs).toContain('info:No repositories found');
   });
 
   it('should list repos when json flag is set', async () => {

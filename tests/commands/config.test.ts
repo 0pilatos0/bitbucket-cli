@@ -364,8 +364,6 @@ describe('ListConfigCommand', () => {
     const command = new ListConfigCommand(configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) => log.includes('No configuration set'))
-    ).toBe(true);
+    expect(output.logs).toContain('info:No configuration set');
   });
 });

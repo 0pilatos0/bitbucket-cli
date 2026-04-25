@@ -166,6 +166,22 @@ export abstract class BaseCommand<
   }
 
   /**
+   * Gate a destructive action on an explicit confirmation flag (typically
+   * `--yes`). Throws a standard `BBError` so the warning and the
+   * "Use --yes to confirm." instruction stay consistent across commands.
+   */
+  protected requireConfirmation(
+    confirmed: boolean | undefined,
+    warning: string
+  ): void {
+    if (confirmed) return;
+    throw new BBError({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: `${warning}\nUse --yes to confirm.`,
+    });
+  }
+
+  /**
    * Validate a string option against a set of allowed values
    */
   protected parseEnumOption<T extends string>(

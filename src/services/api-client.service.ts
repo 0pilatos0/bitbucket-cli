@@ -7,7 +7,10 @@ import axios, {
   type AxiosError,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import type { ICredentialStore } from '../core/interfaces/services.js';
+import type {
+  ICredentialStore,
+  IOutputService,
+} from '../core/interfaces/services.js';
 import type { OAuthService } from './oauth.service.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
@@ -93,8 +96,14 @@ function redactRequestUrl(
   }
 }
 
+// DEBUG=true logs (`[HTTP] ...`) intentionally use raw `console.debug` rather
+// than `IOutputService` because they are an opt-in developer-troubleshooting
+// channel: they bypass the user-facing output format (including --json) so the
+// payload remains readable when piped, and they should be visible regardless of
+// any future output-suppression flags. See issue #223 for the full discussion.
 export function createApiClient(
   credentialStore: ICredentialStore,
+  output: IOutputService,
   oauthService?: OAuthService
 ): AxiosInstance {
   const instance = axios.create({
@@ -188,9 +197,15 @@ export function createApiClient(
             const status = error.response.status;
             const label =
               status === 429 ? 'Rate limited' : `Server error (${status})`;
-            console.error(
-              `${label}, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${config.__retryCount}/${MAX_RETRIES})...`
-            );
+            // Suppress retry chatter in --json mode so it doesn't pollute the
+            // structured pipeline reading from this process. Outside JSON mode,
+            // route through `output.warning()` for the standard ⚠ prefix and
+            // --no-color handling.
+            if (!output.isJsonMode()) {
+              output.warning(
+                `${label}, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${config.__retryCount}/${MAX_RETRIES})...`
+              );
+            }
             await sleep(delay);
             return instance(config);
           }

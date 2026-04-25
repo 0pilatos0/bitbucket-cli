@@ -80,7 +80,7 @@ export class ListSnippetsCommand extends BaseCommand<
     }
 
     if (snippets.length === 0) {
-      this.output.text('No snippets found');
+      this.output.info('No snippets found');
       return;
     }
 

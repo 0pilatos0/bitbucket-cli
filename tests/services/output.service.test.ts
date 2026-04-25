@@ -195,6 +195,33 @@ describe('OutputService', () => {
     });
   });
 
+  describe('isJsonMode', () => {
+    it('returns false by default', () => {
+      expect(output.isJsonMode()).toBe(false);
+    });
+
+    it('returns true after setJsonFormatOptions({ json: true })', () => {
+      output.setJsonFormatOptions({ json: true });
+      expect(output.isJsonMode()).toBe(true);
+    });
+
+    it('returns false when json is false or undefined', () => {
+      output.setJsonFormatOptions({ json: false });
+      expect(output.isJsonMode()).toBe(false);
+
+      output.setJsonFormatOptions({ fields: ['id'] });
+      expect(output.isJsonMode()).toBe(false);
+    });
+
+    it('clears json mode when options are reset to {}', () => {
+      output.setJsonFormatOptions({ json: true });
+      expect(output.isJsonMode()).toBe(true);
+
+      output.setJsonFormatOptions({});
+      expect(output.isJsonMode()).toBe(false);
+    });
+  });
+
   describe('jsonError', () => {
     it('should output compact JSON to stderr', () => {
       output.jsonError({ name: 'BBError', code: 4003, message: 'Invalid key' });
@@ -298,6 +325,38 @@ describe('OutputService', () => {
       output.text('');
 
       expect(consoleLogs[0]).toBe('');
+    });
+  });
+
+  describe('separator', () => {
+    it('should render a 60-character Unicode line by default', () => {
+      output.separator();
+
+      expect(consoleLogs).toHaveLength(1);
+      // Strip ANSI color codes for the character/length assertion
+      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      expect(plain).toBe('─'.repeat(60));
+    });
+
+    it('should respect a custom width', () => {
+      output.separator(20);
+
+      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      expect(plain).toBe('─'.repeat(20));
+    });
+
+    it('should print an empty line for non-positive widths', () => {
+      output.separator(0);
+      output.separator(-5);
+
+      expect(consoleLogs).toEqual(['', '']);
+    });
+
+    it('should emit no ANSI codes when noColor is true', () => {
+      const noColorOutput = new OutputService({ noColor: true });
+      noColorOutput.separator(10);
+
+      expect(consoleLogs[0]).toBe('─'.repeat(10));
     });
   });
 
@@ -692,6 +751,56 @@ describe('OutputService', () => {
       expect(result).toMatch(/Jun/);
       expect(result).toMatch(/15/);
       expect(result).toMatch(/:\d{2}/); // HH:MM marker
+    });
+  });
+
+  describe('formatDate locale support', () => {
+    it('defaults to en-US formatting (US-style "Jun 15") when no locale is configured', () => {
+      const defaultOutput = new OutputService();
+      const result = defaultOutput.formatDate('2024-06-15T10:30:00Z');
+
+      // en-US renders the month abbreviation before the day.
+      expect(result).toMatch(/Jun/);
+      expect(result.indexOf('Jun')).toBeLessThan(result.indexOf('15'));
+    });
+
+    it('honours an explicit locale (de-DE renders day before month)', () => {
+      const localized = new OutputService({ locale: 'de-DE' });
+      const result = localized.formatDate('2024-06-15T10:30:00Z');
+
+      expect(result).toContain('15');
+      expect(result).toContain('2024');
+      // de-DE uses "15. Juni 2024 ..." or similar; in either case the day
+      // appears before the year in the rendered string.
+      expect(result.indexOf('15')).toBeLessThan(result.indexOf('2024'));
+    });
+
+    it('honours an explicit locale (ja-JP includes the year-suffix character)', () => {
+      const localized = new OutputService({ locale: 'ja-JP' });
+      const result = localized.formatDate('2024-06-15T10:30:00Z');
+
+      // ja-JP's short-month formatter renders the year with the 年 suffix.
+      expect(result).toContain('2024');
+      expect(result).toContain('年');
+    });
+
+    it('falls back to en-US when given an invalid locale tag', () => {
+      const broken = new OutputService({ locale: 'not a valid tag!!' });
+      const result = broken.formatDate('2024-06-15T10:30:00Z');
+
+      // Identical shape to the default — we should not throw, and we should
+      // produce something a human can read.
+      expect(result).toContain('Jun');
+      expect(result).toContain('15');
+      expect(result).toContain('2024');
+    });
+
+    it('formats a Date instance through the configured locale', () => {
+      const localized = new OutputService({ locale: 'de-DE' });
+      const result = localized.formatDate(new Date('2024-12-25T08:00:00Z'));
+
+      expect(result).toContain('25');
+      expect(result).toContain('2024');
     });
   });
 });

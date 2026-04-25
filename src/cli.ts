@@ -15,6 +15,7 @@ import type { VersionService } from './services/version.service.js';
 import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
+import { resolveLocale } from './services/locale.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
@@ -66,6 +67,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--no-color',
   '--workspace',
   '--repo',
+  '--locale',
 ];
 
 const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
@@ -139,6 +141,32 @@ if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   }
 }
 
+/**
+ * Pull the value of `--locale <locale>` (or `--locale=<locale>`) out of
+ * argv before Commander parses it, mirroring how `--no-color` is handled.
+ * The locale must influence `OutputService` construction during bootstrap,
+ * which runs before any Commander action handlers fire.
+ */
+export function extractLocaleArg(argv: string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === undefined) {
+      continue;
+    }
+    if (arg === '--locale') {
+      const next = argv[i + 1];
+      if (typeof next === 'string' && !next.startsWith('-')) {
+        return next;
+      }
+      return undefined;
+    }
+    if (arg.startsWith('--locale=')) {
+      return arg.slice('--locale='.length);
+    }
+  }
+  return undefined;
+}
+
 export function resolveNoColorSetting(
   argv: string[],
   env: NodeJS.ProcessEnv
@@ -167,8 +195,12 @@ export function resolveNoColorSetting(
 // Bootstrap the container
 const noColor = resolveNoColorSetting(process.argv, process.env);
 const buildHelpText = createHelpTextBuilder(noColor);
+const locale = resolveLocale({
+  explicit: extractLocaleArg(process.argv),
+  env: process.env,
+});
 
-const container = bootstrap({ noColor });
+const container = bootstrap({ noColor, locale });
 
 // Helper to create command context. Validation errors from --json/--jq
 // parsing are deferred onto `context.validationError` so they can be raised
@@ -278,6 +310,10 @@ cli
     'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
   )
   .option('--no-color', 'Disable color output')
+  .option(
+    '--locale <locale>',
+    'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
+  )
   .option('-w, --workspace <workspace>', 'Specify workspace')
   .option('-r, --repo <repo>', 'Specify repository')
   .addHelpText(
@@ -289,6 +325,8 @@ cli
         NO_COLOR: 'Disable color output when set',
         FORCE_COLOR: "Force color output when set (and not '0')",
         DEBUG: "Enable HTTP debug logging when 'true'",
+        BB_LOCALE:
+          'BCP-47 locale tag for date/time formatting; --locale takes precedence',
       },
       seeAlso: [
         {
@@ -322,13 +360,13 @@ cli
       const result = await versionService.checkForUpdate();
       if (result?.updateAvailable) {
         output.text('');
-        output.text('─'.repeat(50));
-        output.text(
-          `⚠ A new version is available: ${result.latestVersion} (you have ${result.currentVersion})`
+        output.separator(50);
+        output.warning(
+          `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})\n` +
+            `  Run '${versionService.getInstallCommand()}' to update\n` +
+            `  Or disable with 'bb config set skipVersionCheck true'`
         );
-        output.text(`  Run '${versionService.getInstallCommand()}' to update`);
-        output.text(`  Or disable with 'bb config set skipVersionCheck true'`);
-        output.text('─'.repeat(50));
+        output.separator(50);
       }
     } catch {
       // Silently ignore version check errors

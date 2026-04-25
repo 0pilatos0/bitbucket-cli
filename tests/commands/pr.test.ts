@@ -621,9 +621,7 @@ describe('ListPRsCommand', () => {
     );
     await command.execute({}, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) => log.includes('No open pull requests found'))
-    ).toBe(true);
+    expect(output.logs).toContain('info:No open pull requests found');
   });
 
   it('should label draft pull requests', async () => {
@@ -841,9 +839,7 @@ describe('ViewPRCommand', () => {
     const command = new ViewPRCommand(pullrequestsApi, contextService, output);
     await command.execute({ id: '1' }, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) => log.includes('No reviewers assigned'))
-    ).toBe(true);
+    expect(output.logs).toContain('info:No reviewers assigned');
   });
 
   it('should render approved, changes requested, and pending reviewer statuses', async () => {
@@ -3079,7 +3075,7 @@ describe('DeleteCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });
 

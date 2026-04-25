@@ -94,6 +94,7 @@ import { BrowseCommand } from './commands/browse.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
+  locale?: string;
 }
 
 type Ctor<T> = new (...args: never[]) => T;
@@ -121,7 +122,14 @@ function registerApiClient<T>(
     const oauthService = container.resolve<OAuthService>(
       ServiceTokens.OAuthService
     );
-    const axiosInstance = createApiClient(credentialStore, oauthService);
+    const outputService = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    const axiosInstance = createApiClient(
+      credentialStore,
+      outputService,
+      oauthService
+    );
     return new ctor(undefined, undefined, axiosInstance);
   });
 }
@@ -156,7 +164,11 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
     ServiceTokens.OutputService,
-    () => new OutputService({ noColor: options.noColor })
+    () =>
+      new OutputService({
+        noColor: options.noColor,
+        locale: options.locale,
+      })
   );
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.ConfigService,
@@ -186,7 +198,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const oauthService = container.resolve<OAuthService>(
       ServiceTokens.OAuthService
     );
-    return createApiClient(credentialStore, oauthService);
+    const outputService = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return createApiClient(credentialStore, outputService, oauthService);
   });
   container.register(ServiceTokens.SnippetsApi, () => {
     const axiosInstance = container.resolve<AxiosInstance>(

@@ -263,6 +263,7 @@ export function createMockContextService(
 
 export function createMockOutputService(): IOutputService & { logs: string[] } {
   const logs: string[] = [];
+  let jsonMode = false;
 
   return {
     logs,
@@ -272,8 +273,11 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     jsonError(data: unknown) {
       logs.push(`jsonError:${JSON.stringify(data)}`);
     },
-    setJsonFormatOptions() {
-      // No-op in tests; commands log raw payloads via `json:` prefix.
+    setJsonFormatOptions(options) {
+      jsonMode = options.json === true;
+    },
+    isJsonMode() {
+      return jsonMode;
     },
     spinner(text: string) {
       // Records lifecycle events but never animates. Tests can assert on the
@@ -322,6 +326,9 @@ export function createMockOutputService(): IOutputService & { logs: string[] } {
     },
     text(message: string) {
       logs.push(`text:${message}`);
+    },
+    separator(width = 60) {
+      logs.push(`separator:${width}`);
     },
     truncate(text: string, maxLength: number, suffix = '...') {
       if (maxLength <= 0 || text.length <= maxLength) {

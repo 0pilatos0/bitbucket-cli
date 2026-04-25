@@ -266,9 +266,7 @@ describe('ListSnippetsCommand', () => {
 
     await cmd.run({ workspace: 'workspace' }, makeContext());
 
-    expect(output.logs.some((log) => log.includes('No snippets found'))).toBe(
-      true
-    );
+    expect(output.logs).toContain('info:No snippets found');
   });
 
   it('should resolve workspace from config when not provided', async () => {
@@ -777,7 +775,7 @@ describe('DeleteSnippetCommand', () => {
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });
 
@@ -986,6 +984,6 @@ describe('DeleteSnippetCommentCommand', () => {
         { snippetId: 'kypj', commentId: '1', workspace: 'workspace' },
         makeContext()
       )
-    ).rejects.toThrow('Use --yes to confirm deletion');
+    ).rejects.toThrow('Use --yes to confirm');
   });
 });

@@ -9,7 +9,6 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { SnippetsApi } from '../../generated/api.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface DeleteSnippetOptions {
   workspace?: string;
@@ -39,14 +38,10 @@ export class DeleteSnippetCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    if (!options.yes) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message:
-          `This will permanently delete snippet ${options.id}.\n` +
-          'Use --yes to confirm deletion.',
-      });
-    }
+    this.requireConfirmation(
+      options.yes,
+      `This will permanently delete snippet ${options.id}.`
+    );
 
     await this.snippetsApi.snippetsWorkspaceEncodedIdDelete({
       workspace,
