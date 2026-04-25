@@ -14,11 +14,11 @@ updates. Please upgrade to the most recent version before reporting an issue.
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
-Instead, report them privately using GitHub's
-[private vulnerability reporting](https://github.com/0pilatos0/bitbucket-cli/security/advisories/new)
-feature. If that is not available to you, email the maintainer at
-**paulvanderlei@hotmail.nl** with the subject line
-`SECURITY: bitbucket-cli`.
+Report vulnerabilities privately through GitHub's
+[private vulnerability reporting](https://github.com/0pilatos0/bitbucket-cli/security/advisories/new).
+This is the only supported channel — it ensures the report stays confidential,
+gets triaged in the right place, and can be tracked through to a published
+GitHub Security Advisory.
 
 Please include as much of the following as you can:
 
