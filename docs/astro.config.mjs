@@ -77,6 +77,11 @@ export default defineConfig({
               },
             },
             { label: "Snippet Commands", slug: "commands/snippet" },
+            {
+              label: "Browse",
+              slug: "commands/browse",
+              badge: { text: "New", variant: "tip" },
+            },
             { label: "Config Commands", slug: "commands/config" },
             { label: "Completion", slug: "commands/completion" },
           ],

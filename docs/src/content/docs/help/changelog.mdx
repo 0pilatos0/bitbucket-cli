@@ -14,6 +14,35 @@ and is updated on every release.
   See [Configuration File](/reference/configuration/) for related settings.
 </Aside>
 
+## Unreleased — `bb browse`
+
+Open Bitbucket Cloud web pages — repo home, files, branches, commits, pull
+requests, pipelines, settings — directly from the terminal. Mirrors
+`gh browse`.
+
+- Smart positional resolution: `bb browse 217` opens PR #217,
+  `bb browse abc1234` opens a commit, `bb browse src/cli.ts:42` opens a file
+  at a line on the current branch.
+- Resource flags for every top-level repo page: `--pr`, `--prs`, `--branch`,
+  `--branches`, `--commit` (defaults to HEAD), `--commits`, `--pipelines`,
+  `--pipeline`, `--downloads`, `--issue`, `--issues`, `--wiki`, `--settings`.
+- `--no-browser` prints the URL to stdout; `--json url` emits
+  `{ "url": "..." }` for scripting.
+- Outside a git checkout, falls back to Bitbucket's `HEAD` segment so
+  `--workspace`/`--repo` overrides Just Work.
+
+```bash
+bb browse                                # repo home
+bb browse src/cli.ts:42                  # file at a line on the current branch
+bb browse --branch release/2.0           # branch tree
+bb browse 217                            # PR #217
+bb browse --pipelines                    # pipelines tab
+bb browse --pr 217 --json url            # capture the URL for a script
+```
+
+See the [Browse command reference](/commands/browse/) for the full flag list
+and examples.
+
 ## 1.14.0 — `--json <fields>` projection and `--jq <expression>`
 
 Match the `gh` CLI's JSON formatting flags so muscle memory and scripts port

@@ -1,0 +1,159 @@
+---
+title: Browse Command — Open Bitbucket Pages from the Terminal
+description: Open Bitbucket Cloud web pages — repo home, files, branches, commits, pull requests, pipelines, settings — directly from the CLI, or print the URL for scripts.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`bb browse` opens Bitbucket Cloud web pages — repo home, files, branches,
+commits, pull requests, pipelines, settings, and more — in your default
+browser. Mirrors `gh browse`.
+
+It also doubles as a script-friendly URL builder: pass `--no-browser` to
+print the URL instead, or `--json url` for machine-readable output.
+
+Global options: `--json [fields]`, `--jq <expression>`, `--no-color`,
+`-w, --workspace`, `-r, --repo`.
+
+## `bb browse`
+
+```bash
+bb browse [target] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `target` | Optional positional. Resolved by shape: pure digits → PR id, 7–40 hex chars → commit SHA, anything else → file/dir path. Append `:<line>` to a path for a line anchor (e.g. `src/cli.ts:42`). |
+
+### Resource flags
+
+Resource flags are mutually exclusive — pick at most one. They cannot be
+combined with a positional `target` (except `--branch`, which is a modifier
+that pairs with a path target).
+
+| Option | Opens |
+|--------|-------|
+| `--pr <id>` | A specific pull request |
+| `--prs` | The pull-requests list |
+| `--pull-requests` | Alias for `--prs` |
+| `--branch <name>` | The branch source tree (or, with `<target>`, that path on the branch) |
+| `--branches` | The branches list |
+| `--commit [sha]` | A specific commit (defaults to current HEAD when no SHA is given) |
+| `--commits` | The commits list |
+| `--pipelines` | The pipelines page |
+| `--pipeline <id>` | A specific pipeline run |
+| `--downloads` | The downloads page |
+| `--issue <id>` | A specific issue |
+| `--issues` | The issue tracker |
+| `--wiki` | The wiki |
+| `--settings` | Repository admin / settings |
+
+### Behavior flags
+
+| Option | Description |
+|--------|-------------|
+| `-n, --no-browser` | Print the URL to stdout instead of opening it |
+| `--json [fields]` | Emit `{ "url": "..." }` (does not open the browser) |
+
+### Examples
+
+```bash
+# Repo home
+bb browse
+
+# A file at the current branch
+bb browse src/cli.ts
+
+# A file at a specific line
+bb browse src/cli.ts:42
+
+# A file on a specific branch
+bb browse --branch release/2.0 src/cli.ts
+
+# Just the branch tree
+bb browse --branch release/2.0
+
+# Pull request #217 (positional shorthand)
+bb browse 217
+
+# Pull request #217 (explicit)
+bb browse --pr 217
+
+# Pull-request list
+bb browse --prs
+
+# A commit by SHA
+bb browse abc1234
+
+# Current HEAD commit
+bb browse --commit
+
+# Pipelines tab
+bb browse --pipelines
+
+# Repo settings
+bb browse --settings
+
+# Print the URL only — useful in scripts and pipes
+bb browse --pr 217 --no-browser
+
+# Script-friendly URL retrieval
+bb browse --pr 217 --json url
+```
+
+### Notes
+
+- **Positional disambiguation.** A bare `<number>` is treated as a pull
+  request id (the most common case). Use `--issue <id>` to open an issue
+  with the same number.
+- **Branch defaulting.** When you give a path target without `--branch`,
+  the CLI uses your current git branch (`git rev-parse --abbrev-ref HEAD`).
+  Outside a git checkout (when using `--workspace`/`--repo` overrides), it
+  falls back to the literal `HEAD` segment, which Bitbucket resolves
+  server-side to the repository's default branch.
+- **URL encoding.** Workspace and repo slugs, branch names, and path
+  segments are URL-encoded individually, so branches with slashes
+  (`feature/foo`) and paths or names with spaces still produce valid URLs.
+  Path separators (`/` between segments) are preserved.
+- **No API call required for most variants.** `bb browse` is primarily a
+  URL-construction command; only `--commit` (no SHA) makes a local
+  `git rev-parse HEAD` call.
+- **`--json` does not open the browser.** Either output mode (JSON or
+  `--no-browser`) suppresses the open action, so scripts can capture the
+  URL deterministically.
+
+### Output
+
+In default mode, `bb browse` prints a short status line and shells out to
+the [`open`](https://www.npmjs.com/package/open) helper to launch the URL.
+
+With `--no-browser`:
+
+```text
+https://bitbucket.org/myworkspace/myrepo/pull-requests/217
+```
+
+With `--json`:
+
+```json
+{
+  "url": "https://bitbucket.org/myworkspace/myrepo/pull-requests/217"
+}
+```
+
+Combine with `--jq` to pluck just the URL string:
+
+```bash
+bb browse --pr 217 --json url --jq '.url'
+```
+
+### Related
+
+- [`bb pr diff --web`](/commands/pr/diff-and-checkout/) — open the PR
+  diff page directly in the browser.
+- [Repository Context](/guides/repository-context/) — how the CLI infers
+  workspace and repo from your current directory.
+- [Scripting & Automation](/guides/scripting/) — capture URLs from
+  `bb browse` to feed other tools.

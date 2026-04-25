@@ -103,6 +103,8 @@ Here are the commands you'll use most often:
 | `bb pr checkout 42` | Checkout PR #42 locally |
 | `bb pr diff 42` | View PR #42 diff |
 | `bb repo list` | List repositories |
+| `bb browse 42` | Open PR #42 in your browser |
+| `bb browse src/cli.ts:20` | Open a file at a specific line in your browser |
 
 ---
 
@@ -136,6 +138,7 @@ Restart your shell, then try:
 ```bash
 bb pr <Tab>      # Shows: activity, approve, checkout, create, decline, diff, list, merge, ready, view
 bb pr create -<Tab>  # Shows available flags
+bb <Tab>         # Shows: auth, repo, pr, snippet, browse, config, completion
 ```
 
 ---
