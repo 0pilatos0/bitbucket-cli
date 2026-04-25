@@ -63,7 +63,7 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     }
 
     if (repos.length === 0) {
-      this.output.text('No repositories found');
+      this.output.info('No repositories found');
       return;
     }
 
