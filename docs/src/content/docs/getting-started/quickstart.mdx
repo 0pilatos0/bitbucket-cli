@@ -140,6 +140,24 @@ bb pr create -<Tab>  # Shows available flags
 
 ---
 
+## Scripting with JSON
+
+Every command accepts `--json` for machine-readable output. You can project to a comma-separated field list and filter results through a built-in `jq` engine — no external `jq` binary required:
+
+```bash
+# Project to specific fields
+bb pr list --json id,title,state
+
+# Filter through built-in jq
+bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
+```
+
+<Aside type="tip">
+See [JSON Output](/reference/json-output/) for the full shape reference and the [Scripting guide](/guides/scripting/) for end-to-end automation patterns.
+</Aside>
+
+---
+
 ## Update notifications
 
 When a newer version is available on npm, `bb` prints a one-time nudge after
@@ -170,6 +188,7 @@ You're all set! Here's where to go next:
 - **[Command Reference](/commands/auth/)** - Full documentation for all commands
 - **[Repository Context](/guides/repository-context/)** - How the CLI detects your workspace/repo
 - **[Scripting & Automation](/guides/scripting/)** - Use bb in scripts and CI/CD
+- **[JSON Output Reference](/reference/json-output/)** - Field projection, `--jq` filtering, output shapes
 - **[AI Agent Integration](/guides/ai-agents/)** - Wire the CLI into Claude Code, Cursor, or Windsurf
 - **[Changelog](/help/changelog/)** - What's new in recent releases
 - **[Troubleshooting](/help/troubleshooting/)** - Common issues and solutions
