@@ -94,6 +94,7 @@ import { BrowseCommand } from './commands/browse.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
+  noUnicode?: boolean;
   locale?: string;
 }
 
@@ -167,6 +168,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     () =>
       new OutputService({
         noColor: options.noColor,
+        noUnicode: options.noUnicode,
         locale: options.locale,
       })
   );

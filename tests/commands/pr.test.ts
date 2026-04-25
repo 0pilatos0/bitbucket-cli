@@ -796,6 +796,72 @@ describe('ListPRsCommand', () => {
     const opts = capturedAxiosOptions as { params: Record<string, unknown> };
     expect(opts.params.q).toBeUndefined();
   });
+
+  it('should use ASCII arrow in branch column when noUnicode mode is on', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        id: 1,
+        source: {
+          branch: { name: 'feature' },
+        } as unknown as import('../../src/generated/api.js').PullrequestSource,
+        destination: {
+          branch: { name: 'main' },
+        } as unknown as import('../../src/generated/api.js').PullrequestDestination,
+      },
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService({ noUnicode: true });
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute({}, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows[0]?.[3]).toBe('feature -> main');
+  });
+
+  it('should use Unicode arrow in branch column by default', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        id: 1,
+        source: {
+          branch: { name: 'feature' },
+        } as unknown as import('../../src/generated/api.js').PullrequestSource,
+        destination: {
+          branch: { name: 'main' },
+        } as unknown as import('../../src/generated/api.js').PullrequestDestination,
+      },
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
+
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      usersApi,
+      contextService,
+      output
+    );
+    await command.execute({}, { globalOptions: {} });
+
+    const rows = getTableRows(output.logs);
+    expect(rows[0]?.[3]).toBe('feature → main');
+  });
 });
 
 describe('ViewPRCommand', () => {
@@ -936,6 +1002,54 @@ describe('ViewPRCommand', () => {
     expect(joined).toContain('Carol Pending');
     expect(joined).toContain('pending');
     expect(joined).not.toContain('Dan Drive-by');
+  });
+
+  it('should fall back to ASCII separators, arrows, and reviewer icons under noUnicode', async () => {
+    const prs = [
+      {
+        ...mockPullRequest,
+        participants: [
+          {
+            role: 'REVIEWER',
+            approved: true,
+            user: { display_name: 'Alice Approver' },
+          },
+          {
+            role: 'REVIEWER',
+            approved: false,
+            state: 'changes_requested',
+            user: { display_name: 'Bob Blocker' },
+          },
+          {
+            role: 'REVIEWER',
+            approved: false,
+            user: { display_name: 'Carol Pending' },
+          },
+        ],
+      } as unknown as Pullrequest,
+    ];
+    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService({ noUnicode: true });
+
+    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    const joined = output.logs.join('\n');
+    // No unicode glyphs.
+    expect(joined).not.toContain('─');
+    expect(joined).not.toContain('→');
+    expect(joined).not.toContain('○');
+    expect(joined).not.toContain('✓');
+    expect(joined).not.toContain('✗');
+    // ASCII fallbacks come through.
+    expect(joined).toContain('->');
+    expect(joined).toContain('[OK]'); // approved
+    expect(joined).toContain('[X]'); // changes requested
+    expect(joined).toContain('[ ]'); // pending
   });
 
   it('should render merge commit hash when PR is merged', async () => {

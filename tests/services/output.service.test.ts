@@ -402,6 +402,80 @@ describe('OutputService', () => {
     });
   });
 
+  describe('noUnicode option', () => {
+    it('passes through unicode glyphs by default', () => {
+      const out = new OutputService();
+      expect(out.symbol('✓', 'OK')).toBe('✓');
+      expect(out.symbol('─', '-')).toBe('─');
+      expect(out.symbol('→', '->')).toBe('→');
+    });
+
+    it('returns the ASCII fallback when noUnicode is true', () => {
+      const out = new OutputService({ noUnicode: true });
+      expect(out.symbol('✓', 'OK')).toBe('OK');
+      expect(out.symbol('─', '-')).toBe('-');
+      expect(out.symbol('→', '->')).toBe('->');
+    });
+
+    it('substitutes ASCII fallbacks in success output', () => {
+      const out = new OutputService({ noUnicode: true });
+      out.success('done');
+
+      expect(consoleLogs[0]).toContain('OK');
+      expect(consoleLogs[0]).toContain('done');
+      expect(consoleLogs[0]).not.toContain('✓');
+    });
+
+    it('substitutes ASCII fallbacks in error output', () => {
+      const out = new OutputService({ noUnicode: true });
+      out.error('boom');
+
+      expect(consoleErrors[0]).toContain('ERR');
+      expect(consoleErrors[0]).toContain('boom');
+      expect(consoleErrors[0]).not.toContain('✗');
+    });
+
+    it('substitutes ASCII fallbacks in warning output', () => {
+      const out = new OutputService({ noUnicode: true });
+      out.warning('careful');
+
+      expect(consoleWarns[0]).toContain('!!');
+      expect(consoleWarns[0]).toContain('careful');
+      expect(consoleWarns[0]).not.toContain('⚠');
+    });
+
+    it('substitutes ASCII fallbacks in info output', () => {
+      const out = new OutputService({ noUnicode: true });
+      out.info('hello');
+
+      expect(consoleLogs[0]).toContain('hello');
+      expect(consoleLogs[0]).not.toContain('ℹ');
+    });
+
+    it('keeps Unicode glyphs in info/success/warning/error when noUnicode is false', () => {
+      const out = new OutputService({ noUnicode: false });
+      out.success('a');
+      out.error('b');
+      out.warning('c');
+      out.info('d');
+
+      expect(consoleLogs[0]).toContain('✓');
+      expect(consoleErrors[0]).toContain('✗');
+      expect(consoleWarns[0]).toContain('⚠');
+      expect(consoleLogs[1]).toContain('ℹ');
+    });
+
+    it('is independent from noColor', () => {
+      // noColor and noUnicode are orthogonal: a terminal with full color
+      // support may still have broken glyph rendering, and vice versa.
+      const colored = new OutputService({ noColor: false, noUnicode: true });
+      expect(colored.symbol('✓', 'OK')).toBe('OK');
+
+      const plain = new OutputService({ noColor: true, noUnicode: false });
+      expect(plain.symbol('✓', 'OK')).toBe('✓');
+    });
+  });
+
   describe('noColor option', () => {
     it('should strip colors when noColor is true', () => {
       const noColorOutput = new OutputService({ noColor: true });

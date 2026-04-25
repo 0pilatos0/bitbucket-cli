@@ -59,12 +59,18 @@ const WRAPPER_ARRAY_KEYS: readonly string[] = [
 
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
+  private readonly noUnicode: boolean;
   private readonly locale: string;
   private jsonFormatOptions: JsonFormatOptions = {};
   private activeSpinner: ISpinner | null = null;
 
-  constructor(options?: { noColor?: boolean; locale?: string }) {
+  constructor(options?: {
+    noColor?: boolean;
+    noUnicode?: boolean;
+    locale?: string;
+  }) {
     this.noColor = options?.noColor ?? false;
+    this.noUnicode = options?.noUnicode ?? false;
     this.locale = options?.locale ?? DEFAULT_LOCALE;
   }
 
@@ -180,26 +186,30 @@ export class OutputService implements IOutputService {
 
   public success(message: string): void {
     this.stopActiveSpinner();
-    const symbol = this.format('✓', chalk.green);
+    const symbol = this.format(this.symbol('✓', 'OK'), chalk.green);
     console.log(`${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
     this.stopActiveSpinner();
-    const symbol = this.format('✗', chalk.red);
+    const symbol = this.format(this.symbol('✗', 'ERR'), chalk.red);
     console.error(`${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
     this.stopActiveSpinner();
-    const symbol = this.format('⚠', chalk.yellow);
+    const symbol = this.format(this.symbol('⚠', '!!'), chalk.yellow);
     console.warn(`${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
     this.stopActiveSpinner();
-    const symbol = this.format('ℹ', chalk.blue);
+    const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
     console.log(`${symbol} ${stripControl(message)}`);
+  }
+
+  public symbol(unicode: string, ascii: string): string {
+    return this.noUnicode ? ascii : unicode;
   }
 
   public text(message: string): void {
@@ -213,7 +223,7 @@ export class OutputService implements IOutputService {
       console.log('');
       return;
     }
-    console.log(this.format('─'.repeat(width), chalk.gray));
+    console.log(this.format(this.symbol('─', '-').repeat(width), chalk.gray));
   }
 
   /**

@@ -65,6 +65,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--version',
   '--json',
   '--no-color',
+  '--no-unicode',
   '--no-truncate',
   '--workspace',
   '--repo',
@@ -193,15 +194,34 @@ export function resolveNoColorSetting(
   return hasNoColorEnv;
 }
 
+/**
+ * Decide whether the CLI should suppress Unicode glyphs (separators, arrows,
+ * status icons) and fall back to ASCII. Mirrors the precedence used by `gh`
+ * for `GH_NO_UNICODE`: an explicit `--no-unicode` flag wins, otherwise any
+ * non-empty `BB_NO_UNICODE` env var enables it. Resolved before Commander
+ * parses argv so the OutputService and help-text rendering see the same
+ * setting.
+ */
+export function resolveNoUnicodeSetting(
+  argv: string[],
+  env: NodeJS.ProcessEnv
+): boolean {
+  if (argv.includes('--no-unicode')) {
+    return true;
+  }
+  return env.BB_NO_UNICODE !== undefined && env.BB_NO_UNICODE !== '';
+}
+
 // Bootstrap the container
 const noColor = resolveNoColorSetting(process.argv, process.env);
+const noUnicode = resolveNoUnicodeSetting(process.argv, process.env);
 const buildHelpText = createHelpTextBuilder(noColor);
 const locale = resolveLocale({
   explicit: extractLocaleArg(process.argv),
   env: process.env,
 });
 
-const container = bootstrap({ noColor, locale });
+const container = bootstrap({ noColor, noUnicode, locale });
 
 // Helper to create command context. Validation errors from --json/--jq
 // parsing are deferred onto `context.validationError` so they can be raised
@@ -244,6 +264,7 @@ function createContext(program: Command): CommandContext {
       jsonFields,
       jq: jqOpt,
       noColor: opts.color === false,
+      noUnicode: opts.unicode === false || noUnicode,
       noTruncate: opts.truncate === false,
       workspace: opts.workspace,
       repo: opts.repo,
@@ -313,6 +334,10 @@ cli
   )
   .option('--no-color', 'Disable color output')
   .option(
+    '--no-unicode',
+    'Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE'
+  )
+  .option(
     '--no-truncate',
     'Show full values in table output without truncation'
   )
@@ -330,6 +355,8 @@ cli
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
         NO_COLOR: 'Disable color output when set',
         FORCE_COLOR: "Force color output when set (and not '0')",
+        BB_NO_UNICODE:
+          'Use ASCII fallbacks for symbols when set (any non-empty value)',
         DEBUG: "Enable HTTP debug logging when 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',

@@ -102,9 +102,10 @@ export class ViewSnippetCommand extends BaseCommand<
         return;
       }
       this.renderSnippet(snippet, fileNames);
+      const fileSep = this.output.symbol('──', '--');
       for (const name of fileNames) {
         this.output.text('');
-        this.output.text(this.output.bold(`── ${name} ──`));
+        this.output.text(this.output.bold(`${fileSep} ${name} ${fileSep}`));
         this.output.text(contents[name] ?? '');
       }
       return;
