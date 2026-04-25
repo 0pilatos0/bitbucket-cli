@@ -499,6 +499,26 @@ describe('CLI command registration', () => {
     // Sanity check: we covered a reasonable number of leaves.
     expect(leaves.length).toBeGreaterThanOrEqual(40);
   });
+
+  it('should attach addHelpText("after") with at least one example to every leaf command', () => {
+    // Commander implements `addHelpText('after', ...)` by registering a
+    // listener for the `afterHelp` event. We assert each leaf command has at
+    // least one such listener and renders an "Examples:" section, so help
+    // coverage cannot silently regress on new commands. See issue #187.
+    const leaves = collectLeafCommands(cli);
+    const missing: string[] = [];
+    for (const leaf of leaves) {
+      if (leaf.listenerCount('afterHelp') < 1) {
+        missing.push(leaf.name());
+        continue;
+      }
+      const help = captureHelp(leaf);
+      if (!help.includes('Examples:') || !help.includes('$ bb ')) {
+        missing.push(leaf.name());
+      }
+    }
+    expect(missing).toEqual([]);
+  });
 });
 
 describe('CLI leaf command options', () => {
