@@ -111,6 +111,11 @@ export default defineConfig({
           items: [
             { label: "Troubleshooting", slug: "help/troubleshooting" },
             { label: "FAQ", slug: "help/faq" },
+            {
+              label: "Changelog",
+              slug: "help/changelog",
+              badge: { text: "New", variant: "tip" },
+            },
           ],
         },
       ],

@@ -140,6 +140,29 @@ bb pr create -<Tab>  # Shows available flags
 
 ---
 
+## Update notifications
+
+When a newer version is available on npm, `bb` prints a one-time nudge after
+the next command finishes:
+
+```text
+⚠ A new version is available: 1.14.0 (you have 1.13.0)
+  Run 'npm install -g @pilatos/bitbucket-cli' to update
+  Or disable with 'bb config set skipVersionCheck true'
+```
+
+The check runs at most once per `versionCheckInterval` (default: 24 hours) and
+is skipped automatically in CI environments. Disable it permanently with:
+
+```bash
+bb config set skipVersionCheck true
+```
+
+See the [Configuration File reference](/reference/configuration/) for related
+settings.
+
+---
+
 ## Next Steps
 
 You're all set! Here's where to go next:
@@ -147,4 +170,6 @@ You're all set! Here's where to go next:
 - **[Command Reference](/commands/auth/)** - Full documentation for all commands
 - **[Repository Context](/guides/repository-context/)** - How the CLI detects your workspace/repo
 - **[Scripting & Automation](/guides/scripting/)** - Use bb in scripts and CI/CD
+- **[AI Agent Integration](/guides/ai-agents/)** - Wire the CLI into Claude Code, Cursor, or Windsurf
+- **[Changelog](/help/changelog/)** - What's new in recent releases
 - **[Troubleshooting](/help/troubleshooting/)** - Common issues and solutions

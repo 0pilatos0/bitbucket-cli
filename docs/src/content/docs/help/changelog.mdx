@@ -1,0 +1,66 @@
+---
+title: Changelog
+description: What's new in Bitbucket CLI — curated highlights from recent releases.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A curated summary of recent releases. The full, machine-generated changelog
+lives in the [GitHub repository](https://github.com/0pilatos0/bitbucket-cli/blob/main/CHANGELOG.md)
+and is updated on every release.
+
+<Aside type="tip">
+  Hide the in-CLI update nudge with `bb config set skipVersionCheck true`.
+  See [Configuration File](/reference/configuration/) for related settings.
+</Aside>
+
+## 1.14.0 — `--json <fields>` projection and `--jq <expression>`
+
+Match the `gh` CLI's JSON formatting flags so muscle memory and scripts port
+over cleanly.
+
+- `--json [fields]` accepts an optional comma-separated field list
+  (e.g. `--json number,title,author.display_name`). Bare `--json` keeps the
+  existing full-object output for backwards compatibility.
+- `--jq <expression>` runs the JSON output through an embedded
+  [`jq-wasm`](https://www.npmjs.com/package/jq-wasm) engine. Requires `--json`.
+- Field projection drops the wrapper around list-style results
+  (e.g. `pullRequests`, `repositories`, `snippets`) and projects per-item,
+  matching `gh` semantics.
+- Dotted paths (`author.display_name`) traverse nested objects.
+- Invalid jq expressions exit non-zero with the underlying jq error.
+
+```bash
+bb pr list --json number,title,state
+bb pr list --json author --jq '.[].author.display_name'
+bb pr list --json number,title,state --jq '.[] | select(.state == "OPEN") | .title'
+```
+
+See the [Scripting & Automation guide](/guides/scripting/) for end-to-end
+examples.
+
+## 1.13.x — Stability and CI hardening
+
+- **CI runs the full test + build matrix on Ubuntu, macOS, and Windows.** Bun
+  and every GitHub Action are pinned to explicit versions/SHAs, and the release
+  pipeline no longer tags or publishes until lint, format, and tests all pass.
+- **`--limit 0` now errors** instead of silently returning no results.
+  `parseLimit` rejects any non-positive or non-finite value with a
+  `VALIDATION_INVALID` `BBError`.
+- **Generated API client refreshed** from the latest Bitbucket Cloud OpenAPI
+  spec, with a post-generation patch that dedupes duplicate enum declarations
+  and corrects `PipelineSelector.type` optionality.
+
+## 1.13.0 — Default reviewers
+
+- **`bb repo default-reviewers`** lets you inspect and manage the default
+  reviewers configured on a repository, the same list Bitbucket suggests when
+  someone opens a PR through the web UI.
+- **`bb pr create`** picks up those default reviewers automatically when the
+  `prCreateIncludeDefaultReviewers` config key is enabled. See
+  [`bb pr create`](/commands/pr/create-and-edit/) for the full flow.
+
+## Older releases
+
+For releases prior to 1.13.0 — and the complete per-PR commit log — see the
+[full CHANGELOG on GitHub](https://github.com/0pilatos0/bitbucket-cli/blob/main/CHANGELOG.md).
