@@ -1,0 +1,100 @@
+---
+title: Bulk reviewer assignment
+description: Assign a list of reviewers across many open pull requests at once — useful for team rotations, onboarding, and review coverage policies.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The [Scripting guide](/guides/scripting/#example-scripts) covers batch *approval*, but assigning reviewers across many PRs in one pass is a separate workflow. This recipe handles team rotations, onboarding new reviewers, and enforcing minimum reviewer coverage on existing PRs.
+
+## Recipe: assign a fixed reviewer list
+
+The script below adds every username in `REVIEWERS` to every open PR in `WORKSPACE/REPO`. Existing reviewers are not removed; if a reviewer is already assigned, [`bb pr reviewers add`](/commands/pr/reviewers/#bb-pr-reviewers-add) is a no-op.
+
+```bash
+#!/bin/bash
+# bulk-assign-reviewers.sh
+set -euo pipefail
+
+WORKSPACE="${WORKSPACE:-myworkspace}"
+REPO="${REPO:-myrepo}"
+# Space-separated usernames (Bitbucket handles, not display names)
+REVIEWERS="${REVIEWERS:-alice bob charlie}"
+
+# Optional: skip PRs authored by a reviewer (you can't review your own PR)
+SKIP_SELF_REVIEW="${SKIP_SELF_REVIEW:-true}"
+
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json \
+  --jq '.pullRequests[] | "\(.id)\t\(.author.nickname // .author.display_name)"')
+
+while IFS=$'\t' read -r pr_id author; do
+  [ -n "$pr_id" ] || continue
+  echo "PR #$pr_id (by $author)"
+
+  for reviewer in $REVIEWERS; do
+    if [ "$SKIP_SELF_REVIEW" = "true" ] && [ "$reviewer" = "$author" ]; then
+      echo "  - skip $reviewer (PR author)"
+      continue
+    fi
+
+    if bb pr reviewers add "$pr_id" "$reviewer" \
+         -w "$WORKSPACE" -r "$REPO" >/dev/null 2>&1; then
+      echo "  + added $reviewer"
+    else
+      echo "  ! failed to add $reviewer (user not found, or perms)" >&2
+    fi
+
+    sleep 1   # rate-limit cushion
+  done
+done <<< "$open_prs"
+```
+
+### Usage
+
+```bash
+WORKSPACE=myworkspace REPO=myrepo \
+  REVIEWERS="alice bob charlie" \
+  ./bulk-assign-reviewers.sh
+```
+
+<Aside type="tip">
+`bb pr reviewers add` looks up the user via the Bitbucket API every call, which means each iteration costs one extra request. For very large workloads, fetch the UUIDs once and reuse them — see the next recipe.
+</Aside>
+
+## Recipe: rotation by hash bucket
+
+If you want each PR to get *one* reviewer from a pool — for a round-robin team rotation — hash the PR ID into the reviewer list. This produces a stable, reproducible assignment without a database.
+
+```bash
+#!/bin/bash
+# rotation-assign.sh
+set -euo pipefail
+
+WORKSPACE="${WORKSPACE:-myworkspace}"
+REPO="${REPO:-myrepo}"
+POOL=(alice bob charlie dana)
+
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '.pullRequests[].id')
+
+for pr_id in $open_prs; do
+  idx=$(( pr_id % ${#POOL[@]} ))
+  reviewer="${POOL[$idx]}"
+  echo "PR #$pr_id -> $reviewer"
+  bb pr reviewers add "$pr_id" "$reviewer" -w "$WORKSPACE" -r "$REPO" || true
+  sleep 1
+done
+```
+
+## Handling rate limits
+
+The CLI already retries 429 responses up to 3 times automatically. For *very* large bulk operations (hundreds of PRs × multiple reviewers), prefer:
+
+1. A larger sleep between PRs (`sleep 2` or `sleep 3`).
+2. Splitting the run across cron windows.
+3. Wrapping individual `bb` calls in the [retry wrapper](/recipes/retry-wrapper/) for the rare case of *persistent* 429s.
+
+## Related
+
+- [`bb pr reviewers add`](/commands/pr/reviewers/#bb-pr-reviewers-add) — single-PR command this recipe wraps
+- [`bb repo default-reviewers`](/commands/repo/) — repo-level defaults applied at PR creation time, often a better fit if you want this on *new* PRs only
+- [Reviewers reference](/commands/pr/reviewers/) — full subcommand reference

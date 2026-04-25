@@ -1,0 +1,157 @@
+---
+title: Retry wrapper for transient failures
+description: A small shell wrapper that retries bb invocations with exponential backoff when the built-in retry isn't enough.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The CLI already retries HTTP 429, 502, 503, and 504 responses up to **3 times** with exponential backoff — see [Built-in Resilience](/guides/scripting/#built-in-resilience). For nearly every workflow that's enough.
+
+This recipe is for the cases where it isn't:
+
+- A long-running batch job that hits the rate-limit envelope and needs *more* than 3 retries.
+- Network flakes where DNS or TLS itself misbehaves and never reaches the CLI's retry layer.
+- A dependent system (CI runner, proxy) that occasionally rejects requests.
+
+## What you'll see when retry kicks in
+
+The built-in retry is silent on success. On the third and final failure you'll see an error like:
+
+```
+Error: API request failed: 429 Too Many Requests
+```
+
+If you also pass `--json`, the structured error shape on stderr looks like:
+
+```json
+{
+  "error": {
+    "code": "API_ERROR",
+    "message": "API request failed: 429 Too Many Requests"
+  }
+}
+```
+
+That JSON shape is stable — see the [Error Codes reference](/reference/error-codes/). If you see this and the operation is idempotent, retrying is safe.
+
+<Aside type="caution">
+**Don't blanket-retry mutating commands.** `bb pr create`, `bb pr merge`, `bb pr approve`, and similar can succeed *server-side* even when the response read fails. A retry might create a duplicate PR or re-approve. Limit the wrapper below to read-only commands or commands you've made idempotent (e.g., check existence before creating).
+</Aside>
+
+## Recipe: bb-with-retry wrapper
+
+```bash
+#!/bin/bash
+# bb-retry.sh - Run a bb command with exponential backoff.
+#
+# Usage:
+#   ./bb-retry.sh pr list -w myworkspace -r myrepo --json
+#
+# Env vars:
+#   MAX_ATTEMPTS    default 5
+#   INITIAL_DELAY   default 2 (seconds)
+#   MAX_DELAY       default 60 (seconds)
+
+set -euo pipefail
+
+MAX_ATTEMPTS="${MAX_ATTEMPTS:-5}"
+INITIAL_DELAY="${INITIAL_DELAY:-2}"
+MAX_DELAY="${MAX_DELAY:-60}"
+
+attempt=1
+delay="$INITIAL_DELAY"
+
+while true; do
+  if bb "$@"; then
+    exit 0
+  fi
+  exit_code=$?
+
+  if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+    echo "bb $* failed after $attempt attempts (exit $exit_code)" >&2
+    exit "$exit_code"
+  fi
+
+  # Add jitter: ±25% of the current delay
+  jitter=$(( RANDOM % (delay / 2 + 1) - delay / 4 ))
+  sleep_time=$(( delay + jitter ))
+  [ "$sleep_time" -lt 1 ] && sleep_time=1
+
+  echo "bb $* failed (exit $exit_code); retry $((attempt + 1))/$MAX_ATTEMPTS in ${sleep_time}s" >&2
+  sleep "$sleep_time"
+
+  attempt=$(( attempt + 1 ))
+  delay=$(( delay * 2 ))
+  [ "$delay" -gt "$MAX_DELAY" ] && delay="$MAX_DELAY"
+done
+```
+
+### Usage
+
+```bash
+chmod +x bb-retry.sh
+
+# Read-only: safe to retry freely.
+./bb-retry.sh pr list -w myworkspace -r myrepo --json > prs.json
+
+# Tune the cap for big jobs.
+MAX_ATTEMPTS=10 INITIAL_DELAY=5 ./bb-retry.sh pr view 42 --json
+```
+
+## Recipe: retry only on a specific error code
+
+If you only want to retry on rate-limit errors and *not* on, say, authentication failures, parse the structured error:
+
+```bash
+#!/bin/bash
+# bb-retry-on-rate-limit.sh
+set -euo pipefail
+
+MAX_ATTEMPTS=5
+attempt=1
+delay=2
+
+while true; do
+  err_file=$(mktemp)
+  if bb "$@" 2> "$err_file"; then
+    rm -f "$err_file"
+    exit 0
+  fi
+
+  err_msg=$(cat "$err_file")
+  rm -f "$err_file"
+
+  # Retry only on rate-limit / transient gateway errors.
+  if echo "$err_msg" | grep -qE '429|502|503|504'; then
+    if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+      echo "$err_msg" >&2
+      exit 1
+    fi
+    echo "Transient error, retrying in ${delay}s..." >&2
+    sleep "$delay"
+    delay=$(( delay * 2 ))
+    attempt=$(( attempt + 1 ))
+    continue
+  fi
+
+  # Non-transient: fail fast.
+  echo "$err_msg" >&2
+  exit 1
+done
+```
+
+## When *not* to write your own retry
+
+The wrappers above are the right answer when the built-in retry has been exhausted. They are *not* the right answer for:
+
+- **Auth failures** (`Authentication required`) — retrying won't help; fix the credentials.
+- **404 / not-found errors** — these don't get more found over time.
+- **Validation errors** (`requireOption()` failures) — these are bugs in your script, not transient.
+
+The CLI exits with code `1` for all of these, same as for transient errors. Use the JSON error shape on stderr (`.error.code`) to distinguish them rather than retrying everything.
+
+## Related
+
+- [Scripting & Automation: Built-in Resilience](/guides/scripting/#built-in-resilience)
+- [Error Codes reference](/reference/error-codes/) — the stable `.error.code` values to branch on
+- [JSON Output reference](/reference/json-output/) — the success/error envelope shapes

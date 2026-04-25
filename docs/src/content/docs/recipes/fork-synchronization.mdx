@@ -1,0 +1,114 @@
+---
+title: Fork synchronization
+description: Keep a forked Bitbucket repository up to date with its upstream — fetch, rebase, and push using bb and git together.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Fork-based contribution is common in open-source workflows: you fork an upstream repo, work on a feature branch in your fork, and open a PR back to upstream. Forks drift quickly, so you need a routine sync. This recipe combines `bb repo view` to discover the upstream URL and plain `git` for the fetch/rebase/push.
+
+## Prerequisites
+
+- Your local clone is the **fork**, not the upstream.
+- `origin` points at your fork.
+- The upstream is reachable as a separate remote (we'll add it if missing).
+- You have permission to push to your fork's `main` (or whichever branch you want to keep in sync).
+
+## Recipe: one-shot sync
+
+```bash
+#!/bin/bash
+# sync-fork.sh - Keep a fork's main branch in sync with its upstream.
+set -euo pipefail
+
+UPSTREAM_WORKSPACE="${UPSTREAM_WORKSPACE:?set UPSTREAM_WORKSPACE}"
+UPSTREAM_REPO="${UPSTREAM_REPO:?set UPSTREAM_REPO}"
+BRANCH="${BRANCH:-main}"
+
+# 1. Look up the upstream clone URL via bb (HTTPS).
+upstream_url=$(bb repo view \
+  -w "$UPSTREAM_WORKSPACE" -r "$UPSTREAM_REPO" --json \
+  --jq '.links.clone[] | select(.name == "https") | .href')
+
+if [ -z "$upstream_url" ]; then
+  echo "Could not resolve HTTPS clone URL for $UPSTREAM_WORKSPACE/$UPSTREAM_REPO" >&2
+  exit 1
+fi
+
+# 2. Add the upstream remote if it isn't there.
+if ! git remote get-url upstream >/dev/null 2>&1; then
+  echo "Adding upstream remote: $upstream_url"
+  git remote add upstream "$upstream_url"
+else
+  git remote set-url upstream "$upstream_url"
+fi
+
+# 3. Fetch upstream and your fork.
+git fetch upstream "$BRANCH"
+git fetch origin "$BRANCH"
+
+# 4. Switch to the branch and rebase onto upstream.
+git checkout "$BRANCH"
+git rebase "upstream/$BRANCH"
+
+# 5. Push the rebased branch back to your fork.
+#    Use --force-with-lease, NOT --force, so concurrent fork-side pushes aren't clobbered.
+git push --force-with-lease origin "$BRANCH"
+
+echo "Fork '$BRANCH' synced with upstream $UPSTREAM_WORKSPACE/$UPSTREAM_REPO"
+```
+
+### Usage
+
+```bash
+UPSTREAM_WORKSPACE=acme \
+  UPSTREAM_REPO=widget \
+  BRANCH=main \
+  ./sync-fork.sh
+```
+
+<Aside type="caution">
+The script rebases instead of merging. If `main` on your fork has commits that aren't on upstream, the rebase will rewrite their hashes — anyone else pulling from your fork's `main` will see history change. Use a merge instead (`git merge upstream/$BRANCH`) if your fork shares `main` with collaborators.
+</Aside>
+
+## Recipe: sync, then open a PR for a feature branch
+
+A common follow-up: after syncing `main`, rebase your feature branch and open a cross-fork PR back to upstream. `bb pr create` accepts source branch + destination workspace/repo, so you can target the upstream from your fork.
+
+```bash
+#!/bin/bash
+# sync-and-pr.sh
+set -euo pipefail
+
+UPSTREAM_WORKSPACE="${UPSTREAM_WORKSPACE:?}"
+UPSTREAM_REPO="${UPSTREAM_REPO:?}"
+FORK_WORKSPACE="${FORK_WORKSPACE:?}"   # your workspace
+FORK_REPO="${FORK_REPO:?}"             # your fork's repo slug
+FEATURE_BRANCH="${FEATURE_BRANCH:?}"
+TITLE="${TITLE:-Update from $FEATURE_BRANCH}"
+
+# 1. Sync main, then rebase the feature branch onto fresh main.
+BRANCH=main ./sync-fork.sh
+
+git checkout "$FEATURE_BRANCH"
+git rebase main
+git push --force-with-lease origin "$FEATURE_BRANCH"
+
+# 2. Open a PR in the upstream repo, sourced from the fork's branch.
+#    Bitbucket Cloud uses cross-repo PRs by passing the source as a fork.
+bb pr create \
+  -w "$UPSTREAM_WORKSPACE" -r "$UPSTREAM_REPO" \
+  -t "$TITLE" \
+  -s "$FEATURE_BRANCH" \
+  -d main
+```
+
+<Aside type="tip">
+Cross-fork PR creation in Bitbucket Cloud requires that the upstream repo allows forks-as-sources and that you have read access. Check the Bitbucket UI once if `bb pr create` rejects the request — the error message from the API is forwarded as the CLI exit reason.
+</Aside>
+
+## Related
+
+- [Repository Context](/guides/repository-context/) — how `bb` resolves workspace/repo from your git remote
+- [`bb repo view`](/commands/repo/) — used here to fetch the upstream HTTPS clone URL
+- [`bb pr create`](/commands/pr/create-and-edit/) — for the second recipe's cross-fork PR
