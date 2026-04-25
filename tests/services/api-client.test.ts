@@ -13,7 +13,7 @@ import {
 } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
-import { createMockConfigService } from '../setup.js';
+import { createMockConfigService, createMockOutputService } from '../setup.js';
 import type { AxiosInstance } from 'axios';
 
 function mockConfigService() {
@@ -155,7 +155,11 @@ describe('createApiClient - OAuth auth', () => {
     const mockAdapter = createMockAdapter([
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -168,7 +172,11 @@ describe('createApiClient - OAuth auth', () => {
     const mockAdapter = createMockAdapter([
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -185,7 +193,11 @@ describe('createApiClient - OAuth auth', () => {
       { status: 401, data: { error: { message: 'Unauthorized' } } },
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -204,7 +216,11 @@ describe('createApiClient - OAuth auth', () => {
       { status: 401, data: { error: { message: 'Unauthorized' } } },
       { status: 401, data: { error: { message: 'Still unauthorized' } } },
     ]);
-    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -227,7 +243,11 @@ describe('createApiClient - OAuth auth', () => {
     const mockAdapter = createMockAdapter([
       { status: 401, data: { error: { message: 'Unauthorized' } } },
     ]);
-    client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -246,7 +266,11 @@ describe('createApiClient - OAuth auth', () => {
       { status: 401, data: { error: { message: 'Unauthorized' } } },
     ]);
     // basic auth config, but oauthService is provided
-    client = createApiClient(mockConfigService(), oauthMock.service);
+    client = createApiClient(
+      mockConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -286,7 +310,7 @@ describe('createApiClient - retry/backoff', () => {
     const mockAdapter = createMockAdapter([
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -301,7 +325,8 @@ describe('createApiClient - retry/backoff', () => {
       { status: 429, data: { error: { message: 'Rate limited' } } },
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockConfigService());
+    const output = createMockOutputService();
+    client = createApiClient(mockConfigService(), output);
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -309,7 +334,9 @@ describe('createApiClient - retry/backoff', () => {
     expect(response.status).toBe(200);
     expect(response.data).toEqual({ ok: true });
     expect(mockAdapter.getCallCount()).toBe(2);
-    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(output.logs.some((l) => l.startsWith('warning:Rate limited'))).toBe(
+      true
+    );
   });
 
   it('retries on 502 and succeeds on second attempt', async () => {
@@ -317,7 +344,7 @@ describe('createApiClient - retry/backoff', () => {
       { status: 502, data: {} },
       { status: 200, data: { recovered: true } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -335,7 +362,7 @@ describe('createApiClient - retry/backoff', () => {
       { status: 429, data: { error: { message: 'Rate limited' } } },
       { status: 429, data: { error: { message: 'Rate limited' } } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -356,7 +383,7 @@ describe('createApiClient - retry/backoff', () => {
     const mockAdapter = createMockAdapter([
       { status: 404, data: { error: { message: 'Not found' } } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -376,7 +403,7 @@ describe('createApiClient - retry/backoff', () => {
     const mockAdapter = createMockAdapter([
       { status: 401, data: { error: { message: 'Unauthorized' } } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -409,7 +436,7 @@ describe('createApiClient - retry/backoff', () => {
       },
       { status: 200, data: { ok: true } },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     const response = await client.get('/test');
@@ -422,7 +449,7 @@ describe('createApiClient - retry/backoff', () => {
 
   it('throws BBError with NETWORK_ERROR on network failure', async () => {
     const networkMock = createNetworkErrorAdapter();
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = networkMock.adapter as any;
 
     try {
@@ -484,7 +511,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
         },
       },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -508,7 +535,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
         data: { error: 'invalid_grant', access_token: 'leaked' },
       },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -539,7 +566,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
         },
       },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -558,7 +585,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
         data: { access_token: 'should-never-log' },
       },
     ]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -577,7 +604,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
     cyclic.self = cyclic;
 
     const mockAdapter = createMockAdapter([{ status: 200, data: cyclic }]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -596,7 +623,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
     child.parent = parent;
 
     const mockAdapter = createMockAdapter([{ status: 200, data: parent }]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -608,7 +635,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
   it('logs request method and URL when DEBUG is set', async () => {
     process.env.DEBUG = 'true';
     const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/some/resource');
@@ -621,7 +648,7 @@ describe('createApiClient - DEBUG response logging redaction', () => {
   it('redacts query strings from request URL DEBUG logs', async () => {
     process.env.DEBUG = 'true';
     const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
-    client = createApiClient(mockConfigService());
+    client = createApiClient(mockConfigService(), createMockOutputService());
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/some/resource?token=abc&other=xyz');
@@ -668,7 +695,10 @@ describe('createApiClient - authentication header', () => {
       });
     };
 
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = adapter as any;
 
     await client.get('/test');
@@ -702,7 +732,11 @@ describe('createApiClient - authentication header', () => {
     const oauthMock = createMockOAuthService({
       validToken: 'the-bearer-token',
     });
-    const client = createApiClient(mockOAuthConfigService(), oauthMock.service);
+    const client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
     client.defaults.adapter = adapter as any;
 
     await client.get('/test');
@@ -736,7 +770,10 @@ describe('createApiClient - Retry-After parsing', () => {
       { status: 429, data: {} },
       { status: 200, data: { ok: true } },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -763,7 +800,10 @@ describe('createApiClient - Retry-After parsing', () => {
       },
       { status: 200, data: { ok: true } },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -788,7 +828,10 @@ describe('createApiClient - Retry-After parsing', () => {
       },
       { status: 200, data: { ok: true } },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     await client.get('/test');
@@ -822,7 +865,10 @@ describe('createApiClient - error message extraction', () => {
         data: { error: { message: 'Bitbucket: invalid field' } },
       },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -841,7 +887,10 @@ describe('createApiClient - error message extraction', () => {
         data: { message: 'Flat error message' },
       },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -854,7 +903,10 @@ describe('createApiClient - error message extraction', () => {
 
   it('falls back to axios error.message when no body message exists', async () => {
     const mockAdapter = createMockAdapter([{ status: 418, data: null }]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -872,7 +924,10 @@ describe('createApiClient - error message extraction', () => {
         data: { error: { message: { nested: 'object' } } },
       },
     ]);
-    const client = createApiClient(mockConfigService());
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
     client.defaults.adapter = mockAdapter.adapter as any;
 
     try {
@@ -882,5 +937,116 @@ describe('createApiClient - error message extraction', () => {
       expect(typeof (err as APIError).message).toBe('string');
       expect((err as APIError).message).not.toBe('[object Object]');
     }
+  });
+});
+
+describe('createApiClient - retry messages route through IOutputService', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+  let consoleWarnSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+    consoleWarnSpy = spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('routes 429 retry notice through output.warning() rather than console.error', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 429, data: {} },
+      { status: 200, data: { ok: true } },
+    ]);
+    const output = createMockOutputService();
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const warnings = output.logs.filter((l) => l.startsWith('warning:'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('Rate limited');
+    expect(warnings[0]).toContain('attempt 1/3');
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+  });
+
+  it('labels non-429 retryable statuses as "Server error"', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 503, data: {} },
+      { status: 200, data: { ok: true } },
+    ]);
+    const output = createMockOutputService();
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const warnings = output.logs.filter((l) => l.startsWith('warning:'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain('Server error (503)');
+  });
+
+  it('emits one warning per retry attempt before exhausting', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 429, data: {} },
+      { status: 429, data: {} },
+      { status: 429, data: {} },
+      { status: 429, data: {} },
+    ]);
+    const output = createMockOutputService();
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch {
+      // expected
+    }
+
+    const warnings = output.logs.filter((l) => l.startsWith('warning:'));
+    expect(warnings).toHaveLength(3);
+    expect(warnings[0]).toContain('attempt 1/3');
+    expect(warnings[1]).toContain('attempt 2/3');
+    expect(warnings[2]).toContain('attempt 3/3');
+  });
+
+  it('suppresses retry warnings when output is in JSON mode', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 429, data: {} },
+      { status: 200, data: { ok: true } },
+    ]);
+    const output = createMockOutputService();
+    output.setJsonFormatOptions({ json: true });
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const warnings = output.logs.filter((l) => l.startsWith('warning:'));
+    expect(warnings).toHaveLength(0);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+  });
+
+  it('does not emit any warning when the first attempt succeeds', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 200, data: { ok: true } },
+    ]);
+    const output = createMockOutputService();
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    await client.get('/test');
+
+    const warnings = output.logs.filter((l) => l.startsWith('warning:'));
+    expect(warnings).toHaveLength(0);
   });
 });

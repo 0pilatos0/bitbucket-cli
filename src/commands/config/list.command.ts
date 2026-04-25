@@ -92,7 +92,7 @@ export class ListConfigCommand extends BaseCommand<void, void> {
     ]);
 
     if (rows.length === 0) {
-      this.output.text('No configuration set');
+      this.output.info('No configuration set');
     } else {
       this.output.table(['KEY', 'VALUE'], rows);
     }

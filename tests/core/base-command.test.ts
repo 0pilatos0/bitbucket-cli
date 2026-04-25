@@ -106,6 +106,13 @@ class TestCommandWithParseHelpers extends BaseCommand<
   ): string {
     return this.truncateText(text, maxLength, opts);
   }
+
+  public callRequireConfirmation(
+    confirmed: boolean | undefined,
+    warning: string
+  ): void {
+    return this.requireConfirmation(confirmed, warning);
+  }
 }
 
 describe('BaseCommand', () => {
@@ -391,10 +398,15 @@ describe('BaseCommand', () => {
     });
 
     it('should push and clear json format options around execute()', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string }> = [];
+      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+        [];
       const spyOutput = {
         ...output,
-        setJsonFormatOptions(opts: { fields?: string[]; jq?: string }) {
+        setJsonFormatOptions(opts: {
+          fields?: string[];
+          jq?: string;
+          json?: boolean;
+        }) {
           calls.push({ ...opts });
         },
       };
@@ -412,14 +424,22 @@ describe('BaseCommand', () => {
       );
 
       // First call sets the options, finally{} resets to {}.
-      expect(calls).toEqual([{ fields: ['id', 'title'], jq: '.[] | .id' }, {}]);
+      expect(calls).toEqual([
+        { fields: ['id', 'title'], jq: '.[] | .id', json: true },
+        {},
+      ]);
     });
 
     it('should reset json format options even when execute throws', async () => {
-      const calls: Array<{ fields?: string[]; jq?: string }> = [];
+      const calls: Array<{ fields?: string[]; jq?: string; json?: boolean }> =
+        [];
       const spyOutput = {
         ...output,
-        setJsonFormatOptions(opts: { fields?: string[]; jq?: string }) {
+        setJsonFormatOptions(opts: {
+          fields?: string[];
+          jq?: string;
+          json?: boolean;
+        }) {
           calls.push({ ...opts });
         },
       };
@@ -429,7 +449,10 @@ describe('BaseCommand', () => {
         command.run({}, { globalOptions: { json: true, jsonFields: ['id'] } })
       ).rejects.toThrow('Test error');
 
-      expect(calls).toEqual([{ fields: ['id'], jq: undefined }, {}]);
+      expect(calls).toEqual([
+        { fields: ['id'], jq: undefined, json: true },
+        {},
+      ]);
     });
   });
 
@@ -565,6 +588,54 @@ describe('BaseCommand', () => {
       expect(
         command.callTruncateText('this is a longer string', 10, globalOptions)
       ).toBe('this is a longer string');
+    });
+  });
+
+  describe('requireConfirmation', () => {
+    it('returns without throwing when confirmed is true', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(true, 'This will delete things.')
+      ).not.toThrow();
+    });
+
+    it('throws BBError when confirmed is false', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(false, 'This will delete things.')
+      ).toThrow(BBError);
+    });
+
+    it('throws BBError when confirmed is undefined', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(undefined, 'This will delete things.')
+      ).toThrow(BBError);
+    });
+
+    it('uses VALIDATION_REQUIRED error code', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      try {
+        command.callRequireConfirmation(undefined, 'This will delete things.');
+        expect(true).toBe(false); // should not reach here
+      } catch (error) {
+        expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      }
+    });
+
+    it('embeds the warning and standardized confirmation suffix', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callRequireConfirmation(
+          undefined,
+          'This will permanently delete repo/x.'
+        )
+      ).toThrow('This will permanently delete repo/x.\nUse --yes to confirm.');
     });
   });
 

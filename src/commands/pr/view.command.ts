@@ -160,7 +160,7 @@ export class ViewPRCommand extends BaseCommand<
 
     if (reviewers.length === 0) {
       this.output.text('');
-      this.output.text(this.output.gray('No reviewers assigned'));
+      this.output.info('No reviewers assigned');
       return;
     }
 

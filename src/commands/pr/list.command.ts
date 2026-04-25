@@ -91,7 +91,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     }
 
     if (values.length === 0) {
-      this.output.text(`No ${state.toLowerCase()} pull requests found`);
+      this.output.info(`No ${state.toLowerCase()} pull requests found`);
       return;
     }
 

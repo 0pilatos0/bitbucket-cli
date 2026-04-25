@@ -121,6 +121,7 @@ export interface ISnippetFilesService {
 export interface JsonFormatOptions {
   fields?: string[];
   jq?: string;
+  json?: boolean;
 }
 
 /**
@@ -130,6 +131,7 @@ export interface IOutputService {
   json(data: unknown): Promise<void>;
   jsonError(data: unknown): void;
   setJsonFormatOptions(options: JsonFormatOptions): void;
+  isJsonMode(): boolean;
   table(headers: string[], rows: string[][]): void;
   success(message: string): void;
   error(message: string): void;

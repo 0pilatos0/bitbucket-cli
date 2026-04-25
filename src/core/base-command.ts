@@ -30,6 +30,7 @@ export abstract class BaseCommand<
     this.output.setJsonFormatOptions({
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
+      json: context.globalOptions.json,
     });
 
     try {
@@ -179,6 +180,22 @@ export abstract class BaseCommand<
       return text;
     }
     return this.output.truncate(text, maxLength);
+  }
+
+  /**
+   * Gate a destructive action on an explicit confirmation flag (typically
+   * `--yes`). Throws a standard `BBError` so the warning and the
+   * "Use --yes to confirm." instruction stay consistent across commands.
+   */
+  protected requireConfirmation(
+    confirmed: boolean | undefined,
+    warning: string
+  ): void {
+    if (confirmed) return;
+    throw new BBError({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: `${warning}\nUse --yes to confirm.`,
+    });
   }
 
   /**

@@ -10,7 +10,6 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface DeleteCommentPROptions extends GlobalOptions {
   yes?: boolean;
@@ -43,14 +42,10 @@ export class DeleteCommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.prId, 'pr-id');
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    if (!options.yes) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message:
-          `This will permanently delete comment #${commentId} on PR #${prId}.\n` +
-          'Use --yes to confirm deletion.',
-      });
-    }
+    this.requireConfirmation(
+      options.yes,
+      `This will permanently delete comment #${commentId} on PR #${prId}.`
+    );
 
     await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdDelete(
       {
