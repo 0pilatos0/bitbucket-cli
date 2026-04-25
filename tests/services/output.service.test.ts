@@ -195,6 +195,33 @@ describe('OutputService', () => {
     });
   });
 
+  describe('isJsonMode', () => {
+    it('returns false by default', () => {
+      expect(output.isJsonMode()).toBe(false);
+    });
+
+    it('returns true after setJsonFormatOptions({ json: true })', () => {
+      output.setJsonFormatOptions({ json: true });
+      expect(output.isJsonMode()).toBe(true);
+    });
+
+    it('returns false when json is false or undefined', () => {
+      output.setJsonFormatOptions({ json: false });
+      expect(output.isJsonMode()).toBe(false);
+
+      output.setJsonFormatOptions({ fields: ['id'] });
+      expect(output.isJsonMode()).toBe(false);
+    });
+
+    it('clears json mode when options are reset to {}', () => {
+      output.setJsonFormatOptions({ json: true });
+      expect(output.isJsonMode()).toBe(true);
+
+      output.setJsonFormatOptions({});
+      expect(output.isJsonMode()).toBe(false);
+    });
+  });
+
   describe('jsonError', () => {
     it('should output compact JSON to stderr', () => {
       output.jsonError({ name: 'BBError', code: 4003, message: 'Invalid key' });
