@@ -38,7 +38,9 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
     if (GetConfigCommand.HIDDEN_KEYS.includes(key)) {
       throw new BBError({
         code: ErrorCode.CONFIG_INVALID_KEY,
-        message: `Cannot display '${key}' - use 'bb auth token' to get authentication credentials`,
+        message:
+          `Cannot display '${key}' - it is part of your authentication credentials, not config. ` +
+          `Use 'bb auth token' to retrieve credentials, or run 'bb config list' to see readable keys.`,
         context: { key },
       });
     }

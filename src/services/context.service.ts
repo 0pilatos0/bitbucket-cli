@@ -10,6 +10,17 @@ import type {
 import { BBError, ErrorCode } from '../types/errors.js';
 import type { RepoContext, GlobalOptions } from '../types/config.js';
 
+type RepoContextFailureReason =
+  | 'not_a_git_repo'
+  | 'no_remote'
+  | 'remote_not_bitbucket';
+
+interface GitRepoContextResult {
+  context: RepoContext | null;
+  reason: RepoContextFailureReason | null;
+  remoteUrl: string | null;
+}
+
 export class ContextService implements IContextService {
   constructor(
     private readonly gitService: IGitService,
@@ -51,18 +62,28 @@ export class ContextService implements IContextService {
    * Get repository context from current git repository
    */
   public async getRepoContextFromGit(): Promise<RepoContext | null> {
+    const result = await this.inspectGitRepoContext();
+    return result.context;
+  }
+
+  private async inspectGitRepoContext(): Promise<GitRepoContextResult> {
     const isRepo = await this.gitService.isRepository();
     if (!isRepo) {
-      return null;
+      return { context: null, reason: 'not_a_git_repo', remoteUrl: null };
     }
 
+    let remoteUrl: string;
     try {
-      const remoteUrl = await this.gitService.getRemoteUrl();
-      return this.parseRemoteUrl(remoteUrl);
+      remoteUrl = await this.gitService.getRemoteUrl();
     } catch {
-      // No remote configured - that's okay, just return null
-      return null;
+      return { context: null, reason: 'no_remote', remoteUrl: null };
     }
+
+    const context = this.parseRemoteUrl(remoteUrl);
+    if (!context) {
+      return { context: null, reason: 'remote_not_bitbucket', remoteUrl };
+    }
+    return { context, reason: null, remoteUrl };
   }
 
   /**
@@ -74,22 +95,35 @@ export class ContextService implements IContextService {
   public async getRepoContext(
     options: GlobalOptions
   ): Promise<RepoContext | null> {
+    const result = await this.resolveRepoContext(options);
+    return result.context;
+  }
+
+  private async resolveRepoContext(
+    options: GlobalOptions
+  ): Promise<GitRepoContextResult> {
     // If both workspace and repo are provided via options, use them
     if (options.workspace && options.repo) {
       return {
-        workspace: options.workspace,
-        repoSlug: options.repo,
+        context: { workspace: options.workspace, repoSlug: options.repo },
+        reason: null,
+        remoteUrl: null,
       };
     }
 
     // Try to get from current git repo
-    const gitContext = await this.getRepoContextFromGit();
+    const gitResult = await this.inspectGitRepoContext();
+    const gitContext = gitResult.context;
 
     // If only workspace is provided, use it with git-detected repo
     if (options.workspace && gitContext) {
       return {
-        workspace: options.workspace,
-        repoSlug: gitContext.repoSlug,
+        context: {
+          workspace: options.workspace,
+          repoSlug: gitContext.repoSlug,
+        },
+        reason: null,
+        remoteUrl: gitResult.remoteUrl,
       };
     }
 
@@ -99,14 +133,14 @@ export class ContextService implements IContextService {
       const workspace = gitContext?.workspace || config.defaultWorkspace;
       if (workspace) {
         return {
-          workspace,
-          repoSlug: options.repo,
+          context: { workspace, repoSlug: options.repo },
+          reason: null,
+          remoteUrl: gitResult.remoteUrl,
         };
       }
     }
 
-    // Fall back to git context
-    return gitContext;
+    return gitResult;
   }
 
   /**
@@ -115,18 +149,38 @@ export class ContextService implements IContextService {
   public async requireRepoContext(
     options: GlobalOptions
   ): Promise<RepoContext> {
-    const context = await this.getRepoContext(options);
+    const result = await this.resolveRepoContext(options);
 
-    if (!context) {
+    if (!result.context) {
       throw new BBError({
         code: ErrorCode.CONTEXT_REPO_NOT_FOUND,
-        message:
-          'Could not determine repository. Use --workspace and --repo options, ' +
-          'or run this command from within a Bitbucket repository.',
+        message: this.buildRepoNotFoundMessage(result.reason, result.remoteUrl),
+        context: {
+          reason: result.reason ?? 'unknown',
+          ...(result.remoteUrl ? { remoteUrl: result.remoteUrl } : {}),
+        },
       });
     }
 
-    return context;
+    return result.context;
+  }
+
+  private buildRepoNotFoundMessage(
+    reason: RepoContextFailureReason | null,
+    remoteUrl: string | null
+  ): string {
+    const fallback =
+      'Use --workspace and --repo options, or run this command from within a Bitbucket repository.';
+    switch (reason) {
+      case 'not_a_git_repo':
+        return `Not in a git repository. ${fallback}`;
+      case 'no_remote':
+        return `Git repository has no remote configured. Add a Bitbucket remote with \`git remote add origin <url>\`, or ${fallback.charAt(0).toLowerCase()}${fallback.slice(1)}`;
+      case 'remote_not_bitbucket':
+        return `Remote ${remoteUrl ? `'${remoteUrl}' ` : ''}is not a Bitbucket URL. ${fallback}`;
+      default:
+        return `Could not determine repository. ${fallback}`;
+    }
   }
 
   /**

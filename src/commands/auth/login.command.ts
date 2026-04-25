@@ -10,7 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
 import type { OAuthService } from '../../services/oauth.service.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import { APIError, BBError, ErrorCode } from '../../types/errors.js';
 
 export interface LoginOptions {
   username?: string;
@@ -133,10 +133,34 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       );
     } catch (error) {
       await this.credentialStore.clearCredentials();
-      throw new BBError({
-        code: ErrorCode.AUTH_INVALID,
-        message: `Authentication failed: ${error instanceof Error ? error.message : String(error)}`,
-      });
+      throw this.wrapLoginError(error);
     }
+  }
+
+  private wrapLoginError(error: unknown): BBError {
+    const detail = error instanceof Error ? error.message : String(error);
+
+    if (error instanceof APIError) {
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        return new BBError({
+          code: ErrorCode.AUTH_INVALID,
+          message: `Invalid username or token: ${detail}. Verify your Bitbucket username and that the API token is current and has the required scopes.`,
+          cause: error,
+        });
+      }
+      if (error.statusCode === 429) {
+        return new BBError({
+          code: ErrorCode.API_RATE_LIMITED,
+          message: `Bitbucket API rate-limited: ${detail}. Wait a moment and try again.`,
+          cause: error,
+        });
+      }
+    }
+
+    return new BBError({
+      code: ErrorCode.AUTH_INVALID,
+      message: `Authentication failed: ${detail}`,
+      cause: error instanceof Error ? error : undefined,
+    });
   }
 }

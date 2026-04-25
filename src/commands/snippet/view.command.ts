@@ -14,7 +14,11 @@ import {
   getUserDisplayName,
   getLinkHref,
 } from '../../services/response-parsers.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import {
+  BBError,
+  ErrorCode,
+  rethrowWithNotFoundContext,
+} from '../../types/errors.js';
 
 export interface ViewSnippetOptions {
   workspace?: string;
@@ -48,10 +52,17 @@ export class ViewSnippetCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    const response = await this.snippetsApi.snippetsWorkspaceEncodedIdGet({
-      workspace,
-      encodedId: options.id,
-    });
+    const response = await this.snippetsApi
+      .snippetsWorkspaceEncodedIdGet({
+        workspace,
+        encodedId: options.id,
+      })
+      .catch((error: unknown) =>
+        rethrowWithNotFoundContext(
+          error,
+          `Snippet ${options.id} not found in workspace ${workspace}.`
+        )
+      );
 
     const snippet = response.data as Snippet & Record<string, unknown>;
     const fileNames = this.extractFileNames(snippet);

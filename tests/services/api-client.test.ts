@@ -432,9 +432,10 @@ describe('createApiClient - retry/backoff', () => {
       expect(err).toBeInstanceOf(BBError);
       const bbErr = err as BBError;
       expect(bbErr.code).toBe(ErrorCode.NETWORK_ERROR);
-      expect(bbErr.message).toBe(
+      expect(bbErr.message).toContain(
         'Network error: Unable to reach Bitbucket API'
       );
+      expect(bbErr.message).toContain('DEBUG=true');
     }
 
     // Network errors are not retried (no response object)
