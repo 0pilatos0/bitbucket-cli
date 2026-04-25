@@ -10,6 +10,26 @@ import type {
 import { BBError, ErrorCode } from '../types/errors.js';
 import { projectFields } from './output.project.js';
 
+// Strip dangerous terminal control sequences from text before printing so
+// attacker-controlled API data (PR titles, descriptions, branch names,
+// snippet names, etc.) can't spoof clickable hyperlinks (OSC-8), rewrite the
+// terminal title (OSC-0), clear the screen, or trigger legacy escape-handling
+// vulnerabilities. SGR sequences (CSI ending in 'm') are preserved via the
+// first capture group so chalk-generated color/style codes composed by
+// callers — e.g. `output.text(`${output.bold('#42')} ${pr.title}`)` — still
+// render. JSON output is intentionally unchanged: JSON encoding escapes
+// control characters, so machine-readable consumers see the raw bytes.
+const CONTROL_CHARS =
+  // eslint-disable-next-line no-control-regex
+  /(\x1b\[[0-9;?]*m)|\x1b\[[0-9;?]*[A-Za-ln-z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x9B\x9D]/g;
+
+function stripControl(value: string): string {
+  return value.replace(
+    CONTROL_CHARS,
+    (_match, sgr: string | undefined) => sgr ?? ''
+  );
+}
+
 // Wrapper objects produced by list-style commands have a single canonical
 // "items" key. When `--json fields` is passed, project across that array
 // instead of the wrapper. Order matters: the first match wins. Keys must
@@ -72,16 +92,21 @@ export class OutputService implements IOutputService {
       return;
     }
 
+    const sanitizedHeaders = headers.map(stripControl);
+    const sanitizedRows = rows.map((row) =>
+      row.map((cell) => stripControl(cell || ''))
+    );
+
     // Calculate column widths
-    const widths = headers.map((header, index) => {
+    const widths = sanitizedHeaders.map((header, index) => {
       const maxRowWidth = Math.max(
-        ...rows.map((row) => (row[index] || '').length)
+        ...sanitizedRows.map((row) => (row[index] || '').length)
       );
       return Math.max(header.length, maxRowWidth);
     });
 
     // Print header
-    const headerRow = headers
+    const headerRow = sanitizedHeaders
       .map((header, index) => header.padEnd(widths[index]!))
       .join('  ');
 
@@ -91,9 +116,9 @@ export class OutputService implements IOutputService {
     console.log(widths.map((width) => '-'.repeat(width)).join('  '));
 
     // Print rows
-    for (const row of rows) {
+    for (const row of sanitizedRows) {
       const formattedRow = row
-        .map((cell, index) => (cell || '').padEnd(widths[index]!))
+        .map((cell, index) => cell.padEnd(widths[index]!))
         .join('  ');
       console.log(formattedRow);
     }
@@ -101,26 +126,26 @@ export class OutputService implements IOutputService {
 
   public success(message: string): void {
     const symbol = this.format('✓', chalk.green);
-    console.log(`${symbol} ${message}`);
+    console.log(`${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
     const symbol = this.format('✗', chalk.red);
-    console.error(`${symbol} ${message}`);
+    console.error(`${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
     const symbol = this.format('⚠', chalk.yellow);
-    console.warn(`${symbol} ${message}`);
+    console.warn(`${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
     const symbol = this.format('ℹ', chalk.blue);
-    console.log(`${symbol} ${message}`);
+    console.log(`${symbol} ${stripControl(message)}`);
   }
 
   public text(message: string): void {
-    console.log(message);
+    console.log(stripControl(message));
   }
 
   public formatDate(date: string | Date): string {
