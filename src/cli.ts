@@ -371,7 +371,10 @@ authCmd
     '-p, --password <password>',
     'Bitbucket API token (implies API token auth)'
   )
-  .option('--app-password', 'Use API token authentication instead of OAuth')
+  .option(
+    '--app-password',
+    'Use API token authentication (instead of OAuth). App passwords are deprecated; use API tokens.'
+  )
   .option('--client-id <clientId>', 'Custom OAuth consumer client ID')
   .option(
     '--client-secret <clientSecret>',
@@ -721,7 +724,10 @@ prCmd
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
-  .option('--mine', 'Show only PRs where you are a reviewer')
+  .option(
+    '--mine',
+    'Show only PRs where you are a reviewer (not authored by you)'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -1147,8 +1153,10 @@ prReviewersCmd
   });
 
 prReviewersCmd
-  .command('add <id> <username>')
-  .description('Add a reviewer to a pull request')
+  .command('add <id> <user>')
+  .description(
+    'Add a reviewer to a pull request (user is an account ID or {uuid})'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -1158,19 +1166,21 @@ prReviewersCmd
       ],
     })
   )
-  .action(async (id, username, options) => {
+  .action(async (id, user, options) => {
     const context = createContext(cli);
     await runCommand(
       ServiceTokens.AddReviewerPRCommand,
-      withGlobalOptions({ id, username, ...options }, context),
+      withGlobalOptions({ id, username: user, ...options }, context),
       cli,
       context
     );
   });
 
 prReviewersCmd
-  .command('remove <id> <username>')
-  .description('Remove a reviewer from a pull request')
+  .command('remove <id> <user>')
+  .description(
+    'Remove a reviewer from a pull request (user is an account ID or {uuid})'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -1180,11 +1190,11 @@ prReviewersCmd
       ],
     })
   )
-  .action(async (id, username, options) => {
+  .action(async (id, user, options) => {
     const context = createContext(cli);
     await runCommand(
       ServiceTokens.RemoveReviewerPRCommand,
-      withGlobalOptions({ id, username, ...options }, context),
+      withGlobalOptions({ id, username: user, ...options }, context),
       cli,
       context
     );
@@ -1259,7 +1269,10 @@ snippetCmd
   .command('create')
   .description('Create a new snippet')
   .option('-t, --title <title>', 'Snippet title')
-  .option('-f, --file <path...>', 'File(s) to include')
+  .option(
+    '-f, --file <path...>',
+    'File(s) to include (variadic; pass multiple paths or repeat the flag)'
+  )
   .option('--private', 'Create a private snippet (default)')
   .option('--public', 'Create a public snippet')
   .addHelpText(
@@ -1290,7 +1303,7 @@ snippetCmd
   .option('--public', 'Make snippet public')
   .option(
     '-f, --file <path...>',
-    'Replace/add file(s) (sends multipart update)'
+    'Replace/add file(s) (variadic; pass multiple paths or repeat the flag; sends multipart update)'
   )
   .addHelpText(
     'after',

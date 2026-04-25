@@ -312,6 +312,67 @@ describe('CLI help text integration', () => {
     expect(output).toContain('defaultWorkspace');
     expect(output).toContain('skipVersionCheck');
     expect(output).toContain('versionCheckInterval');
+    // Issue #181: prCreateIncludeDefaultReviewers must be discoverable from
+    // `bb config set --help` so users learn about it without grepping the docs.
+    expect(output).toContain('prCreateIncludeDefaultReviewers');
+  });
+
+  it('should list prCreateIncludeDefaultReviewers in config get readable keys', () => {
+    const configCmd = cli.commands.find((c) => c.name() === 'config')!;
+    const getCmd = configCmd.commands.find((c) => c.name() === 'get')!;
+    const output = captureHelp(getCmd);
+
+    expect(output).toContain('Readable config keys:');
+    expect(output).toContain('prCreateIncludeDefaultReviewers');
+  });
+
+  it('should describe --mine without ambiguity (reviewer, not author)', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const listCmd = prCmd.commands.find((c) => c.name() === 'list')!;
+    const output = captureHelp(listCmd);
+
+    // The natural reading of "PRs where you are a reviewer" is ambiguous;
+    // help must spell out it excludes PRs you authored. Commander wraps the
+    // option description, so collapse whitespace before asserting.
+    const flat = output.replace(/\s+/g, ' ');
+    expect(flat).toContain('not authored by you');
+  });
+
+  it('should mark app passwords as deprecated in auth login --app-password help', () => {
+    const authCmd = cli.commands.find((c) => c.name() === 'auth')!;
+    const loginCmd = authCmd.commands.find((c) => c.name() === 'login')!;
+    const output = captureHelp(loginCmd);
+
+    expect(output).toContain('--app-password');
+    expect(output).toContain('API token authentication');
+    expect(output).toContain('App passwords are deprecated');
+  });
+
+  it('should advertise variadic --file in snippet create help', () => {
+    const snippetCmd = cli.commands.find((c) => c.name() === 'snippet')!;
+    const createCmd = snippetCmd.commands.find((c) => c.name() === 'create')!;
+    const output = captureHelp(createCmd);
+
+    // Issue #181: --file is variadic but help didn't say so.
+    expect(output).toContain('variadic');
+    expect(output).toContain('-f config.yml -f setup.sh');
+  });
+
+  it('should show pr reviewers add/remove accept account ID or UUID', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const reviewersCmd = prCmd.commands.find((c) => c.name() === 'reviewers')!;
+    const addCmd = reviewersCmd.commands.find((c) => c.name() === 'add')!;
+    const removeCmd = reviewersCmd.commands.find((c) => c.name() === 'remove')!;
+
+    const addOutput = captureHelp(addCmd);
+    expect(addOutput).toContain('<user>');
+    expect(addOutput).toContain('account ID');
+    expect(addOutput).toContain('{uuid}');
+
+    const removeOutput = captureHelp(removeCmd);
+    expect(removeOutput).toContain('<user>');
+    expect(removeOutput).toContain('account ID');
+    expect(removeOutput).toContain('{uuid}');
   });
 });
 
@@ -634,7 +695,7 @@ describe('CLI leaf command options', () => {
     ]);
     expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
       'id',
-      'username',
+      'user',
     ]);
   });
 

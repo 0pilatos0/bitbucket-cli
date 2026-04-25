@@ -13,6 +13,15 @@ Global options available on all PR commands: `--json`, `--no-color`, `-w, --work
 This page covers reviewers on **existing** pull requests. To manage the repository's **default reviewers** — the list Bitbucket auto-suggests when someone opens a PR — see [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers). `bb pr create` can also auto-apply them via `--default-reviewers` or the `prCreateIncludeDefaultReviewers` config key.
 :::
 
+## Identifying users
+
+Bitbucket Cloud no longer accepts the legacy `username` (login name) when modifying reviewers. The `<user>` positional accepts either:
+
+- An **account ID**, e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`
+- A **UUID** wrapped in braces, e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`
+
+Both forms are returned by `bb pr reviewers list --json` (the `account_id` and `uuid` fields), so you can pipe the output of one command into another to script reviewer changes. See [`bb pr create`](/commands/pr/create-and-edit/#bb-pr-create) for matching `--reviewer` examples.
+
 ## `bb pr reviewers`
 
 ### Subcommands
@@ -20,8 +29,8 @@ This page covers reviewers on **existing** pull requests. To manage the reposito
 | Subcommand | Description |
 |------------|-------------|
 | `list <id>` | List reviewers on a pull request |
-| `add <id> <username>` | Add a reviewer to a pull request |
-| `remove <id> <username>` | Remove a reviewer from a pull request |
+| `add <id> <user>` | Add a reviewer to a pull request |
+| `remove <id> <user>` | Remove a reviewer from a pull request |
 
 ---
 
@@ -70,10 +79,10 @@ bb pr reviewers list 42 --json
 
 ## `bb pr reviewers add`
 
-Add a reviewer to a pull request by username.
+Add a reviewer to a pull request by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
 
 ```bash
-bb pr reviewers add <id> <username>
+bb pr reviewers add <id> <user>
 ```
 
 ### Arguments
@@ -81,7 +90,7 @@ bb pr reviewers add <id> <username>
 | Argument | Description |
 |----------|-------------|
 | `id` | Pull request ID |
-| `username` | Username of the user to add as reviewer |
+| `user` | Account ID (e.g. `712020:3cfed7e0-…`) or UUID (`{c1cb1bb5-…}`) of the user to add |
 
 ### Options
 
@@ -94,14 +103,17 @@ bb pr reviewers add <id> <username>
 ### Examples
 
 ```bash
-# Add johndoe as reviewer to PR #42
-bb pr reviewers add 42 johndoe
+# Add reviewer by account ID
+bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+
+# Add reviewer by UUID (note the braces)
+bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 # Add reviewer in specific repository
-bb pr reviewers add 42 johndoe -w myworkspace -r myrepo
+bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" -w myworkspace -r myrepo
 
 # Add reviewer and get result as JSON
-bb pr reviewers add 42 johndoe --json
+bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --json
 ```
 
 ### Notes
@@ -114,10 +126,10 @@ bb pr reviewers add 42 johndoe --json
 
 ## `bb pr reviewers remove`
 
-Remove a reviewer from a pull request.
+Remove a reviewer from a pull request by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
 
 ```bash
-bb pr reviewers remove <id> <username>
+bb pr reviewers remove <id> <user>
 ```
 
 ### Arguments
@@ -125,7 +137,7 @@ bb pr reviewers remove <id> <username>
 | Argument | Description |
 |----------|-------------|
 | `id` | Pull request ID |
-| `username` | Username of the reviewer to remove |
+| `user` | Account ID (e.g. `712020:3cfed7e0-…`) or UUID (`{c1cb1bb5-…}`) of the reviewer to remove |
 
 ### Options
 
@@ -138,14 +150,17 @@ bb pr reviewers remove <id> <username>
 ### Examples
 
 ```bash
-# Remove johndoe as reviewer from PR #42
-bb pr reviewers remove 42 johndoe
+# Remove reviewer by account ID
+bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+
+# Remove reviewer by UUID (note the braces)
+bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 # Remove reviewer in specific repository
-bb pr reviewers remove 42 johndoe -w myworkspace -r myrepo
+bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" -w myworkspace -r myrepo
 
 # Remove reviewer and get result as JSON
-bb pr reviewers remove 42 johndoe --json
+bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --json
 ```
 
 ### Notes
