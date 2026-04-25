@@ -63,6 +63,40 @@ bb pr list --json id,title,author.display_name
 ]
 ```
 
+#### Before / after: shape change after projection
+
+`bb pr list --json` returns the full envelope with metadata and a named array:
+
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "state": "OPEN",
+  "count": 2,
+  "pullRequests": [
+    {
+      "id": 42,
+      "title": "Add feature",
+      "state": "OPEN",
+      "author": { "display_name": "Alice", "nickname": "alice" },
+      "links": { "html": { "href": "..." } }
+    },
+    { "id": 41, "title": "Fix bug", "state": "OPEN", "author": {...}, "links": {...} }
+  ]
+}
+```
+
+The same command with `--json id,title,state` drops the envelope and projects each item to a flat array of just those fields:
+
+```json
+[
+  { "id": 42, "title": "Add feature", "state": "OPEN" },
+  { "id": 41, "title": "Fix bug",     "state": "OPEN" }
+]
+```
+
+This is why `--jq` filters use `.[]` after projection (`.[] | select(...)`) but `.pullRequests[]` against the full envelope.
+
 ## Built-in jq (`--jq`)
 
 The `--jq <expression>` flag pipes the JSON output through an embedded jq
@@ -78,6 +112,18 @@ bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
 
 # Aggregate
 bb pr list --json --jq '.count'
+
+# Project + format with jq string interpolation
+bb pr list --json id,title,author.display_name \
+  --jq '.[] | "\(.id)\t\(.["author.display_name"])\t\(.title)"'
+
+# Project a nested URL out of a single resource
+bb pr view 42 --json links.html.href --jq '.["links.html.href"]'
+
+# Top open PRs by author with built-in jq (no projection — full shape)
+bb pr list --json --jq '.pullRequests | group_by(.author.display_name)
+  | map({ author: .[0].author.display_name, count: length })
+  | sort_by(-.count)'
 ```
 
 **Rules:**

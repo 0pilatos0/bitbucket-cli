@@ -273,7 +273,7 @@ cli
   )
   .option(
     '--jq <expression>',
-    'Filter the JSON output through a jq expression (requires --json)'
+    'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
   )
   .option('--no-color', 'Disable color output')
   .option('-w, --workspace <workspace>', 'Specify workspace')

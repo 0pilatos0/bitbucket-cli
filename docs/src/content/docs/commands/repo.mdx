@@ -5,7 +5,7 @@ description: Complete reference for Bitbucket CLI repository commands. Learn to 
 
 Manage Bitbucket repositories.
 
-Global options available on all repo commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all repo commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
 
 ## `bb repo clone`
 
@@ -110,6 +110,12 @@ bb repo list -w myworkspace --limit 50
 
 # List with JSON output for scripting
 bb repo list -w myworkspace --json
+
+# Project to specific fields (returns a flat array)
+bb repo list -w myworkspace --json full_name,is_private,language
+
+# Filter with built-in --jq — print just public repo names
+bb repo list -w myworkspace --json --jq '.repositories[] | select(.is_private == false) | .full_name'
 ```
 
 ### Notes

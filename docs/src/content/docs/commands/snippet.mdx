@@ -9,7 +9,7 @@ Snippet commands operate at **workspace** scope (no repo context required). Use
 `-w, --workspace <workspace>` or set a default with
 `bb config set defaultWorkspace <workspace>`.
 
-Global options available on all snippet commands: `--json`, `--no-color`, `-w, --workspace`.
+Global options available on all snippet commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
 
 ---
 
@@ -36,6 +36,12 @@ bb snippet list [options]
 bb snippet list
 bb snippet list --role owner
 bb snippet list --limit 50 --json
+
+# Project to specific fields (returns a flat array)
+bb snippet list --json id,title,is_private
+
+# Filter with built-in --jq — public snippets only
+bb snippet list --json --jq '.snippets[] | select(.is_private == false) | .title'
 ```
 
 ### Notes

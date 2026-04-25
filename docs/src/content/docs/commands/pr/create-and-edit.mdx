@@ -7,7 +7,7 @@ sidebar:
 
 Create and inspect pull requests.
 
-Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
 
 ## `bb pr create`
 
@@ -60,6 +60,12 @@ bb pr create -t "Add new feature" \
 # Combine defaults + explicit additions (duplicates are de-duped)
 bb pr create -t "Add new feature" --default-reviewers \
   --reviewer "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+
+# Capture the new PR's URL from JSON output for scripting
+bb pr create -t "Add new feature" --json --jq '.links.html.href'
+
+# Project the response to just the fields you need
+bb pr create -t "Add new feature" --json id,title,links.html.href
 ```
 
 ### Reviewers
@@ -172,6 +178,12 @@ bb pr list -w myworkspace -r myrepo
 # List with JSON output for scripting
 bb pr list --json
 
+# Project to specific fields (returns a flat array)
+bb pr list --json id,title,author.display_name
+
+# Filter with built-in --jq (no external jq binary needed)
+bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
+
 # List more results
 bb pr list --limit 50
 
@@ -226,4 +238,10 @@ bb pr view 42 -w myworkspace -r myrepo
 
 # Get PR details as JSON
 bb pr view 42 --json
+
+# Project to specific fields
+bb pr view 42 --json id,title,state,author.display_name
+
+# Extract just the web URL with built-in --jq
+bb pr view 42 --json --jq '.links.html.href'
 ```

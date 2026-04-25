@@ -78,7 +78,21 @@ bb pr approve 42
 bb config set defaultWorkspace myworkspace
 ```
 
-**Global options:** `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`
+**Global options:** `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`
+
+### Scripting with `--json` and `--jq`
+
+`--json` accepts an optional comma-separated field list to project the output, and `--jq` filters the JSON in-process (no external `jq` binary required):
+
+```bash
+# Project to specific fields
+bb pr list --json id,title,state
+
+# Filter through built-in jq
+bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
+```
+
+See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/) and the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) for more.
 
 ---
 
