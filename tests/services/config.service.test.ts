@@ -9,7 +9,15 @@ import type {
   ICredentialStore,
 } from '../../src/core/interfaces/services.js';
 import { ErrorCode } from '../../src/types/errors.js';
-import { mkdir, rm, readFile, writeFile } from 'fs/promises';
+import {
+  mkdir,
+  rm,
+  readFile,
+  writeFile,
+  stat,
+  symlink,
+  chmod,
+} from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -37,10 +45,11 @@ describe('ConfigService', () => {
     });
 
     it('should return config from file', async () => {
-      await mkdir(testConfigDir, { recursive: true });
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
       await writeFile(
         join(testConfigDir, 'config.json'),
-        JSON.stringify({ username: 'testuser', defaultWorkspace: 'workspace' })
+        JSON.stringify({ username: 'testuser', defaultWorkspace: 'workspace' }),
+        { mode: 0o600 }
       );
 
       configService.clearCache();
@@ -51,10 +60,11 @@ describe('ConfigService', () => {
     });
 
     it('should cache config after first read', async () => {
-      await mkdir(testConfigDir, { recursive: true });
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
       await writeFile(
         join(testConfigDir, 'config.json'),
-        JSON.stringify({ username: 'original' })
+        JSON.stringify({ username: 'original' }),
+        { mode: 0o600 }
       );
 
       // First read
@@ -63,7 +73,8 @@ describe('ConfigService', () => {
       // Modify file directly
       await writeFile(
         join(testConfigDir, 'config.json'),
-        JSON.stringify({ username: 'modified' })
+        JSON.stringify({ username: 'modified' }),
+        { mode: 0o600 }
       );
 
       // Second read should return cached value
@@ -73,13 +84,47 @@ describe('ConfigService', () => {
     });
 
     it('should throw error for invalid JSON', async () => {
-      await mkdir(testConfigDir, { recursive: true });
-      await writeFile(join(testConfigDir, 'config.json'), 'invalid json {');
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
+      await writeFile(join(testConfigDir, 'config.json'), 'invalid json {', {
+        mode: 0o600,
+      });
 
       configService.clearCache();
 
       await expect(configService.getConfig()).rejects.toMatchObject({
         code: ErrorCode.CONFIG_READ_FAILED,
+      });
+    });
+
+    it('should refuse to read a config file with world/group-readable permissions', async () => {
+      if (process.platform === 'win32') return;
+
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
+      const file = join(testConfigDir, 'config.json');
+      await writeFile(file, JSON.stringify({ username: 'u' }), { mode: 0o600 });
+      await chmod(file, 0o644);
+
+      configService.clearCache();
+
+      await expect(configService.getConfig()).rejects.toMatchObject({
+        code: ErrorCode.CONFIG_READ_FAILED,
+        message: expect.stringContaining('insecure permissions'),
+      });
+    });
+
+    it('should refuse to read when the config directory is world-traversable', async () => {
+      if (process.platform === 'win32') return;
+
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
+      const file = join(testConfigDir, 'config.json');
+      await writeFile(file, JSON.stringify({ username: 'u' }), { mode: 0o600 });
+      await chmod(testConfigDir, 0o755);
+
+      configService.clearCache();
+
+      await expect(configService.getConfig()).rejects.toMatchObject({
+        code: ErrorCode.CONFIG_READ_FAILED,
+        message: expect.stringContaining('insecure permissions'),
       });
     });
   });
@@ -566,7 +611,8 @@ describe('ConfigService', () => {
       // Modify file directly
       await writeFile(
         join(testConfigDir, 'config.json'),
-        JSON.stringify({ username: 'modified' })
+        JSON.stringify({ username: 'modified' }),
+        { mode: 0o600 }
       );
 
       // Still cached
@@ -579,6 +625,63 @@ describe('ConfigService', () => {
       // Now reads from file
       config = await configService.getConfig();
       expect(config.username).toBe('modified');
+    });
+  });
+
+  describe('setConfig (security hardening)', () => {
+    it('should write the config file with mode 0600', async () => {
+      if (process.platform === 'win32') return;
+
+      await configService.setConfig({ username: 'u', apiToken: 't' });
+
+      const stats = await stat(join(testConfigDir, 'config.json'));
+      expect(stats.mode & 0o777).toBe(0o600);
+    });
+
+    it('should create the config directory with mode 0700', async () => {
+      if (process.platform === 'win32') return;
+
+      await configService.setConfig({ username: 'u' });
+
+      const stats = await stat(testConfigDir);
+      expect(stats.mode & 0o777).toBe(0o700);
+    });
+
+    it('should not follow a hostile symlink planted at config.json', async () => {
+      if (process.platform === 'win32') return;
+
+      await mkdir(testConfigDir, { recursive: true, mode: 0o700 });
+      const decoyDir = join(tmpdir(), `bb-test-decoy-${Date.now()}`);
+      await mkdir(decoyDir, { recursive: true, mode: 0o700 });
+      const decoyTarget = join(decoyDir, 'attacker-target');
+      await writeFile(decoyTarget, 'untouched', { mode: 0o600 });
+
+      try {
+        await symlink(decoyTarget, join(testConfigDir, 'config.json'));
+
+        // setConfig writes to a tmp file under configDir and renames it over
+        // the symlink. The rename replaces the link itself, so the attacker's
+        // target file must remain untouched.
+        await configService.setConfig({ username: 'u', apiToken: 't' });
+
+        const decoyContent = await readFile(decoyTarget, 'utf-8');
+        expect(decoyContent).toBe('untouched');
+
+        const finalStat = await stat(join(testConfigDir, 'config.json'));
+        expect(finalStat.isSymbolicLink()).toBe(false);
+        expect(finalStat.mode & 0o777).toBe(0o600);
+      } finally {
+        await rm(decoyDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should not leave a tmp file behind on success', async () => {
+      await configService.setConfig({ username: 'u' });
+
+      const fs = await import('node:fs/promises');
+      const entries = await fs.readdir(testConfigDir);
+      const tmpFiles = entries.filter((name) => name.endsWith('.tmp'));
+      expect(tmpFiles).toEqual([]);
     });
   });
 });
