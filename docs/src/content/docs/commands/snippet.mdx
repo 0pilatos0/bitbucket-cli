@@ -28,6 +28,7 @@ bb snippet list [options]
 | `-w, --workspace <workspace>` | Workspace |
 | `--role <role>` | Filter by authenticated user's role: `owner`, `contributor`, or `member` |
 | `--limit <number>` | Maximum number of snippets (default: 25) |
+| `--all` | List all snippets (overrides `--limit`) |
 | `--json` | Output as JSON |
 
 ### Examples
@@ -36,6 +37,7 @@ bb snippet list [options]
 bb snippet list
 bb snippet list --role owner
 bb snippet list --limit 50 --json
+bb snippet list --all
 
 # Project to specific fields (returns a flat array)
 bb snippet list --json id,title,is_private
@@ -47,6 +49,7 @@ bb snippet list --json --jq '.snippets[] | select(.is_private == false) | .title
 ### Notes
 
 - `--limit` is enforced across paginated responses.
+- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
 
 ---
 
@@ -220,12 +223,14 @@ bb snippet comments list <id> [options]
 |--------|-------------|
 | `-w, --workspace <workspace>` | Workspace |
 | `--limit <number>` | Maximum number of comments (default: 25) |
+| `--all` | List all comments (overrides `--limit`) |
 | `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
 bb snippet comments list kypj
+bb snippet comments list kypj --all
 bb snippet comments list kypj --limit 50 --json
 ```
 
