@@ -152,9 +152,16 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    const sanitizedHeaders = headers.map(stripControl);
+    // stripControl intentionally preserves \n/\r/\t (text() relies on them for
+    // multi-line output), but inside a table cell those characters break the
+    // single-line-per-row layout and corrupt column-width math. Collapse any
+    // run of them to a single space so each row stays on one line.
+    const sanitizeCell = (cell: string): string =>
+      stripControl(cell).replace(/[\t\n\r]+/g, ' ');
+
+    const sanitizedHeaders = headers.map(sanitizeCell);
     const sanitizedRows = rows.map((row) =>
-      row.map((cell) => stripControl(cell || ''))
+      row.map((cell) => sanitizeCell(cell || ''))
     );
 
     // Calculate column widths
