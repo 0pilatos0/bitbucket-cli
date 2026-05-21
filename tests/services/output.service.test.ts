@@ -776,6 +776,42 @@ describe('OutputService', () => {
       expect(dataRow).toMatch(/^x\s+y\s*$/);
     });
 
+    it('table() neutralizes newlines/CR/tabs in cells so rows stay on one line', () => {
+      // Regression for issue #241: a repository description containing an
+      // embedded newline (real data returned by the Bitbucket API) breaks the
+      // table layout. stripControl() intentionally preserves \n/\r/\t for
+      // text(), but table() must collapse them — otherwise the tail of the
+      // cell drops to column 0 on the next visual line (the stray
+      // "To connec ..." fragment seen in the bug report) and column widths are
+      // computed from the wrong length.
+      output.table(
+        ['REPOSITORY', 'VISIBILITY', 'DESCRIPTION'],
+        [
+          ['ws/repo-a', 'private', 'Various tools\nTo connect to the database'],
+          ['ws/repo-b', 'private', 'tab\tseparated\tdesc'],
+          ['ws/repo-c', 'private', 'carriage\r\nreturn'],
+        ]
+      );
+
+      // table() emits exactly one console.log per visual line: header,
+      // separator, then one line per row. No emitted line may contain an
+      // embedded whitespace control char, or it spans multiple terminal rows.
+      expect(consoleLogs).toHaveLength(5); // header + separator + 3 rows
+      for (const line of consoleLogs) {
+        expect(line).not.toContain('\n');
+        expect(line).not.toContain('\r');
+        expect(line).not.toContain('\t');
+      }
+
+      // The description tail must not start a new line at column 0.
+      expect(consoleLogs.some((line) => /^To connect/.test(line))).toBe(false);
+
+      // Visible words survive — only the control chars are removed/collapsed.
+      const printed = consoleLogs.join('\n');
+      expect(printed).toContain('Various tools');
+      expect(printed).toContain('To connect to the database');
+    });
+
     it('preserves chalk SGR codes embedded by callers', () => {
       // Callers commonly compose colored strings before handing them to
       // text() — e.g. `output.text(`${output.bold('#42')} ${pr.title}`)`.
