@@ -13,13 +13,17 @@ import type {
   Pullrequest,
   UsersApi,
 } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { PR_STATES } from '../../types/pr.js';
 
 export interface ListPRsOptions extends GlobalOptions {
   state?: string;
   limit?: string;
+  all?: boolean;
   mine?: boolean;
 }
 
@@ -48,12 +52,12 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     const state = options.state
       ? this.parseEnumOption(options.state, 'state', PR_STATES)
       : 'OPEN';
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
     const reviewerQuery = options.mine
       ? await this.buildMineFilter()
       : undefined;
 
-    const values = await collectPages<Pullrequest>({
+    const { items: values, hasMore } = await collectPagesWithMeta<Pullrequest>({
       limit,
       fetchPage: async (page, pagelen) => {
         const response =
@@ -111,6 +115,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     });
 
     this.output.table(['ID', 'TITLE', 'AUTHOR', 'BRANCHES'], rows);
+    this.printMoreHint(values.length, hasMore, 'pull requests');
   }
 
   private async buildMineFilter(): Promise<string | undefined> {

@@ -183,6 +183,25 @@ export abstract class BaseCommand<
   }
 
   /**
+   * Print a dimmed footer after a list table when the output was capped by
+   * `--limit` and more results exist on the server. No-op when nothing was
+   * truncated. Callers omit this in JSON mode by returning before rendering
+   * the table (JSON payloads carry their own `count`).
+   */
+  protected printMoreHint(
+    shown: number,
+    hasMore: boolean,
+    noun = 'results'
+  ): void {
+    if (!hasMore) return;
+    this.output.text(
+      this.output.dim(
+        `Showing ${shown} ${noun}. Use --limit <n> or --all to see more.`
+      )
+    );
+  }
+
+  /**
    * Gate a destructive action on an explicit confirmation flag (typically
    * `--yes`). Throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.

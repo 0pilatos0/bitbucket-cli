@@ -10,7 +10,10 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { Snippet, SnippetsApi } from '../../generated/api.js';
 import { SnippetsWorkspaceGetRoleEnum } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 import { getUserDisplayName } from '../../services/response-parsers.js';
 
 const VALID_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum) as readonly (
@@ -23,6 +26,7 @@ export interface ListSnippetsOptions {
   workspace?: string;
   role?: string;
   limit?: string;
+  all?: boolean;
 }
 
 export class ListSnippetsCommand extends BaseCommand<
@@ -47,13 +51,13 @@ export class ListSnippetsCommand extends BaseCommand<
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
 
     const role = options.role
       ? this.parseEnumOption(options.role, 'role', VALID_ROLES)
       : undefined;
 
-    const snippets = await collectPages<Snippet>({
+    const { items: snippets, hasMore } = await collectPagesWithMeta<Snippet>({
       limit,
       fetchPage: async (page, pagelen) => {
         const response = await this.snippetsApi.snippetsWorkspaceGet(
@@ -96,5 +100,6 @@ export class ListSnippetsCommand extends BaseCommand<
       ['ID', 'TITLE', 'VISIBILITY', 'CREATOR', 'UPDATED'],
       rows
     );
+    this.printMoreHint(snippets.length, hasMore, 'snippets');
   }
 }
