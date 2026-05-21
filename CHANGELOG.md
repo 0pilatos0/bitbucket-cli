@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.18.0
+
+### Minor Changes
+
+- [#245](https://github.com/0pilatos0/bitbucket-cli/pull/245) [`e52c46c`](https://github.com/0pilatos0/bitbucket-cli/commit/e52c46c7bcd837d98cbbdfffb5e9b75b968d973d) Thanks [@0pilatos0](https://github.com/0pilatos0)! - List commands now indicate when output was capped by `--limit` and add an `--all` flag to fetch every page. When more results exist than were shown, `repo list`, `pr list`, `pr activity`, `pr comments list`, `snippet list`, and `snippet comments list` print a dimmed footer such as `Showing 25 repositories. Use --limit <n> or --all to see more.` (suppressed in `--json` mode). Pass `--all` to retrieve all results regardless of `--limit`.
+
+### Patch Changes
+
+- [#244](https://github.com/0pilatos0/bitbucket-cli/pull/244) [`a3b6b51`](https://github.com/0pilatos0/bitbucket-cli/commit/a3b6b514b52dcaf1fc40507008a1ee7693700203) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix table output breaking when a cell value contains a newline, carriage return, or tab (e.g. a repository description with a line break). Such whitespace control characters are now collapsed to a single space within table cells so every row stays on one line and columns stay aligned. Multi-line `text()` output is unaffected.
+
 ## 1.17.0
 
 ### Minor Changes
