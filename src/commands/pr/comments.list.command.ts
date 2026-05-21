@@ -12,7 +12,10 @@ import type {
   PullrequestComment,
   PullrequestsApi,
 } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 import {
   getRawContent,
   getUserDisplayName,
@@ -21,6 +24,7 @@ import type { GlobalOptions } from '../../types/config.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
   limit?: string;
+  all?: boolean;
 }
 
 export class ListCommentsPRCommand extends BaseCommand<
@@ -48,26 +52,27 @@ export class ListCommentsPRCommand extends BaseCommand<
     );
 
     const prId = this.parsePositiveInt(options.id, 'id');
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
 
-    const values = await collectPages<PullrequestComment>({
-      limit,
-      fetchPage: async (page, pagelen) => {
-        const response =
-          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
-            {
-              workspace: repoContext.workspace,
-              repoSlug: repoContext.repoSlug,
-              pullRequestId: prId,
-            },
-            {
-              params: { page, pagelen },
-            }
-          );
+    const { items: values, hasMore } =
+      await collectPagesWithMeta<PullrequestComment>({
+        limit,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
+              {
+                workspace: repoContext.workspace,
+                repoSlug: repoContext.repoSlug,
+                pullRequestId: prId,
+              },
+              {
+                params: { page, pagelen },
+              }
+            );
 
-        return response.data;
-      },
-    });
+          return response.data;
+        },
+      });
 
     if (context.globalOptions.json) {
       await this.output.json({
@@ -98,5 +103,6 @@ export class ListCommentsPRCommand extends BaseCommand<
     });
 
     this.output.table(['ID', 'Author', 'Content', 'Date'], rows);
+    this.printMoreHint(values.length, hasMore, 'comments');
   }
 }

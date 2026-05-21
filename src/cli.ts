@@ -574,12 +574,14 @@ repoCmd
   .command('list')
   .description('List repositories')
   .option('--limit <number>', 'Maximum number of repositories to list', '25')
+  .option('--all', 'List all repositories (overrides --limit)')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb repo list',
         'bb repo list --limit 50',
+        'bb repo list --all',
         'bb repo list --json',
       ],
       defaults: { limit: '25' },
@@ -795,6 +797,7 @@ prCmd
     'OPEN'
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
+  .option('--all', 'List all pull requests (overrides --limit)')
   .option(
     '--mine',
     'Show only PRs where you are a reviewer (not authored by you)'
@@ -805,6 +808,7 @@ prCmd
       examples: [
         'bb pr list',
         'bb pr list -s MERGED --limit 10',
+        'bb pr list --all',
         'bb pr list --mine',
         'bb pr list --json',
       ],
@@ -857,6 +861,7 @@ prCmd
   .command('activity <id>')
   .description('Show pull request activity log')
   .option('--limit <number>', 'Maximum number of activity entries', '25')
+  .option('--all', 'Show all activity entries (overrides --limit)')
   .option('--type <types>', 'Filter activity by type (comma-separated)')
   .addHelpText(
     'after',
@@ -864,6 +869,7 @@ prCmd
       examples: [
         'bb pr activity 42',
         'bb pr activity 42 --type comment,approval',
+        'bb pr activity 42 --all',
         'bb pr activity 42 --limit 10 --json',
       ],
       validValues: {
@@ -1108,12 +1114,14 @@ prCommentsCmd
   .command('list <id>')
   .description('List comments on a pull request')
   .option('--limit <number>', 'Maximum number of comments (default: 25)')
+  .option('--all', 'List all comments (overrides --limit)')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb pr comments list 42',
         'bb pr comments list 42 --no-truncate',
+        'bb pr comments list 42 --all',
         'bb pr comments list 42 --limit 50 --json',
       ],
       defaults: { limit: '25' },
@@ -1282,12 +1290,14 @@ snippetCmd
   .description('List snippets in a workspace')
   .option('--role <role>', 'Filter by role (owner, contributor, member)')
   .option('--limit <number>', 'Maximum number of snippets to list', '25')
+  .option('--all', 'List all snippets (overrides --limit)')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb snippet list',
         'bb snippet list --role owner',
+        'bb snippet list --all',
         'bb snippet list --limit 50 --json',
       ],
       validValues: {
@@ -1464,11 +1474,13 @@ snippetCommentsCmd
   .command('list <id>')
   .description('List comments on a snippet')
   .option('--limit <number>', 'Maximum number of comments', '25')
+  .option('--all', 'List all comments (overrides --limit)')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb snippet comments list kypj',
+        'bb snippet comments list kypj --all',
         'bb snippet comments list kypj --limit 50 --json',
       ],
       defaults: { limit: '25' },

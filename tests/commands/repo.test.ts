@@ -210,6 +210,117 @@ describe('ListReposCommand', () => {
     expect(requestedPages).toEqual([1, 2]);
   });
 
+  it('prints a "see more" hint when results are capped by the limit', async () => {
+    const repos = Array.from({ length: 5 }, (_, index) => ({
+      ...mockRepository,
+      slug: `repo-${index + 1}`,
+      full_name: `workspace/repo-${index + 1}`,
+    }));
+    const repositoriesApi = createMockRepositoriesApi(repos);
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace', limit: '2' },
+      { globalOptions: {} }
+    );
+
+    expect(
+      output.logs.some(
+        (log) =>
+          log.startsWith('text:Showing 2 repositories') && log.includes('--all')
+      )
+    ).toBe(true);
+  });
+
+  it('does not print the hint when all repositories are shown', async () => {
+    const repos = [
+      { ...mockRepository, slug: 'repo1', full_name: 'workspace/repo1' },
+      { ...mockRepository, slug: 'repo2', full_name: 'workspace/repo2' },
+    ];
+    const repositoriesApi = createMockRepositoriesApi(repos);
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace', limit: '25' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+      false
+    );
+  });
+
+  it('--all fetches every page and prints no hint', async () => {
+    const repos = Array.from({ length: 120 }, (_, index) => ({
+      ...mockRepository,
+      slug: `repo-${index + 1}`,
+      full_name: `workspace/repo-${index + 1}`,
+    }));
+    const requestedPages: number[] = [];
+    const repositoriesApi = createMockRepositoriesApi(repos, {
+      onListCall: (_request, axiosOptions) => {
+        requestedPages.push(extractPaginationParams(axiosOptions).page);
+      },
+    });
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace', all: true },
+      { globalOptions: {} }
+    );
+
+    const rows = getTableRows(output.logs);
+    expect(rows).toHaveLength(120);
+    // 120 repos at the 50-item max page size => 3 pages.
+    expect(requestedPages).toEqual([1, 2, 3]);
+    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+      false
+    );
+  });
+
+  it('does not print the hint in JSON mode even when capped', async () => {
+    const repos = Array.from({ length: 5 }, (_, index) => ({
+      ...mockRepository,
+      slug: `repo-${index + 1}`,
+      full_name: `workspace/repo-${index + 1}`,
+    }));
+    const repositoriesApi = createMockRepositoriesApi(repos);
+    const contextService = createMockContextService();
+    const output = createMockOutputService();
+
+    const command = new ListReposCommand(
+      repositoriesApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { workspace: 'workspace', limit: '2' },
+      { globalOptions: { json: true } }
+    );
+
+    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+      false
+    );
+  });
+
   it('should show message when no repositories found', async () => {
     const repositoriesApi = createMockRepositoriesApi([]);
     const contextService = createMockContextService();

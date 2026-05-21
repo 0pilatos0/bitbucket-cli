@@ -9,7 +9,10 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 import {
   getRawContent,
   getUserDisplayName,
@@ -33,6 +36,7 @@ type ActivityType = (typeof VALID_ACTIVITY_TYPES)[number];
 
 export interface ActivityPROptions extends GlobalOptions {
   limit?: string;
+  all?: boolean;
   type?: string;
 }
 
@@ -62,36 +66,37 @@ export class ActivityPRCommand extends BaseCommand<
 
     const prId = this.parsePositiveInt(options.id, 'id');
     const filterTypes = this.parseTypeFilter(options.type);
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
 
-    const activities = await collectPages<PullrequestActivity>({
-      limit,
-      fetchPage: async (page, pagelen) => {
-        const response =
-          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
-            {
-              workspace: repoContext.workspace,
-              repoSlug: repoContext.repoSlug,
-              pullRequestId: prId,
-            },
-            {
-              params: { page, pagelen },
-            }
+    const { items: activities, hasMore } =
+      await collectPagesWithMeta<PullrequestActivity>({
+        limit,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
+              {
+                workspace: repoContext.workspace,
+                repoSlug: repoContext.repoSlug,
+                pullRequestId: prId,
+              },
+              {
+                params: { page, pagelen },
+              }
+            );
+
+          // The generated API types say this returns void, but it actually returns paginated activity.
+          return parsePullrequestActivitiesPage(response.data);
+        },
+        shouldInclude: (activity) => {
+          if (filterTypes.length === 0) {
+            return true;
+          }
+
+          return (filterTypes as readonly string[]).includes(
+            this.getActivityType(activity)
           );
-
-        // The generated API types say this returns void, but it actually returns paginated activity.
-        return parsePullrequestActivitiesPage(response.data);
-      },
-      shouldInclude: (activity) => {
-        if (filterTypes.length === 0) {
-          return true;
-        }
-
-        return (filterTypes as readonly string[]).includes(
-          this.getActivityType(activity)
-        );
-      },
-    });
+        },
+      });
 
     if (context.globalOptions.json) {
       await this.output.json({
@@ -131,6 +136,7 @@ export class ActivityPRCommand extends BaseCommand<
     });
 
     this.output.table(['TYPE', 'ACTOR', 'DATE', 'DETAILS'], rows);
+    this.printMoreHint(activities.length, hasMore, 'activity entries');
   }
 
   private parseTypeFilter(typeOption?: string): ActivityType[] {

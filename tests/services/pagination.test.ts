@@ -5,8 +5,10 @@
 import { describe, expect, it } from 'bun:test';
 import {
   collectPages,
+  collectPagesWithMeta,
   DEFAULT_LIMIT,
   parseLimit,
+  resolveLimit,
   type PaginatedCollection,
 } from '../../src/services/pagination.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
@@ -135,5 +137,107 @@ describe('collectPages', () => {
     });
 
     expect(result).toEqual([2, 4]);
+  });
+});
+
+describe('resolveLimit', () => {
+  it('returns Infinity when --all is set, ignoring --limit', () => {
+    expect(resolveLimit({ all: true, limit: '10' })).toBe(
+      Number.POSITIVE_INFINITY
+    );
+  });
+
+  it('parses --limit when --all is not set', () => {
+    expect(resolveLimit({ limit: '10' })).toBe(10);
+  });
+
+  it('falls back to the default limit when neither is set', () => {
+    expect(resolveLimit({})).toBe(DEFAULT_LIMIT);
+  });
+});
+
+describe('collectPagesWithMeta', () => {
+  it('reports hasMore=false when everything fits under the limit', async () => {
+    const result = await collectPagesWithMeta<number>({
+      limit: 10,
+      fetchPage: async () => ({ values: [1, 2, 3] }),
+    });
+
+    expect(result.items).toEqual([1, 2, 3]);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it('reports hasMore=true when more items remain on the capped page', async () => {
+    const result = await collectPagesWithMeta<number>({
+      limit: 2,
+      pageSize: 5,
+      fetchPage: async () => ({ values: [1, 2, 3, 4, 5] }),
+    });
+
+    expect(result.items).toEqual([1, 2]);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('reports hasMore=true when the limit ends a page but another follows', async () => {
+    const pages: Array<PaginatedCollection<number>> = [
+      { values: [1, 2, 3], next: 'page2' },
+      { values: [4, 5, 6] },
+    ];
+
+    const result = await collectPagesWithMeta<number>({
+      limit: 3,
+      pageSize: 3,
+      fetchPage: async (page) => pages[page - 1] ?? { values: [] },
+    });
+
+    expect(result.items).toEqual([1, 2, 3]);
+    expect(result.hasMore).toBe(true);
+  });
+
+  it('reports hasMore=false when the limit ends the final page exactly', async () => {
+    const result = await collectPagesWithMeta<number>({
+      limit: 3,
+      pageSize: 3,
+      fetchPage: async () => ({ values: [1, 2, 3] }),
+    });
+
+    expect(result.items).toEqual([1, 2, 3]);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it('collects every page when limit is Infinity (--all)', async () => {
+    const pages: Array<PaginatedCollection<number>> = [
+      { values: [1, 2], next: 'page2' },
+      { values: [3, 4], next: 'page3' },
+      { values: [5] },
+    ];
+    const calls: number[] = [];
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      fetchPage: async (page) => {
+        calls.push(page);
+        return pages[page - 1] ?? { values: [] };
+      },
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5]);
+    expect(result.hasMore).toBe(false);
+    expect(calls).toEqual([1, 2, 3]);
+  });
+
+  it('ignores filtered-out trailing values when computing hasMore', async () => {
+    // Only even values are included; after collecting [2] at the cap, the
+    // remaining page values (3) are filtered out and there is no next page,
+    // so nothing more would actually be shown.
+    const result = await collectPagesWithMeta<number>({
+      limit: 1,
+      pageSize: 3,
+      fetchPage: async () => ({ values: [1, 2, 3] }),
+      shouldInclude: (value) => value % 2 === 0,
+    });
+
+    expect(result.items).toEqual([2]);
+    expect(result.hasMore).toBe(false);
   });
 });

@@ -97,6 +97,7 @@ bb repo list [options]
 |--------|-------------|
 | `-w, --workspace <workspace>` | Workspace to list repositories from |
 | `--limit <number>` | Maximum number of repositories (default: 25) |
+| `--all` | List all repositories (overrides `--limit`) |
 | `--json` | Output as JSON |
 
 ### Examples
@@ -107,6 +108,9 @@ bb repo list -w myworkspace
 
 # List more repositories
 bb repo list -w myworkspace --limit 50
+
+# List every repository in the workspace
+bb repo list -w myworkspace --all
 
 # List with JSON output for scripting
 bb repo list -w myworkspace --json
@@ -121,6 +125,7 @@ bb repo list -w myworkspace --json --jq '.repositories[] | select(.is_private ==
 ### Notes
 
 - `--limit` is enforced across paginated repository responses
+- When the result is capped by `--limit`, a hint is printed showing how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
 
 ---
 

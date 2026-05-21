@@ -9,7 +9,10 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { SnippetComment, SnippetsApi } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 import {
   getRawContent,
   getUserDisplayName,
@@ -18,6 +21,7 @@ import {
 export interface ListSnippetCommentsOptions {
   workspace?: string;
   limit?: string;
+  all?: boolean;
 }
 
 export class ListSnippetCommentsCommand extends BaseCommand<
@@ -42,25 +46,26 @@ export class ListSnippetCommentsCommand extends BaseCommand<
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
 
-    const comments = await collectPages<SnippetComment>({
-      limit,
-      fetchPage: async (page, pagelen) => {
-        const response =
-          await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsGet(
-            {
-              workspace,
-              encodedId: options.id,
-            },
-            {
-              params: { page, pagelen },
-            }
-          );
+    const { items: comments, hasMore } =
+      await collectPagesWithMeta<SnippetComment>({
+        limit,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsGet(
+              {
+                workspace,
+                encodedId: options.id,
+              },
+              {
+                params: { page, pagelen },
+              }
+            );
 
-        return response.data;
-      },
-    });
+          return response.data;
+        },
+      });
 
     if (context.globalOptions.json) {
       await this.output.json({
@@ -88,5 +93,6 @@ export class ListSnippetCommentsCommand extends BaseCommand<
     });
 
     this.output.table(['ID', 'AUTHOR', 'DATE', 'CONTENT'], rows);
+    this.printMoreHint(comments.length, hasMore, 'comments');
   }
 }

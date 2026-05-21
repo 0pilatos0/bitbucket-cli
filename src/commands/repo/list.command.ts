@@ -9,11 +9,15 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi, Repository } from '../../generated/api.js';
-import { collectPages, parseLimit } from '../../services/pagination.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+} from '../../services/pagination.js';
 
 export interface ListReposOptions {
   workspace?: string;
   limit?: string;
+  all?: boolean;
 }
 
 export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
@@ -35,9 +39,9 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = parseLimit(options.limit);
+    const limit = resolveLimit(options);
 
-    const repos = await collectPages<Repository>({
+    const { items: repos, hasMore } = await collectPagesWithMeta<Repository>({
       limit,
       fetchPage: async (page, pagelen) => {
         const response = await this.repositoriesApi.repositoriesWorkspaceGet(
@@ -74,5 +78,6 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     ]);
 
     this.output.table(['REPOSITORY', 'VISIBILITY', 'DESCRIPTION'], rows);
+    this.printMoreHint(repos.length, hasMore, 'repositories');
   }
 }
