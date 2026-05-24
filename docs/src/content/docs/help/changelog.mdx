@@ -14,7 +14,41 @@ and is updated on every release.
   See [Configuration File](/reference/configuration/) for related settings.
 </Aside>
 
-## Unreleased — `bb browse`
+## 1.18.0 — Pagination hints and `--all`
+
+List commands now make truncation visible and let you opt out of pagination
+in one flag.
+
+- **`--all`** fetches every page and overrides `--limit`. Available on
+  `bb repo list`, `bb pr list`, `bb pr activity`, `bb pr comments list`,
+  `bb snippet list`, and `bb snippet comments list`.
+- When `--limit` truncates a list, a dim footer prints
+  `Showing 25 repositories. Use --limit <n> or --all to see more.` — no more
+  silently-clipped output. The hint is suppressed in `--json` mode.
+- **Bug fix:** table cells containing newlines, carriage returns, or tabs
+  (e.g. a repo description with a line break) are now collapsed to a single
+  space so rows stay aligned. Multi-line `text()` output is unaffected.
+
+See [Global Flags → `--all`](/reference/global-flags/#--all) for the full
+list of supported commands.
+
+## 1.17.0 — Locale, Unicode toggle, spinner, global `--no-truncate`
+
+A polish-heavy release focused on output ergonomics.
+
+- **Locale-aware dates** via `--locale <tag>` and `BB_LOCALE`. Resolution
+  walks `--locale` → `BB_LOCALE` → `LC_TIME` → `LC_ALL` → `LANG` → `en-US`.
+- **`--no-unicode` / `BB_NO_UNICODE`** swap separators, arrows, and status
+  icons for ASCII fallbacks. Useful for older terminals, constrained CI, or
+  fonts that render the glyphs as tofu boxes. Mirrors `gh`'s `GH_NO_UNICODE`.
+- **Global `--no-truncate`** disables column truncation across every list
+  command. The old command-local flag on `bb pr comments list` is now
+  subsumed and no longer needs to be passed separately.
+- **Spinners** for long-running operations — `bb pr create`,
+  `bb pr merge`, `bb repo clone`. Auto-disabled in JSON mode, non-TTY
+  streams, and tests, so scripts are unaffected.
+
+## 1.16.0 — `bb browse`
 
 Open Bitbucket Cloud web pages — repo home, files, branches, commits, pull
 requests, pipelines, settings — directly from the terminal. Mirrors
@@ -28,8 +62,6 @@ requests, pipelines, settings — directly from the terminal. Mirrors
   `--pipeline`, `--downloads`, `--issue`, `--issues`, `--wiki`, `--settings`.
 - `--no-browser` prints the URL to stdout; `--json url` emits
   `{ "url": "..." }` for scripting.
-- Outside a git checkout, falls back to Bitbucket's `HEAD` segment so
-  `--workspace`/`--repo` overrides Just Work.
 
 ```bash
 bb browse                                # repo home
@@ -42,6 +74,17 @@ bb browse --pr 217 --json url            # capture the URL for a script
 
 See the [Browse command reference](/commands/browse/) for the full flag list
 and examples.
+
+Patch releases in the 1.16 line tightened help text, made the API client's
+retry messages route through the output service (silenced in `--json` mode),
+and standardised the `--yes` confirmation prompt across destructive commands.
+
+## 1.15.0 — Stability and warnings polish
+
+Internal hardening and small UX improvements. Empty-result messages on list
+commands now use a consistent `ℹ` info icon, and dividers across framed
+output (`pr view`, `pr checks`, `snippet view`, the version-update banner)
+share a single helper for a uniform look.
 
 ## 1.14.0 — `--json <fields>` projection and `--jq <expression>`
 

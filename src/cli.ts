@@ -345,7 +345,10 @@ cli
     '--locale <locale>',
     'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
   )
-  .option('-w, --workspace <workspace>', 'Specify workspace')
+  .option(
+    '-w, --workspace <workspace>',
+    'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
+  )
   .option('-r, --repo <repo>', 'Specify repository')
   .addHelpText(
     'after',
@@ -353,11 +356,13 @@ cli
       envVars: {
         BB_USERNAME: 'Bitbucket username (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
+        BB_WORKSPACE:
+          'Default workspace (overrides config.defaultWorkspace; --workspace still wins)',
         NO_COLOR: 'Disable color output when set',
         FORCE_COLOR: "Force color output when set (and not '0')",
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
-        DEBUG: "Enable HTTP debug logging when 'true'",
+        DEBUG: "Enable HTTP debug logging when exactly 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',
       },

@@ -1,122 +1,102 @@
 # Contributing to Bitbucket CLI
 
-Thanks for your interest in contributing! This guide will help you get started.
+Thanks for your interest in contributing! This guide covers the practical
+workflow (setup → branch → changeset → PR). For coding conventions, the
+command pattern, DI, and error handling, see [AGENTS.md](AGENTS.md) — it's
+the authoritative reference and is kept in sync with the code.
 
 ## Development Setup
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/0pilatos0/bitbucket-cli.git
-   cd bitbucket-cli
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   bun install
-   ```
-
-3. **Run in development mode**
-   ```bash
-   bun run dev
-   ```
-
-## Commands
-
-| Command         | Description                 |
-| --------------- | --------------------------- |
-| `bun run dev`   | Run CLI in development mode |
-| `bun run build` | Build for production        |
-| `bun test`      | Run tests                   |
-| `bun run lint`  | Type-check with TypeScript  |
-
-## Making Changes
-
-### 1. Create a branch
-
 ```bash
-git checkout -b feat/your-feature
-# or
-git checkout -b fix/your-fix
+git clone https://github.com/0pilatos0/bitbucket-cli.git
+cd bitbucket-cli
+bun install
+bun run dev          # run the CLI locally
 ```
 
-### 2. Make your changes
+> The project is **Bun-only** — Node.js is not supported. Install Bun from
+> [bun.sh](https://bun.sh) if you don't have it.
 
-- Follow existing code patterns
-- Add tests for new functionality
-- Ensure all tests pass: `bun test`
-- Ensure types are correct: `bun run lint`
-- Ensure formatting is valid: `bun run format:check`
+Common scripts (full list in [AGENTS.md](AGENTS.md#commands)):
 
-### 3. Add a changeset
+```bash
+bun test              # run all tests
+bun run lint          # type-check
+bun run format:check  # required by the pre-commit hook
+```
 
-**This is required for all PRs that affect the package.**
+## Making a Change
+
+### 1. Branch
+
+```bash
+git checkout -b feat/your-feature   # or fix/your-fix
+```
+
+Use `feat/` for new features and `fix/` for bug fixes. Other prefixes
+(`docs/`, `chore/`, `refactor/`) are fine when they fit.
+
+### 2. Code
+
+- Follow the patterns in `src/commands/` — extend `BaseCommand`, inject
+  dependencies via the container. See
+  [AGENTS.md → Command Pattern](AGENTS.md#command-pattern).
+- Use `IOutputService` for all output, never `console.*`. See
+  [AGENTS.md → Output and JSON](AGENTS.md#output-and-json).
+- Use `BBError` / `ErrorCode` for expected failures. See
+  [AGENTS.md → Error Handling](AGENTS.md#error-handling).
+- Add tests next to existing ones in `tests/`.
+- Never edit `src/generated/` — regenerate with `bun run generate:api`.
+
+Before pushing:
+
+```bash
+bun test
+bun run lint
+bun run format:check
+```
+
+### 3. Add a Changeset
+
+**Required** for any change that affects users (commands, flags, output,
+config, errors). Skip only for CI/workflow tweaks, README edits, or
+test-only changes.
 
 ```bash
 bun run changeset
 ```
 
-This will prompt you to:
+Pick the bump type:
 
-1. Select the type of change (patch, minor, major)
-2. Write a summary of your changes
+| Type    | Use for                                               |
+| ------- | ----------------------------------------------------- |
+| `patch` | Bug fixes, doc updates, small improvements            |
+| `minor` | New features, new commands, non-breaking enhancements |
+| `major` | Breaking changes (rare pre-1.0)                       |
 
-A changeset file will be created in `.changeset/` - commit this with your PR.
+Commit the generated file in `.changeset/` alongside your code changes.
 
-#### When to use each version type
+### 4. Open a Pull Request
 
-- **patch** - Bug fixes, documentation updates, small improvements
-- **minor** - New features, new commands, non-breaking enhancements
-- **major** - Breaking changes (rarely used before v1.0)
-
-#### Skipping changesets
-
-Only skip changesets for changes that don't affect users:
-
-- CI/workflow changes
-- README updates
-- Test-only changes
-
-### 4. Submit a Pull Request
-
-- Fill out the PR template
-- Link any related issues
+- Fill in the PR template
+- Link related issues
 - Wait for CI to pass
-- Request review if needed
-
-## Code Style
-
-- Use TypeScript
-- Follow the command pattern in `src/commands/`
-- Use dependency injection via the container
-- Use standard Promises and throw errors for failure cases
-- Keep functions small and focused
-
-## Architecture
-
-```
-src/
-├── commands/       # CLI commands (one per file)
-├── core/           # DI container, interfaces
-├── generated/      # Auto-generated API client from OpenAPI spec
-├── services/       # Business logic
-└── types/          # TypeScript types
-```
 
 ## Release Process
 
-Releases are automated via changesets:
+Releases are automated via Changesets:
 
-1. PRs with changesets get merged to `main`
-2. A "Version Packages" PR is automatically created
-3. Merging that PR triggers:
-   - Version bump
-   - CHANGELOG update
-   - npm publish (primary package distribution)
-   - GitHub Packages publish
-   - GitHub Release creation
+1. PRs with changesets merge to `main`.
+2. A "Version Packages" PR is opened automatically with the version bump
+   and CHANGELOG.
+3. Merging that PR publishes to npm + GitHub Packages and cuts a GitHub
+   Release.
+
+You don't need to bump versions or update the changelog manually — the
+changeset you committed is enough.
 
 ## Questions?
 
-Open an issue if you have questions or need help getting started.
+Open an issue if you're stuck. For deeper convention questions, check
+[AGENTS.md](AGENTS.md) first — it covers the runtime, module system,
+imports, naming, error handling, DI, and testing setup.

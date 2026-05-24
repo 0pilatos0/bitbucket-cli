@@ -91,7 +91,8 @@ export class ContextService implements IContextService {
    * Get repository context with fallbacks:
    * 1. Command line options (--workspace, --repo)
    * 2. Current git repository remote
-   * 3. Config file defaults
+   * 3. `BB_WORKSPACE` environment variable (paired with `--repo`)
+   * 4. `config.defaultWorkspace` (paired with `--repo`)
    */
   public async getRepoContext(
     options: GlobalOptions
@@ -128,10 +129,11 @@ export class ContextService implements IContextService {
       };
     }
 
-    // If only repo is provided, try to use default workspace or git workspace
+    // If only repo is provided, try to use git workspace or fall back to
+    // BB_WORKSPACE / config.defaultWorkspace
     if (options.repo) {
-      const config = await this.configService.getConfig();
-      const workspace = gitContext?.workspace || config.defaultWorkspace;
+      const workspace =
+        gitContext?.workspace ?? (await this.resolveDefaultWorkspace());
       if (workspace) {
         return {
           context: { workspace, repoSlug: options.repo },
@@ -142,6 +144,29 @@ export class ContextService implements IContextService {
     }
 
     return gitResult;
+  }
+
+  /**
+   * Resolve a default workspace name from the environment or config file.
+   * `BB_WORKSPACE` wins over `config.defaultWorkspace` so CI pipelines can
+   * override a developer's persisted default without rewriting the config.
+   */
+  private async resolveDefaultWorkspace(): Promise<string | undefined> {
+    const fromEnv = process.env.BB_WORKSPACE;
+    if (typeof fromEnv === 'string') {
+      const trimmed = fromEnv.trim();
+      if (trimmed.length > 0) {
+        return trimmed;
+      }
+    }
+
+    const config = await this.configService.getConfig();
+    const fromConfig = config.defaultWorkspace;
+    if (typeof fromConfig === 'string' && fromConfig.length > 0) {
+      return fromConfig;
+    }
+
+    return undefined;
   }
 
   /**
@@ -196,17 +221,17 @@ export class ContextService implements IContextService {
 
   /**
    * Resolve workspace for workspace-only commands (e.g. snippets, repo list).
-   * Prefers the explicit value, falls back to `config.defaultWorkspace`, and
-   * throws when neither is set.
+   * Prefers the explicit value, then `BB_WORKSPACE`, then
+   * `config.defaultWorkspace`. Throws when none is set.
    */
   public async requireWorkspace(explicit?: string): Promise<string> {
     if (explicit && explicit.length > 0) {
       return explicit;
     }
 
-    const config = await this.configService.getConfig();
-    if (config.defaultWorkspace && config.defaultWorkspace.length > 0) {
-      return config.defaultWorkspace;
+    const fallback = await this.resolveDefaultWorkspace();
+    if (fallback) {
+      return fallback;
     }
 
     throw new BBError({

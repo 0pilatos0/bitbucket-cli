@@ -93,7 +93,7 @@ bb browse src/cli.ts:20       # open a file at a specific line
 bb config set defaultWorkspace myworkspace
 ```
 
-**Global options:** `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`
+**Global options** (work on every command): `--json [fields]`, `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--limit`, `--all`, `--locale`, `-w, --workspace`, `-r, --repo`. Full reference: [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
 
 ### Scripting with `--json` and `--jq`
 
@@ -135,13 +135,16 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 
 ## Environment Variables
 
-| Variable       | Description                                                |
-| -------------- | ---------------------------------------------------------- |
-| `BB_USERNAME`  | Bitbucket username (fallback for `bb auth login`)          |
-| `BB_API_TOKEN` | Bitbucket API token (fallback for `bb auth login`; for CI) |
-| `DEBUG`        | Enable HTTP debug logging when set to `true`               |
-| `NO_COLOR`     | Disable color output when set                              |
-| `FORCE_COLOR`  | Force color output when set (and not `0`)                  |
+| Variable        | Description                                                            |
+| --------------- | ---------------------------------------------------------------------- |
+| `BB_USERNAME`   | Bitbucket username (fallback for `bb auth login`)                      |
+| `BB_API_TOKEN`  | Bitbucket API token (fallback for `bb auth login`; for CI)             |
+| `BB_WORKSPACE`  | Default workspace; overrides `defaultWorkspace` config                 |
+| `BB_LOCALE`     | BCP-47 locale for date/time formatting (e.g. `de-DE`); `--locale` wins |
+| `BB_NO_UNICODE` | Use ASCII fallbacks for symbols when set (any non-empty value)         |
+| `DEBUG`         | Enable HTTP debug logging — must equal exactly `true`                  |
+| `NO_COLOR`      | Disable color output when set                                          |
+| `FORCE_COLOR`   | Force color output when set (and not `0`)                              |
 
 Full reference: [Environment variables](https://bitbucket-cli.paulvanderlei.com/reference/environment-variables/).
 

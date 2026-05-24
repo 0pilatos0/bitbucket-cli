@@ -322,4 +322,105 @@ describe('ContextService', () => {
       });
     });
   });
+
+  describe('BB_WORKSPACE env var', () => {
+    const originalEnv = process.env.BB_WORKSPACE;
+
+    const restoreEnv = () => {
+      if (originalEnv === undefined) {
+        delete process.env.BB_WORKSPACE;
+      } else {
+        process.env.BB_WORKSPACE = originalEnv;
+      }
+    };
+
+    it('is used by requireWorkspace when no explicit value or config default', async () => {
+      process.env.BB_WORKSPACE = 'env-workspace';
+      try {
+        const service = new ContextService(
+          createMockGitService(),
+          createMockConfigService({})
+        );
+        expect(await service.requireWorkspace()).toBe('env-workspace');
+      } finally {
+        restoreEnv();
+      }
+    });
+
+    it('wins over config.defaultWorkspace in requireWorkspace', async () => {
+      process.env.BB_WORKSPACE = 'env-workspace';
+      try {
+        const service = new ContextService(
+          createMockGitService(),
+          createMockConfigService({ defaultWorkspace: 'config-workspace' })
+        );
+        expect(await service.requireWorkspace()).toBe('env-workspace');
+      } finally {
+        restoreEnv();
+      }
+    });
+
+    it('loses to explicit value in requireWorkspace', async () => {
+      process.env.BB_WORKSPACE = 'env-workspace';
+      try {
+        const service = new ContextService(
+          createMockGitService(),
+          createMockConfigService({})
+        );
+        expect(await service.requireWorkspace('explicit')).toBe('explicit');
+      } finally {
+        restoreEnv();
+      }
+    });
+
+    it('is ignored when blank or whitespace', async () => {
+      process.env.BB_WORKSPACE = '   ';
+      try {
+        const service = new ContextService(
+          createMockGitService(),
+          createMockConfigService({ defaultWorkspace: 'config-workspace' })
+        );
+        expect(await service.requireWorkspace()).toBe('config-workspace');
+      } finally {
+        restoreEnv();
+      }
+    });
+
+    it('feeds into getRepoContext when only --repo is given and there is no git context', async () => {
+      process.env.BB_WORKSPACE = 'env-workspace';
+      try {
+        const service = new ContextService(
+          createMockGitService({ isRepo: false }),
+          createMockConfigService({})
+        );
+        const result = await service.getRepoContext({ repo: 'my-repo' });
+        expect(result).toEqual({
+          workspace: 'env-workspace',
+          repoSlug: 'my-repo',
+        });
+      } finally {
+        restoreEnv();
+      }
+    });
+
+    it('does not override git-detected workspace in getRepoContext', async () => {
+      process.env.BB_WORKSPACE = 'env-workspace';
+      try {
+        const service = new ContextService(
+          createMockGitService({
+            isRepo: true,
+            remoteUrl: 'git@bitbucket.org:git-workspace/git-repo.git',
+          }),
+          createMockConfigService({})
+        );
+        const result = await service.getRepoContext({});
+        expect(result).toEqual({
+          workspace: 'git-workspace',
+          repoSlug: 'git-repo',
+        });
+      } finally {
+        restoreEnv();
+      }
+    });
+  });
 });

@@ -117,6 +117,7 @@ export default defineConfig({
         {
           label: "Reference",
           items: [
+            { label: "Global Flags", slug: "reference/global-flags" },
             { label: "Environment Variables", slug: "reference/environment-variables" },
             { label: "JSON Output", slug: "reference/json-output" },
             { label: "Error Codes", slug: "reference/error-codes" },

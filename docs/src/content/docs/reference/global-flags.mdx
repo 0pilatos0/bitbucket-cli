@@ -1,0 +1,144 @@
+---
+title: Global Flags
+description: Flags accepted by every bb command
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+These flags can be passed to any `bb` command. They are resolved before the
+command-specific options, so they work uniformly whether you're running
+`bb pr list` or `bb config get`.
+
+## Quick reference
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--json [fields]` | optional CSV | _off_ | Emit machine-readable JSON. Pass a comma-separated field list to project the output. |
+| `--jq <expression>` | string | _off_ | Run the JSON output through an in-process `jq` filter. Requires `--json`. |
+| `--no-color` | boolean | auto | Disable ANSI colors. Also honoured: `NO_COLOR` env var. |
+| `--no-unicode` | boolean | auto | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE` env var. |
+| `--no-truncate` | boolean | _off_ | Show full values in table output without truncating long cells. |
+| `--limit <n>` | integer | command-specific | Cap the number of items returned by list commands. |
+| `--all` | boolean | _off_ | Fetch every page (overrides `--limit`). Available on list commands. |
+| `--locale <tag>` | BCP-47 | system | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. |
+| `-w, --workspace <name>` | string | git remote / env / config | Override the workspace. |
+| `-r, --repo <slug>` | string | git remote | Override the repository. |
+| `-h, --help` | boolean | — | Print help for the command. |
+| `-V, --version` | boolean | — | Print the CLI version. |
+
+## Output flags
+
+### `--json [fields]`
+
+Switch a command to JSON output. With no argument, the full response is
+printed. Pass a comma-separated field list to project to just those keys:
+
+```bash
+bb pr list --json
+bb pr list --json id,title,state
+```
+
+JSON mode also disables spinners, colors, and progress notes so the output is
+safe to pipe.
+
+### `--jq <expression>`
+
+Filter the JSON output through a `jq` expression. The filter runs in-process
+via the embedded jq engine, so you don't need the `jq` binary installed.
+Requires `--json`:
+
+```bash
+bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
+```
+
+### `--no-color` and `--no-unicode`
+
+`--no-color` disables ANSI colors. `--no-unicode` swaps Unicode separators
+and status glyphs for plain ASCII equivalents — useful for log aggregators
+that mangle Unicode, or terminals that don't render the symbols cleanly.
+
+Both flags have environment-variable equivalents (`NO_COLOR`,
+`BB_NO_UNICODE`). They're auto-disabled when stdout is not a TTY, so piping
+to a file or another process already gives you plain output.
+
+## Pagination flags
+
+### `--limit <n>`
+
+Cap the number of items returned. Most list commands default to a small,
+useful page size (e.g. 25); pass `--limit 100` to fetch more in one shot.
+
+### `--all`
+
+Fetch every page. Available on:
+
+- `bb repo list`
+- `bb pr list`
+- `bb pr activity`
+- `bb pr comments list`
+- `bb snippet list`
+- `bb snippet comments list`
+
+`--all` overrides `--limit`. When the output is truncated by `--limit`, the
+CLI prints a hint suggesting `--limit <n>` or `--all` so the truncation is
+never silent.
+
+### `--no-truncate`
+
+Show table cells in full. By default, long values (PR descriptions, comment
+bodies, branch names) are truncated to keep rows on one line. `--no-truncate`
+disables that for the current invocation:
+
+```bash
+bb pr comments list 42 --no-truncate
+```
+
+## Context flags
+
+### `-w, --workspace` and `-r, --repo`
+
+Override the workspace and repository for the current command. The
+resolution order is documented in detail in
+[Repository Context](/guides/repository-context/), but in short:
+
+1. `--workspace` / `--repo` flags
+2. Git remote of the current directory
+3. `BB_WORKSPACE` environment variable (workspace only)
+4. `defaultWorkspace` in the config file (workspace only)
+
+## Locale flag
+
+### `--locale <tag>`
+
+Pin a BCP-47 locale tag for date/time formatting. This affects every
+human-readable date the CLI prints — PR timestamps, activity entries,
+comment dates. JSON output is locale-independent.
+
+```bash
+bb pr list --locale de-DE
+bb pr view 42 --locale ja-JP
+```
+
+If `--locale` is unset, the CLI walks `BB_LOCALE`, then the standard POSIX
+chain (`LC_TIME` → `LC_ALL` → `LANG`), then falls back to `en-US`.
+
+## Precedence summary
+
+For settings that can come from multiple sources, the order is always:
+
+1. Command-line flag
+2. Environment variable
+3. Config file
+4. Built-in default
+
+<Aside type="note">
+For boolean toggles like `--no-color`, the inverse flag (`--color`) is
+not a global flag — it only exists on `bb pr diff`. Use `FORCE_COLOR=1` to
+force color globally instead.
+</Aside>
+
+## See also
+
+- [Environment Variables](/reference/environment-variables/) — env-var equivalents and precedence
+- [JSON Output](/reference/json-output/) — schema, field projection, scripting tips
+- [Configuration File](/reference/configuration/) — persistent settings

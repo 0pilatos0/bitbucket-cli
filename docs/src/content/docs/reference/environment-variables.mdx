@@ -11,11 +11,14 @@ Environment variables allow you to configure the CLI without storing credentials
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `BB_USERNAME` | Your Bitbucket username | `myuser` |
-| `BB_API_TOKEN` | Your Bitbucket API token | `ATBB...` |
-| `NO_COLOR` | Disable color output globally | `1` |
-| `FORCE_COLOR` | Force-enable color output globally | `1` |
-| `DEBUG` | Enable HTTP debug logging (logs request method, URL, status, and response body for every API call) | `true` |
+| `BB_USERNAME` | Your Bitbucket username (fallback for `bb auth login`) | `myuser` |
+| `BB_API_TOKEN` | Your Bitbucket API token (fallback for `bb auth login`; forces API token auth when set) | `ATBB...` |
+| `BB_WORKSPACE` | Default workspace. Overrides `config.defaultWorkspace`; `--workspace` and git context still win. | `myworkspace` |
+| `BB_LOCALE` | BCP-47 locale tag for date/time formatting. `--locale` takes precedence; falls back to `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. | `de-DE` |
+| `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Equivalent to the global `--no-unicode` flag. | `1` |
+| `NO_COLOR` | Disable color output globally when set to any value | `1` |
+| `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
+| `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
 
 ### Internal / System Variables
 
@@ -35,7 +38,8 @@ Repository context is resolved in this order (highest priority first):
 
 1. **Command-line flags** (`--workspace`, `--repo`)
 2. **Git repository context** (detected from remote URL)
-3. **Configuration file** (`defaultWorkspace`)
+3. **`BB_WORKSPACE` environment variable**
+4. **Configuration file** (`defaultWorkspace`)
 
 Authentication credentials are resolved from:
 

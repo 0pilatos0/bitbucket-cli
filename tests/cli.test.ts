@@ -345,6 +345,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('Environment variables:');
     expect(output).toContain('BB_USERNAME');
     expect(output).toContain('BB_API_TOKEN');
+    expect(output).toContain('BB_WORKSPACE');
     expect(output).toContain('NO_COLOR');
     expect(output).toContain('FORCE_COLOR');
     expect(output).toContain('BB_NO_UNICODE');
