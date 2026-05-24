@@ -301,6 +301,27 @@ bb auth login   # Reads from env vars automatically
 
 ---
 
+## `llms.txt` for IDE agents
+
+The docs site publishes the [`llms.txt`](https://llmstxt.org/) convention so
+agents that fetch documentation on demand (Cursor, Cline, Continue, Aider,
+and similar) can pull a clean markdown view of the full reference instead
+of scraping HTML:
+
+| URL | Contents |
+|-----|----------|
+| [`/llms.txt`](https://bitbucket-cli.paulvanderlei.com/llms.txt) | Index pointing to the two content files below |
+| [`/llms-full.txt`](https://bitbucket-cli.paulvanderlei.com/llms-full.txt) | Every doc page concatenated as markdown |
+| [`/llms-small.txt`](https://bitbucket-cli.paulvanderlei.com/llms-small.txt) | Abridged subset (excludes Help / FAQ / Changelog) for tight context windows |
+
+All three are generated at build time, so they always match the live docs.
+You don't need to do anything to consume them — tools that support
+`llms.txt` will discover them automatically. If your tool doesn't, paste
+the URL into the chat (`@https://bitbucket-cli.paulvanderlei.com/llms-full.txt`
+in Cursor, for example).
+
+---
+
 ## Related Guides
 
 - [Scripting & Automation](/guides/scripting/) — JSON output, exit codes, and shell scripting patterns

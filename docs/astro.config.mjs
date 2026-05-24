@@ -1,5 +1,6 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import starlightLlmsTxt from "starlight-llms-txt";
 import { readFileSync, existsSync } from "node:fs";
 
 const rootPkg = new URL("../package.json", import.meta.url);
@@ -28,6 +29,23 @@ export default defineConfig({
       },
       lastUpdated: true,
       customCss: ['/src/styles/docs.css'],
+      plugins: [
+        starlightLlmsTxt({
+          projectName: "Bitbucket CLI",
+          description:
+            "Fast, scriptable CLI for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows from the terminal.",
+          details:
+            "Unofficial, community-maintained CLI inspired by GitHub's gh CLI. Built on Bun, written in TypeScript. Distributed on npm as @pilatos/bitbucket-cli.",
+          // Keep llms-small.txt focused on actionable docs by dropping the
+          // troubleshooting / FAQ / changelog pages.
+          exclude: ["help/**"],
+          // Strip site chrome from the page content so the generated files
+          // don't include nav/header/footer noise.
+          minify: {
+            customSelectors: ["header", "nav", "footer", "aside.sidebar"],
+          },
+        }),
+      ],
       pagefind: {
         ranking: {
           pageLength: 0.05,
