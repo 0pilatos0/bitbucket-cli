@@ -1,11 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+/* Self-hosted variable fonts. Replaces the previous fonts.googleapis.com
+ * @import which was the dominant render-blocking request on mobile. */
+@import '@fontsource-variable/dm-sans';
+@import '@fontsource-variable/dm-sans/wght-italic.css';
+@import '@fontsource-variable/jetbrains-mono';
 
 /* ===== Tokens ===== */
 :root {
-  --sl-font: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --sl-font-system: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --sl-font-system-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, Consolas,
-    monospace;
+  --sl-font:
+    'DM Sans Variable', 'DM Sans', system-ui, -apple-system, sans-serif;
+  --sl-font-system:
+    'DM Sans Variable', 'DM Sans', system-ui, -apple-system, sans-serif;
+  --sl-font-system-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', 'SFMono-Regular', Menlo,
+    Consolas, monospace;
 
   /* Accent scale — deep navy to bright sky */
   --sl-color-accent-low: hsl(220, 72%, 14%);
