@@ -1,5 +1,56 @@
 # Changelog
 
+## 1.19.0
+
+### Minor Changes
+
+- [`c408616`](https://github.com/0pilatos0/bitbucket-cli/commit/c40861618a2897197f4b2f3ff6fc29f8c84f6e3f) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `BB_WORKSPACE` environment variable support and tighten the public docs.
+  - `BB_WORKSPACE` now feeds into workspace resolution as a fallback between
+    git context and `config.defaultWorkspace`. The full precedence is:
+    `--workspace` flag → git remote → `BB_WORKSPACE` → `config.defaultWorkspace`.
+    Previously, the variable was advertised in `.env.example` but read nowhere.
+  - New `reference/global-flags` docs page consolidates every flag that works
+    on every command (`--json`, `--jq`, `--no-color`, `--no-unicode`,
+    `--no-truncate`, `--limit`, `--all`, `--locale`, `-w`, `-r`).
+  - Reference and README env-var tables now list `BB_WORKSPACE`, `BB_LOCALE`,
+    and `BB_NO_UNICODE` (previously undocumented). `DEBUG` is clarified as
+    requiring the literal string `true`.
+  - Changelog page adds entries for 1.15.0 through 1.18.0 (locale, Unicode
+    toggle, spinner, global `--no-truncate`, `--all`, pagination hints).
+  - `CONTRIBUTING.md` trimmed to onboarding-only; deep conventions live in
+    `AGENTS.md`.
+  - App-password deprecation notices no longer hard-code Atlassian's
+    deprecation dates — they link to Atlassian's own page instead.
+
+### Patch Changes
+
+- [`30fa3df`](https://github.com/0pilatos0/bitbucket-cli/commit/30fa3df8e22376fcb8193e3f2da858d57534b618) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Self-host the docs site fonts (DM Sans, JetBrains Mono) via
+  `@fontsource-variable` instead of importing from `fonts.googleapis.com`.
+  Eliminates the dominant render-blocking request on mobile — Lighthouse
+  flagged the Google Fonts stylesheet as wasting ~800 ms of mobile LCP.
+
+  Variable-font files cover the full 400–700 weight range so the previous
+  multi-weight CDN URL is now a single bundled woff2 per subset, served
+  from the same origin.
+
+  **Deploy-side follow-up** (not in this repo): add
+  `Cache-Control: public, max-age=31536000, immutable` for `/_astro/*`.
+  Astro emits content-hashed filenames there, so they're safe to cache
+  forever. Lighthouse flagged 9 such files at `cache-lifetime=0`.
+
+  Documentation-only change; the CLI is untouched.
+
+- [`d32c44e`](https://github.com/0pilatos0/bitbucket-cli/commit/d32c44e4a60b7db572e485b5b34f1ec7d5885fbf) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Publish `llms.txt` from the docs site so IDE agents (Cursor, Cline,
+  Continue, Aider, etc.) can pull a clean markdown view of the documentation
+  on demand. Three files are generated at build time:
+  - `/llms.txt` — index pointing to the content files
+  - `/llms-full.txt` — every doc page as concatenated markdown
+  - `/llms-small.txt` — abridged subset excluding Help/FAQ/Changelog
+
+  Implementation uses the `starlight-llms-txt` plugin so the files stay in
+  sync with the live docs without manual maintenance. A short section in
+  `guides/ai-agents` documents how to point a tool at the URLs.
+
 ## 1.18.0
 
 ### Minor Changes
