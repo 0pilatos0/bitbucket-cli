@@ -59,6 +59,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   'pr',
   'snippet',
   'browse',
+  'api',
   'config',
   'completion',
   '--help',
@@ -111,6 +112,7 @@ const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
   ],
   ['config', ['get', 'set', 'list']],
   ['completion', ['install', 'uninstall']],
+  ['api', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
 ]);
 
 const COMMENTS_SUBCOMMANDS: readonly string[] = [
@@ -227,7 +229,10 @@ const container = bootstrap({ noColor, noUnicode, locale });
 // parsing are deferred onto `context.validationError` so they can be raised
 // inside BaseCommand.run() and rendered through the normal error path,
 // instead of escaping a Commander action handler as an unhandled rejection.
-function createContext(program: Command): CommandContext {
+export function createContext(
+  program: Command,
+  options: { allowJqWithoutJson?: boolean } = {}
+): CommandContext {
   const opts = program.opts();
   const jsonOpt = opts.json as string | boolean | undefined;
   const jqOpt = opts.jq as string | undefined;
@@ -251,7 +256,15 @@ function createContext(program: Command): CommandContext {
     }
   }
 
-  if (!validationError && jqOpt !== undefined && !json) {
+  // `--jq` normally requires `--json` to flip list/table commands out of human
+  // mode. Commands whose output is already JSON (e.g. `bb api`) opt out via
+  // `allowJqWithoutJson`, so `--jq` works standalone there.
+  if (
+    !validationError &&
+    jqOpt !== undefined &&
+    !json &&
+    !options.allowJqWithoutJson
+  ) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
       message: '--jq requires --json',
@@ -1629,6 +1642,102 @@ cli
     await runCommand(
       ServiceTokens.BrowseCommand,
       withGlobalOptions({ target, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+// API passthrough command (top-level)
+const collectRepeated = (value: string, previous: string[]): string[] =>
+  previous.concat([value]);
+
+cli
+  .command('api [methodOrEndpoint] [endpoint]')
+  .description(
+    'Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint'
+  )
+  .option(
+    '-X, --method <method>',
+    'HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Defaults to GET, or POST when fields/body are present.'
+  )
+  .option(
+    '-f, --raw-field <key=value>',
+    'Add a string parameter — query param on GET/HEAD, JSON body field otherwise (repeatable)',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '-F, --field <key=value>',
+    'Add a typed parameter: true/false/null and numbers are converted; @file reads a file and @- reads stdin (repeatable)',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '--input <file>',
+    'Read the request body from a file, or - for stdin (sent as application/json; mutually exclusive with -f/-F)'
+  )
+  .option(
+    '-H, --header <key:value>',
+    'Add a request header (repeatable). Authorization is managed automatically and cannot be set here.',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '-i, --include',
+    'Print the HTTP status line and response headers before the body (text mode only)'
+  )
+  .option(
+    '--paginate',
+    'Follow the cursor (next) and merge every page into a single {"values": [...]} result (GET/HEAD only)'
+  )
+  .addHelpText(
+    'before',
+    '\nEscape hatch for endpoints not yet wrapped by a typed command.\n' +
+      'The path is relative to https://api.bitbucket.org/2.0; {workspace} and\n' +
+      '{repo} placeholders are filled from --workspace/--repo or the current repo.\n'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb api /user',
+        'bb api GET /user',
+        'bb api /repositories/{workspace}/{repo}/pullrequests --paginate',
+        'bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3',
+        'bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json',
+        'cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -',
+        "bb api /repositories/my-ws --jq '.values[].name'",
+        'bb api -i /user',
+      ],
+      validValues: {
+        'Valid methods': [
+          'GET',
+          'POST',
+          'PUT',
+          'PATCH',
+          'DELETE',
+          'HEAD',
+          'OPTIONS',
+        ],
+      },
+      seeAlso: [
+        {
+          label: 'Scripting & Automation',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'Bitbucket REST API',
+          url: 'https://developer.atlassian.com/cloud/bitbucket/rest/intro/',
+        },
+      ],
+    })
+  )
+  .action(async (methodOrEndpoint, endpoint, options) => {
+    // `bb api` output is already JSON, so `--jq` works without `--json`.
+    const context = createContext(cli, { allowJqWithoutJson: true });
+    await runCommand(
+      ServiceTokens.ApiCommand,
+      withGlobalOptions({ methodOrEndpoint, endpoint, ...options }, context),
       cli,
       context
     );

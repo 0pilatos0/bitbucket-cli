@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'bun:test';
 import type { Command } from 'commander';
 import {
+  createContext,
   extractLocaleArg,
   getCompletionParent,
   resolveNoColorSetting,
@@ -13,6 +14,25 @@ import {
 } from '../src/cli.js';
 import { cli } from '../src/cli.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
+
+describe('createContext --jq / --json validation', () => {
+  const fakeProgram = (opts: Record<string, unknown>): Command =>
+    ({ opts: () => opts }) as unknown as Command;
+
+  it('rejects --jq without --json by default', () => {
+    const context = createContext(fakeProgram({ jq: '.x' }));
+    expect(context.validationError).toBeDefined();
+    expect(context.validationError?.message).toContain('--jq requires --json');
+  });
+
+  it('allows --jq without --json when allowJqWithoutJson is set (bb api)', () => {
+    const context = createContext(fakeProgram({ jq: '.x' }), {
+      allowJqWithoutJson: true,
+    });
+    expect(context.validationError).toBeUndefined();
+    expect(context.globalOptions.jq).toBe('.x');
+  });
+});
 
 describe('withGlobalOptions', () => {
   it('should use global workspace when local is not provided', () => {
@@ -498,6 +518,7 @@ describe('CLI command registration', () => {
   it('should register all top-level commands', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
+      'api',
       'auth',
       'browse',
       'completion',

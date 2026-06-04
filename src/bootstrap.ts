@@ -91,6 +91,7 @@ import { UninstallCompletionCommand } from './commands/completion/uninstall.comm
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { ApiCommand } from './commands/api.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
@@ -606,6 +607,26 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.UrlBuilderService,
+    ServiceTokens.OutputService,
+  ]);
+
+  // Raw API passthrough (bb api). Uses its own axios instance built from the
+  // authenticated stack, mirroring the SnippetsAxios pattern.
+  container.register(ServiceTokens.ApiAxios, () => {
+    const credentialStore = container.resolve<ConfigService>(
+      ServiceTokens.CredentialStore
+    );
+    const oauthService = container.resolve<OAuthService>(
+      ServiceTokens.OAuthService
+    );
+    const outputService = container.resolve<OutputService>(
+      ServiceTokens.OutputService
+    );
+    return createApiClient(credentialStore, outputService, oauthService);
+  });
+  registerCommand(container, ServiceTokens.ApiCommand, ApiCommand, [
+    ServiceTokens.ApiAxios,
+    ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);
 

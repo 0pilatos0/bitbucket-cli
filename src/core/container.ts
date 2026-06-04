@@ -160,8 +160,12 @@ export const ServiceTokens = {
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: 'UrlBuilderService',
 
+  // Raw API passthrough (bb api)
+  ApiAxios: 'ApiAxios',
+
   // Commands - Top level
   BrowseCommand: 'BrowseCommand',
+  ApiCommand: 'ApiCommand',
 
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',

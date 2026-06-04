@@ -90,6 +90,32 @@ bb pr list --json | jq '.pullRequests | group_by(.author.nickname // .author.dis
 
 ---
 
+## Raw API Access (Escape Hatch)
+
+When no typed command covers what you need, [`bb api`](/commands/api/) calls any
+Bitbucket Cloud 2.0 endpoint through the same authenticated stack — so scripts
+are never blocked. Its output is already JSON, so `--jq` works without `--json`.
+
+```bash
+# Any endpoint, authenticated
+bb api /user --jq '.username'
+
+# Fields become a query string on GET, a JSON body otherwise
+bb api /repositories/myworkspace/myrepo/pullrequests -X GET -f state=MERGED
+
+# Follow pagination and pull a single field across every page
+bb api /repositories/myworkspace/myrepo/pullrequests --paginate \
+  --jq '.values[].title'
+
+# Create resources that have no typed command yet
+bb api POST /repositories/myworkspace/myrepo/issues -f title="Bug report"
+```
+
+`{workspace}` and `{repo}` placeholders resolve from `-w`/`-r` or the current
+checkout. See the [API command reference](/commands/api/) for every flag.
+
+---
+
 ## Exit Codes
 
 The CLI uses a deliberately small exit-code surface:

@@ -15,7 +15,7 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 
 ### How does this compare to GitHub CLI (gh)?
 
-The Bitbucket CLI is inspired by GitHub's excellent `gh` CLI and aims to provide a similar experience for Bitbucket users. It covers authentication, repository management, pull requests, snippets, configuration, and shell completion. Features not yet supported include issues, pipelines, and branch permissions.
+The Bitbucket CLI is inspired by GitHub's excellent `gh` CLI and aims to provide a similar experience for Bitbucket users. It covers authentication, repository management, pull requests, snippets, configuration, and shell completion. Features without a dedicated command yet — issues, pipelines, branch permissions — can still be reached today through `bb api`, the raw API passthrough (the analog of `gh api`).
 
 ---
 
@@ -29,10 +29,11 @@ Currently supported:
 - **Snippets** - List, view (with file contents), create, edit (metadata or file upload), delete, watch/unwatch, comments (list/add/edit/delete)
 - **Configuration** - Get, set, list settings
 - **Shell Completion** - Bash, Zsh, Fish
+- **Raw API access** - `bb api` passthrough to any Bitbucket Cloud 2.0 endpoint
 
-Not yet supported:
-- Issues
-- Pipelines
+Without a dedicated command yet (but reachable today via `bb api`):
+- Issues — e.g. `bb api /repositories/{workspace}/{repo}/issues`
+- Pipelines — e.g. `bb api /repositories/{workspace}/{repo}/pipelines`
 - Branch permissions
 - Webhooks
 

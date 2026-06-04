@@ -108,6 +108,16 @@ export class APIError extends BBError {
     this.response = response;
   }
 
+  public toJSON(): Record<string, unknown> {
+    return {
+      ...super.toJSON(),
+      statusCode: this.statusCode,
+      ...(this.response !== undefined && this.response !== null
+        ? { response: this.response }
+        : {}),
+    };
+  }
+
   private static statusToErrorCode(status: number): ErrorCode {
     switch (status) {
       case 401:

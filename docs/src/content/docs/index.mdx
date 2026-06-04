@@ -104,6 +104,16 @@ bb pr list                             # list open PRs
     bb pr list --json | jq '.pullRequests[].title'
     ```
   </Card>
+
+  <Card title="Raw API Access" icon="rocket">
+    Reach any Bitbucket 2.0 endpoint not yet wrapped by a typed command.
+
+    ```bash
+    bb api /user
+    bb api /repositories/{workspace}/{repo}/pullrequests --paginate
+    bb api POST /repositories/ws/repo/issues -f title=Bug
+    ```
+  </Card>
 </CardGrid>
 
 ---

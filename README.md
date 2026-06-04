@@ -90,6 +90,7 @@ bb pr create --title "Add feature"
 bb pr approve 42
 bb browse 42                  # open PR #42 in your browser
 bb browse src/cli.ts:20       # open a file at a specific line
+bb api /user                  # call any Bitbucket API endpoint (escape hatch)
 bb config set defaultWorkspace myworkspace
 ```
 

@@ -285,10 +285,17 @@ describe('APIError.statusToErrorCode mapping', () => {
     expect(json.code).toBe(ErrorCode.API_SERVER_ERROR);
     expect(json.message).toBe('boom');
     expect(json.context).toEqual({ url: '/x' });
-    // The raw response and statusCode are intentionally not in toJSON() —
-    // pin that behavior so a future change is deliberate.
-    expect(json).not.toHaveProperty('statusCode');
+    // toJSON() includes statusCode so `--json` error output (notably from
+    // `bb api`) carries the HTTP status. A null response is omitted.
+    expect(json.statusCode).toBe(500);
     expect(json).not.toHaveProperty('response');
+  });
+
+  it('includes the response payload in toJSON when present', () => {
+    const payload = { error: { message: 'Not found' } };
+    const json = new APIError('Not found', 404, payload).toJSON();
+    expect(json.statusCode).toBe(404);
+    expect(json.response).toEqual(payload);
   });
 });
 
