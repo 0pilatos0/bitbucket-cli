@@ -16,6 +16,7 @@ export interface LoginOptions {
   username?: string;
   password?: string;
   appPassword?: boolean;
+  withToken?: boolean;
   clientId?: string;
   clientSecret?: string;
 }
@@ -39,6 +40,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
   ): Promise<void> {
     const useAppPassword =
       options.appPassword ||
+      options.withToken ||
       options.username !== undefined ||
       options.password !== undefined ||
       process.env.BB_API_TOKEN !== undefined;
@@ -89,7 +91,6 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     context: CommandContext
   ): Promise<void> {
     const username = options.username || process.env.BB_USERNAME;
-    const apiToken = options.password || process.env.BB_API_TOKEN;
 
     if (!username) {
       throw new BBError({
@@ -98,6 +99,8 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
           'Username is required. Use --username option or set BB_USERNAME environment variable.',
       });
     }
+
+    const apiToken = await this.resolveApiToken(options);
 
     if (!apiToken) {
       throw new BBError({
@@ -135,6 +138,48 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       await this.credentialStore.clearCredentials();
       throw this.wrapLoginError(error);
     }
+  }
+
+  /**
+   * Resolve the API token for the app-password flow. With `--with-token` the
+   * token is read from stdin so it never appears in shell history, `ps`
+   * output, or process args; otherwise it comes from `--password` or the
+   * `BB_API_TOKEN` environment variable.
+   */
+  private async resolveApiToken(
+    options: LoginOptions
+  ): Promise<string | undefined> {
+    if (!options.withToken) {
+      return options.password || process.env.BB_API_TOKEN;
+    }
+
+    if (options.password !== undefined) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message:
+          'Cannot combine --password with --with-token. With --with-token the API token is read from stdin.',
+      });
+    }
+
+    const token = (await this.readTokenFromStdin()).trim();
+
+    if (!token) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message:
+          'No API token found on stdin. Pipe a token, e.g. `echo "$BB_API_TOKEN" | bb auth login -u <username> --with-token`.',
+      });
+    }
+
+    return token;
+  }
+
+  /**
+   * Read the API token from stdin. Extracted into its own method so tests can
+   * stub stdin without a real pipe; mirrors the stdin read in `api.command.ts`.
+   */
+  protected async readTokenFromStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 
   private wrapLoginError(error: unknown): BBError {

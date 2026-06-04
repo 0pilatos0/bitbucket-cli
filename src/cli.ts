@@ -464,6 +464,10 @@ authCmd
     '--app-password',
     'Use API token authentication (instead of OAuth). App passwords are deprecated; use API tokens.'
   )
+  .option(
+    '--with-token',
+    'Read the API token from stdin (keeps it out of shell history and process args)'
+  )
   .option('--client-id <clientId>', 'Custom OAuth consumer client ID')
   .option(
     '--client-secret <clientSecret>',
@@ -473,6 +477,9 @@ authCmd
     'before',
     '\nDefault: OAuth (browser-based, recommended).\n' +
       'For CI/CD: API token via --app-password or BB_API_TOKEN env var.\n' +
+      'For headless/secret-safe: pipe the token in with --with-token.\n' +
+      'OAuth needs a loopback browser (http://localhost:19872/callback); there\n' +
+      'is no device-code flow, so use token auth on headless hosts.\n' +
       'Note: Bitbucket app passwords are deprecated; use OAuth or an API token.\n'
   )
   .addHelpText(
@@ -481,6 +488,7 @@ authCmd
       examples: [
         'bb auth login',
         'bb auth login --app-password -u myuser -p mytoken',
+        'echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token',
         'bb auth login --client-id <id>',
         'BB_USERNAME=myuser BB_API_TOKEN=mytoken bb auth login',
       ],

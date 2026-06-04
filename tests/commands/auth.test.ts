@@ -41,6 +41,14 @@ function restoreEnv(key: string, original: string | undefined): void {
   }
 }
 
+// Stub the protected stdin read used by the `--with-token` flow so tests can
+// feed a token without a real pipe.
+function stubStdin(command: LoginCommand, token: string): void {
+  (
+    command as unknown as { readTokenFromStdin: () => Promise<string> }
+  ).readTokenFromStdin = async () => token;
+}
+
 function createMockOAuthService(): OAuthService {
   return {
     authorize: async () => ({
@@ -369,6 +377,117 @@ describe('LoginCommand', () => {
     const jsonLog = output.logs.find((l) => l.startsWith('json:'));
     const parsed = JSON.parse(jsonLog!.replace('json:', ''));
     expect(parsed.method).toBe('api_token');
+  });
+
+  it('should read the API token from stdin with --with-token', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi();
+    const oauthService = createMockOAuthService();
+
+    const command = new LoginCommand(
+      configService,
+      usersApi,
+      oauthService,
+      output
+    );
+    stubStdin(command, 'piped-token');
+
+    await command.execute(
+      { username: 'testuser', withToken: true },
+      { globalOptions: {} }
+    );
+
+    const creds = await configService.getCredentials();
+    expect(creds.username).toBe('testuser');
+    expect(creds.apiToken).toBe('piped-token');
+  });
+
+  it('should trim surrounding whitespace from the stdin token', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi();
+    const oauthService = createMockOAuthService();
+
+    const command = new LoginCommand(
+      configService,
+      usersApi,
+      oauthService,
+      output
+    );
+    // A piped token typically arrives with a trailing newline from `echo`.
+    stubStdin(command, '  piped-token\n');
+
+    await command.execute(
+      { username: 'testuser', withToken: true },
+      { globalOptions: {} }
+    );
+
+    const creds = await configService.getCredentials();
+    expect(creds.apiToken).toBe('piped-token');
+  });
+
+  it('should fail when stdin is empty for --with-token', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi();
+    const oauthService = createMockOAuthService();
+
+    const command = new LoginCommand(
+      configService,
+      usersApi,
+      oauthService,
+      output
+    );
+    stubStdin(command, '\n');
+
+    await expect(
+      command.execute(
+        { username: 'testuser', withToken: true },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('No API token found on stdin');
+  });
+
+  it('should reject combining --password with --with-token', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi();
+    const oauthService = createMockOAuthService();
+
+    const command = new LoginCommand(
+      configService,
+      usersApi,
+      oauthService,
+      output
+    );
+    stubStdin(command, 'piped-token');
+
+    await expect(
+      command.execute(
+        { username: 'testuser', password: 'inline', withToken: true },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('Cannot combine --password with --with-token');
+  });
+
+  it('should still require a username for --with-token', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const usersApi = createMockUsersApi();
+    const oauthService = createMockOAuthService();
+
+    const command = new LoginCommand(
+      configService,
+      usersApi,
+      oauthService,
+      output
+    );
+    stubStdin(command, 'piped-token');
+
+    await expect(
+      command.execute({ withToken: true }, { globalOptions: {} })
+    ).rejects.toThrow('Username is required');
   });
 
   it('should pass clientId and clientSecret to OAuth service', async () => {
