@@ -80,6 +80,38 @@ function createMockAdapter(
 }
 
 /**
+ * Helper: creates an adapter that simulates an axios request timeout.
+ *
+ * A real axios timeout rejects with an error that has `code === 'ECONNABORTED'`
+ * (or 'ETIMEDOUT'), `request` set, and NO `response` — exactly like a generic
+ * network error but with `code` populated. This routes through the same
+ * `else if (error.request)` branch a real timeout hits. The presence of
+ * `code` is what lets the client emit a timeout-specific message.
+ */
+function createTimeoutErrorAdapter(
+  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED'
+) {
+  let callCount = 0;
+  let lastError: unknown;
+  const adapter = (_config: unknown) => {
+    callCount++;
+    const error = new Error(`timeout of 30000ms exceeded`);
+    (error as any).code = code;
+    (error as any).request = {}; // request was sent...
+    // ...but no `response` was ever received.
+    (error as any).config = _config;
+    (error as any).isAxiosError = true;
+    lastError = error;
+    return Promise.reject(error);
+  };
+  return {
+    adapter,
+    getCallCount: () => callCount,
+    getLastError: () => lastError,
+  };
+}
+
+/**
  * Helper: creates an adapter that simulates a network error (no response).
  */
 function createNetworkErrorAdapter() {
@@ -1048,5 +1080,147 @@ describe('createApiClient - retry messages route through IOutputService', () => 
 
     const warnings = output.logs.filter((l) => l.startsWith('warning:'));
     expect(warnings).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue #249: request timeout on the main API axios instance.
+// ---------------------------------------------------------------------------
+
+describe('createApiClient - request timeout (#249)', () => {
+  let client: AxiosInstance;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+  let originalTimeoutEnv: string | undefined;
+
+  beforeEach(() => {
+    originalTimeoutEnv = process.env.BB_HTTP_TIMEOUT;
+    // Make sleep() instant in case any path retries.
+    globalThis.setTimeout = ((
+      fn: (...args: unknown[]) => void,
+      _ms?: number
+    ) => {
+      fn();
+      return 0 as unknown as ReturnType<typeof setTimeout>;
+    }) as unknown as typeof setTimeout;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+    if (originalTimeoutEnv === undefined) {
+      delete process.env.BB_HTTP_TIMEOUT;
+    } else {
+      process.env.BB_HTTP_TIMEOUT = originalTimeoutEnv;
+    }
+  });
+
+  it('applies the default 30000ms timeout to the axios instance', () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(30000);
+  });
+
+  it('honors BB_HTTP_TIMEOUT as the instance timeout', () => {
+    process.env.BB_HTTP_TIMEOUT = '5000';
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(5000);
+  });
+
+  it('falls back to the default when BB_HTTP_TIMEOUT is non-numeric', () => {
+    process.env.BB_HTTP_TIMEOUT = 'not-a-number';
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(30000);
+  });
+
+  it('falls back to the default when BB_HTTP_TIMEOUT is negative', () => {
+    process.env.BB_HTTP_TIMEOUT = '-1000';
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(30000);
+  });
+
+  it('falls back to the default when BB_HTTP_TIMEOUT is empty/whitespace', () => {
+    process.env.BB_HTTP_TIMEOUT = '   ';
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(30000);
+  });
+
+  it('treats BB_HTTP_TIMEOUT="0" as disabled (no timeout)', () => {
+    process.env.BB_HTTP_TIMEOUT = '0';
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    expect(client.defaults.timeout).toBe(0);
+  });
+
+  it('maps a timeout (ECONNABORTED, request set, no response) to NETWORK_ERROR', async () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    const timeoutMock = createTimeoutErrorAdapter('ECONNABORTED');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false); // should not reach here
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    // Timeouts have no `response`, so they are never retried.
+    expect(timeoutMock.getCallCount()).toBe(1);
+  });
+
+  it('also maps ETIMEDOUT timeouts to NETWORK_ERROR', async () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    const timeoutMock = createTimeoutErrorAdapter('ETIMEDOUT');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+    expect(timeoutMock.getCallCount()).toBe(1);
+  });
+
+  it('surfaces a timeout-specific message distinct from the generic network error', async () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    const timeoutMock = createTimeoutErrorAdapter('ECONNABORTED');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      const bbErr = err as BBError;
+      expect(bbErr.code).toBe(ErrorCode.NETWORK_ERROR);
+      // Distinct, actionable copy rather than the generic network message.
+      expect(bbErr.message.toLowerCase()).toContain('timed out');
+      expect(bbErr.message).toContain('BB_HTTP_TIMEOUT');
+      // Original axios error preserved as cause for DEBUG/troubleshooting.
+      expect(bbErr.cause).toBe(timeoutMock.getLastError());
+    }
+  });
+
+  it('keeps the generic network message for connection errors without a timeout code', async () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    const networkMock = createNetworkErrorAdapter();
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      const bbErr = err as BBError;
+      expect(bbErr.code).toBe(ErrorCode.NETWORK_ERROR);
+      expect(bbErr.message).toContain('Unable to reach Bitbucket API');
+      expect(bbErr.message.toLowerCase()).not.toContain('timed out');
+    }
   });
 });

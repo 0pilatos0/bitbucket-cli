@@ -19,6 +19,11 @@ Environment variables allow you to configure the CLI without storing credentials
 | `NO_COLOR` | Disable color output globally when set to any value | `1` |
 | `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
 | `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
+| `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds (critical in CI/scripts). Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. | `60000` |
+
+<Aside type="caution" title="BB_HTTP_TIMEOUT is in milliseconds">
+`BB_HTTP_TIMEOUT` is measured in **milliseconds**, not seconds. `BB_HTTP_TIMEOUT=60` means 60 milliseconds (almost every request will fail), not 60 seconds. For a 60-second timeout use `BB_HTTP_TIMEOUT=60000`. Set `BB_HTTP_TIMEOUT=0` to disable the timeout (useful for very large clones/exports), but avoid this in CI where a hung request has no human to Ctrl-C.
+</Aside>
 
 ### Internal / System Variables
 
@@ -190,6 +195,8 @@ docker run --env-file .env.bb your-image sh -lc "bb auth login && bb pr list -w 
 ```
 
 ---
+
+In CI, set `BB_HTTP_TIMEOUT` (milliseconds) so a stalled API call fails fast instead of hanging the pipeline — e.g. `BB_HTTP_TIMEOUT=15000` for a 15s ceiling.
 
 ## CI/CD Examples
 
