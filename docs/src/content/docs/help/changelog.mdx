@@ -14,6 +14,36 @@ and is updated on every release.
   See [Configuration File](/reference/configuration/) for related settings.
 </Aside>
 
+## 1.20.0 — `bb api`
+
+A raw, authenticated passthrough to **any** Bitbucket Cloud 2.0 API endpoint —
+the escape hatch for anything not yet wrapped by a typed command. Mirrors
+`gh api`, reusing the same authenticated stack (auth, OAuth refresh, retry,
+secret redaction).
+
+- `bb api [method] <endpoint>` — method may be a leading verb (`bb api GET /user`)
+  or path-only (`bb api /user`); defaults to `GET`, or `POST` when fields/body
+  are present.
+- `-f/--raw-field` (string) and `-F/--field` (typed: `true`/`false`/`null`,
+  numbers, `@file`, `@-` stdin). On `GET`/`HEAD` fields become query params,
+  otherwise a JSON body.
+- `--input` sends a raw body from a file or stdin; `-H/--header` adds headers;
+  `-i/--include` prints the status line and response headers.
+- `--paginate` follows the `next` cursor and merges every page's `values`.
+- `{workspace}`/`{repo}` placeholders are filled from `--workspace`/`--repo` or
+  the current repo; `--json`/`--jq` filter the response (`--jq` works without
+  `--json` here). Absolute URLs are restricted to `api.bitbucket.org`.
+
+```bash
+bb api /user                                              # current user
+bb api /repositories/{workspace}/{repo}/pullrequests --paginate
+bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3
+bb api /repositories/my-ws --jq '.values[].name'          # filter with jq
+```
+
+See the [API command reference](/commands/api/) for the full flag list and
+examples.
+
 ## 1.18.0 — Pagination hints and `--all`
 
 List commands now make truncation visible and let you opt out of pagination

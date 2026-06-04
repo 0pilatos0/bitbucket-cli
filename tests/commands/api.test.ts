@@ -238,4 +238,99 @@ describe('ApiCommand', () => {
 
     expect(output.logs.some((l) => l.startsWith('json:'))).toBe(false);
   });
+
+  it('rejects two positionals when the first is not an HTTP verb', async () => {
+    const { command, axios } = makeCommand(() => ({ data: {} }));
+
+    await expect(
+      command.execute(
+        { methodOrEndpoint: '/repositories/a', endpoint: '/repositories/b' },
+        ctx
+      )
+    ).rejects.toThrow(BBError);
+    expect(axios.calls).toHaveLength(0);
+  });
+
+  it('rejects a lone HTTP verb with no endpoint', async () => {
+    const { command } = makeCommand(() => ({ data: {} }));
+
+    await expect(
+      command.execute({ methodOrEndpoint: 'GET' }, ctx)
+    ).rejects.toThrow(BBError);
+    await expect(
+      command.execute({ methodOrEndpoint: 'delete' }, ctx)
+    ).rejects.toThrow(BBError);
+  });
+
+  it('rejects a user-supplied Authorization header', async () => {
+    const { command, axios } = makeCommand(() => ({ data: {} }));
+
+    await expect(
+      command.execute(
+        { methodOrEndpoint: '/user', header: ['Authorization: Bearer x'] },
+        ctx
+      )
+    ).rejects.toThrow(BBError);
+    expect(axios.calls).toHaveLength(0);
+  });
+
+  it('warns when --paginate is used on a non-GET method', async () => {
+    const { command, axios, output } = makeCommand(() => ({ data: { id: 1 } }));
+
+    await command.execute(
+      { methodOrEndpoint: '/x', method: 'POST', paginate: true },
+      ctx
+    );
+
+    expect(axios.calls).toHaveLength(1);
+    expect(axios.calls[0]!.method).toBe('POST');
+    expect(
+      output.logs.some(
+        (l) => l.startsWith('warning:') && l.includes('--paginate')
+      )
+    ).toBe(true);
+  });
+
+  it('emits {} for an empty body in JSON mode', async () => {
+    const { command, output } = makeCommand(() => ({ data: '' }));
+
+    await command.execute({ methodOrEndpoint: '/x' }, jsonCtx);
+
+    expect(output.logs).toContain('json:{}');
+  });
+
+  it('prints nothing for an empty body in text mode', async () => {
+    const { command, output } = makeCommand(() => ({ data: '' }));
+
+    await command.execute({ methodOrEndpoint: '/x' }, ctx);
+
+    expect(output.logs.some((l) => l.startsWith('json:'))).toBe(false);
+    expect(output.logs.some((l) => l.startsWith('text:'))).toBe(false);
+  });
+
+  it('prints the status line and headers with -i/--include', async () => {
+    const { command, output } = makeCommand(() => ({
+      data: { ok: true },
+      status: 200,
+      headers: { 'content-type': 'application/json', 'x-test': '1' },
+    }));
+
+    await command.execute({ methodOrEndpoint: '/user', include: true }, ctx);
+
+    expect(output.logs).toContain('text:HTTP/1.1 200 OK');
+    expect(output.logs).toContain('text:x-test: 1');
+    expect(output.logs).toContain('json:{"ok":true}');
+  });
+
+  it('quotes a JSON-string body when content-type is application/json', async () => {
+    const { command, output } = makeCommand(() => ({
+      data: 'hello',
+      headers: { 'content-type': 'application/json' },
+    }));
+
+    await command.execute({ methodOrEndpoint: '/x' }, ctx);
+
+    expect(output.logs).toContain('json:"hello"');
+    expect(output.logs.some((l) => l.startsWith('text:'))).toBe(false);
+  });
 });

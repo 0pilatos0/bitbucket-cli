@@ -34,9 +34,10 @@ bb api [method] <endpoint> [options]
 | `-X, --method <method>` | HTTP method. Overrides a positional verb. |
 | `-f, --raw-field <key=value>` | Add a string parameter. Query param on `GET`/`HEAD`, JSON body field otherwise. Repeatable. |
 | `-F, --field <key=value>` | Add a typed parameter: `true`/`false`/`null` and numbers are converted; `@file` reads a file and `@-` reads stdin. Repeatable. |
-| `--input <file>` | Read the raw request body from a file, or `-` for stdin. Mutually exclusive with `-f`/`-F`. |
-| `-H, --header <key:value>` | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be overridden. |
-| `--paginate` | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET` only). |
+| `--input <file>` | Read the raw request body from a file, or `-` for stdin. Sent as `application/json` (override with `-H 'Content-Type: ...'`). Mutually exclusive with `-f`/`-F`. |
+| `-H, --header <key:value>` | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here. |
+| `-i, --include` | Print the HTTP status line and response headers before the body (text mode only — suppressed under `--json`). |
+| `--paginate` | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only). |
 
 ### Examples
 
@@ -57,13 +58,16 @@ bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3
 bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
 
 # Pipe a body in from stdin
-cat body.json | bb api POST /repositories/my-ws/my-repo/... --input -
+cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -
 
 # Force a GET with query parameters (fields normally infer POST)
 bb api GET /repositories/my-ws/my-repo/pullrequests -f state=MERGED
 
-# Project and filter the response with the global JSON flags
-bb api /repositories/my-ws --json --jq '.values[].name'
+# Filter the response with jq (no --json needed — bb api output is already JSON)
+bb api /repositories/my-ws --jq '.values[].name'
+
+# Inspect the status line and response headers
+bb api -i /user
 ```
 
 ### How fields are sent
@@ -94,7 +98,9 @@ bb api -w my-ws -r my-repo /repositories/{workspace}/{repo}/commits
 
 The response body is printed to stdout. JSON responses are pretty-printed and
 respect the global `--json [fields]` projection and `--jq` filtering; non-JSON
-responses (e.g. raw diffs) are printed verbatim.
+responses (e.g. raw diffs) are printed verbatim, and `--json`/`--jq` are inert
+on them. An empty response body (e.g. a `HEAD` or `204`) prints nothing in text
+mode, and `{}` under `--json` so a downstream `jq` never sees zero bytes.
 
 ```bash
 bb api /user
@@ -105,13 +111,14 @@ bb api /user
   "type": "user",
   "username": "my-user",
   "display_name": "My User",
-  ...
+  "account_id": "557058:..."
 }
 ```
 
 <Aside type="note">
-  `--jq` requires `--json` (a CLI-wide rule). To filter `bb api` output, pass
-  both: `bb api /repositories/my-ws --json --jq '.values[].name'`.
+  Unlike list/table commands, `bb api` output is already JSON, so `--jq` works
+  on its own — you do **not** need to pass `--json` as well:
+  `bb api /repositories/my-ws --jq '.values[].name'`.
 </Aside>
 
 ### Notes
@@ -127,8 +134,8 @@ bb api /user
   body is printed and the command exits non-zero. With `--json`, the error
   payload (including `statusCode` and `response`) is emitted as structured JSON.
 - **Retries and redaction are inherited** from the shared API client — rate
-  limits (`429`) and transient `5xx` errors are retried with backoff, and
-  sensitive values are redacted from `DEBUG` logs.
+  limits (`429`) and the transient gateway errors `502`/`503`/`504` are retried
+  with backoff, and sensitive values are redacted from `DEBUG` logs.
 
 ### Related
 

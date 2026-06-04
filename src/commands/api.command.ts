@@ -21,6 +21,8 @@ import {
   findPlaceholders,
   getNextUrl,
   getValues,
+  HTTP_METHODS,
+  isHttpMethod,
   magicType,
   normalizeEndpoint,
   parseFieldAssignment,
@@ -45,6 +47,8 @@ export interface ApiCommandOptions {
   input?: string;
   /** `-H/--header` custom request headers (repeatable). */
   header?: string[];
+  /** `-i/--include` print the HTTP status line and response headers before the body. */
+  include?: boolean;
   /** `--paginate` follow the cursor `next` URL and merge `values`. */
   paginate?: boolean;
   workspace?: string;
@@ -86,6 +90,20 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
       });
     }
 
+    const headers = parseHeaders(headerArgs);
+    // Auth is attached by the request interceptor and would override any
+    // user-supplied Authorization anyway; reject it up front so the documented
+    // "managed automatically" guarantee fails loudly instead of silently.
+    for (const name of Object.keys(headers)) {
+      if (name.toLowerCase() === 'authorization') {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message:
+            'Authorization is managed automatically and cannot be set with -H. Run `bb auth login` to change credentials.',
+        });
+      }
+    }
+
     const fieldEntries = await this.collectFields(rawFields, typedFields);
     const fields = buildFieldObject(fieldEntries);
     const rawBody =
@@ -106,7 +124,6 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
       ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}${query}`
       : endpoint;
 
-    const headers = parseHeaders(headerArgs);
     const config: AxiosRequestConfig = {
       url,
       method,
@@ -115,12 +132,25 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     };
 
     const isGetLike = method === 'GET' || method === 'HEAD';
+    if (options.paginate && !isGetLike && !context.globalOptions.json) {
+      this.output.warning(
+        '--paginate only applies to GET/HEAD requests; ignoring it.'
+      );
+    }
+
     try {
       const response =
         options.paginate && isGetLike
           ? await this.fetchAllPages(config, headers)
           : await this.axios.request(config);
-      await this.renderBody(response.data, context);
+      if (options.include && !context.globalOptions.json) {
+        this.printResponseMeta(response);
+      }
+      await this.renderBody(
+        response.data,
+        context,
+        this.getContentType(response)
+      );
     } catch (error) {
       // Surface the API's error response body to stdout (like gh) in text mode;
       // in JSON mode the body rides along on APIError.toJSON() via the standard
@@ -138,8 +168,10 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
 
   /**
    * Resolve the leading positionals into a possible method verb and the
-   * endpoint. With two positionals the first is the method; with one it is the
-   * endpoint.
+   * endpoint. With two positionals the first must be an HTTP verb; with one it
+   * is the endpoint. Both ambiguous shapes (`bb api <path> <path>` and
+   * `bb api GET` with no endpoint) are rejected loudly rather than silently
+   * dropping an argument or requesting `/GET`.
    */
   private splitPositionals(options: ApiCommandOptions): {
     positionalMethod?: string;
@@ -151,6 +183,14 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     if (options.endpoint !== undefined) {
       positionalMethod = options.methodOrEndpoint;
       endpointArg = options.endpoint;
+      if (positionalMethod !== undefined && !isHttpMethod(positionalMethod)) {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message: this.appendHelpHint(
+            `'${positionalMethod}' is not a valid HTTP method. Expected one of: ${HTTP_METHODS.join(', ')}.`
+          ),
+        });
+      }
     } else {
       endpointArg = options.methodOrEndpoint;
     }
@@ -160,6 +200,16 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
         code: ErrorCode.VALIDATION_REQUIRED,
         message: this.appendHelpHint(
           'An endpoint path is required (e.g. /user).'
+        ),
+      });
+    }
+
+    // A lone HTTP verb (`bb api GET`) is a missing endpoint, not a path.
+    if (positionalMethod === undefined && isHttpMethod(endpointArg)) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: this.appendHelpHint(
+          `An endpoint path is required after the method (e.g. bb api ${endpointArg.toUpperCase()} /user).`
         ),
       });
     }
@@ -266,27 +316,63 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
       next = getNextUrl(response.data);
     }
 
+    // first.status/headers are preserved, so -i/--include reflects the first
+    // page's status line and headers in --paginate mode.
     return { ...first, data: { values: collected } };
   }
 
   /**
+   * Print the HTTP status line and response headers (`-i/--include`), followed
+   * by a blank line, ahead of the body. Text mode only — callers guard on
+   * `!json` so the structured stream is never corrupted.
+   */
+  private printResponseMeta(response: AxiosResponse): void {
+    const statusText = response.statusText ? ` ${response.statusText}` : '';
+    this.output.text(`HTTP/1.1 ${response.status}${statusText}`);
+    const headers = (response.headers ?? {}) as Record<string, unknown>;
+    for (const [name, value] of Object.entries(headers)) {
+      this.output.text(`${name}: ${String(value)}`);
+    }
+    this.output.text('');
+  }
+
+  private getContentType(response: AxiosResponse): string | undefined {
+    const raw = (response.headers as Record<string, unknown> | undefined)?.[
+      'content-type'
+    ];
+    return typeof raw === 'string' ? raw : undefined;
+  }
+
+  /**
    * Render a response (or error) body. JSON payloads route through
-   * `output.json()` so `--json` field projection and `--jq` apply; non-JSON
-   * (string) bodies pass through verbatim.
+   * `output.json()` so `--json` field projection and `--jq` apply; genuinely
+   * non-JSON (string) bodies pass through verbatim. An empty body still emits
+   * `{}` in JSON mode so a downstream `jq` never receives zero bytes.
    */
   private async renderBody(
     data: unknown,
-    _context: CommandContext
+    context: CommandContext,
+    contentType?: string
   ): Promise<void> {
+    if (data === undefined || data === null || data === '') {
+      if (context.globalOptions.json) {
+        await this.output.json({});
+      }
+      return;
+    }
+
     if (typeof data === 'string') {
-      if (data.length > 0) {
+      // A string body with a JSON content-type is a JSON scalar (e.g. "hi") or
+      // an unparsed payload — quote it through json(). Missing/unknown
+      // content-types default to verbatim so raw diffs/patches print as-is.
+      if (contentType !== undefined && /\bjson\b/i.test(contentType)) {
+        await this.output.json(data);
+      } else {
         this.output.text(data);
       }
       return;
     }
-    if (data === undefined || data === null || data === '') {
-      return;
-    }
+
     await this.output.json(data);
   }
 
@@ -298,9 +384,12 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     try {
       return fs.readFileSync(filePath, 'utf8');
     } catch (error) {
+      // Append the underlying reason (e.g. EACCES/EISDIR) that handleError
+      // would otherwise drop, so permission/dir mistakes are diagnosable.
+      const reason = error instanceof Error ? `: ${error.message}` : '';
       throw new BBError({
         code: ErrorCode.FILE_NOT_FOUND,
-        message: `Could not read file '${filePath}'.`,
+        message: `Could not read file '${filePath}'${reason}`,
         cause: error instanceof Error ? error : undefined,
         context: { path: filePath },
       });

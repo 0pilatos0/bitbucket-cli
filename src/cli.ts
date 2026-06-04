@@ -112,6 +112,7 @@ const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
   ],
   ['config', ['get', 'set', 'list']],
   ['completion', ['install', 'uninstall']],
+  ['api', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
 ]);
 
 const COMMENTS_SUBCOMMANDS: readonly string[] = [
@@ -228,7 +229,10 @@ const container = bootstrap({ noColor, noUnicode, locale });
 // parsing are deferred onto `context.validationError` so they can be raised
 // inside BaseCommand.run() and rendered through the normal error path,
 // instead of escaping a Commander action handler as an unhandled rejection.
-function createContext(program: Command): CommandContext {
+export function createContext(
+  program: Command,
+  options: { allowJqWithoutJson?: boolean } = {}
+): CommandContext {
   const opts = program.opts();
   const jsonOpt = opts.json as string | boolean | undefined;
   const jqOpt = opts.jq as string | undefined;
@@ -252,7 +256,15 @@ function createContext(program: Command): CommandContext {
     }
   }
 
-  if (!validationError && jqOpt !== undefined && !json) {
+  // `--jq` normally requires `--json` to flip list/table commands out of human
+  // mode. Commands whose output is already JSON (e.g. `bb api`) opt out via
+  // `allowJqWithoutJson`, so `--jq` works standalone there.
+  if (
+    !validationError &&
+    jqOpt !== undefined &&
+    !json &&
+    !options.allowJqWithoutJson
+  ) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
       message: '--jq requires --json',
@@ -1650,7 +1662,7 @@ cli
   )
   .option(
     '-f, --raw-field <key=value>',
-    'Add a string parameter — query param on GET, JSON body field otherwise (repeatable)',
+    'Add a string parameter — query param on GET/HEAD, JSON body field otherwise (repeatable)',
     collectRepeated,
     [] as string[]
   )
@@ -1662,17 +1674,21 @@ cli
   )
   .option(
     '--input <file>',
-    'Read the request body from a file, or - for stdin (mutually exclusive with -f/-F)'
+    'Read the request body from a file, or - for stdin (sent as application/json; mutually exclusive with -f/-F)'
   )
   .option(
     '-H, --header <key:value>',
-    'Add a request header (repeatable). Authorization is managed automatically.',
+    'Add a request header (repeatable). Authorization is managed automatically and cannot be set here.',
     collectRepeated,
     [] as string[]
   )
   .option(
+    '-i, --include',
+    'Print the HTTP status line and response headers before the body (text mode only)'
+  )
+  .option(
     '--paginate',
-    'Follow the cursor (next) and merge every page into a single {"values": [...]} result (GET only)'
+    'Follow the cursor (next) and merge every page into a single {"values": [...]} result (GET/HEAD only)'
   )
   .addHelpText(
     'before',
@@ -1688,9 +1704,10 @@ cli
         'bb api GET /user',
         'bb api /repositories/{workspace}/{repo}/pullrequests --paginate',
         'bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3',
-        'bb api PUT /repositories/my-ws/my-repo/... --input body.json',
-        'cat body.json | bb api POST /repositories/my-ws/my-repo/... --input -',
-        "bb api /repositories/my-ws --json --jq '.values[].name'",
+        'bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json',
+        'cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -',
+        "bb api /repositories/my-ws --jq '.values[].name'",
+        'bb api -i /user',
       ],
       validValues: {
         'Valid methods': [
@@ -1716,7 +1733,8 @@ cli
     })
   )
   .action(async (methodOrEndpoint, endpoint, options) => {
-    const context = createContext(cli);
+    // `bb api` output is already JSON, so `--jq` works without `--json`.
+    const context = createContext(cli, { allowJqWithoutJson: true });
     await runCommand(
       ServiceTokens.ApiCommand,
       withGlobalOptions({ methodOrEndpoint, endpoint, ...options }, context),
