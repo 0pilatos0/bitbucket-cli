@@ -21,6 +21,10 @@ This opens your browser where you authorize the CLI with your Bitbucket account.
 OAuth tokens expire after 2 hours but are refreshed automatically — you won't be interrupted.
 </Aside>
 
+<Aside type="caution">
+OAuth needs a browser that can reach a loopback callback server on `http://localhost:19872/callback`. There is **no device-code flow**, so if you're on a headless host (SSH session, container, CI runner) where no browser is available, use an [API token](#api-token-for-cicd-and-headless-environments) instead.
+</Aside>
+
 ### Using a Custom OAuth Consumer
 
 Organizations can use their own OAuth consumer instead of the built-in default:
@@ -72,6 +76,13 @@ Use API tokens when a browser is not available (SSH sessions, Docker containers,
    bb auth login -u your-username -p your-api-token
    ```
 
+   Or pipe the token via stdin so it never lands in your shell history or
+   `ps` output (recommended, and great with secret managers):
+
+   ```bash
+   echo "$BB_API_TOKEN" | bb auth login -u your-username --with-token
+   ```
+
    Or using environment variables:
 
    ```bash
@@ -81,6 +92,10 @@ Use API tokens when a browser is not available (SSH sessions, Docker containers,
    ```
 
 </Steps>
+
+<Aside type="tip">
+Prefer `--with-token` or `BB_API_TOKEN` over `-p` in scripts and CI. Passing a secret as a command-line argument leaves it visible in shell history and to anyone who can list processes (`ps`).
+</Aside>
 
 See [Environment Variables Reference](/reference/environment-variables/) for more details on using environment variables in scripts and CI/CD.
 
