@@ -1,0 +1,67 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Automated dependency updates for the Bitbucket CLI. Renovate is used instead of Dependabot because it understands Bun's `bun.lock` and updates the manifest + lockfile together. It auto-discovers both package manifests (root and docs/), keeps the SHA-pinned GitHub Actions current, and bumps the pinned Bun runtime used across the CI workflows.",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigestsToSemver",
+    ":dependencyDashboard"
+  ],
+  "timezone": "Europe/Brussels",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 3,
+  "lockFileMaintenance": {
+    "description": "Refresh transitive dependencies in bun.lock (root + docs/) once a month.",
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "description": "Security fixes bypass the weekly schedule so they land as soon as they are available.",
+    "labels": ["dependencies", "security"],
+    "schedule": ["at any time"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the pinned `BUN_VERSION` used by every GitHub Actions workflow against Bun's GitHub releases.",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": ["BUN_VERSION:\\s*(?<currentValue>\\S+)"],
+      "depNameTemplate": "oven-sh/bun",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^bun-v(?<version>.+)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Batch all non-major npm updates (root + docs/) into a single low-risk PR; existing CI gates them.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch"
+    },
+    {
+      "description": "Major npm updates each get their own labelled PR so breaking changes are reviewed deliberately.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major-update"]
+    },
+    {
+      "description": "Keep the SHA-pinned GitHub Actions current in their own grouped PR.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "semanticCommitType": "ci",
+      "addLabels": ["github-actions"]
+    },
+    {
+      "description": "Surface the Bun runtime bump on its own PR — it changes the CI/test matrix and warrants a deliberate look.",
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["oven-sh/bun"],
+      "groupName": "bun runtime",
+      "semanticCommitType": "ci",
+      "addLabels": ["bun"]
+    }
+  ]
+}
