@@ -18,6 +18,30 @@ const BASE_URL = 'https://api.bitbucket.org/2.0';
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
 
+/** Default per-request timeout. A server that accepts a connection but never
+ * responds would otherwise hang the CLI forever — fatal for CI/scripts where
+ * there's no human to Ctrl-C. Overridable via `BB_HTTP_TIMEOUT` (milliseconds;
+ * set to `0` to disable). */
+const DEFAULT_TIMEOUT_MS = 30_000;
+
+/**
+ * Resolve the request timeout from `BB_HTTP_TIMEOUT` (milliseconds), falling
+ * back to {@link DEFAULT_TIMEOUT_MS}. A value of `0` disables the timeout
+ * (axios treats `0` as "no timeout"). Negative or non-numeric values are
+ * ignored in favor of the default.
+ */
+function resolveTimeoutMs(): number {
+  const raw = process.env.BB_HTTP_TIMEOUT;
+  if (raw === undefined || raw.trim() === '') {
+    return DEFAULT_TIMEOUT_MS;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return DEFAULT_TIMEOUT_MS;
+  }
+  return parsed;
+}
+
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
 
 const SENSITIVE_KEYS = new Set([
@@ -108,6 +132,7 @@ export function createApiClient(
 ): AxiosInstance {
   const instance = axios.create({
     baseURL: BASE_URL,
+    timeout: resolveTimeoutMs(),
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -224,10 +249,17 @@ export function createApiClient(
           ...(url ? { url } : {}),
         });
       } else if (error.request) {
+        // Axios reports request timeouts with `code` 'ECONNABORTED' (default)
+        // or 'ETIMEDOUT' (when transitional.clarifyTimeoutError is enabled) and
+        // no `response`, so they land here. Detect via `code` rather than the
+        // overridable/localized `error.message`.
+        const isTimeout =
+          error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
         throw new BBError({
           code: ErrorCode.NETWORK_ERROR,
-          message:
-            "Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.",
+          message: isTimeout
+            ? `Network error: Request to Bitbucket API timed out after ${instance.defaults.timeout}ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.`
+            : "Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.",
           cause: error,
         });
       } else {
