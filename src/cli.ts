@@ -59,6 +59,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   'pr',
   'snippet',
   'browse',
+  'api',
   'config',
   'completion',
   '--help',
@@ -1629,6 +1630,96 @@ cli
     await runCommand(
       ServiceTokens.BrowseCommand,
       withGlobalOptions({ target, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+// API passthrough command (top-level)
+const collectRepeated = (value: string, previous: string[]): string[] =>
+  previous.concat([value]);
+
+cli
+  .command('api [methodOrEndpoint] [endpoint]')
+  .description(
+    'Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint'
+  )
+  .option(
+    '-X, --method <method>',
+    'HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Defaults to GET, or POST when fields/body are present.'
+  )
+  .option(
+    '-f, --raw-field <key=value>',
+    'Add a string parameter — query param on GET, JSON body field otherwise (repeatable)',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '-F, --field <key=value>',
+    'Add a typed parameter: true/false/null and numbers are converted; @file reads a file and @- reads stdin (repeatable)',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '--input <file>',
+    'Read the request body from a file, or - for stdin (mutually exclusive with -f/-F)'
+  )
+  .option(
+    '-H, --header <key:value>',
+    'Add a request header (repeatable). Authorization is managed automatically.',
+    collectRepeated,
+    [] as string[]
+  )
+  .option(
+    '--paginate',
+    'Follow the cursor (next) and merge every page into a single {"values": [...]} result (GET only)'
+  )
+  .addHelpText(
+    'before',
+    '\nEscape hatch for endpoints not yet wrapped by a typed command.\n' +
+      'The path is relative to https://api.bitbucket.org/2.0; {workspace} and\n' +
+      '{repo} placeholders are filled from --workspace/--repo or the current repo.\n'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb api /user',
+        'bb api GET /user',
+        'bb api /repositories/{workspace}/{repo}/pullrequests --paginate',
+        'bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3',
+        'bb api PUT /repositories/my-ws/my-repo/... --input body.json',
+        'cat body.json | bb api POST /repositories/my-ws/my-repo/... --input -',
+        "bb api /repositories/my-ws --json --jq '.values[].name'",
+      ],
+      validValues: {
+        'Valid methods': [
+          'GET',
+          'POST',
+          'PUT',
+          'PATCH',
+          'DELETE',
+          'HEAD',
+          'OPTIONS',
+        ],
+      },
+      seeAlso: [
+        {
+          label: 'Scripting & Automation',
+          url: 'https://bitbucket-cli.paulvanderlei.com/guides/scripting/',
+        },
+        {
+          label: 'Bitbucket REST API',
+          url: 'https://developer.atlassian.com/cloud/bitbucket/rest/intro/',
+        },
+      ],
+    })
+  )
+  .action(async (methodOrEndpoint, endpoint, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ApiCommand,
+      withGlobalOptions({ methodOrEndpoint, endpoint, ...options }, context),
       cli,
       context
     );

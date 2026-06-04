@@ -98,6 +98,10 @@ export default defineConfig({
             {
               label: "Browse",
               slug: "commands/browse",
+            },
+            {
+              label: "API",
+              slug: "commands/api",
               badge: { text: "New", variant: "tip" },
             },
             { label: "Config Commands", slug: "commands/config" },
