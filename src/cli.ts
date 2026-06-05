@@ -54,7 +54,7 @@ export function getCompletionParent(
  * Subcommands keyed by their direct parent. `comments` is handled
  * specially because it appears under both `pr` and `snippet`.
  */
-const ROOT_COMPLETIONS: readonly string[] = [
+export const ROOT_COMPLETIONS: readonly string[] = [
   'auth',
   'repo',
   'pr',
@@ -66,6 +66,7 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--help',
   '--version',
   '--json',
+  '--jq',
   '--no-color',
   '--no-unicode',
   '--no-truncate',
@@ -74,49 +75,53 @@ const ROOT_COMPLETIONS: readonly string[] = [
   '--locale',
 ];
 
-const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> = new Map([
-  ['auth', ['login', 'logout', 'status', 'token']],
-  ['repo', ['clone', 'create', 'list', 'view', 'delete', 'default-reviewers']],
-  ['default-reviewers', ['list', 'add', 'remove']],
-  [
-    'pr',
+export const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> =
+  new Map([
+    ['auth', ['login', 'logout', 'status', 'token']],
     [
-      'create',
-      'list',
-      'view',
-      'activity',
-      'checks',
-      'edit',
-      'merge',
-      'approve',
-      'decline',
-      'ready',
-      'checkout',
-      'diff',
-      'comments',
-      'reviewers',
+      'repo',
+      ['clone', 'create', 'list', 'view', 'delete', 'default-reviewers'],
     ],
-  ],
-  ['reviewers', ['list', 'add', 'remove']],
-  [
-    'snippet',
+    ['default-reviewers', ['list', 'add', 'remove']],
     [
-      'list',
-      'view',
-      'create',
-      'edit',
-      'delete',
-      'watch',
-      'unwatch',
-      'comments',
+      'pr',
+      [
+        'create',
+        'list',
+        'view',
+        'activity',
+        'checks',
+        'edit',
+        'merge',
+        'approve',
+        'decline',
+        'ready',
+        'checkout',
+        'diff',
+        'comments',
+        'reviewers',
+      ],
     ],
-  ],
-  ['config', ['get', 'set', 'list']],
-  ['completion', ['install', 'uninstall']],
-  ['api', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
-]);
+    ['reviewers', ['list', 'add', 'remove']],
+    [
+      'snippet',
+      [
+        'list',
+        'view',
+        'create',
+        'edit',
+        'delete',
+        'watch',
+        'unwatch',
+        'comments',
+      ],
+    ],
+    ['config', ['get', 'set', 'list']],
+    ['completion', ['install', 'uninstall']],
+    ['api', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
+  ]);
 
-const COMMENTS_SUBCOMMANDS: readonly string[] = [
+export const COMMENTS_SUBCOMMANDS: readonly string[] = [
   'list',
   'add',
   'edit',

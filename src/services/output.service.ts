@@ -45,7 +45,7 @@ function stripControl(value: string): string {
 // "items" key. When `--json fields` is passed, project across that array
 // instead of the wrapper. Order matters: the first match wins. Keys must
 // match the actual JSON output produced by the commands in src/commands/**.
-const WRAPPER_ARRAY_KEYS: readonly string[] = [
+export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'pullRequests', // pr list
   'repositories', // repo list
   'snippets', // snippet list
