@@ -76,7 +76,14 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Test
+        if: matrix.os != 'ubuntu-latest'
         run: bun test
+
+      # Linux leg measures coverage and fails the build under the bunfig.toml
+      # threshold (the hard gate). Kept Linux-only to keep the matrix fast.
+      - name: Test (coverage)
+        if: matrix.os == 'ubuntu-latest'
+        run: bun run test:coverage
 
       - name: Build
         run: bun run build
@@ -84,3 +91,14 @@ jobs:
       - name: Verify build output
         shell: bash
         run: test -f dist/index.js || (echo "Build output missing" && exit 1)
+
+      # Reporting only — the Bun threshold above is the gate. Non-blocking so a
+      # missing CODECOV_TOKEN never fails CI (add it as a repo secret to enable).
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
+        with:
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

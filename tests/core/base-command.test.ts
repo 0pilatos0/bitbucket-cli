@@ -115,6 +115,17 @@ class TestCommandWithParseHelpers extends BaseCommand<
   }
 }
 
+class TestCommandHelpHint extends BaseCommand<{ option?: string }, void> {
+  public readonly name = 'test-help-hint';
+  public readonly description = 'Test command exercising appendHelpHint';
+
+  async execute(): Promise<void> {
+    // requireOption routes its message through appendHelpHint(), which reads
+    // the command path captured from the context in run().
+    this.requireOption(undefined, 'name');
+  }
+}
+
 describe('BaseCommand', () => {
   let output: ReturnType<typeof createMockOutputService>;
   let originalNodeEnv: string | undefined;
@@ -636,6 +647,46 @@ describe('BaseCommand', () => {
           'This will permanently delete repo/x.'
         )
       ).toThrow('This will permanently delete repo/x.\nUse --yes to confirm.');
+    });
+  });
+
+  describe('appendHelpHint command path', () => {
+    it('uses the threaded command path for a nested command hint', async () => {
+      const command = new TestCommandHelpHint(output);
+
+      await expect(
+        command.run({}, { globalOptions: {}, commandPath: 'pr comments add' })
+      ).rejects.toThrow('Run `bb pr comments add --help` for usage.');
+    });
+
+    it('uses the threaded command path for a top-level command hint', async () => {
+      const command = new TestCommandHelpHint(output);
+
+      await expect(
+        command.run({}, { globalOptions: {}, commandPath: 'browse' })
+      ).rejects.toThrow('Run `bb browse --help` for usage.');
+    });
+
+    it('falls back to `bb --help` when no command path is present', async () => {
+      const command = new TestCommandHelpHint(output);
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+        'Run `bb --help` for usage.'
+      );
+    });
+
+    it('ignores process.argv when building the hint', async () => {
+      const originalArgv = process.argv;
+      process.argv = ['node', 'bb', 'repo', 'delete', 'misleading'];
+      try {
+        const command = new TestCommandHelpHint(output);
+
+        await expect(
+          command.run({}, { globalOptions: {}, commandPath: 'browse' })
+        ).rejects.toThrow('Run `bb browse --help` for usage.');
+      } finally {
+        process.argv = originalArgv;
+      }
     });
   });
 

@@ -171,7 +171,7 @@ Some configuration keys cannot be set directly:
 
 ## Update Notifications
 
-The CLI automatically checks for updates when you run the bare `bb` command (without any subcommands). This helps you stay current with the latest features and bug fixes.
+The CLI opportunistically checks for updates after any command, so you stay current with the latest features and bug fixes without it getting in the way of scripts.
 
 ### How It Works
 
@@ -179,6 +179,7 @@ The CLI automatically checks for updates when you run the bare `bb` command (wit
 - Compares with your installed version
 - Shows a notification if an update is available
 - Caches the check result for 24 hours (configurable)
+- Prints the notice to **stderr**, and only in an interactive terminal — so `--json` and piped output stay clean
 - Skips checks in CI environments automatically
 
 ### Example Notification
@@ -233,6 +234,10 @@ When determining workspace and repository, the CLI checks sources in this order:
    ```
 
 See [Understanding Repository Context](/guides/repository-context/) for detailed examples.
+
+<Aside type="note">
+Some runtime behavior is tuned with environment variables rather than config-file keys — for example `BB_HTTP_TIMEOUT` for the API request timeout. See [Environment Variables](/reference/environment-variables/).
+</Aside>
 
 ---
 

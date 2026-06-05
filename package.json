@@ -29,6 +29,7 @@
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun --sourcemap --external tabtab",
     "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts",
     "format": "prettier --write .",

@@ -17,6 +17,14 @@ export interface CommandContext {
    * Commander action handler as an unhandled rejection.
    */
   validationError?: BBError;
+  /**
+   * Exact resolved command path (e.g. `pr comments add` or the top-level
+   * `browse`), derived from Commander's executing command and stamped onto
+   * the context in `cli.ts`. Consumed by `BaseCommand.appendHelpHint()` to
+   * build the `bb <path> --help` footer. Optional so unit tests may omit it,
+   * in which case the hint falls back to `bb --help`.
+   */
+  commandPath?: string;
 }
 
 /**
