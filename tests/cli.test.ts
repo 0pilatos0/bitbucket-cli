@@ -5,15 +5,20 @@
 import { describe, it, expect } from 'bun:test';
 import type { Command } from 'commander';
 import {
+  buildCommandPath,
   createContext,
   extractLocaleArg,
+  formatUpdateNotice,
   getCompletionParent,
+  maybePrintUpdateNotice,
   resolveNoColorSetting,
   resolveNoUnicodeSetting,
   withGlobalOptions,
 } from '../src/cli.js';
 import { cli } from '../src/cli.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
+import type { VersionService } from '../src/services/version.service.js';
+import type { VersionCheckResult } from '../src/types/version.js';
 
 describe('createContext --jq / --json validation', () => {
   const fakeProgram = (opts: Record<string, unknown>): Command =>
@@ -813,5 +818,156 @@ describe('CLI leaf command options', () => {
     expect(optional(requireCommand('pr', 'edit'))).toEqual(['id']);
     expect(optional(requireCommand('pr', 'diff'))).toEqual(['id']);
     expect(optional(requireCommand('repo', 'view'))).toEqual(['repository']);
+  });
+});
+
+describe('buildCommandPath', () => {
+  // Minimal Commander-shaped stub: name() + parent chain up to the root, whose
+  // parent is null (matching the real `cli` program).
+  const node = (name: string, parent: Command | null): Command =>
+    ({ name: () => name, parent }) as unknown as Command;
+
+  it('returns an empty string for the root program', () => {
+    const root = node('bb', null);
+    expect(buildCommandPath(root)).toBe('');
+  });
+
+  it('returns the name for a top-level command', () => {
+    const root = node('bb', null);
+    expect(buildCommandPath(node('browse', root))).toBe('browse');
+  });
+
+  it('joins the full path for a deeply nested command', () => {
+    const root = node('bb', null);
+    const pr = node('pr', root);
+    const comments = node('comments', pr);
+    expect(buildCommandPath(node('add', comments))).toBe('pr comments add');
+  });
+});
+
+describe('formatUpdateNotice', () => {
+  const result: VersionCheckResult = {
+    currentVersion: '1.0.0',
+    latestVersion: '2.0.0',
+    updateAvailable: true,
+  };
+
+  it('includes both versions, the install command, and the disable hint', () => {
+    const notice = formatUpdateNotice(
+      result,
+      'bun install -g @pilatos/bitbucket-cli',
+      '─'.repeat(50)
+    );
+
+    expect(notice).toContain('2.0.0');
+    expect(notice).toContain('1.0.0');
+    expect(notice).toContain('bun install -g @pilatos/bitbucket-cli');
+    expect(notice).toContain('bb config set skipVersionCheck true');
+    expect(notice).toContain('─'.repeat(50));
+  });
+
+  it('brackets the banner with blank lines', () => {
+    const lines = formatUpdateNotice(result, 'install', '---').split('\n');
+    expect(lines[0]).toBe('');
+    expect(lines[lines.length - 1]).toBe('');
+  });
+
+  it('uses the supplied separator (honors --no-unicode)', () => {
+    const ascii = formatUpdateNotice(result, 'install', '-'.repeat(50));
+    expect(ascii).toContain('-'.repeat(50));
+    expect(ascii).not.toContain('─');
+  });
+});
+
+describe('maybePrintUpdateNotice', () => {
+  const updateResult: VersionCheckResult = {
+    currentVersion: '1.0.0',
+    latestVersion: '2.0.0',
+    updateAvailable: true,
+  };
+
+  const stubVersionService = (
+    checkForUpdate: () => Promise<VersionCheckResult | null>
+  ): VersionService =>
+    ({
+      checkForUpdate,
+      getInstallCommand: () => 'bun install -g @pilatos/bitbucket-cli',
+    }) as unknown as VersionService;
+
+  // Capture process.stderr.write and toggle isTTY, restoring both afterwards.
+  async function withStderr(
+    isTTY: boolean | undefined,
+    fn: (writes: string[]) => Promise<void>
+  ): Promise<void> {
+    const writes: string[] = [];
+    const originalWrite = process.stderr.write;
+    const originalIsTTY = process.stderr.isTTY;
+    process.stderr.write = ((chunk: string) => {
+      writes.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
+    // isTTY is a plain data property on the stream; assign directly.
+    (process.stderr as { isTTY?: boolean }).isTTY = isTTY;
+    try {
+      await fn(writes);
+    } finally {
+      process.stderr.write = originalWrite;
+      (process.stderr as { isTTY?: boolean }).isTTY = originalIsTTY;
+    }
+  }
+
+  it('writes the notice when an update is available on a non-JSON TTY', async () => {
+    await withStderr(true, async (writes) => {
+      await maybePrintUpdateNotice(
+        stubVersionService(async () => updateResult),
+        { json: false }
+      );
+      expect(writes.length).toBe(1);
+      expect(writes[0]).toContain('2.0.0');
+    });
+  });
+
+  it('writes nothing in JSON mode (keeps piped stdout clean)', async () => {
+    await withStderr(true, async (writes) => {
+      await maybePrintUpdateNotice(
+        stubVersionService(async () => updateResult),
+        { json: true }
+      );
+      expect(writes.length).toBe(0);
+    });
+  });
+
+  it('writes nothing when stderr is not a TTY', async () => {
+    await withStderr(false, async (writes) => {
+      await maybePrintUpdateNotice(
+        stubVersionService(async () => updateResult),
+        { json: false }
+      );
+      expect(writes.length).toBe(0);
+    });
+  });
+
+  it('writes nothing when no update is available', async () => {
+    await withStderr(true, async (writes) => {
+      await maybePrintUpdateNotice(
+        stubVersionService(async () => null),
+        {
+          json: false,
+        }
+      );
+      expect(writes.length).toBe(0);
+    });
+  });
+
+  it('swallows errors from the version check', async () => {
+    await withStderr(true, async (writes) => {
+      await maybePrintUpdateNotice(
+        stubVersionService(async () => {
+          throw new Error('network down');
+        }),
+        { json: false }
+      );
+      expect(writes.length).toBe(0);
+    });
   });
 });

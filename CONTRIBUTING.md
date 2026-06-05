@@ -21,6 +21,7 @@ Common scripts (full list in [AGENTS.md](AGENTS.md#commands)):
 
 ```bash
 bun test              # run all tests
+bun run test:coverage # run tests with coverage (gated in CI on Linux)
 bun run lint          # type-check
 bun run format:check  # required by the pre-commit hook
 ```
@@ -81,6 +82,20 @@ Commit the generated file in `.changeset/` alongside your code changes.
 - Fill in the PR template
 - Link related issues
 - Wait for CI to pass
+
+## Dependency Updates
+
+Dependency maintenance is automated with [Renovate](https://docs.renovatebot.com/)
+(`renovate.json`), so you generally **don't bump these by hand**:
+
+- npm dependencies for both the root package and `docs/`.
+- GitHub Action versions, kept pinned to commit SHAs with a `# vX` comment.
+- The pinned `BUN_VERSION` used across the CI workflows.
+
+Renovate batches non-major updates into a single PR on a weekly schedule, opens
+separate labelled PRs for major upgrades, and fast-tracks security fixes. It runs
+on a weekly schedule with monthly `bun.lock` maintenance. We use Renovate rather
+than Dependabot for its Bun lockfile support.
 
 ## Release Process
 

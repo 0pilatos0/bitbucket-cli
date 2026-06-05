@@ -1,0 +1,20 @@
+[test]
+# Coverage is opt-in via the --coverage flag (see the `test:coverage` script in
+# package.json). We deliberately do NOT set `coverage = true` here so that a
+# plain `bun test` (local dev + the macOS/Windows CI legs) stays fast.
+coverageReporter = ["text", "lcov"]
+coverageDir = "coverage"
+
+# Exclude code that can't be meaningfully unit-covered:
+# - src/generated/**: auto-generated API client (never edited by hand).
+# - src/index.ts: the runtime-guard entrypoint.
+# - src/cli.ts: Commander wiring; its ~50 action callbacks are exercised
+#   end-to-end, not unit-tested, so its per-file function coverage is low.
+# Glob (**) form is required — a plain prefix is not matched by Bun 1.3.x.
+coveragePathIgnorePatterns = ["src/generated/**", "src/index.ts", "src/cli.ts"]
+
+# Per-file floor enforced by Bun's exit code (the hard CI gate). Use the SCALAR
+# form: the object form ([test.coverageThreshold]) is not enforced on Bun 1.3.x.
+# Measured per-file floor is ~80% functions / ~90% lines; 0.75 leaves margin for
+# the pinned Bun 1.3.6 in CI. Ratchet upward toward 0.80 as coverage improves.
+coverageThreshold = 0.75

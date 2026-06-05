@@ -12,6 +12,7 @@ import type { BaseCommand } from './core/base-command.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type { IOutputService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
+import type { VersionCheckResult } from './types/version.js';
 import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
@@ -225,6 +226,25 @@ const locale = resolveLocale({
 
 const container = bootstrap({ noColor, noUnicode, locale });
 
+// Exact path of the command currently executing (e.g. `pr comments add`),
+// derived from Commander's command tree by the root `preAction` hook below and
+// read by `createContext`. A module-level value is safe because the CLI runs
+// exactly one command per process invocation.
+let activeCommandPath = '';
+
+// Walk up Commander's command tree to build the space-joined path, excluding
+// the root program (`bb`, whose `.parent` is null). Yields `browse` for a
+// top-level command and `pr comments add` for a nested one.
+export function buildCommandPath(command: Command): string {
+  const parts: string[] = [];
+  let current: Command | null = command;
+  while (current && current.parent) {
+    parts.unshift(current.name());
+    current = current.parent;
+  }
+  return parts.join(' ');
+}
+
 // Helper to create command context. Validation errors from --json/--jq
 // parsing are deferred onto `context.validationError` so they can be raised
 // inside BaseCommand.run() and rendered through the normal error path,
@@ -283,6 +303,7 @@ export function createContext(
       repo: opts.repo,
     },
     validationError,
+    commandPath: activeCommandPath || undefined,
   };
 }
 
@@ -328,6 +349,53 @@ export function withGlobalOptions<T extends Record<string, unknown>>(
       context.globalOptions.workspace,
     repo: (options.repo as string | undefined) ?? context.globalOptions.repo,
   } as T & { workspace?: string; repo?: string };
+}
+
+// Build the update-available banner. Pure string-building so it is trivially
+// unit-testable; the caller supplies the separator so it can honor --no-unicode.
+export function formatUpdateNotice(
+  result: VersionCheckResult,
+  installCommand: string,
+  separator: string
+): string {
+  return [
+    '',
+    separator,
+    `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})`,
+    `  Run '${installCommand}' to update`,
+    `  Or disable with 'bb config set skipVersionCheck true'`,
+    separator,
+    '',
+  ].join('\n');
+}
+
+// Print the update-available notice to stderr, gated so it never pollutes
+// machine-readable output. CI / skip / throttle gating lives inside
+// VersionService.checkForUpdate(); here we add the presentation gates: skip in
+// JSON mode and when stderr is not an interactive TTY, and route the banner to
+// stderr so piped stdout (e.g. `--json`) stays byte-clean.
+export async function maybePrintUpdateNotice(
+  versionService: VersionService,
+  opts: { json?: boolean; noUnicode?: boolean }
+): Promise<void> {
+  if (opts.json) return;
+  if (process.stderr.isTTY !== true) return;
+
+  try {
+    const result = await versionService.checkForUpdate();
+    if (result?.updateAvailable) {
+      const separator = (opts.noUnicode ? '-' : '─').repeat(50);
+      process.stderr.write(
+        formatUpdateNotice(
+          result,
+          versionService.getInstallCommand(),
+          separator
+        ) + '\n'
+      );
+    }
+  } catch {
+    // The version check is opportunistic — never block or surface errors.
+  }
 }
 
 // Create CLI
@@ -399,29 +467,11 @@ cli
     // Show help when no subcommand is provided
     cli.outputHelp();
 
-    // Check for updates after showing help
-    const versionService = container.resolve<VersionService>(
-      ServiceTokens.VersionService
-    );
+    // The update-available check runs in the root `postAction` hook so it fires
+    // after every command, not just the bare `bb` invocation handled here.
     const output = container.resolve<IOutputService>(
       ServiceTokens.OutputService
     );
-
-    try {
-      const result = await versionService.checkForUpdate();
-      if (result?.updateAvailable) {
-        output.text('');
-        output.separator(50);
-        output.warning(
-          `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})\n` +
-            `  Run '${versionService.getInstallCommand()}' to update\n` +
-            `  Or disable with 'bb config set skipVersionCheck true'`
-        );
-        output.separator(50);
-      }
-    } catch {
-      // Silently ignore version check errors
-    }
 
     // Nudge unauthenticated users toward `bb auth login`. First-run users hit
     // this path immediately after install, so it's the right moment to point
@@ -445,6 +495,27 @@ cli
       // Don't let an unreadable config disrupt the help screen.
     }
   });
+
+// Capture the exact path of the command about to run so `createContext` can
+// stamp it onto the context and `BaseCommand.appendHelpHint()` can build an
+// accurate `bb <path> --help` footer. Inherited by every subcommand.
+cli.hook('preAction', (_thisCommand, actionCommand) => {
+  activeCommandPath = buildCommandPath(actionCommand);
+});
+
+// Surface an update-available notice after every command (like `gh`). The
+// notice prints to stderr and only in interactive, non-JSON, non-CI sessions;
+// throttling and the skip flag are enforced inside VersionService. Runs because
+// runCommand() and the root action swallow all errors, so no action ever throws
+// out to Commander and skips its postAction hooks.
+cli.hook('postAction', async (thisCommand) => {
+  const versionService = container.resolve<VersionService>(
+    ServiceTokens.VersionService
+  );
+  const jsonOpt = thisCommand.opts().json;
+  const json = jsonOpt !== undefined && jsonOpt !== false;
+  await maybePrintUpdateNotice(versionService, { json, noUnicode });
+});
 
 // Auth commands
 const authCmd = new Command('auth').description('Authenticate with Bitbucket');

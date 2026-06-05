@@ -11,4 +11,6 @@ if (typeof Bun === 'undefined') {
 
 import { cli } from './cli.js';
 
-cli.parse(process.argv);
+// parseAsync (not parse) so Commander awaits async action handlers and the
+// postAction update-check hook before the process exits.
+await cli.parseAsync(process.argv);

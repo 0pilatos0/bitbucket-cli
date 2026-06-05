@@ -13,6 +13,13 @@ export abstract class BaseCommand<
   public abstract readonly name: string;
   public abstract readonly description: string;
 
+  /**
+   * Exact command path (e.g. `pr comments add`) captured from the context in
+   * `run()` and used by `appendHelpHint()`. Safe as instance state because the
+   * CLI resolves and runs exactly one command per process invocation.
+   */
+  private commandPath?: string;
+
   constructor(protected readonly output: IOutputService) {}
 
   public abstract execute(
@@ -27,6 +34,7 @@ export abstract class BaseCommand<
     options: TOptions,
     context: CommandContext
   ): Promise<TResult> {
+    this.commandPath = context.commandPath;
     this.output.setJsonFormatOptions({
       json: !!context.globalOptions.json,
       fields: context.globalOptions.jsonFields,
@@ -114,20 +122,7 @@ export abstract class BaseCommand<
   }
 
   private getCommandPath(): string {
-    const argv = process.argv.slice(2);
-    const tokens: string[] = [];
-    for (const arg of argv) {
-      if (arg.startsWith('-')) break;
-      tokens.push(arg);
-    }
-    // The trailing token is typically a positional argument value (e.g. PR id);
-    // include only the leading subcommands. The simplest reliable signal is to
-    // stop once we have the first two tokens, matching the `bb <group> <cmd>`
-    // shape used throughout the CLI. Fall back to whatever we have.
-    if (tokens.length >= 2) {
-      return `${tokens[0]} ${tokens[1]}`;
-    }
-    return tokens.join(' ');
+    return this.commandPath ?? '';
   }
 
   /**

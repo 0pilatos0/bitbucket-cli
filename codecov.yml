@@ -1,0 +1,16 @@
+## Codecov is reporting-only — the hard coverage gate is Bun's per-file
+## threshold in bunfig.toml. Statuses are informational so Codecov never
+## blocks a merge, and generated/build/test code is excluded from the UI.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+ignore:
+  - 'src/generated/**'
+  - 'tests/**'
+  - 'dist/**'
