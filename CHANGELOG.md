@@ -1,5 +1,49 @@
 # Changelog
 
+## 1.20.0
+
+### Minor Changes
+
+- [#283](https://github.com/0pilatos0/bitbucket-cli/pull/283) [`848d30a`](https://github.com/0pilatos0/bitbucket-cli/commit/848d30ac5051f43d13e626e556936b787e79c596) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add a configurable request timeout to the Bitbucket API client. Requests now time out after 30s by default so the CLI no longer hangs forever when a server accepts a connection but never responds — important for CI and scripts. Configure it via the `BB_HTTP_TIMEOUT` environment variable (milliseconds; set `BB_HTTP_TIMEOUT=0` to disable). Timed-out requests now surface a clear network error that points to `BB_HTTP_TIMEOUT`.
+
+- [#281](https://github.com/0pilatos0/bitbucket-cli/pull/281) [`d11d40c`](https://github.com/0pilatos0/bitbucket-cli/commit/d11d40cec3de298821f1df2664abdfee965cbee6) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb api`, a raw authenticated passthrough to the Bitbucket Cloud 2.0 API
+  (mirrors `gh api`). It is the escape hatch for endpoints not yet wrapped by a
+  typed command, reusing the shared authenticated stack (Basic/Bearer auth,
+  OAuth refresh, retry, redaction).
+  - `bb api [method] <endpoint>` — method may be a leading positional verb
+    (`bb api GET /user`) or a path only (`bb api /user`); `-X/--method`
+    overrides. Defaults to `GET`, or `POST` when fields/body are present.
+  - `-f/--raw-field` (string) and `-F/--field` (typed: `true`/`false`/`null`,
+    numbers, `@file`, `@-` for stdin). On `GET`/`HEAD` fields become query
+    params; otherwise a JSON body.
+  - `--input <file>` reads a raw request body (`-` for stdin); mutually
+    exclusive with `-f`/`-F`.
+  - `-H/--header` adds request headers; a user-supplied `Authorization` is
+    rejected since auth is managed automatically.
+  - `-i/--include` prints the HTTP status line and response headers before the
+    body (text mode only).
+  - `--paginate` follows the cursor (`next`) and merges every page's `values`.
+  - `{workspace}` and `{repo}` placeholders are filled from `--workspace`/
+    `--repo` or the current repository.
+  - `--json [fields]` and `--jq` apply to the response; because `bb api` output
+    is already JSON, `--jq` works without `--json`. Non-JSON bodies (e.g. raw
+    diffs) print verbatim; an empty body emits `{}` under `--json`. API error
+    responses are surfaced, and `APIError` JSON now carries `statusCode` and the
+    response body.
+  - Ambiguous invocations fail loudly: a non-verb first positional
+    (`bb api /a /b`) and a lone verb (`bb api GET`) are rejected instead of
+    silently dropping an argument.
+  - Absolute URLs are restricted to `api.bitbucket.org` so credentials are
+    never sent to a foreign host.
+
+- [#284](https://github.com/0pilatos0/bitbucket-cli/pull/284) [`4f7c990`](https://github.com/0pilatos0/bitbucket-cli/commit/4f7c990b6b357f510e9e6f49891c924357cd7c30) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb auth login --with-token` to read an API token from stdin, so secrets never appear in shell history or `ps` output the way `-p, --password` does. Pipe the token in, e.g. `echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token` — it pairs well with secret managers. Combining `--with-token` with `--password` is rejected, and an empty stdin produces a clear error. Docs also now note that OAuth requires a loopback browser (`http://localhost:19872/callback`) with no device-code flow, so headless users know to use token auth.
+
+### Patch Changes
+
+- [#285](https://github.com/0pilatos0/bitbucket-cli/pull/285) [`7401de4`](https://github.com/0pilatos0/bitbucket-cli/commit/7401de4b206c8768c0cb5c333a1e5733d9b80045) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix the `bb <command> --help` hint shown on validation errors to point at the exact command path. It previously sliced `process.argv` and guessed the first two tokens, which was wrong for top-level commands like `bb browse` and deeply nested ones like `bb pr comments add`. The hint now uses the resolved command path threaded through the command context.
+
+- [#285](https://github.com/0pilatos0/bitbucket-cli/pull/285) [`7401de4`](https://github.com/0pilatos0/bitbucket-cli/commit/7401de4b206c8768c0cb5c333a1e5733d9b80045) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Run the update-available check after every command instead of only when `bb` is invoked with no subcommand, so users who always run real subcommands see update notices. The notice now prints to stderr and only when stderr is an interactive TTY, output is not `--json`, and not in CI; it continues to honor `skipVersionCheck` and `versionCheckInterval`. This keeps `--json` and piped stdout byte-clean.
+
 ## 1.19.0
 
 ### Minor Changes
