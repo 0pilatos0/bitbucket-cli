@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.20.1
+
+### Patch Changes
+
+- [#286](https://github.com/0pilatos0/bitbucket-cli/pull/286) [`c95c4f0`](https://github.com/0pilatos0/bitbucket-cli/commit/c95c4f062d04ba0edcc25fbb11f3113dddb4a74c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Advertise the global `--jq` flag in shell completion. It was a documented root option but was missing from the completion table, so `bb <tab>` never suggested it.
+
+  Internally, a new drift-guard test now walks the live Commander command tree and fails CI if the hand-maintained shell-completion tables (`ROOT_COMPLETIONS`, `SUBCOMMAND_COMPLETIONS`, `COMMENTS_SUBCOMMANDS`) or the JSON `WRAPPER_ARRAY_KEYS` registry fall out of sync with the commands — turning a silent maintenance hazard into a build failure.
+
 ## 1.20.0
 
 ### Minor Changes
