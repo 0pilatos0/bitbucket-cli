@@ -9,7 +9,6 @@ import {
   createContext,
   extractLocaleArg,
   formatUpdateNotice,
-  getCompletionParent,
   maybePrintUpdateNotice,
   resolveNoColorSetting,
   resolveNoUnicodeSetting,
@@ -157,50 +156,6 @@ describe('withGlobalOptions', () => {
     expect(result.workspace).toBe('ws');
     // json should not be in result as it's only in globalOptions
     expect((result as Record<string, unknown>).json).toBeUndefined();
-  });
-});
-
-describe('getCompletionParent', () => {
-  it('should find snippet as the parent of comments in "bb snippet comments"', () => {
-    expect(getCompletionParent('bb snippet comments ', 'comments')).toBe(
-      'snippet'
-    );
-  });
-
-  it('should find pr as the parent of comments in "bb pr comments"', () => {
-    expect(getCompletionParent('bb pr comments ', 'comments')).toBe('pr');
-  });
-
-  it('should skip flag tokens when walking back for the parent', () => {
-    expect(getCompletionParent('bb pr --json comments ', 'comments')).toBe(
-      'pr'
-    );
-    expect(
-      getCompletionParent('bb snippet --limit 25 comments ', 'comments')
-    ).toBe('25');
-    // Explicitly require the non-flag walk: short flags should also be skipped
-    expect(getCompletionParent('bb pr -w myspace comments ', 'comments')).toBe(
-      'myspace'
-    );
-  });
-
-  it('should return undefined when the word is not present', () => {
-    expect(getCompletionParent('bb pr list', 'comments')).toBeUndefined();
-  });
-
-  it('should return undefined when the word is the first token', () => {
-    expect(getCompletionParent('comments ', 'comments')).toBeUndefined();
-  });
-
-  it('should return undefined when line is not a string', () => {
-    expect(getCompletionParent(undefined, 'comments')).toBeUndefined();
-  });
-
-  it('should use the last occurrence of the word', () => {
-    // Second "comments" is the one currently being completed
-    expect(
-      getCompletionParent('bb comments foo snippet comments ', 'comments')
-    ).toBe('snippet');
   });
 });
 

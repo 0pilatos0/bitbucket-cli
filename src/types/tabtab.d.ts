@@ -19,10 +19,15 @@ declare module 'tabtab' {
     name: string;
   }
 
+  interface CompletionItem {
+    name: string;
+    description?: string;
+  }
+
   function install(options: InstallOptions): Promise<void>;
   function uninstall(options: UninstallOptions): Promise<void>;
   function parseEnv(env: NodeJS.ProcessEnv): TabtabEnv;
-  function log(completions: string[]): void;
+  function log(completions: Array<string | CompletionItem>): void;
 
   export { install, uninstall, parseEnv, log };
   export default { install, uninstall, parseEnv, log };

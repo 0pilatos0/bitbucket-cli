@@ -137,9 +137,10 @@ bb completion install
 Restart your shell, then try:
 
 ```bash
-bb pr <Tab>      # Shows: activity, approve, checkout, create, decline, diff, list, merge, ready, view
-bb pr create -<Tab>  # Shows available flags
-bb <Tab>         # Shows: auth, repo, pr, snippet, browse, api, config, completion
+bb <Tab>                         # Shows: auth, repo, pr, snippet, browse, api, config, completion
+bb pr <Tab>                      # Shows: activity, approve, checkout, checks, comments, create, decline, diff, edit, list, merge, ready, reviewers, view
+bb pr create -<Tab>              # Shows available flags
+bb pr merge 42 --strategy <Tab>  # Shows: merge_commit, squash, fast_forward, ...
 ```
 
 ---
