@@ -56,7 +56,7 @@ bb completion install
 bb completion install --json
 
 # Test it works
-bb <Tab>        # Shows: auth, repo, pr, snippet, browse, config, completion
+bb <Tab>        # Shows: auth, repo, pr, snippet, browse, api, config, completion
 bb repo <Tab>   # Shows: clone, create, list, view, delete, default-reviewers
 ```
 
@@ -90,13 +90,45 @@ bb completion uninstall --json
 
 ## What Gets Completed
 
+Completions are derived from the live command tree, so they always reflect the
+commands and flags the CLI actually ships — there is no separate list to fall
+out of date.
+
 Tab completion works for:
 
-- **Commands**: `auth`, `repo`, `pr`, `snippet`, `browse`, `config`, `completion`
+- **Commands**: `auth`, `repo`, `pr`, `snippet`, `browse`, `api`, `config`, `completion`
 - **Subcommands**: `login`, `clone`, `create`, `list`, etc.
 - **Options**: `--json`, `--no-color`, `--workspace`, `--repo`, `--help`
+- **Flag values** for enum options (see below)
 
 `-w` is reserved as the global shorthand for `--workspace`.
+
+### Flag-value completion
+
+When a flag accepts a fixed set of values, completing right after it suggests
+the valid values:
+
+```bash
+$ bb pr merge 42 --strategy <Tab>
+merge_commit         squash               fast_forward
+squash_fast_forward  rebase_fast_forward  rebase_merge
+
+$ bb pr list --state <Tab>
+OPEN  MERGED  DECLINED  SUPERSEDED
+
+$ bb snippet list --role <Tab>
+owner  contributor  member
+
+$ bb pr diff --color <Tab>
+auto  always  never
+
+$ bb api -X <Tab>
+GET   POST     PUT  PATCH
+HEAD  OPTIONS  DELETE
+```
+
+In zsh and fish, each completion is shown with its description; bash shows the
+bare names.
 
 ### Example Session
 
@@ -109,7 +141,9 @@ activity  approve   checks    checkout  comments  create    decline
 diff      edit      list      merge     ready     reviewers view
 
 $ bb pr create --<Tab>
---body                --close-source-branch  --destination
---draft               --help                 --repo
---source              --title                --workspace
+# the command's own flags, plus inherited global flags:
+--title       --body                  --source       --destination
+--draft       --close-source-branch   --reviewer     --default-reviewers
+--json        --jq                    --workspace    --repo
+--no-color    --no-unicode            --no-truncate  --locale  --help
 ```

@@ -2,9 +2,15 @@
  * CLI setup with Commander.js
  */
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { createRequire } from 'node:module';
 import { bootstrap } from './bootstrap.js';
+import { generateCompletions } from './completion.js';
+import {
+  PullrequestMergeParametersMergeStrategyEnum,
+  SnippetsWorkspaceGetRoleEnum,
+} from './generated/api.js';
+import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
@@ -23,132 +29,32 @@ const pkg = require('../package.json');
 
 import tabtab from 'tabtab';
 
-/**
- * Walk a tokenized completion line to find the nearest non-flag token
- * preceding `word`. Used to disambiguate nested subcommands that share a
- * name (e.g. `bb pr comments` vs `bb snippet comments`) without resorting
- * to fragile substring matching on the raw line.
- */
-export function getCompletionParent(
-  line: string | undefined,
-  word: string
-): string | undefined {
-  if (typeof line !== 'string') {
-    return undefined;
-  }
-  const tokens = line.split(/\s+/).filter(Boolean);
-  const idx = tokens.lastIndexOf(word);
-  if (idx <= 0) {
-    return undefined;
-  }
-  for (let i = idx - 1; i >= 0; i--) {
-    const token = tokens[i];
-    if (token && !token.startsWith('-')) {
-      return token;
-    }
-  }
-  return undefined;
-}
+// Enum option values, single-sourced so shell completion and the help-text
+// `validValues` blocks can never drift. The merge strategies and snippet roles
+// come straight from the generated OpenAPI enums, so `bun run generate:api`
+// keeps them current automatically.
+const MERGE_STRATEGIES = Object.values(
+  PullrequestMergeParametersMergeStrategyEnum
+);
+const SNIPPET_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum);
+const COLOR_WHENS = ['auto', 'always', 'never'] as const;
 
 /**
- * Subcommands keyed by their direct parent. `comments` is handled
- * specially because it appears under both `pr` and `snippet`.
+ * Advertise an option's allowed values for shell completion (and `--help`)
+ * WITHOUT Commander's parse-time enforcement. `generateCompletions` reads
+ * `option.argChoices` to suggest enum values, but validation stays in the
+ * command handlers (`parseEnumOption`), which raise `BBError` — so `--json`
+ * error envelopes, the app's message style, and case-insensitive normalization
+ * (e.g. `bb api -X get`) all keep working. Commander only enforces `argChoices`
+ * via the `parseArg` that `.choices()` installs, so assigning it directly is
+ * completion-only.
  */
-export const ROOT_COMPLETIONS: readonly string[] = [
-  'auth',
-  'repo',
-  'pr',
-  'snippet',
-  'browse',
-  'api',
-  'config',
-  'completion',
-  '--help',
-  '--version',
-  '--json',
-  '--jq',
-  '--no-color',
-  '--no-unicode',
-  '--no-truncate',
-  '--workspace',
-  '--repo',
-  '--locale',
-];
-
-export const SUBCOMMAND_COMPLETIONS: ReadonlyMap<string, readonly string[]> =
-  new Map([
-    ['auth', ['login', 'logout', 'status', 'token']],
-    [
-      'repo',
-      ['clone', 'create', 'list', 'view', 'delete', 'default-reviewers'],
-    ],
-    ['default-reviewers', ['list', 'add', 'remove']],
-    [
-      'pr',
-      [
-        'create',
-        'list',
-        'view',
-        'activity',
-        'checks',
-        'edit',
-        'merge',
-        'approve',
-        'decline',
-        'ready',
-        'checkout',
-        'diff',
-        'comments',
-        'reviewers',
-      ],
-    ],
-    ['reviewers', ['list', 'add', 'remove']],
-    [
-      'snippet',
-      [
-        'list',
-        'view',
-        'create',
-        'edit',
-        'delete',
-        'watch',
-        'unwatch',
-        'comments',
-      ],
-    ],
-    ['config', ['get', 'set', 'list']],
-    ['completion', ['install', 'uninstall']],
-    ['api', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']],
-  ]);
-
-export const COMMENTS_SUBCOMMANDS: readonly string[] = [
-  'list',
-  'add',
-  'edit',
-  'delete',
-];
-
-// Handle tabtab completion
-if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
-  const env = tabtab.parseEnv(process.env);
-  if (env.complete) {
-    const completions = [...ROOT_COMPLETIONS];
-
-    if (env.prev === 'comments') {
-      const parent = getCompletionParent(env.line, 'comments');
-      if (parent === 'snippet' || parent === 'pr') {
-        completions.push(...COMMENTS_SUBCOMMANDS);
-      }
-    } else {
-      const subcommands = SUBCOMMAND_COMPLETIONS.get(env.prev);
-      if (subcommands) {
-        completions.push(...subcommands);
-      }
-    }
-
-    tabtab.log(completions);
-    process.exit(0);
-  }
+function withCompletionChoices(
+  option: Option,
+  values: readonly string[]
+): Option {
+  option.argChoices = [...values];
+  return option;
 }
 
 /**
@@ -893,10 +799,14 @@ prCmd
 prCmd
   .command('list')
   .description('List pull requests')
-  .option(
-    '-s, --state <state>',
-    `Filter by state (${PR_STATES.join(', ')})`,
-    'OPEN'
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '-s, --state <state>',
+        `Filter by state (${PR_STATES.join(', ')})`
+      ).default('OPEN'),
+      PR_STATES
+    )
   )
   .option('--limit <number>', 'Maximum number of PRs to list', '25')
   .option('--all', 'List all pull requests (overrides --limit)')
@@ -964,6 +874,9 @@ prCmd
   .description('Show pull request activity log')
   .option('--limit <number>', 'Maximum number of activity entries', '25')
   .option('--all', 'Show all activity entries (overrides --limit)')
+  // No `withCompletionChoices` here on purpose: `--type` is a comma-separated
+  // multi-value filter, and flag-value completion can only offer a single value
+  // for the token after the flag — it can't append to an in-progress list.
   .option('--type <types>', 'Filter activity by type (comma-separated)')
   .addHelpText(
     'after',
@@ -1049,7 +962,12 @@ prCmd
   .description('Merge a pull request')
   .option('-m, --message <message>', 'Merge commit message')
   .option('--close-source-branch', 'Delete the source branch after merging')
-  .option('--strategy <strategy>', 'Merge strategy')
+  .addOption(
+    withCompletionChoices(
+      new Option('--strategy <strategy>', 'Merge strategy'),
+      MERGE_STRATEGIES
+    )
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -1059,14 +977,7 @@ prCmd
         'bb pr merge 42 -m "Merge feature X"',
       ],
       validValues: {
-        'Valid merge strategies': [
-          'merge_commit',
-          'squash',
-          'fast_forward',
-          'squash_fast_forward',
-          'rebase_fast_forward',
-          'rebase_merge',
-        ],
+        'Valid merge strategies': [...MERGE_STRATEGIES],
       },
       defaults: {
         strategy:
@@ -1178,7 +1089,12 @@ prCmd
 prCmd
   .command('diff [id]')
   .description('View pull request diff')
-  .option('--color <when>', 'Colorize output', 'auto')
+  .addOption(
+    withCompletionChoices(
+      new Option('--color <when>', 'Colorize output').default('auto'),
+      COLOR_WHENS
+    )
+  )
   .option('--name-only', 'Show only names of changed files')
   .option('--stat', 'Show diffstat')
   .option('--web', 'Open diff in web browser')
@@ -1193,7 +1109,7 @@ prCmd
         'bb pr diff 42 --color always',
       ],
       validValues: {
-        'Valid --color values': ['auto', 'always', 'never'],
+        'Valid --color values': [...COLOR_WHENS],
       },
       defaults: { color: 'auto' },
     })
@@ -1390,7 +1306,15 @@ const snippetCmd = new Command('snippet').description('Manage snippets');
 snippetCmd
   .command('list')
   .description('List snippets in a workspace')
-  .option('--role <role>', 'Filter by role (owner, contributor, member)')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '--role <role>',
+        'Filter by role (owner, contributor, member)'
+      ),
+      SNIPPET_ROLES
+    )
+  )
   .option('--limit <number>', 'Maximum number of snippets to list', '25')
   .option('--all', 'List all snippets (overrides --limit)')
   .addHelpText(
@@ -1403,7 +1327,7 @@ snippetCmd
         'bb snippet list --limit 50 --json',
       ],
       validValues: {
-        'Valid roles': ['owner', 'contributor', 'member'],
+        'Valid roles': [...SNIPPET_ROLES],
       },
       defaults: { limit: '25' },
     })
@@ -1740,9 +1664,14 @@ cli
   .description(
     'Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint'
   )
-  .option(
-    '-X, --method <method>',
-    'HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Defaults to GET, or POST when fields/body are present.'
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '-X, --method <method>',
+        'HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Defaults to GET, or POST when fields/body are present.'
+      ),
+      HTTP_METHODS
+    )
   )
   .option(
     '-f, --raw-field <key=value>',
@@ -1936,3 +1865,16 @@ completionCmd
   });
 
 cli.addCommand(completionCmd);
+
+// Handle tabtab shell completion. This runs at module load (the entrypoint
+// imports `cli` before calling parseAsync), and must come AFTER the command
+// tree is fully built so `generateCompletions` can walk the live `cli` tree.
+// bootstrap() above only registers lazy DI factories — no I/O — so reaching
+// this point stays fast and silent, as shell completion requires.
+if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
+  const env = tabtab.parseEnv(process.env);
+  if (env.complete) {
+    tabtab.log(generateCompletions(cli, env));
+    process.exit(0);
+  }
+}
