@@ -35,6 +35,7 @@ describe('CLI completion drift (issue #255)', () => {
       'statuses',
       'files',
       'pipelines',
+      'commits',
       'values',
     ];
 
@@ -54,6 +55,8 @@ describe('CLI completion drift (issue #255)', () => {
       'pr diff --stat': 'files',
       'pr diff --name-only': 'files',
       'pipeline list': 'pipelines',
+      'commit list': 'commits',
+      'status list': 'statuses',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

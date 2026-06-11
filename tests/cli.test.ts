@@ -481,12 +481,14 @@ describe('CLI command registration', () => {
       'api',
       'auth',
       'browse',
+      'commit',
       'completion',
       'config',
       'pipeline',
       'pr',
       'repo',
       'snippet',
+      'status',
     ]);
   });
 
@@ -603,6 +605,22 @@ describe('CLI command registration', () => {
       'run',
       'stop',
       'view',
+    ]);
+  });
+
+  it('should register all commit subcommands', () => {
+    const commitCmd = requireCommand('commit');
+    expect(commitCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all status subcommands', () => {
+    const statusCmd = requireCommand('status');
+    expect(statusCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'set',
     ]);
   });
 

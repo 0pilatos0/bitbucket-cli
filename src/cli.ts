@@ -15,6 +15,7 @@ import {
   PIPELINE_SORTS,
   PIPELINE_STATUSES,
 } from './commands/pipeline/list.command.js';
+import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
@@ -1769,6 +1770,141 @@ pipelineCmd
   });
 
 cli.addCommand(pipelineCmd);
+
+// Commit commands
+const commitCmd = new Command('commit').description(
+  'Inspect commits in a repository'
+);
+
+commitCmd
+  .command('list')
+  .description('List commits (defaults to the current git branch)')
+  .option(
+    '--ref <ref>',
+    'Branch, tag, or commit to list history for (default: current git branch, falling back to the repository default listing)'
+  )
+  .option('--limit <number>', 'Maximum number of commits to list', '25')
+  .option('--all', 'List all commits (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb commit list',
+        'bb commit list --ref main',
+        'bb commit list --ref v1.0.0 --limit 50',
+        "bb commit list --json --jq '.commits[].hash'",
+      ],
+      defaults: {
+        ref: 'current git branch (repository default listing outside a git repo)',
+        limit: '25',
+      },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListCommitsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+commitCmd
+  .command('view <sha>')
+  .description('View commit details (author, date, parents, full message)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb commit view abc1234',
+        'bb commit view abc1234def5678900000000000000000000000000',
+        "bb commit view abc1234 --json --jq '.commit.author.raw'",
+      ],
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewCommitCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(commitCmd);
+
+// Status commands (commit build statuses)
+const statusCmd = new Command('status').description(
+  'Manage build statuses on commits'
+);
+
+statusCmd
+  .command('list <sha>')
+  .description('List build statuses reported on a commit')
+  .option('--limit <number>', 'Maximum number of statuses to list', '25')
+  .option('--all', 'List all statuses (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb status list abc1234',
+        'bb status list abc1234 --all',
+        "bb status list abc1234 --json --jq '.statuses[].state'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListCommitStatusesCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+statusCmd
+  .command('set <sha>')
+  .description(
+    'Create or update a build status on a commit (idempotent per --key)'
+  )
+  .option('--key <key>', 'Unique status key, e.g. BB-DEPLOY (required)')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'Status state (required)'),
+      COMMIT_STATUS_STATES
+    )
+  )
+  .option('--url <url>', 'Link back to the build system')
+  .option('--name <name>', 'Build identifier, e.g. BB-DEPLOY-1')
+  .option('--description <description>', 'Short build description')
+  .option('--refname <refname>', 'Ref the build ran on, e.g. a branch name')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb status set abc1234 --key CI --state INPROGRESS',
+        'bb status set abc1234 --key CI --state SUCCESSFUL --url https://ci.example.com/builds/42',
+        'bb status set abc1234 --key CI --state FAILED --description "Unit tests failed" --refname main',
+        "bb status set abc1234 --key CI --state SUCCESSFUL --json --jq '.status.state'",
+      ],
+      validValues: { 'Valid states': [...COMMIT_STATUS_STATES] },
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.SetCommitStatusCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(statusCmd);
 
 // Browse command (top-level)
 cli

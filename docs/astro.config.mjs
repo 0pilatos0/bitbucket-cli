@@ -101,6 +101,16 @@ export default defineConfig({
               badge: { text: "New", variant: "tip" },
             },
             {
+              label: "Commit Commands",
+              slug: "commands/commit",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Status Commands",
+              slug: "commands/status",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

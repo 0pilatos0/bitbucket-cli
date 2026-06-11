@@ -27,6 +27,7 @@ import {
   RepositoriesApi,
   UsersApi,
   CommitStatusesApi,
+  CommitsApi,
   SnippetsApi,
   PipelinesApi,
 } from './generated/api.js';
@@ -87,6 +88,14 @@ import { ViewPipelineCommand } from './commands/pipeline/view.command.js';
 import { RunPipelineCommand } from './commands/pipeline/run.command.js';
 import { StopPipelineCommand } from './commands/pipeline/stop.command.js';
 import { LogsPipelineCommand } from './commands/pipeline/logs.command.js';
+
+// Commit commands
+import { ListCommitsCommand } from './commands/commit/list.command.js';
+import { ViewCommitCommand } from './commands/commit/view.command.js';
+
+// Status commands (commit build statuses)
+import { ListCommitStatusesCommand } from './commands/status/list.command.js';
+import { SetCommitStatusCommand } from './commands/status/set.command.js';
 
 // Config commands
 import { GetConfigCommand } from './commands/config/get.command.js';
@@ -206,6 +215,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.CommitStatusesApi,
     CommitStatusesApi
   );
+  registerApiClient(container, ServiceTokens.CommitsApi, CommitsApi);
   registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
   registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
 
@@ -631,6 +641,51 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     LogsPipelineCommand,
     [
       ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Commit commands
+  registerCommand(
+    container,
+    ServiceTokens.ListCommitsCommand,
+    ListCommitsCommand,
+    [
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewCommitCommand,
+    ViewCommitCommand,
+    [
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Status commands (commit build statuses)
+  registerCommand(
+    container,
+    ServiceTokens.ListCommitStatusesCommand,
+    ListCommitStatusesCommand,
+    [
+      ServiceTokens.CommitStatusesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.SetCommitStatusCommand,
+    SetCommitStatusCommand,
+    [
+      ServiceTokens.CommitStatusesApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
