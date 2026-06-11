@@ -1,0 +1,217 @@
+---
+title: Pipeline Commands - Run and Inspect Bitbucket Pipelines
+description: Reference for Bitbucket CLI pipeline commands. List, view, trigger, stop, and read logs of Bitbucket Pipelines builds from the command line.
+---
+
+Manage Bitbucket Pipelines (CI/CD) — list runs, inspect builds and steps,
+trigger pipelines, stop them, and stream step logs.
+
+Pipeline commands operate at **repository** scope. Run them inside a cloned
+Bitbucket repository, or pass `-w, --workspace <workspace>` and
+`-r, --repo <repo>` explicitly.
+
+Global options available on all pipeline commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+Pipeline IDs are accepted in two forms everywhere an `<id>` is expected: the
+**build number** you see in the UI (e.g. `42`) or the **pipeline UUID**
+including curly braces (e.g. `{a1b2c3d4-...}`). Both pass through to the API
+unchanged, so humans and scripts can use whichever they have.
+
+---
+
+## `bb pipeline list`
+
+List pipelines for a repository, newest first.
+
+```bash
+bb pipeline list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--status <status>` | Filter by status: `PARSING`, `PENDING`, `PAUSED`, `HALTED`, `BUILDING`, `ERROR`, `PASSED`, `FAILED`, `STOPPED`, `UNKNOWN` (case-insensitive) |
+| `--branch <branch>` | Filter by target branch |
+| `--sort <attribute>` | Sort attribute: `created_on`, `run_creation_date`, `creator.uuid`; prefix with `-` for descending (default: `-created_on`) |
+| `--limit <number>` | Maximum number of pipelines (default: 25) |
+| `--all` | List all pipelines (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb pipeline list
+bb pipeline list --status FAILED
+bb pipeline list --branch main --limit 50
+
+# Stable JSON envelope: { workspace, repoSlug, [status], [branch], sort, count, pipelines }
+bb pipeline list --json
+
+# Build numbers of recent failures, via built-in --jq
+bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
+```
+
+### Notes
+
+- The table shows build number, status (colored), ref, trigger, created date, and duration for completed runs.
+- `--limit` is enforced across paginated responses; a hint appears when results were capped (suppressed with `--json`).
+
+---
+
+## `bb pipeline view`
+
+View pipeline details and a per-step summary.
+
+```bash
+bb pipeline view <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pipeline build number (e.g. `42`) or UUID (e.g. `{a1b2c3d4-...}`) |
+
+### Examples
+
+```bash
+bb pipeline view 42
+bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}
+
+# Stable JSON envelope: { workspace, repoSlug, pipeline, steps }
+bb pipeline view 42 --json
+
+# Status name of the run
+bb pipeline view 42 --json --jq '.pipeline.state.result.name // .pipeline.state.name'
+```
+
+### Notes
+
+- The human view shows number, UUID, status, ref, trigger, creator, created/completed timestamps, duration, and a step table (name, status, duration).
+- A `404` returns an actionable "Pipeline `<id>` not found" error.
+
+---
+
+## `bb pipeline run`
+
+Trigger a pipeline run on a branch.
+
+```bash
+bb pipeline run [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `-b, --branch <branch>` | Branch to run on (default: current git branch) |
+| `--commit <hash>` | Run against a specific commit on the branch |
+| `-p, --pipeline <name>` | Custom pipeline definition from `bitbucket-pipelines.yml` |
+| `--var <key=value...>` | Pipeline variable; repeatable, value may contain `=` |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Run the default pipeline for the current branch
+bb pipeline run
+
+bb pipeline run --branch main
+bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
+bb pipeline run --branch main --commit abc123def456
+
+# JSON returns the created pipeline resource; grab the build number
+bb pipeline run --branch main --json --jq '.build_number'
+```
+
+### Notes
+
+- Outside a git repository, `--branch` is required (the error tells you so).
+- `--pipeline <name>` selects a `custom:` pipeline defined in `bitbucket-pipelines.yml`.
+- Variables are sent unsecured; secured variables must be configured in repository settings.
+- On success the CLI prints the build number plus ready-to-paste `bb pipeline view` / `bb pipeline logs` commands.
+
+---
+
+## `bb pipeline stop`
+
+Stop a running pipeline.
+
+```bash
+bb pipeline stop <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pipeline build number or UUID |
+
+### Examples
+
+```bash
+bb pipeline stop 42
+
+# Stable JSON envelope: { workspace, repoSlug, pipelineId, stopped }
+bb pipeline stop 42 --json --jq '.stopped'
+```
+
+### Notes
+
+- No `--yes` confirmation is required: stopping CI is reversible — rerun with `bb pipeline run`.
+
+---
+
+## `bb pipeline logs`
+
+Print the raw log of a pipeline step.
+
+```bash
+bb pipeline logs <id> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Pipeline build number or UUID |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `-s, --step <uuid-or-index>` | Step to fetch: a step UUID (braces optional) or a 1-based index |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Single-step pipelines need no --step
+bb pipeline logs 42
+
+bb pipeline logs 42 --step 2
+bb pipeline logs 42 --step {step-uuid}
+
+# Stable JSON envelope: { workspace, repoSlug, pipelineId, stepUuid, log }
+bb pipeline logs 42 --json --jq '.log'
+```
+
+### Notes
+
+- With exactly one step, it is selected automatically.
+- With several steps and no `--step`, the CLI lists the steps (with indexes and UUIDs) instead of guessing; in `--json` mode it returns `{ workspace, repoSlug, pipelineId, count, steps }` so scripts and agents can pick a step UUID and call again.
+- The log is printed verbatim to stdout, so it pipes cleanly into `grep`, `less`, or a file.
+
+---
+
+## See also
+
+- [Scripting & Automation](/guides/scripting/) — JSON envelopes, `--jq`, exit codes.
+- [CI/CD Integration](/guides/cicd/) — using `bb` inside pipelines.

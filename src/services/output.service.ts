@@ -54,6 +54,7 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'activities', // pr activity
   'statuses', // pr checks
   'files', // pr diff --stat / --name-only
+  'pipelines', // pipeline list
   'values', // generic fallback for paginated payloads
 ];
 

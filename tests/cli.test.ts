@@ -483,6 +483,7 @@ describe('CLI command registration', () => {
       'browse',
       'completion',
       'config',
+      'pipeline',
       'pr',
       'repo',
       'snippet',
@@ -591,6 +592,17 @@ describe('CLI command registration', () => {
       'delete',
       'edit',
       'list',
+    ]);
+  });
+
+  it('should register all pipeline subcommands', () => {
+    const pipelineCmd = requireCommand('pipeline');
+    expect(pipelineCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'logs',
+      'run',
+      'stop',
+      'view',
     ]);
   });
 

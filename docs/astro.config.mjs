@@ -96,6 +96,11 @@ export default defineConfig({
             },
             { label: "Snippet Commands", slug: "commands/snippet" },
             {
+              label: "Pipeline Commands",
+              slug: "commands/pipeline",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

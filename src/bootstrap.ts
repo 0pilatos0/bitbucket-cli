@@ -28,6 +28,7 @@ import {
   UsersApi,
   CommitStatusesApi,
   SnippetsApi,
+  PipelinesApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -79,6 +80,13 @@ import { ListSnippetCommentsCommand } from './commands/snippet/comments.list.com
 import { AddSnippetCommentCommand } from './commands/snippet/comments.add.command.js';
 import { EditSnippetCommentCommand } from './commands/snippet/comments.edit.command.js';
 import { DeleteSnippetCommentCommand } from './commands/snippet/comments.delete.command.js';
+
+// Pipeline commands
+import { ListPipelinesCommand } from './commands/pipeline/list.command.js';
+import { ViewPipelineCommand } from './commands/pipeline/view.command.js';
+import { RunPipelineCommand } from './commands/pipeline/run.command.js';
+import { StopPipelineCommand } from './commands/pipeline/stop.command.js';
+import { LogsPipelineCommand } from './commands/pipeline/logs.command.js';
 
 // Config commands
 import { GetConfigCommand } from './commands/config/get.command.js';
@@ -199,6 +207,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     CommitStatusesApi
   );
   registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
+  registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
 
   registerCommand(
     container,
@@ -569,6 +578,59 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     DeleteSnippetCommentCommand,
     [
       ServiceTokens.SnippetsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Pipeline commands
+  registerCommand(
+    container,
+    ServiceTokens.ListPipelinesCommand,
+    ListPipelinesCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewPipelineCommand,
+    ViewPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.RunPipelineCommand,
+    RunPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.StopPipelineCommand,
+    StopPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.LogsPipelineCommand,
+    LogsPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
