@@ -12,6 +12,7 @@ import {
   mock,
 } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
+import { OAuthService } from '../../src/services/oauth.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import { createMockConfigService, createMockOutputService } from '../setup.js';
 import type { AxiosInstance } from 'axios';
@@ -415,7 +416,94 @@ describe('createApiClient - shared instance concurrency', () => {
     expect(mockAdapter.getCallCount('/b')).toBe(2);
     // The one-shot guard lives on each request's config, so each request
     // refreshed once — one request's guard did not suppress the other's.
+    // (With the real OAuthService both calls collapse into one token POST via
+    // the in-flight lock — see the parallel-401 test below.)
     expect(oauthMock.getRefreshCallCount()).toBe(2);
+  });
+
+  it('collapses parallel 401 refreshes into a single token POST (#259)', async () => {
+    // Real OAuthService (not a mock) so the in-flight refresh lock is
+    // exercised end-to-end: two requests on the shared axios instance both
+    // hit 401, both enter the reactive refresh path, and exactly one POST
+    // reaches the token endpoint. Bitbucket rotates refresh tokens, so a
+    // second POST would carry an invalidated refresh_token and log the
+    // user out.
+    const configService = createMockConfigService({
+      authMethod: 'oauth',
+      oauthAccessToken: 'revoked-server-side', // not expired locally, but 401s
+      oauthRefreshToken: 'the-refresh-token',
+      oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const oauthService = new OAuthService(configService, configService);
+
+    // OAuthService talks to the token endpoint via global fetch (axios is
+    // only used for API calls). Gate the response so the refresh stays
+    // in-flight until both 401s have entered the interceptor.
+    const originalFetch = globalThis.fetch;
+    let tokenPostCount = 0;
+    let releaseRefresh!: () => void;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    globalThis.fetch = (async () => {
+      tokenPostCount++;
+      await refreshGate;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'fresh-token',
+          refresh_token: 'rotated-refresh',
+          expires_in: 7200,
+          token_type: 'bearer',
+          scopes: '',
+        }),
+      } as unknown as Response;
+    }) as typeof fetch;
+
+    try {
+      const mockAdapter = createUrlKeyedAdapter({
+        '/a': [
+          { status: 401, data: { error: { message: 'Unauthorized' } } },
+          { status: 200, data: { route: 'a' } },
+        ],
+        '/b': [
+          { status: 401, data: { error: { message: 'Unauthorized' } } },
+          { status: 200, data: { route: 'b' } },
+        ],
+      });
+      const client = createApiClient(
+        configService,
+        createMockOutputService(),
+        oauthService
+      );
+      client.defaults.adapter = mockAdapter.adapter as any;
+
+      const inFlight = Promise.all([client.get('/a'), client.get('/b')]);
+
+      // Give both requests real time to hit 401 and reach the refresh path
+      // while the first refresh is still pending (setTimeout is stubbed to
+      // run callbacks synchronously in this suite, so use the original).
+      await new Promise((resolve) => originalSetTimeout(resolve, 20));
+      releaseRefresh();
+
+      const [respA, respB] = await inFlight;
+
+      expect(respA.status).toBe(200);
+      expect(respB.status).toBe(200);
+      expect(mockAdapter.getCallCount('/a')).toBe(2);
+      expect(mockAdapter.getCallCount('/b')).toBe(2);
+      // Acceptance criterion: parallel 401s produce a single token POST.
+      expect(tokenPostCount).toBe(1);
+
+      // Both replays used the single refreshed token, and the rotated
+      // refresh token was persisted once.
+      const creds = await configService.getOAuthCredentials();
+      expect(creds.accessToken).toBe('fresh-token');
+      expect(creds.refreshToken).toBe('rotated-refresh');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it('gives concurrent requests on one instance independent __retryCount budgets', async () => {
