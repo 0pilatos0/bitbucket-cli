@@ -108,9 +108,8 @@ type ApiClientCtor<T> = new (
 ) => T;
 
 /**
- * Register a generated OpenAPI client. Each client follows the same pattern:
- * pull ConfigService + OAuthService, build an axios instance, construct with
- * `new Ctor(undefined, undefined, axios)`.
+ * Register a generated OpenAPI client. Each client resolves the shared axios
+ * instance lazily and is constructed with `new Ctor(undefined, undefined, axios)`.
  */
 function registerApiClient<T>(
   container: Container,
@@ -118,19 +117,8 @@ function registerApiClient<T>(
   ctor: ApiClientCtor<T>
 ): void {
   container.register(token, () => {
-    const credentialStore = container.resolve<ConfigService>(
-      ServiceTokens.CredentialStore
-    );
-    const oauthService = container.resolve<OAuthService>(
-      ServiceTokens.OAuthService
-    );
-    const outputService = container.resolve<OutputService>(
-      ServiceTokens.OutputService
-    );
-    const axiosInstance = createApiClient(
-      credentialStore,
-      outputService,
-      oauthService
+    const axiosInstance = container.resolve<AxiosInstance>(
+      ServiceTokens.SharedApiAxios
     );
     return new ctor(undefined, undefined, axiosInstance);
   });
@@ -182,19 +170,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ConfigService,
   ]);
 
-  // API clients backed by a per-client axios instance
-  registerApiClient(container, ServiceTokens.PullrequestsApi, PullrequestsApi);
-  registerApiClient(container, ServiceTokens.RepositoriesApi, RepositoriesApi);
-  registerApiClient(container, ServiceTokens.UsersApi, UsersApi);
-  registerApiClient(
-    container,
-    ServiceTokens.CommitStatusesApi,
-    CommitStatusesApi
-  );
-
-  // Snippets share one axios instance between the generated API and the
-  // raw-file helper service, so they register the axios separately.
-  container.register(ServiceTokens.SnippetsAxios, () => {
+  // One shared axios instance backs every API surface: the generated clients,
+  // the snippet raw-file helper, and the `bb api` passthrough. Auth, retry/
+  // backoff, OAuth refresh, and timeout behavior are configured once and stay
+  // uniform across all of them. Sharing is safe because per-request interceptor
+  // state (__retryCount / __tokenRefreshed) lives on each request's config
+  // object, never on the instance itself.
+  container.register(ServiceTokens.SharedApiAxios, () => {
     const credentialStore = container.resolve<ConfigService>(
       ServiceTokens.CredentialStore
     );
@@ -206,17 +188,23 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     );
     return createApiClient(credentialStore, outputService, oauthService);
   });
-  container.register(ServiceTokens.SnippetsApi, () => {
-    const axiosInstance = container.resolve<AxiosInstance>(
-      ServiceTokens.SnippetsAxios
-    );
-    return new SnippetsApi(undefined, undefined, axiosInstance);
-  });
+
+  // Generated API clients, all constructed on the shared axios instance
+  registerApiClient(container, ServiceTokens.PullrequestsApi, PullrequestsApi);
+  registerApiClient(container, ServiceTokens.RepositoriesApi, RepositoriesApi);
+  registerApiClient(container, ServiceTokens.UsersApi, UsersApi);
+  registerApiClient(
+    container,
+    ServiceTokens.CommitStatusesApi,
+    CommitStatusesApi
+  );
+  registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
+
   registerCommand(
     container,
     ServiceTokens.SnippetFilesService,
     SnippetFilesService,
-    [ServiceTokens.SnippetsAxios]
+    [ServiceTokens.SharedApiAxios]
   );
 
   registerCommand(
@@ -610,22 +598,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.OutputService,
   ]);
 
-  // Raw API passthrough (bb api). Uses its own axios instance built from the
-  // authenticated stack, mirroring the SnippetsAxios pattern.
-  container.register(ServiceTokens.ApiAxios, () => {
-    const credentialStore = container.resolve<ConfigService>(
-      ServiceTokens.CredentialStore
-    );
-    const oauthService = container.resolve<OAuthService>(
-      ServiceTokens.OAuthService
-    );
-    const outputService = container.resolve<OutputService>(
-      ServiceTokens.OutputService
-    );
-    return createApiClient(credentialStore, outputService, oauthService);
-  });
+  // Raw API passthrough (bb api) rides on the same shared axios instance as
+  // the generated clients, so it inherits identical auth/retry/timeout rules.
   registerCommand(container, ServiceTokens.ApiCommand, ApiCommand, [
-    ServiceTokens.ApiAxios,
+    ServiceTokens.SharedApiAxios,
     ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);

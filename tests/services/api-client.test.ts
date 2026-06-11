@@ -318,6 +318,139 @@ describe('createApiClient - OAuth auth', () => {
   });
 });
 
+/**
+ * Helper: creates an axios adapter with a per-URL response queue, so
+ * concurrent requests to different paths each consume their own sequence.
+ * Used to prove interceptor state is per-request, not per-instance.
+ */
+function createUrlKeyedAdapter(
+  routes: Record<
+    string,
+    Array<{ status: number; data?: unknown; headers?: Record<string, string> }>
+  >
+) {
+  const callCounts: Record<string, number> = {};
+  const adapter = (config: { url?: string }) => {
+    const url = config.url ?? '';
+    const idx = callCounts[url] ?? 0;
+    callCounts[url] = idx + 1;
+    const queue = routes[url] ?? [];
+    const resp = queue[idx] ?? queue[queue.length - 1];
+    if (resp.status >= 200 && resp.status < 300) {
+      return Promise.resolve({
+        data: resp.data ?? {},
+        status: resp.status,
+        statusText: 'OK',
+        headers: resp.headers ?? {},
+        config,
+      });
+    }
+    const error = new Error(`Request failed with status code ${resp.status}`);
+    (error as any).response = {
+      data: resp.data ?? {},
+      status: resp.status,
+      statusText: resp.status.toString(),
+      headers: resp.headers ?? {},
+      config,
+    };
+    (error as any).config = config;
+    (error as any).isAxiosError = true;
+    return Promise.reject(error);
+  };
+  return {
+    adapter,
+    getCallCount: (url: string) => callCounts[url] ?? 0,
+  };
+}
+
+describe('createApiClient - shared instance concurrency', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('gives concurrent requests on one instance independent __tokenRefreshed guards (both 401 once, both replay)', async () => {
+    const oauthMock = createMockOAuthService({
+      validToken: 'expired-token',
+      refreshedToken: 'new-token',
+    });
+    const mockAdapter = createUrlKeyedAdapter({
+      '/a': [
+        { status: 401, data: { error: { message: 'Unauthorized' } } },
+        { status: 200, data: { route: 'a' } },
+      ],
+      '/b': [
+        { status: 401, data: { error: { message: 'Unauthorized' } } },
+        { status: 200, data: { route: 'b' } },
+      ],
+    });
+    const client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const [respA, respB] = await Promise.all([
+      client.get('/a'),
+      client.get('/b'),
+    ]);
+
+    // Both requests recovered: each hit 401 once and replayed successfully.
+    expect(respA.status).toBe(200);
+    expect(respA.data).toEqual({ route: 'a' });
+    expect(respB.status).toBe(200);
+    expect(respB.data).toEqual({ route: 'b' });
+    expect(mockAdapter.getCallCount('/a')).toBe(2);
+    expect(mockAdapter.getCallCount('/b')).toBe(2);
+    // The one-shot guard lives on each request's config, so each request
+    // refreshed once — one request's guard did not suppress the other's.
+    expect(oauthMock.getRefreshCallCount()).toBe(2);
+  });
+
+  it('gives concurrent requests on one instance independent __retryCount budgets', async () => {
+    const mockAdapter = createUrlKeyedAdapter({
+      '/a': [
+        { status: 503, data: {} },
+        { status: 503, data: {} },
+        { status: 503, data: {} },
+        { status: 200, data: { route: 'a' } },
+      ],
+      '/b': [
+        { status: 503, data: {} },
+        { status: 200, data: { route: 'b' } },
+      ],
+    });
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const [respA, respB] = await Promise.all([
+      client.get('/a'),
+      client.get('/b'),
+    ]);
+
+    // /a needed all 3 retries; /b only 1. If the counter were shared on the
+    // instance, /a's failures would have exhausted /b's budget (or vice versa).
+    expect(respA.status).toBe(200);
+    expect(respB.status).toBe(200);
+    expect(mockAdapter.getCallCount('/a')).toBe(4);
+    expect(mockAdapter.getCallCount('/b')).toBe(2);
+  });
+});
+
 describe('createApiClient - retry/backoff', () => {
   let client: AxiosInstance;
   let consoleErrorSpy: ReturnType<typeof spyOn>;

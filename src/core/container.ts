@@ -133,6 +133,7 @@ export const ServiceTokens = {
   VersionService: 'VersionService',
 
   // API Clients
+  SharedApiAxios: 'SharedApiAxios',
   PullrequestsApi: 'PullrequestsApi',
   RepositoriesApi: 'RepositoriesApi',
   UsersApi: 'UsersApi',
@@ -159,9 +160,6 @@ export const ServiceTokens = {
 
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: 'UrlBuilderService',
-
-  // Raw API passthrough (bb api)
-  ApiAxios: 'ApiAxios',
 
   // Commands - Top level
   BrowseCommand: 'BrowseCommand',
@@ -190,7 +188,6 @@ export const ServiceTokens = {
 
   // API Clients - Snippets
   SnippetsApi: 'SnippetsApi',
-  SnippetsAxios: 'SnippetsAxios',
   SnippetFilesService: 'SnippetFilesService',
 
   // Commands - Snippet
