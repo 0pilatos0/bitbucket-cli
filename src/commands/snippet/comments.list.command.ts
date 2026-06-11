@@ -10,10 +10,6 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { SnippetComment, SnippetsApi } from '../../generated/api.js';
 import {
-  collectPagesWithMeta,
-  resolveLimit,
-} from '../../services/pagination.js';
-import {
   getRawContent,
   getUserDisplayName,
 } from '../../services/response-parsers.js';
@@ -46,11 +42,9 @@ export class ListSnippetCommentsCommand extends BaseCommand<
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = resolveLimit(options);
-
-    const { items: comments, hasMore } =
-      await collectPagesWithMeta<SnippetComment>({
-        limit,
+    await this.runList<SnippetComment>(
+      {
+        options,
         fetchPage: async (page, pagelen) => {
           const response =
             await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsGet(
@@ -65,34 +59,25 @@ export class ListSnippetCommentsCommand extends BaseCommand<
 
           return response.data;
         },
-      });
-
-    if (context.globalOptions.json) {
-      await this.output.json({
-        workspace,
-        snippetId: options.id,
-        count: comments.length,
-        comments,
-      });
-      return;
-    }
-
-    if (comments.length === 0) {
-      this.output.info('No comments found on this snippet');
-      return;
-    }
-
-    const rows = comments.map((comment) => {
-      const content = getRawContent(comment.content) ?? '';
-      return [
-        String(comment.id ?? ''),
-        getUserDisplayName(comment.user) ?? 'Unknown',
-        this.output.formatDate(comment.created_on ?? ''),
-        this.truncateText(content, 60, context.globalOptions),
-      ];
-    });
-
-    this.output.table(['ID', 'AUTHOR', 'DATE', 'CONTENT'], rows);
-    this.printMoreHint(comments.length, hasMore, 'comments');
+        wrapperKey: 'comments',
+        jsonMetadata: {
+          workspace,
+          snippetId: options.id,
+        },
+        emptyMessage: 'No comments found on this snippet',
+        tableHeaders: ['ID', 'AUTHOR', 'DATE', 'CONTENT'],
+        mapRow: (comment) => {
+          const content = getRawContent(comment.content) ?? '';
+          return [
+            String(comment.id ?? ''),
+            getUserDisplayName(comment.user) ?? 'Unknown',
+            this.output.formatDate(comment.created_on ?? ''),
+            this.truncateText(content, 60, context.globalOptions),
+          ];
+        },
+        noun: 'comments',
+      },
+      context
+    );
   }
 }

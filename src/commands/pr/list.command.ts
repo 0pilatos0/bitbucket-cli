@@ -13,10 +13,7 @@ import type {
   Pullrequest,
   UsersApi,
 } from '../../generated/api.js';
-import {
-  collectPagesWithMeta,
-  resolveLimit,
-} from '../../services/pagination.js';
+import { resolveLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { PR_STATES } from '../../types/pr.js';
 
@@ -52,70 +49,66 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     const state = options.state
       ? this.parseEnumOption(options.state, 'state', PR_STATES)
       : 'OPEN';
-    const limit = resolveLimit(options);
+    // Validate --limit before the --mine user lookup so an invalid limit
+    // fails fast without an API call; runList re-resolves the same value.
+    resolveLimit(options);
     const reviewerQuery = options.mine
       ? await this.buildMineFilter()
       : undefined;
 
-    const { items: values, hasMore } = await collectPagesWithMeta<Pullrequest>({
-      limit,
-      fetchPage: async (page, pagelen) => {
-        const response =
-          await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-            {
-              workspace: repoContext.workspace,
-              repoSlug: repoContext.repoSlug,
-              state,
-            },
-            {
-              params: {
-                page,
-                pagelen,
-                ...(reviewerQuery ? { q: reviewerQuery } : {}),
-              },
-            }
-          );
-
-        return response.data;
-      },
-    });
-
-    if (context.globalOptions.json) {
-      await this.output.json({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        state,
-        filters: {
-          mine: options.mine === true,
-        },
-        count: values.length,
-        pullRequests: values,
-      });
-      return;
-    }
-
-    if (values.length === 0) {
-      this.output.info(`No ${state.toLowerCase()} pull requests found`);
-      return;
-    }
-
     const arrow = this.output.symbol('→', '->');
-    const rows = values.map((pr: Pullrequest) => {
-      const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
-      const source = pr.source as { branch?: { name?: string } } | undefined;
-      const destination = pr.destination as
-        | { branch?: { name?: string } }
-        | undefined;
-      return [
-        `#${pr.id}`,
-        this.truncateText(title ?? '', 50, context.globalOptions),
-        pr.author?.display_name ?? 'Unknown',
-        `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
-      ];
-    });
+    await this.runList<Pullrequest>(
+      {
+        options,
+        fetchPage: async (page, pagelen) => {
+          const response =
+            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
+              {
+                workspace: repoContext.workspace,
+                repoSlug: repoContext.repoSlug,
+                state,
+              },
+              {
+                params: {
+                  page,
+                  pagelen,
+                  ...(reviewerQuery ? { q: reviewerQuery } : {}),
+                },
+              }
+            );
 
-    this.output.table(['ID', 'TITLE', 'AUTHOR', 'BRANCHES'], rows);
-    this.printMoreHint(values.length, hasMore, 'pull requests');
+          return response.data;
+        },
+        wrapperKey: 'pullRequests',
+        jsonMetadata: {
+          workspace: repoContext.workspace,
+          repoSlug: repoContext.repoSlug,
+          state,
+          filters: {
+            mine: options.mine === true,
+          },
+        },
+        emptyMessage: `No ${state.toLowerCase()} pull requests found`,
+        tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES'],
+        mapRow: (pr: Pullrequest) => {
+          const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
+          const source = pr.source as
+            | { branch?: { name?: string } }
+            | undefined;
+          const destination = pr.destination as
+            | { branch?: { name?: string } }
+            | undefined;
+          return [
+            `#${pr.id}`,
+            this.truncateText(title ?? '', 50, context.globalOptions),
+            pr.author?.display_name ?? 'Unknown',
+            `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
+          ];
+        },
+        noun: 'pull requests',
+      },
+      context
+    );
   }
 
   private async buildMineFilter(): Promise<string | undefined> {

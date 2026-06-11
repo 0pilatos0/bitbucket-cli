@@ -10,10 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { Snippet, SnippetsApi } from '../../generated/api.js';
 import { SnippetsWorkspaceGetRoleEnum } from '../../generated/api.js';
-import {
-  collectPagesWithMeta,
-  resolveLimit,
-} from '../../services/pagination.js';
+import { resolveLimit } from '../../services/pagination.js';
 import { getUserDisplayName } from '../../services/response-parsers.js';
 
 const VALID_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum) as readonly (
@@ -51,55 +48,44 @@ export class ListSnippetsCommand extends BaseCommand<
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
-    const limit = resolveLimit(options);
+    // Validate --limit before --role to preserve the original validation
+    // error precedence; runList re-resolves the same value.
+    resolveLimit(options);
 
     const role = options.role
       ? this.parseEnumOption(options.role, 'role', VALID_ROLES)
       : undefined;
 
-    const { items: snippets, hasMore } = await collectPagesWithMeta<Snippet>({
-      limit,
-      fetchPage: async (page, pagelen) => {
-        const response = await this.snippetsApi.snippetsWorkspaceGet(
-          {
-            workspace,
-            role: role as 'owner' | 'contributor' | 'member' | undefined,
-          },
-          {
-            params: { page, pagelen },
-          }
-        );
+    await this.runList<Snippet>(
+      {
+        options,
+        fetchPage: async (page, pagelen) => {
+          const response = await this.snippetsApi.snippetsWorkspaceGet(
+            {
+              workspace,
+              role: role as 'owner' | 'contributor' | 'member' | undefined,
+            },
+            {
+              params: { page, pagelen },
+            }
+          );
 
-        return response.data;
+          return response.data;
+        },
+        wrapperKey: 'snippets',
+        jsonMetadata: { workspace },
+        emptyMessage: 'No snippets found',
+        tableHeaders: ['ID', 'TITLE', 'VISIBILITY', 'CREATOR', 'UPDATED'],
+        mapRow: (snippet) => [
+          String(snippet.id ?? ''),
+          snippet.title ?? '',
+          snippet.is_private ? 'private' : 'public',
+          getUserDisplayName(snippet.creator) ?? '',
+          this.output.formatDate(snippet.updated_on ?? ''),
+        ],
+        noun: 'snippets',
       },
-    });
-
-    if (context.globalOptions.json) {
-      await this.output.json({
-        workspace,
-        count: snippets.length,
-        snippets,
-      });
-      return;
-    }
-
-    if (snippets.length === 0) {
-      this.output.info('No snippets found');
-      return;
-    }
-
-    const rows = snippets.map((snippet) => [
-      String(snippet.id ?? ''),
-      snippet.title ?? '',
-      snippet.is_private ? 'private' : 'public',
-      getUserDisplayName(snippet.creator) ?? '',
-      this.output.formatDate(snippet.updated_on ?? ''),
-    ]);
-
-    this.output.table(
-      ['ID', 'TITLE', 'VISIBILITY', 'CREATOR', 'UPDATED'],
-      rows
+      context
     );
-    this.printMoreHint(snippets.length, hasMore, 'snippets');
   }
 }

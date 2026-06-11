@@ -10,10 +10,6 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import {
-  collectPagesWithMeta,
-  resolveLimit,
-} from '../../services/pagination.js';
-import {
   getRawContent,
   getUserDisplayName,
   parsePullrequestActivitiesPage,
@@ -66,11 +62,10 @@ export class ActivityPRCommand extends BaseCommand<
 
     const prId = this.parsePositiveInt(options.id, 'id');
     const filterTypes = this.parseTypeFilter(options.type);
-    const limit = resolveLimit(options);
 
-    const { items: activities, hasMore } =
-      await collectPagesWithMeta<PullrequestActivity>({
-        limit,
+    await this.runList<PullrequestActivity>(
+      {
+        options,
         fetchPage: async (page, pagelen) => {
           const response =
             await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdActivityGet(
@@ -96,47 +91,37 @@ export class ActivityPRCommand extends BaseCommand<
             this.getActivityType(activity)
           );
         },
-      });
-
-    if (context.globalOptions.json) {
-      await this.output.json({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        pullRequestId: prId,
-        filters: {
-          types: filterTypes,
+        wrapperKey: 'activities',
+        jsonMetadata: {
+          workspace: repoContext.workspace,
+          repoSlug: repoContext.repoSlug,
+          pullRequestId: prId,
+          filters: {
+            types: filterTypes,
+          },
         },
-        count: activities.length,
-        activities,
-      });
-      return;
-    }
-
-    if (activities.length === 0) {
-      if (filterTypes.length > 0) {
-        this.output.info('No activity entries matched the requested filter');
-      } else {
-        this.output.info('No activity found on this pull request');
-      }
-      return;
-    }
-
-    const rows = activities.map((activity) => {
-      const activityType = this.getActivityType(activity);
-      return [
-        activityType.toUpperCase(),
-        this.getActorName(activity),
-        this.formatActivityDate(activity),
-        this.buildActivityDetails(
-          activity,
-          activityType,
-          context.globalOptions
-        ),
-      ];
-    });
-
-    this.output.table(['TYPE', 'ACTOR', 'DATE', 'DETAILS'], rows);
-    this.printMoreHint(activities.length, hasMore, 'activity entries');
+        emptyMessage: () =>
+          filterTypes.length > 0
+            ? 'No activity entries matched the requested filter'
+            : 'No activity found on this pull request',
+        tableHeaders: ['TYPE', 'ACTOR', 'DATE', 'DETAILS'],
+        mapRow: (activity) => {
+          const activityType = this.getActivityType(activity);
+          return [
+            activityType.toUpperCase(),
+            this.getActorName(activity),
+            this.formatActivityDate(activity),
+            this.buildActivityDetails(
+              activity,
+              activityType,
+              context.globalOptions
+            ),
+          ];
+        },
+        noun: 'activity entries',
+      },
+      context
+    );
   }
 
   private parseTypeFilter(typeOption?: string): ActivityType[] {
