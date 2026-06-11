@@ -111,6 +111,11 @@ export default defineConfig({
               badge: { text: "New", variant: "tip" },
             },
             {
+              label: "Issue Commands",
+              slug: "commands/issue",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

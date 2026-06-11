@@ -56,6 +56,7 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'files', // pr diff --stat / --name-only
   'pipelines', // pipeline list
   'commits', // commit list
+  'issues', // issue list
   'values', // generic fallback for paginated payloads
 ];
 

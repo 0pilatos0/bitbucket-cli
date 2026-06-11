@@ -16,6 +16,11 @@ import {
   PIPELINE_STATUSES,
 } from './commands/pipeline/list.command.js';
 import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
+import {
+  ISSUE_KINDS,
+  ISSUE_PRIORITIES,
+  ISSUE_STATES,
+} from './commands/issue/shared.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
@@ -1905,6 +1910,222 @@ statusCmd
   });
 
 cli.addCommand(statusCmd);
+
+// Issue commands
+const issueCmd = new Command('issue').description(
+  'Manage issues in the repository issue tracker'
+);
+
+issueCmd
+  .command('list')
+  .description('List issues (defaults to open-ish states: new, open)')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'Filter by exact state'),
+      ISSUE_STATES
+    )
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Filter by kind'),
+      ISSUE_KINDS
+    )
+  )
+  .option('--assignee <username>', 'Filter by assignee username')
+  .option('--reporter <username>', 'Filter by reporter username')
+  .option(
+    '--query <q>',
+    'Raw Bitbucket q filter expression (replaces the default state filter; AND-ed with other flags)'
+  )
+  .option('--limit <number>', 'Maximum number of issues to list', '25')
+  .option('--all', 'List all issues (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue list',
+        'bb issue list --state resolved',
+        'bb issue list --kind bug --assignee some.user',
+        'bb issue list --query \'priority="blocker" AND state!="closed"\'',
+        "bb issue list --json --jq '.issues[].id'",
+      ],
+      validValues: {
+        'Valid states': [...ISSUE_STATES],
+        'Valid kinds': [...ISSUE_KINDS],
+      },
+      defaults: { state: 'new + open', limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListIssuesCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('view <id>')
+  .description('View issue details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue view 42',
+        "bb issue view 42 --json --jq '.issue.state'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('create')
+  .description('Create an issue')
+  .option('-t, --title <title>', 'Issue title (required)')
+  .option('-b, --body <text>', 'Issue description (Markdown)')
+  .option('-F, --body-file <file>', 'Read the issue description from a file')
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Issue kind'),
+      ISSUE_KINDS
+    )
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--priority <priority>', 'Issue priority'),
+      ISSUE_PRIORITIES
+    )
+  )
+  .option('--assignee <username>', 'Assign the issue to a user')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue create --title "Crash on login"',
+        'bb issue create --title "Crash on login" --kind bug --priority major',
+        'bb issue create --title "RFC: new API" --body-file ./rfc.md',
+        'bb issue create --title "Crash on login" --json --jq \'.issue.id\'',
+      ],
+      validValues: {
+        'Valid kinds': [...ISSUE_KINDS],
+        'Valid priorities': [...ISSUE_PRIORITIES],
+      },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateIssueCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('edit <id>')
+  .description('Edit an issue (requires at least one change flag)')
+  .option('-t, --title <title>', 'New title')
+  .option('-b, --body <text>', 'New description (replaces the existing body)')
+  .addOption(
+    withCompletionChoices(new Option('--kind <kind>', 'New kind'), ISSUE_KINDS)
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--priority <priority>', 'New priority'),
+      ISSUE_PRIORITIES
+    )
+  )
+  .option('--assignee <username>', 'Reassign the issue to a user')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'New state'),
+      ISSUE_STATES
+    )
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue edit 42 --title "Crash on login (Safari only)"',
+        'bb issue edit 42 --state on-hold --priority critical',
+        'bb issue edit 42 --assignee some.user --json',
+      ],
+      validValues: {
+        'Valid states': [...ISSUE_STATES],
+        'Valid kinds': [...ISSUE_KINDS],
+        'Valid priorities': [...ISSUE_PRIORITIES],
+      },
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.EditIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('close <id>')
+  .description('Close an issue (optionally posting a closing comment first)')
+  .option('-c, --comment <text>', 'Post this comment before closing')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue close 42',
+        'bb issue close 42 --comment "Fixed in 1.4.2"',
+        "bb issue close 42 --json --jq '.issue.state'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CloseIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('comment <id>')
+  .description('Add a comment to an issue')
+  .option('-b, --body <text>', 'Comment text (Markdown, required)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue comment 42 --body "Reproduced on main"',
+        'bb issue comment 42 --body "Reproduced on main" --json --jq \'.comment.id\'',
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CommentIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(issueCmd);
 
 // Browse command (top-level)
 cli
