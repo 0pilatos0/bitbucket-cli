@@ -90,12 +90,25 @@ function createMockAdapter(
  * `code` is what lets the client emit a timeout-specific message.
  */
 function createTimeoutErrorAdapter(
-  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED'
+  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED',
+  options: { succeedAfter?: number } = {}
 ) {
   let callCount = 0;
   let lastError: unknown;
   const adapter = (_config: unknown) => {
     callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
     const error = new Error(`timeout of 30000ms exceeded`);
     (error as any).code = code;
     (error as any).request = {}; // request was sent...
@@ -114,12 +127,31 @@ function createTimeoutErrorAdapter(
 
 /**
  * Helper: creates an adapter that simulates a network error (no response).
+ * Optionally tags the error with a `code` (e.g. 'ECONNRESET') and/or starts
+ * succeeding after the first `succeedAfter` calls have failed.
  */
-function createNetworkErrorAdapter() {
+function createNetworkErrorAdapter(
+  options: { code?: string; succeedAfter?: number } = {}
+) {
   let callCount = 0;
   const adapter = (_config: unknown) => {
     callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
     const error = new Error('Network Error');
+    if (options.code !== undefined) {
+      (error as any).code = options.code;
+    }
     (error as any).request = {}; // has request but no response
     (error as any).config = _config;
     (error as any).isAxiosError = true;
@@ -718,7 +750,7 @@ describe('createApiClient - retry/backoff', () => {
       expect(bbErr.message).toContain('DEBUG=true');
     }
 
-    // Network errors are not retried (no response object)
+    // Network errors without a recognized transient `code` are not retried
     expect(networkMock.getCallCount()).toBe(1);
   });
 });
@@ -1386,8 +1418,9 @@ describe('createApiClient - request timeout (#249)', () => {
       expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
     }
 
-    // Timeouts have no `response`, so they are never retried.
-    expect(timeoutMock.getCallCount()).toBe(1);
+    // Timeouts on idempotent requests are retried (issue #267):
+    // 1 initial + 3 retries = 4 attempts before the error surfaces.
+    expect(timeoutMock.getCallCount()).toBe(4);
   });
 
   it('also maps ETIMEDOUT timeouts to NETWORK_ERROR', async () => {
@@ -1403,7 +1436,8 @@ describe('createApiClient - request timeout (#249)', () => {
       expect(err).toBeInstanceOf(BBError);
       expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
     }
-    expect(timeoutMock.getCallCount()).toBe(1);
+    // 1 initial + 3 network-error retries (issue #267)
+    expect(timeoutMock.getCallCount()).toBe(4);
   });
 
   it('surfaces a timeout-specific message distinct from the generic network error', async () => {
@@ -1443,5 +1477,160 @@ describe('createApiClient - request timeout (#249)', () => {
       expect(bbErr.message).toContain('Unable to reach Bitbucket API');
       expect(bbErr.message.toLowerCase()).not.toContain('timed out');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue #267: retry transient network errors (no response received) on
+// idempotent requests.
+// ---------------------------------------------------------------------------
+
+describe('createApiClient - transient network error retry (#267)', () => {
+  let client: AxiosInstance;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    // Make sleep() instant so retries don't slow down the suite.
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('retries GET on ECONNRESET and succeeds once the connection recovers', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'ECONNRESET',
+      succeedAfter: 1,
+    });
+    const output = createMockOutputService();
+    client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    expect(response.data).toEqual({ ok: true });
+    expect(networkMock.getCallCount()).toBe(2);
+    expect(
+      output.logs.some((l) =>
+        l.startsWith('warning:Network error (ECONNRESET)')
+      )
+    ).toBe(true);
+  });
+
+  it('retries GET on EAI_AGAIN (temporary DNS failure) and succeeds', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'EAI_AGAIN',
+      succeedAfter: 2,
+    });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    // 2 failures + 1 success
+    expect(networkMock.getCallCount()).toBe(3);
+  });
+
+  it('retries ETIMEDOUT up to MAX_RETRIES then throws NETWORK_ERROR with the timeout message', async () => {
+    const timeoutMock = createTimeoutErrorAdapter('ETIMEDOUT');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      const bbErr = err as BBError;
+      expect(bbErr.code).toBe(ErrorCode.NETWORK_ERROR);
+      // Final-failure mapping is preserved: timeout-specific copy with the
+      // BB_HTTP_TIMEOUT hint.
+      expect(bbErr.message.toLowerCase()).toContain('timed out');
+      expect(bbErr.message).toContain('BB_HTTP_TIMEOUT');
+    }
+
+    // 1 initial attempt + MAX_RETRIES (3) retries = 4 attempts total.
+    expect(timeoutMock.getCallCount()).toBe(4);
+  });
+
+  it('does NOT retry POST on ECONNRESET (non-idempotent method)', async () => {
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNRESET' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.post('/test', { body: true });
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(networkMock.getCallCount()).toBe(1);
+  });
+
+  it('does NOT retry GET on ECONNREFUSED (permanent until fixed)', async () => {
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNREFUSED' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(networkMock.getCallCount()).toBe(1);
+  });
+
+  it('uses exponential backoff delays (1s/2s/4s) for network retries', async () => {
+    const setTimeoutCalls: number[] = [];
+    globalThis.setTimeout = ((fn: Function, ms?: number) => {
+      setTimeoutCalls.push(ms ?? 0);
+      fn();
+      return 0 as any;
+    }) as any;
+
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNRESET' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(setTimeoutCalls).toContain(1000);
+    expect(setTimeoutCalls).toContain(2000);
+    expect(setTimeoutCalls).toContain(4000);
+  });
+
+  it('suppresses network retry warnings in --json mode', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'ECONNRESET',
+      succeedAfter: 1,
+    });
+    const output = createMockOutputService();
+    output.setJsonFormatOptions({ json: true });
+    client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    expect(networkMock.getCallCount()).toBe(2);
+    expect(output.logs.filter((l) => l.startsWith('warning:'))).toHaveLength(0);
   });
 });
