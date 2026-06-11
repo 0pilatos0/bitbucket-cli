@@ -31,6 +31,8 @@ import {
   SnippetsApi,
   PipelinesApi,
   IssueTrackerApi,
+  WorkspacesApi,
+  ProjectsApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -105,6 +107,15 @@ import { CreateIssueCommand } from './commands/issue/create.command.js';
 import { EditIssueCommand } from './commands/issue/edit.command.js';
 import { CloseIssueCommand } from './commands/issue/close.command.js';
 import { CommentIssueCommand } from './commands/issue/comment.command.js';
+
+// Workspace commands
+import { ListWorkspacesCommand } from './commands/workspace/list.command.js';
+import { ViewWorkspaceCommand } from './commands/workspace/view.command.js';
+
+// Project commands
+import { ListProjectsCommand } from './commands/project/list.command.js';
+import { ViewProjectCommand } from './commands/project/view.command.js';
+import { CreateProjectCommand } from './commands/project/create.command.js';
 
 // Config commands
 import { GetConfigCommand } from './commands/config/get.command.js';
@@ -228,6 +239,8 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
   registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
   registerApiClient(container, ServiceTokens.IssueTrackerApi, IssueTrackerApi);
+  registerApiClient(container, ServiceTokens.WorkspacesApi, WorkspacesApi);
+  registerApiClient(container, ServiceTokens.ProjectsApi, ProjectsApi);
 
   registerCommand(
     container,
@@ -748,6 +761,57 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     CommentIssueCommand,
     [
       ServiceTokens.IssueTrackerApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Workspace commands
+  registerCommand(
+    container,
+    ServiceTokens.ListWorkspacesCommand,
+    ListWorkspacesCommand,
+    [ServiceTokens.WorkspacesApi, ServiceTokens.OutputService]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewWorkspaceCommand,
+    ViewWorkspaceCommand,
+    [
+      ServiceTokens.WorkspacesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Project commands. Listing lives on the Workspaces API surface
+  // (GET /workspaces/{workspace}/projects); view/create on the Projects API.
+  registerCommand(
+    container,
+    ServiceTokens.ListProjectsCommand,
+    ListProjectsCommand,
+    [
+      ServiceTokens.WorkspacesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewProjectCommand,
+    ViewProjectCommand,
+    [
+      ServiceTokens.ProjectsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CreateProjectCommand,
+    CreateProjectCommand,
+    [
+      ServiceTokens.ProjectsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]

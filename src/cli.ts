@@ -21,6 +21,7 @@ import {
   ISSUE_PRIORITIES,
   ISSUE_STATES,
 } from './commands/issue/shared.js';
+import { WORKSPACE_ROLES } from './commands/workspace/list.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
@@ -2126,6 +2127,162 @@ issueCmd
   });
 
 cli.addCommand(issueCmd);
+
+// Workspace commands
+const workspaceCmd = new Command('workspace').description(
+  'Discover and inspect Bitbucket workspaces'
+);
+
+workspaceCmd
+  .command('list')
+  .description('List workspaces you have access to')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '--role <role>',
+        'Filter by your role (owner, collaborator, member)'
+      ),
+      WORKSPACE_ROLES
+    )
+  )
+  .option('--limit <number>', 'Maximum number of workspaces to list', '25')
+  .option('--all', 'List all workspaces (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb workspace list',
+        'bb workspace list --role owner',
+        "bb workspace list --json --jq '.workspaces[].slug'",
+      ],
+      validValues: { 'Valid roles': [...WORKSPACE_ROLES] },
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListWorkspacesCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+workspaceCmd
+  .command('view [slug]')
+  .description(
+    'View workspace details (defaults to the current workspace context)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb workspace view',
+        'bb workspace view my-workspace',
+        "bb workspace view my-workspace --json --jq '.workspace.uuid'",
+      ],
+      defaults: {
+        slug: 'resolved workspace (-w, current repo, or defaultWorkspace)',
+      },
+    })
+  )
+  .action(async (slug, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewWorkspaceCommand,
+      withGlobalOptions({ slug, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(workspaceCmd);
+
+// Project commands
+const projectCmd = new Command('project').description(
+  'Manage projects in a workspace'
+);
+
+projectCmd
+  .command('list')
+  .description('List projects in a workspace')
+  .option('--limit <number>', 'Maximum number of projects to list', '25')
+  .option('--all', 'List all projects (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project list',
+        'bb project list -w my-workspace',
+        "bb project list --json --jq '.projects[].key'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListProjectsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+projectCmd
+  .command('view <key>')
+  .description('View project details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project view PROJ',
+        'bb project view PROJ -w my-workspace',
+        "bb project view PROJ --json --jq '.project.name'",
+      ],
+    })
+  )
+  .action(async (key, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewProjectCommand,
+      withGlobalOptions({ key, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+projectCmd
+  .command('create')
+  .description('Create a new project in a workspace')
+  .option('-k, --key <key>', 'Project key, e.g. PROJ (required; uppercased)')
+  .option('-n, --name <name>', 'Project name (required)')
+  .option('-d, --description <description>', 'Project description')
+  .option('--private', 'Create a private project (default)')
+  .option('--public', 'Create a public project')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project create --key PROJ --name "My Project"',
+        'bb project create -k PROJ -n "My Project" -d "Team things" --public',
+        'bb project create -k PROJ -n "My Project" --json --jq \'.project.key\'',
+      ],
+      defaults: { private: 'true (visibility is private unless --public)' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateProjectCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(projectCmd);
 
 // Browse command (top-level)
 cli

@@ -116,6 +116,16 @@ export default defineConfig({
               badge: { text: "New", variant: "tip" },
             },
             {
+              label: "Workspace Commands",
+              slug: "commands/workspace",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Project Commands",
+              slug: "commands/project",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

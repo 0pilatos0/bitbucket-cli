@@ -57,6 +57,8 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'pipelines', // pipeline list
   'commits', // commit list
   'issues', // issue list
+  'workspaces', // workspace list
+  'projects', // project list
   'values', // generic fallback for paginated payloads
 ];
 

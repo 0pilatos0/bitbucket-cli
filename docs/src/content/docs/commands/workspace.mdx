@@ -1,0 +1,108 @@
+---
+title: Workspace Commands - Discover Bitbucket Workspaces
+description: Reference for Bitbucket CLI workspace commands. List the workspaces you have access to and view workspace details from the command line.
+---
+
+Discover and inspect Bitbucket Cloud workspaces. Use these commands to find
+the workspace slugs you need for `-w, --workspace`, for
+[`bb config set defaultWorkspace`](/reference/configuration/), and for
+`bb repo create`.
+
+Workspace commands operate at **account** scope: `bb workspace list` needs no
+workspace context at all (it lists your own workspaces), while
+`bb workspace view` falls back to the resolved workspace context when no slug
+is passed.
+
+Global options available on all workspace commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
+
+---
+
+## `bb workspace list`
+
+List the workspaces the authenticated user has access to.
+
+```bash
+bb workspace list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--role <role>` | Filter by your role: `owner`, `collaborator`, or `member` |
+| `--limit <number>` | Maximum number of workspaces (default: 25) |
+| `--all` | List all workspaces (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb workspace list
+bb workspace list --role owner
+bb workspace list --all
+
+# Project to specific fields (returns a flat array)
+bb workspace list --json slug,name
+
+# Grab slugs for scripting with built-in --jq
+bb workspace list --json --jq '.workspaces[].slug'
+```
+
+### JSON output
+
+The `--json` envelope is `{ filters, count, workspaces }`, where `workspaces`
+is the array of workspace objects and `filters` echoes the active `--role`
+filter (empty object when unfiltered).
+
+### Notes
+
+- Requires no workspace context — this is the discovery entry point when you
+  do not know your slugs yet.
+- After listing, use a slug with `-w <slug>` on any command, or set a default
+  once: `bb config set defaultWorkspace <slug>`.
+- Role semantics: `owner` = admin access, `collaborator` = write access to at
+  least one repository, `member` = member of at least one group or repository.
+- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
+
+---
+
+## `bb workspace view`
+
+View workspace details.
+
+```bash
+bb workspace view [slug] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `slug` | Workspace slug (optional; defaults to the resolved workspace context) |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace (used when no `slug` argument is passed) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View the current workspace (from -w, the current repo, or defaultWorkspace)
+bb workspace view
+
+bb workspace view my-workspace
+
+# Stable JSON envelope: { workspace: { ... } }
+bb workspace view my-workspace --json --jq '.workspace.uuid'
+```
+
+### Notes
+
+- Without a `slug`, the workspace is resolved like any other command: `-w`
+  flag, then the current repository's remote, then the configured
+  `defaultWorkspace`.
+- A missing or inaccessible workspace returns a clear not-found error
+  (exit code 1, `--json` gives a structured error envelope).

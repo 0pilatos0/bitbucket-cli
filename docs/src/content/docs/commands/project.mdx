@@ -1,0 +1,144 @@
+---
+title: Project Commands - Manage Bitbucket Projects
+description: Reference for Bitbucket CLI project commands. List, view, and create Bitbucket Cloud projects to organize repositories from the command line.
+---
+
+Manage Bitbucket Cloud projects — the grouping layer for repositories inside a
+workspace. Use these commands to discover the project keys you pass to
+`bb repo create -p <KEY>`.
+
+Project commands operate at **workspace** scope (no repo context required).
+Use `-w, --workspace <workspace>` or set a default with
+`bb config set defaultWorkspace <workspace>` — see
+[`bb workspace list`](/commands/workspace/) to discover your slugs.
+
+Global options available on all project commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
+
+---
+
+## `bb project list`
+
+List projects in a workspace.
+
+```bash
+bb project list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `--limit <number>` | Maximum number of projects (default: 25) |
+| `--all` | List all projects (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb project list
+bb project list -w my-workspace
+bb project list --all
+
+# Project to specific fields (returns a flat array)
+bb project list --json key,name
+
+# Grab keys for scripting with built-in --jq
+bb project list --json --jq '.projects[].key'
+```
+
+### JSON output
+
+The `--json` envelope is `{ workspace, count, projects }`, where `projects` is
+the array of project objects.
+
+### Notes
+
+- Long descriptions are truncated to 50 characters in the table (disable with
+  the global `--no-truncate`); `--json` always carries the full values.
+- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
+
+---
+
+## `bb project view`
+
+View project details.
+
+```bash
+bb project view <key> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `key` | Project key (e.g. `PROJ`; lowercase input is uppercased automatically) |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb project view PROJ
+bb project view PROJ -w my-workspace
+
+# Stable JSON envelope: { workspace, project }
+bb project view PROJ --json --jq '.project.name'
+```
+
+### Notes
+
+- Bitbucket stores project keys uppercased, so `bb project view proj` resolves
+  the same project as `bb project view PROJ`.
+- An unknown key returns `Project <KEY> not found in workspace <workspace>.`
+  (exit code 1, `--json` gives a structured error envelope).
+
+---
+
+## `bb project create`
+
+Create a new project in a workspace.
+
+```bash
+bb project create [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-k, --key <key>` | Project key, e.g. `PROJ` (required; uppercased automatically) |
+| `-n, --name <name>` | Project name (required) |
+| `-d, --description <description>` | Project description |
+| `--private` | Create a private project (default) |
+| `--public` | Create a public project |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb project create --key PROJ --name "My Project"
+bb project create -k PROJ -n "My Project" -d "Team things" --public
+
+# Then create repositories inside it
+bb repo create my-repo -p PROJ
+
+# Stable JSON envelope: { workspace, project }
+bb project create -k PROJ -n "My Project" --json --jq '.project.key'
+```
+
+### Notes
+
+- Projects are private by default; `--private` and `--public` cannot both be
+  set. Note that private projects cannot contain public repositories.
+- Keys must start with a letter and contain only letters, digits, and
+  underscores. Bitbucket requires uppercase keys, so lowercase input is
+  uppercased automatically (the CLI prints a note when it does).
+- The command is fully non-interactive: all inputs are flags, so it is safe
+  for scripts and automation.

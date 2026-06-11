@@ -141,6 +141,8 @@ export const ServiceTokens = {
   CommitsApi: 'CommitsApi',
   PipelinesApi: 'PipelinesApi',
   IssueTrackerApi: 'IssueTrackerApi',
+  WorkspacesApi: 'WorkspacesApi',
+  ProjectsApi: 'ProjectsApi',
 
   // Commands - Auth
   LoginCommand: 'LoginCommand',
@@ -228,6 +230,15 @@ export const ServiceTokens = {
   EditIssueCommand: 'EditIssueCommand',
   CloseIssueCommand: 'CloseIssueCommand',
   CommentIssueCommand: 'CommentIssueCommand',
+
+  // Commands - Workspace
+  ListWorkspacesCommand: 'ListWorkspacesCommand',
+  ViewWorkspaceCommand: 'ViewWorkspaceCommand',
+
+  // Commands - Project
+  ListProjectsCommand: 'ListProjectsCommand',
+  ViewProjectCommand: 'ViewProjectCommand',
+  CreateProjectCommand: 'CreateProjectCommand',
 
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',

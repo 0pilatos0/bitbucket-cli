@@ -487,9 +487,11 @@ describe('CLI command registration', () => {
       'issue',
       'pipeline',
       'pr',
+      'project',
       'repo',
       'snippet',
       'status',
+      'workspace',
     ]);
   });
 
@@ -632,6 +634,23 @@ describe('CLI command registration', () => {
       'comment',
       'create',
       'edit',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all workspace subcommands', () => {
+    const workspaceCmd = requireCommand('workspace');
+    expect(workspaceCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all project subcommands', () => {
+    const projectCmd = requireCommand('project');
+    expect(projectCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'create',
       'list',
       'view',
     ]);
