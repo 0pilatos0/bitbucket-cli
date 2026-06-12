@@ -14,6 +14,11 @@ import {
   createMockOutputService,
 } from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
+import {
+  colorPipelineStatus,
+  formatDuration,
+  getStepDurationSeconds,
+} from '../../src/commands/pipeline/shared.js';
 import type { Pipeline, PipelinesApi } from '../../src/generated/api.js';
 
 const mockPipeline: Pipeline = {
@@ -852,5 +857,85 @@ describe('LogsPipelineCommand', () => {
     await expect(
       command.execute({ id: '42' }, { globalOptions: {} })
     ).rejects.toThrow('Pipeline 42 has no steps yet');
+  });
+});
+
+describe('pipeline shared helpers', () => {
+  const taggingOutput = {
+    ...createMockOutputService(),
+    green: (text: string) => `green(${text})`,
+    red: (text: string) => `red(${text})`,
+    yellow: (text: string) => `yellow(${text})`,
+    gray: (text: string) => `gray(${text})`,
+  };
+
+  it('colors every in-progress status yellow', () => {
+    for (const status of [
+      'PENDING',
+      'BUILDING',
+      'IN_PROGRESS',
+      'RUNNING',
+      'PARSING',
+      'PAUSED',
+      'READY',
+    ]) {
+      expect(colorPipelineStatus(taggingOutput, status)).toBe(
+        `yellow(${status})`
+      );
+    }
+  });
+
+  it('colors every terminal-neutral status gray', () => {
+    for (const status of ['STOPPED', 'HALTED', 'EXPIRED', 'NOT_RUN']) {
+      expect(colorPipelineStatus(taggingOutput, status)).toBe(
+        `gray(${status})`
+      );
+    }
+  });
+
+  it('passes unknown statuses through uncolored', () => {
+    expect(colorPipelineStatus(taggingOutput, 'SOMETHING_NEW')).toBe(
+      'SOMETHING_NEW'
+    );
+  });
+
+  it('formats durations with hours, minutes, and bare seconds', () => {
+    expect(formatDuration(3723)).toBe('1h 2m 3s');
+    expect(formatDuration(125)).toBe('2m 5s');
+    expect(formatDuration(42)).toBe('42s');
+  });
+
+  it('formats missing or non-finite durations as a dash', () => {
+    expect(formatDuration(undefined)).toBe('-');
+    expect(formatDuration(Number.NaN)).toBe('-');
+  });
+
+  it('prefers the API-reported step duration over timestamps', () => {
+    expect(
+      getStepDurationSeconds({
+        duration_in_seconds: 17,
+        started_on: '2026-01-01T00:00:00Z',
+        completed_on: '2026-01-01T01:00:00Z',
+      })
+    ).toBe(17);
+  });
+
+  it('falls back to the started/completed timestamp delta', () => {
+    expect(
+      getStepDurationSeconds({
+        started_on: '2026-01-01T00:00:00Z',
+        completed_on: '2026-01-01T00:01:30Z',
+      })
+    ).toBe(90);
+  });
+
+  it('returns undefined when timestamps are missing or unparsable', () => {
+    expect(getStepDurationSeconds({})).toBeUndefined();
+    expect(
+      getStepDurationSeconds({
+        started_on: 'not-a-date',
+        completed_on: 'also-not-a-date',
+      })
+    ).toBeUndefined();
   });
 });

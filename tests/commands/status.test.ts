@@ -6,6 +6,7 @@ import { describe, it, expect } from 'bun:test';
 import { ListCommitStatusesCommand } from '../../src/commands/status/list.command.js';
 import { SetCommitStatusCommand } from '../../src/commands/status/set.command.js';
 import { createMockContextService, createMockOutputService } from '../setup.js';
+import { colorStatusState } from '../../src/commands/status/shared.js';
 import { APIError } from '../../src/types/errors.js';
 import type {
   CommitStatusesApi,
@@ -390,5 +391,35 @@ describe('SetCommitStatusCommand', () => {
         { globalOptions: {} }
       )
     ).rejects.toThrow('Commit deadbee not found in workspace/repo.');
+  });
+});
+
+describe('colorStatusState', () => {
+  const taggingOutput = {
+    ...createMockOutputService(),
+    green: (text: string) => `green(${text})`,
+    red: (text: string) => `red(${text})`,
+    yellow: (text: string) => `yellow(${text})`,
+    gray: (text: string) => `gray(${text})`,
+  };
+
+  it('colors each known state with its severity color', () => {
+    expect(colorStatusState(taggingOutput, 'SUCCESSFUL')).toBe(
+      'green(SUCCESSFUL)'
+    );
+    expect(colorStatusState(taggingOutput, 'FAILED')).toBe('red(FAILED)');
+    expect(colorStatusState(taggingOutput, 'INPROGRESS')).toBe(
+      'yellow(INPROGRESS)'
+    );
+    expect(colorStatusState(taggingOutput, 'STOPPED')).toBe('gray(STOPPED)');
+  });
+
+  it('matches states case-insensitively', () => {
+    expect(colorStatusState(taggingOutput, 'failed')).toBe('red(failed)');
+  });
+
+  it('renders unknown or missing states as a gray dash', () => {
+    expect(colorStatusState(taggingOutput, 'MYSTERY')).toBe('gray(MYSTERY)');
+    expect(colorStatusState(taggingOutput, undefined)).toBe('gray(-)');
   });
 });
