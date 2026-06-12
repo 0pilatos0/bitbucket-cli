@@ -90,7 +90,8 @@ bb workspace view [slug] [options]
 ### Examples
 
 ```bash
-# View the current workspace (from -w, the current repo, or defaultWorkspace)
+# View the current workspace (from -w, the current repo's remote,
+# BB_WORKSPACE, or defaultWorkspace)
 bb workspace view
 
 bb workspace view my-workspace
@@ -102,7 +103,8 @@ bb workspace view my-workspace --json --jq '.workspace.uuid'
 ### Notes
 
 - Without a `slug`, the workspace is resolved like any other command: `-w`
-  flag, then the current repository's remote, then the configured
+  flag, then the current repository's Bitbucket remote, then the
+  `BB_WORKSPACE` environment variable, then the configured
   `defaultWorkspace`.
 - A missing or inaccessible workspace returns a clear not-found error
   (exit code 1, `--json` gives a structured error envelope).

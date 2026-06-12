@@ -152,11 +152,35 @@ function createMockPipelinesApi(
           ) ?? mockPipeline,
       };
     },
-    getPipelineStepsForRepository: async () => {
+    getPipelineStepsForRepository: async (
+      _request: unknown,
+      axiosOptions?: unknown
+    ) => {
       if (options.pipelineNotFound) {
         throw new APIError('Resource not found', 404);
       }
-      return { data: { values: steps } };
+      // Mirror the live API: the steps collection is paginated with a
+      // server-side default pagelen of 10, so callers that don't paginate
+      // only ever see the first 10 steps.
+      const params = (
+        axiosOptions as { params?: { page?: number; pagelen?: number } }
+      )?.params;
+      const page = params?.page ?? 1;
+      const pagelen = params?.pagelen ?? 10;
+      const start = (page - 1) * pagelen;
+      const end = start + pagelen;
+      return {
+        data: {
+          values: steps.slice(start, end),
+          page,
+          pagelen,
+          size: steps.length,
+          next:
+            end < steps.length
+              ? `https://api.bitbucket.org/2.0/repositories/workspace/repo/pipelines/42/steps/?page=${page + 1}`
+              : undefined,
+        },
+      };
     },
     getPipelineStepLogForRepository: async (
       request: unknown,
@@ -181,6 +205,14 @@ function createMockPipelinesApi(
 
 function repoContextService() {
   return createMockContextService({ workspace: 'workspace', repoSlug: 'repo' });
+}
+
+function makeSteps(count: number): unknown[] {
+  return Array.from({ length: count }, (_, index) => ({
+    ...mockStepOne,
+    uuid: `{step-uuid-${index + 1}}`,
+    name: `Step ${index + 1}`,
+  }));
 }
 
 describe('ListPipelinesCommand', () => {
@@ -408,6 +440,23 @@ describe('ViewPipelineCommand', () => {
       command.execute({ id: '999' }, { globalOptions: {} })
     ).rejects.toThrow('Pipeline 999 not found in workspace/repo.');
   });
+
+  it('should collect every step across paginated responses', async () => {
+    const output = createMockOutputService();
+    const command = new ViewPipelineCommand(
+      createMockPipelinesApi({ steps: makeSteps(60) }),
+      repoContextService(),
+      output
+    );
+
+    await command.execute({ id: '42' }, { globalOptions: { json: true } });
+
+    const payload = getJsonPayload(output.logs);
+    expect(payload.steps).toHaveLength(60);
+    expect(
+      (payload.steps as { name: string }[]).map((step) => step.name)
+    ).toContain('Step 60');
+  });
 });
 
 describe('RunPipelineCommand', () => {
@@ -523,7 +572,7 @@ describe('RunPipelineCommand', () => {
     ).rejects.toThrow('--var must be in key=value format');
   });
 
-  it('should output the created pipeline in JSON mode', async () => {
+  it('should emit the documented JSON envelope with the created pipeline', async () => {
     const output = createMockOutputService();
     const command = new RunPipelineCommand(
       createMockPipelinesApi(),
@@ -538,8 +587,11 @@ describe('RunPipelineCommand', () => {
     );
 
     const payload = getJsonPayload(output.logs);
-    expect(payload.build_number).toBe(42);
-    expect(payload.uuid).toBe('{pipeline-uuid-1}');
+    expect(Object.keys(payload)).toEqual(['workspace', 'repoSlug', 'pipeline']);
+    expect(payload.workspace).toBe('workspace');
+    expect(payload.repoSlug).toBe('repo');
+    expect((payload.pipeline as Pipeline).build_number).toBe(42);
+    expect((payload.pipeline as Pipeline).uuid).toBe('{pipeline-uuid-1}');
   });
 });
 
@@ -755,6 +807,38 @@ describe('LogsPipelineCommand', () => {
       stepUuid: '{step-uuid-1}',
       log: 'the log',
     });
+  });
+
+  it('should select a step beyond the first API page by index', async () => {
+    let captured: unknown;
+    const output = createMockOutputService();
+    const command = new LogsPipelineCommand(
+      createMockPipelinesApi({
+        steps: makeSteps(60),
+        onLog: (request) => (captured = request),
+      }),
+      repoContextService(),
+      output
+    );
+
+    await command.execute({ id: '42', step: '55' }, { globalOptions: {} });
+
+    expect((captured as { stepUuid: string }).stepUuid).toBe('{step-uuid-55}');
+  });
+
+  it('should count and list every step across pages when no --step', async () => {
+    const output = createMockOutputService();
+    const command = new LogsPipelineCommand(
+      createMockPipelinesApi({ steps: makeSteps(60) }),
+      repoContextService(),
+      output
+    );
+
+    await command.execute({ id: '42' }, { globalOptions: { json: true } });
+
+    const payload = getJsonPayload(output.logs);
+    expect(payload.count).toBe(60);
+    expect(payload.steps).toHaveLength(60);
   });
 
   it('should error when the pipeline has no steps yet', async () => {

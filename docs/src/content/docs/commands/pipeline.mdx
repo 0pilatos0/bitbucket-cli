@@ -91,6 +91,7 @@ bb pipeline view 42 --json --jq '.pipeline.state.result.name // .pipeline.state.
 ### Notes
 
 - The human view shows number, UUID, status, ref, trigger, creator, created/completed timestamps, duration, and a step table (name, status, duration).
+- The step table and the JSON `steps` array are complete even on large pipelines — the CLI follows the steps endpoint's pagination.
 - A `404` returns an actionable "Pipeline `<id>` not found" error.
 
 ---
@@ -125,8 +126,8 @@ bb pipeline run --branch main
 bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
 bb pipeline run --branch main --commit abc123def456
 
-# JSON returns the created pipeline resource; grab the build number
-bb pipeline run --branch main --json --jq '.build_number'
+# Stable JSON envelope: { workspace, repoSlug, pipeline }; grab the build number
+bb pipeline run --branch main --json --jq '.pipeline.build_number'
 ```
 
 ### Notes
@@ -207,6 +208,7 @@ bb pipeline logs 42 --json --jq '.log'
 
 - With exactly one step, it is selected automatically.
 - With several steps and no `--step`, the CLI lists the steps (with indexes and UUIDs) instead of guessing; in `--json` mode it returns `{ workspace, repoSlug, pipelineId, count, steps }` so scripts and agents can pick a step UUID and call again.
+- Every step is selectable even on large pipelines — the CLI follows the steps endpoint's pagination, so indexes and UUIDs beyond the API's default page size of 10 work.
 - The log is printed verbatim to stdout, so it pipes cleanly into `grep`, `less`, or a file.
 
 ---

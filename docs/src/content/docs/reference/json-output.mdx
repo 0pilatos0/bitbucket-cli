@@ -147,7 +147,7 @@ The CLI uses a small number of consistent output patterns. Understanding these p
 
 ### Pattern 1: Collection (List Commands)
 
-Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`, `pr reviewers list`, `pr checks`
+Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`, `pr reviewers list`, `pr checks`, `pipeline list`, `commit list`, `status list`, `issue list`, `workspace list`, `project list`, `snippet list`
 
 Returns an envelope with metadata and a named array:
 
@@ -166,11 +166,13 @@ Returns an envelope with metadata and a named array:
 
 | Field | Type | Present in |
 |-------|------|-----------|
-| `workspace` | string | PR and repo collections |
-| `repoSlug` | string | PR collections |
+| `workspace` | string | Repository- and workspace-scoped collections (PR, repo, pipeline, commit, status, issue, project) |
+| `repoSlug` | string | Repository-scoped collections (PR, pipeline, commit, status, issue) |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
-| `filters` | object | `pr list` (when `--mine` is used), `pr activity` |
+| `filters` | object | `pr list` (when `--mine` is used), `pr activity`, `issue list`, `workspace list` |
+| `commit` | string | `status list` |
+| `sort` | string | `pipeline list` |
 
 **Collection key names:**
 
@@ -182,6 +184,13 @@ Returns an envelope with metadata and a named array:
 | `pr activity` | `activities` |
 | `pr reviewers list` | `reviewers` |
 | `pr checks` | `statuses` (inside a `summary` + `statuses` structure) |
+| `pipeline list` | `pipelines` |
+| `commit list` | `commits` |
+| `status list` | `statuses` |
+| `issue list` | `issues` |
+| `workspace list` | `workspaces` |
+| `project list` | `projects` |
+| `snippet list` | `snippets` |
 
 #### Example: `bb pr list --json`
 

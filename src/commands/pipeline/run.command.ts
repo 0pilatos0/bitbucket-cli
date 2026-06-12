@@ -80,9 +80,13 @@ export class RunPipelineCommand extends BaseCommand<RunPipelineOptions, void> {
     const created = response.data;
 
     if (context.globalOptions.json) {
-      // The created pipeline as returned by the API (raw resource, mirrors
-      // `bb repo view --json`); agents read `build_number` / `uuid` from it.
-      await this.output.json(created);
+      // Same context envelope as the other pipeline subcommands, so scripts
+      // read the pipeline from `.pipeline` after both `run` and `view`.
+      await this.output.json({
+        workspace: repoContext.workspace,
+        repoSlug: repoContext.repoSlug,
+        pipeline: created,
+      });
       return;
     }
 

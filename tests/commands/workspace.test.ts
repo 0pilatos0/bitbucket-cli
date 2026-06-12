@@ -270,6 +270,42 @@ describe('ViewWorkspaceCommand', () => {
     expect(captured?.workspace).toBe('default-ws');
   });
 
+  it("should derive the slug from the current repository's git remote", async () => {
+    let captured: { workspace?: string } | undefined;
+    const output = createMockOutputService();
+    const command = new ViewWorkspaceCommand(
+      createMockWorkspacesApi({
+        onViewCall: (request) => {
+          captured = request as { workspace?: string };
+        },
+      }),
+      createMockContextService({ workspace: 'remote-ws', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(captured?.workspace).toBe('remote-ws');
+  });
+
+  it('should prefer the -w flag over the git remote', async () => {
+    let captured: { workspace?: string } | undefined;
+    const output = createMockOutputService();
+    const command = new ViewWorkspaceCommand(
+      createMockWorkspacesApi({
+        onViewCall: (request) => {
+          captured = request as { workspace?: string };
+        },
+      }),
+      createMockContextService({ workspace: 'remote-ws', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: { workspace: 'flag-ws' } });
+
+    expect(captured?.workspace).toBe('flag-ws');
+  });
+
   it('should emit the JSON envelope { workspace }', async () => {
     const output = createMockOutputService();
     const command = new ViewWorkspaceCommand(

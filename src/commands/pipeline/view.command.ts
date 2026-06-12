@@ -13,13 +13,13 @@ import type { GlobalOptions } from '../../types/config.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
 import {
   colorPipelineStatus,
+  fetchAllPipelineSteps,
   formatDuration,
   getPipelineRef,
   getPipelineSelectorPattern,
   getPipelineStatus,
   getPipelineTrigger,
   getStepDurationSeconds,
-  type PipelineStepLike,
 } from './shared.js';
 
 export interface ViewPipelineOptions extends GlobalOptions {
@@ -68,7 +68,13 @@ export class ViewPipelineCommand extends BaseCommand<
       );
 
     const pipeline = response.data;
-    const steps = await this.fetchSteps(repoContext, id);
+    // The steps endpoint is paginated (default pagelen 10); fetch every page
+    // so the step table and JSON envelope are complete on large pipelines.
+    const steps = await fetchAllPipelineSteps(this.pipelinesApi, {
+      workspace: repoContext.workspace,
+      repoSlug: repoContext.repoSlug,
+      pipelineUuid: id,
+    });
 
     if (context.globalOptions.json) {
       await this.output.json({
@@ -125,19 +131,5 @@ export class ViewPipelineCommand extends BaseCommand<
         ])
       );
     }
-  }
-
-  private async fetchSteps(
-    repoContext: { workspace: string; repoSlug: string },
-    id: string
-  ): Promise<PipelineStepLike[]> {
-    const response = await this.pipelinesApi.getPipelineStepsForRepository({
-      workspace: repoContext.workspace,
-      repoSlug: repoContext.repoSlug,
-      pipelineUuid: id,
-    });
-    return response.data.values
-      ? (Array.from(response.data.values) as PipelineStepLike[])
-      : [];
   }
 }

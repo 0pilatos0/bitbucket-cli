@@ -13,7 +13,10 @@ import { getLinkHref } from '../../services/response-parsers.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
 export interface ViewWorkspaceOptions {
-  /** Optional positional slug; falls back to the resolved workspace context */
+  /**
+   * Optional positional slug; falls back to `-w`, the current repository's
+   * git remote, then `BB_WORKSPACE` / `config.defaultWorkspace`.
+   */
   slug?: string;
   workspace?: string;
 }
@@ -37,11 +40,15 @@ export class ViewWorkspaceCommand extends BaseCommand<
     options: ViewWorkspaceOptions,
     context: CommandContext
   ): Promise<void> {
+    // Resolution order matches repo-scoped commands: explicit slug / -w flag,
+    // then the current repository's Bitbucket remote, then BB_WORKSPACE /
+    // config.defaultWorkspace (requireWorkspace throws when nothing resolves).
     const workspace =
       options.slug ??
-      (await this.contextService.requireWorkspace(
-        options.workspace ?? context.globalOptions.workspace
-      ));
+      options.workspace ??
+      context.globalOptions.workspace ??
+      (await this.contextService.getRepoContextFromGit())?.workspace ??
+      (await this.contextService.requireWorkspace());
 
     const response = await this.workspacesApi
       .workspacesWorkspaceGet({ workspace })

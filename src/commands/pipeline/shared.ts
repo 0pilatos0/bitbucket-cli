@@ -8,7 +8,15 @@
  */
 
 import type { IOutputService } from '../../core/interfaces/services.js';
-import type { Pipeline, PipelineStep } from '../../generated/api.js';
+import type {
+  Pipeline,
+  PipelineStep,
+  PipelinesApi,
+} from '../../generated/api.js';
+import {
+  collectPages,
+  type PaginatedCollection,
+} from '../../services/pagination.js';
 
 interface PipelineStateLike {
   name?: string;
@@ -31,6 +39,28 @@ export type PipelineStepLike = PipelineStep & {
   name?: string;
   duration_in_seconds?: number;
 };
+
+/**
+ * Fetch every step of a pipeline. The steps endpoint is paginated with a
+ * server-side default `pagelen` of 10, so a single un-paginated request
+ * silently drops steps 11+ on larger pipelines — follow `next` until the
+ * collection is exhausted.
+ */
+export async function fetchAllPipelineSteps(
+  pipelinesApi: PipelinesApi,
+  request: { workspace: string; repoSlug: string; pipelineUuid: string }
+): Promise<PipelineStepLike[]> {
+  return collectPages<PipelineStepLike>({
+    limit: Number.POSITIVE_INFINITY,
+    fetchPage: async (page, pagelen) => {
+      const response = await pipelinesApi.getPipelineStepsForRepository(
+        request,
+        { params: { page, pagelen } }
+      );
+      return response.data as PaginatedCollection<PipelineStepLike>;
+    },
+  });
+}
 
 /**
  * Resolve the most specific status name for a pipeline or step: the completed

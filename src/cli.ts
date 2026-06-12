@@ -2183,7 +2183,7 @@ workspaceCmd
         "bb workspace view my-workspace --json --jq '.workspace.uuid'",
       ],
       defaults: {
-        slug: 'resolved workspace (-w, current repo, or defaultWorkspace)',
+        slug: 'resolved workspace (-w, current repo, BB_WORKSPACE, or defaultWorkspace)',
       },
     })
   )

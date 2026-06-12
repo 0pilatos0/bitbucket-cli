@@ -17,6 +17,7 @@ import {
 } from '../../types/errors.js';
 import {
   colorPipelineStatus,
+  fetchAllPipelineSteps,
   getPipelineStatus,
   type PipelineStepLike,
 } from './shared.js';
@@ -51,22 +52,18 @@ export class LogsPipelineCommand extends BaseCommand<
     );
     const id = this.requireOption(options.id, 'id');
 
-    const stepsResponse = await this.pipelinesApi
-      .getPipelineStepsForRepository({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        pipelineUuid: id,
-      })
-      .catch((error: unknown) =>
-        rethrowWithNotFoundContext(
-          error,
-          `Pipeline ${id} not found in ${repoContext.workspace}/${repoContext.repoSlug}.`
-        )
-      );
-
-    const steps = (
-      stepsResponse.data.values ? Array.from(stepsResponse.data.values) : []
-    ) as PipelineStepLike[];
+    // The steps endpoint is paginated (default pagelen 10), so the fetch
+    // walks every page — otherwise steps 11+ would be unselectable.
+    const steps = await fetchAllPipelineSteps(this.pipelinesApi, {
+      workspace: repoContext.workspace,
+      repoSlug: repoContext.repoSlug,
+      pipelineUuid: id,
+    }).catch((error: unknown) =>
+      rethrowWithNotFoundContext(
+        error,
+        `Pipeline ${id} not found in ${repoContext.workspace}/${repoContext.repoSlug}.`
+      )
+    );
 
     if (steps.length === 0) {
       throw new BBError({
