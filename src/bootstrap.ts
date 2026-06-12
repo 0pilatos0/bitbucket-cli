@@ -27,7 +27,12 @@ import {
   RepositoriesApi,
   UsersApi,
   CommitStatusesApi,
+  CommitsApi,
   SnippetsApi,
+  PipelinesApi,
+  IssueTrackerApi,
+  WorkspacesApi,
+  ProjectsApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -80,6 +85,38 @@ import { AddSnippetCommentCommand } from './commands/snippet/comments.add.comman
 import { EditSnippetCommentCommand } from './commands/snippet/comments.edit.command.js';
 import { DeleteSnippetCommentCommand } from './commands/snippet/comments.delete.command.js';
 
+// Pipeline commands
+import { ListPipelinesCommand } from './commands/pipeline/list.command.js';
+import { ViewPipelineCommand } from './commands/pipeline/view.command.js';
+import { RunPipelineCommand } from './commands/pipeline/run.command.js';
+import { StopPipelineCommand } from './commands/pipeline/stop.command.js';
+import { LogsPipelineCommand } from './commands/pipeline/logs.command.js';
+
+// Commit commands
+import { ListCommitsCommand } from './commands/commit/list.command.js';
+import { ViewCommitCommand } from './commands/commit/view.command.js';
+
+// Status commands (commit build statuses)
+import { ListCommitStatusesCommand } from './commands/status/list.command.js';
+import { SetCommitStatusCommand } from './commands/status/set.command.js';
+
+// Issue commands
+import { ListIssuesCommand } from './commands/issue/list.command.js';
+import { ViewIssueCommand } from './commands/issue/view.command.js';
+import { CreateIssueCommand } from './commands/issue/create.command.js';
+import { EditIssueCommand } from './commands/issue/edit.command.js';
+import { CloseIssueCommand } from './commands/issue/close.command.js';
+import { CommentIssueCommand } from './commands/issue/comment.command.js';
+
+// Workspace commands
+import { ListWorkspacesCommand } from './commands/workspace/list.command.js';
+import { ViewWorkspaceCommand } from './commands/workspace/view.command.js';
+
+// Project commands
+import { ListProjectsCommand } from './commands/project/list.command.js';
+import { ViewProjectCommand } from './commands/project/view.command.js';
+import { CreateProjectCommand } from './commands/project/create.command.js';
+
 // Config commands
 import { GetConfigCommand } from './commands/config/get.command.js';
 import { SetConfigCommand } from './commands/config/set.command.js';
@@ -108,9 +145,8 @@ type ApiClientCtor<T> = new (
 ) => T;
 
 /**
- * Register a generated OpenAPI client. Each client follows the same pattern:
- * pull ConfigService + OAuthService, build an axios instance, construct with
- * `new Ctor(undefined, undefined, axios)`.
+ * Register a generated OpenAPI client. Each client resolves the shared axios
+ * instance lazily and is constructed with `new Ctor(undefined, undefined, axios)`.
  */
 function registerApiClient<T>(
   container: Container,
@@ -118,19 +154,8 @@ function registerApiClient<T>(
   ctor: ApiClientCtor<T>
 ): void {
   container.register(token, () => {
-    const credentialStore = container.resolve<ConfigService>(
-      ServiceTokens.CredentialStore
-    );
-    const oauthService = container.resolve<OAuthService>(
-      ServiceTokens.OAuthService
-    );
-    const outputService = container.resolve<OutputService>(
-      ServiceTokens.OutputService
-    );
-    const axiosInstance = createApiClient(
-      credentialStore,
-      outputService,
-      oauthService
+    const axiosInstance = container.resolve<AxiosInstance>(
+      ServiceTokens.SharedApiAxios
     );
     return new ctor(undefined, undefined, axiosInstance);
   });
@@ -182,19 +207,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ConfigService,
   ]);
 
-  // API clients backed by a per-client axios instance
-  registerApiClient(container, ServiceTokens.PullrequestsApi, PullrequestsApi);
-  registerApiClient(container, ServiceTokens.RepositoriesApi, RepositoriesApi);
-  registerApiClient(container, ServiceTokens.UsersApi, UsersApi);
-  registerApiClient(
-    container,
-    ServiceTokens.CommitStatusesApi,
-    CommitStatusesApi
-  );
-
-  // Snippets share one axios instance between the generated API and the
-  // raw-file helper service, so they register the axios separately.
-  container.register(ServiceTokens.SnippetsAxios, () => {
+  // One shared axios instance backs every API surface: the generated clients,
+  // the snippet raw-file helper, and the `bb api` passthrough. Auth, retry/
+  // backoff, OAuth refresh, and timeout behavior are configured once and stay
+  // uniform across all of them. Sharing is safe because per-request interceptor
+  // state (__retryCount / __tokenRefreshed) lives on each request's config
+  // object, never on the instance itself.
+  container.register(ServiceTokens.SharedApiAxios, () => {
     const credentialStore = container.resolve<ConfigService>(
       ServiceTokens.CredentialStore
     );
@@ -206,17 +225,28 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     );
     return createApiClient(credentialStore, outputService, oauthService);
   });
-  container.register(ServiceTokens.SnippetsApi, () => {
-    const axiosInstance = container.resolve<AxiosInstance>(
-      ServiceTokens.SnippetsAxios
-    );
-    return new SnippetsApi(undefined, undefined, axiosInstance);
-  });
+
+  // Generated API clients, all constructed on the shared axios instance
+  registerApiClient(container, ServiceTokens.PullrequestsApi, PullrequestsApi);
+  registerApiClient(container, ServiceTokens.RepositoriesApi, RepositoriesApi);
+  registerApiClient(container, ServiceTokens.UsersApi, UsersApi);
+  registerApiClient(
+    container,
+    ServiceTokens.CommitStatusesApi,
+    CommitStatusesApi
+  );
+  registerApiClient(container, ServiceTokens.CommitsApi, CommitsApi);
+  registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
+  registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
+  registerApiClient(container, ServiceTokens.IssueTrackerApi, IssueTrackerApi);
+  registerApiClient(container, ServiceTokens.WorkspacesApi, WorkspacesApi);
+  registerApiClient(container, ServiceTokens.ProjectsApi, ProjectsApi);
+
   registerCommand(
     container,
     ServiceTokens.SnippetFilesService,
     SnippetFilesService,
-    [ServiceTokens.SnippetsAxios]
+    [ServiceTokens.SharedApiAxios]
   );
 
   registerCommand(
@@ -586,6 +616,207 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ]
   );
 
+  // Pipeline commands
+  registerCommand(
+    container,
+    ServiceTokens.ListPipelinesCommand,
+    ListPipelinesCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewPipelineCommand,
+    ViewPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.RunPipelineCommand,
+    RunPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.StopPipelineCommand,
+    StopPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.LogsPipelineCommand,
+    LogsPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Commit commands
+  registerCommand(
+    container,
+    ServiceTokens.ListCommitsCommand,
+    ListCommitsCommand,
+    [
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewCommitCommand,
+    ViewCommitCommand,
+    [
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Status commands (commit build statuses)
+  registerCommand(
+    container,
+    ServiceTokens.ListCommitStatusesCommand,
+    ListCommitStatusesCommand,
+    [
+      ServiceTokens.CommitStatusesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.SetCommitStatusCommand,
+    SetCommitStatusCommand,
+    [
+      ServiceTokens.CommitStatusesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Issue commands
+  registerCommand(
+    container,
+    ServiceTokens.ListIssuesCommand,
+    ListIssuesCommand,
+    [
+      ServiceTokens.IssueTrackerApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(container, ServiceTokens.ViewIssueCommand, ViewIssueCommand, [
+    ServiceTokens.IssueTrackerApi,
+    ServiceTokens.ContextService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.CreateIssueCommand,
+    CreateIssueCommand,
+    [
+      ServiceTokens.IssueTrackerApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(container, ServiceTokens.EditIssueCommand, EditIssueCommand, [
+    ServiceTokens.IssueTrackerApi,
+    ServiceTokens.ContextService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.CloseIssueCommand,
+    CloseIssueCommand,
+    [
+      ServiceTokens.IssueTrackerApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CommentIssueCommand,
+    CommentIssueCommand,
+    [
+      ServiceTokens.IssueTrackerApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Workspace commands
+  registerCommand(
+    container,
+    ServiceTokens.ListWorkspacesCommand,
+    ListWorkspacesCommand,
+    [ServiceTokens.WorkspacesApi, ServiceTokens.OutputService]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewWorkspaceCommand,
+    ViewWorkspaceCommand,
+    [
+      ServiceTokens.WorkspacesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Project commands. Listing lives on the Workspaces API surface
+  // (GET /workspaces/{workspace}/projects); view/create on the Projects API.
+  registerCommand(
+    container,
+    ServiceTokens.ListProjectsCommand,
+    ListProjectsCommand,
+    [
+      ServiceTokens.WorkspacesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewProjectCommand,
+    ViewProjectCommand,
+    [
+      ServiceTokens.ProjectsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CreateProjectCommand,
+    CreateProjectCommand,
+    [
+      ServiceTokens.ProjectsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
   // Config commands
   registerCommand(container, ServiceTokens.GetConfigCommand, GetConfigCommand, [
     ServiceTokens.ConfigService,
@@ -610,22 +841,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.OutputService,
   ]);
 
-  // Raw API passthrough (bb api). Uses its own axios instance built from the
-  // authenticated stack, mirroring the SnippetsAxios pattern.
-  container.register(ServiceTokens.ApiAxios, () => {
-    const credentialStore = container.resolve<ConfigService>(
-      ServiceTokens.CredentialStore
-    );
-    const oauthService = container.resolve<OAuthService>(
-      ServiceTokens.OAuthService
-    );
-    const outputService = container.resolve<OutputService>(
-      ServiceTokens.OutputService
-    );
-    return createApiClient(credentialStore, outputService, oauthService);
-  });
+  // Raw API passthrough (bb api) rides on the same shared axios instance as
+  // the generated clients, so it inherits identical auth/retry/timeout rules.
   registerCommand(container, ServiceTokens.ApiCommand, ApiCommand, [
-    ServiceTokens.ApiAxios,
+    ServiceTokens.SharedApiAxios,
     ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);

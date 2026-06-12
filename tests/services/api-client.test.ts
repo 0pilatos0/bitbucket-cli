@@ -12,6 +12,7 @@ import {
   mock,
 } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
+import { OAuthService } from '../../src/services/oauth.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import { createMockConfigService, createMockOutputService } from '../setup.js';
 import type { AxiosInstance } from 'axios';
@@ -89,12 +90,25 @@ function createMockAdapter(
  * `code` is what lets the client emit a timeout-specific message.
  */
 function createTimeoutErrorAdapter(
-  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED'
+  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED',
+  options: { succeedAfter?: number } = {}
 ) {
   let callCount = 0;
   let lastError: unknown;
   const adapter = (_config: unknown) => {
     callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
     const error = new Error(`timeout of 30000ms exceeded`);
     (error as any).code = code;
     (error as any).request = {}; // request was sent...
@@ -113,12 +127,31 @@ function createTimeoutErrorAdapter(
 
 /**
  * Helper: creates an adapter that simulates a network error (no response).
+ * Optionally tags the error with a `code` (e.g. 'ECONNRESET') and/or starts
+ * succeeding after the first `succeedAfter` calls have failed.
  */
-function createNetworkErrorAdapter() {
+function createNetworkErrorAdapter(
+  options: { code?: string; succeedAfter?: number } = {}
+) {
   let callCount = 0;
   const adapter = (_config: unknown) => {
     callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
     const error = new Error('Network Error');
+    if (options.code !== undefined) {
+      (error as any).code = options.code;
+    }
     (error as any).request = {}; // has request but no response
     (error as any).config = _config;
     (error as any).isAxiosError = true;
@@ -318,6 +351,226 @@ describe('createApiClient - OAuth auth', () => {
   });
 });
 
+/**
+ * Helper: creates an axios adapter with a per-URL response queue, so
+ * concurrent requests to different paths each consume their own sequence.
+ * Used to prove interceptor state is per-request, not per-instance.
+ */
+function createUrlKeyedAdapter(
+  routes: Record<
+    string,
+    Array<{ status: number; data?: unknown; headers?: Record<string, string> }>
+  >
+) {
+  const callCounts: Record<string, number> = {};
+  const adapter = (config: { url?: string }) => {
+    const url = config.url ?? '';
+    const idx = callCounts[url] ?? 0;
+    callCounts[url] = idx + 1;
+    const queue = routes[url] ?? [];
+    const resp = queue[idx] ?? queue[queue.length - 1];
+    if (resp.status >= 200 && resp.status < 300) {
+      return Promise.resolve({
+        data: resp.data ?? {},
+        status: resp.status,
+        statusText: 'OK',
+        headers: resp.headers ?? {},
+        config,
+      });
+    }
+    const error = new Error(`Request failed with status code ${resp.status}`);
+    (error as any).response = {
+      data: resp.data ?? {},
+      status: resp.status,
+      statusText: resp.status.toString(),
+      headers: resp.headers ?? {},
+      config,
+    };
+    (error as any).config = config;
+    (error as any).isAxiosError = true;
+    return Promise.reject(error);
+  };
+  return {
+    adapter,
+    getCallCount: (url: string) => callCounts[url] ?? 0,
+  };
+}
+
+describe('createApiClient - shared instance concurrency', () => {
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('gives concurrent requests on one instance independent __tokenRefreshed guards (both 401 once, both replay)', async () => {
+    const oauthMock = createMockOAuthService({
+      validToken: 'expired-token',
+      refreshedToken: 'new-token',
+    });
+    const mockAdapter = createUrlKeyedAdapter({
+      '/a': [
+        { status: 401, data: { error: { message: 'Unauthorized' } } },
+        { status: 200, data: { route: 'a' } },
+      ],
+      '/b': [
+        { status: 401, data: { error: { message: 'Unauthorized' } } },
+        { status: 200, data: { route: 'b' } },
+      ],
+    });
+    const client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      oauthMock.service
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const [respA, respB] = await Promise.all([
+      client.get('/a'),
+      client.get('/b'),
+    ]);
+
+    // Both requests recovered: each hit 401 once and replayed successfully.
+    expect(respA.status).toBe(200);
+    expect(respA.data).toEqual({ route: 'a' });
+    expect(respB.status).toBe(200);
+    expect(respB.data).toEqual({ route: 'b' });
+    expect(mockAdapter.getCallCount('/a')).toBe(2);
+    expect(mockAdapter.getCallCount('/b')).toBe(2);
+    // The one-shot guard lives on each request's config, so each request
+    // refreshed once — one request's guard did not suppress the other's.
+    // (With the real OAuthService both calls collapse into one token POST via
+    // the in-flight lock — see the parallel-401 test below.)
+    expect(oauthMock.getRefreshCallCount()).toBe(2);
+  });
+
+  it('collapses parallel 401 refreshes into a single token POST (#259)', async () => {
+    // Real OAuthService (not a mock) so the in-flight refresh lock is
+    // exercised end-to-end: two requests on the shared axios instance both
+    // hit 401, both enter the reactive refresh path, and exactly one POST
+    // reaches the token endpoint. Bitbucket rotates refresh tokens, so a
+    // second POST would carry an invalidated refresh_token and log the
+    // user out.
+    const configService = createMockConfigService({
+      authMethod: 'oauth',
+      oauthAccessToken: 'revoked-server-side', // not expired locally, but 401s
+      oauthRefreshToken: 'the-refresh-token',
+      oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const oauthService = new OAuthService(configService, configService);
+
+    // OAuthService talks to the token endpoint via global fetch (axios is
+    // only used for API calls). Gate the response so the refresh stays
+    // in-flight until both 401s have entered the interceptor.
+    const originalFetch = globalThis.fetch;
+    let tokenPostCount = 0;
+    let releaseRefresh!: () => void;
+    const refreshGate = new Promise<void>((resolve) => {
+      releaseRefresh = resolve;
+    });
+    globalThis.fetch = (async () => {
+      tokenPostCount++;
+      await refreshGate;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          access_token: 'fresh-token',
+          refresh_token: 'rotated-refresh',
+          expires_in: 7200,
+          token_type: 'bearer',
+          scopes: '',
+        }),
+      } as unknown as Response;
+    }) as typeof fetch;
+
+    try {
+      const mockAdapter = createUrlKeyedAdapter({
+        '/a': [
+          { status: 401, data: { error: { message: 'Unauthorized' } } },
+          { status: 200, data: { route: 'a' } },
+        ],
+        '/b': [
+          { status: 401, data: { error: { message: 'Unauthorized' } } },
+          { status: 200, data: { route: 'b' } },
+        ],
+      });
+      const client = createApiClient(
+        configService,
+        createMockOutputService(),
+        oauthService
+      );
+      client.defaults.adapter = mockAdapter.adapter as any;
+
+      const inFlight = Promise.all([client.get('/a'), client.get('/b')]);
+
+      // Give both requests real time to hit 401 and reach the refresh path
+      // while the first refresh is still pending (setTimeout is stubbed to
+      // run callbacks synchronously in this suite, so use the original).
+      await new Promise((resolve) => originalSetTimeout(resolve, 20));
+      releaseRefresh();
+
+      const [respA, respB] = await inFlight;
+
+      expect(respA.status).toBe(200);
+      expect(respB.status).toBe(200);
+      expect(mockAdapter.getCallCount('/a')).toBe(2);
+      expect(mockAdapter.getCallCount('/b')).toBe(2);
+      // Acceptance criterion: parallel 401s produce a single token POST.
+      expect(tokenPostCount).toBe(1);
+
+      // Both replays used the single refreshed token, and the rotated
+      // refresh token was persisted once.
+      const creds = await configService.getOAuthCredentials();
+      expect(creds.accessToken).toBe('fresh-token');
+      expect(creds.refreshToken).toBe('rotated-refresh');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('gives concurrent requests on one instance independent __retryCount budgets', async () => {
+    const mockAdapter = createUrlKeyedAdapter({
+      '/a': [
+        { status: 503, data: {} },
+        { status: 503, data: {} },
+        { status: 503, data: {} },
+        { status: 200, data: { route: 'a' } },
+      ],
+      '/b': [
+        { status: 503, data: {} },
+        { status: 200, data: { route: 'b' } },
+      ],
+    });
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    const [respA, respB] = await Promise.all([
+      client.get('/a'),
+      client.get('/b'),
+    ]);
+
+    // /a needed all 3 retries; /b only 1. If the counter were shared on the
+    // instance, /a's failures would have exhausted /b's budget (or vice versa).
+    expect(respA.status).toBe(200);
+    expect(respB.status).toBe(200);
+    expect(mockAdapter.getCallCount('/a')).toBe(4);
+    expect(mockAdapter.getCallCount('/b')).toBe(2);
+  });
+});
+
 describe('createApiClient - retry/backoff', () => {
   let client: AxiosInstance;
   let consoleErrorSpy: ReturnType<typeof spyOn>;
@@ -497,7 +750,7 @@ describe('createApiClient - retry/backoff', () => {
       expect(bbErr.message).toContain('DEBUG=true');
     }
 
-    // Network errors are not retried (no response object)
+    // Network errors without a recognized transient `code` are not retried
     expect(networkMock.getCallCount()).toBe(1);
   });
 });
@@ -1165,8 +1418,9 @@ describe('createApiClient - request timeout (#249)', () => {
       expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
     }
 
-    // Timeouts have no `response`, so they are never retried.
-    expect(timeoutMock.getCallCount()).toBe(1);
+    // Timeouts on idempotent requests are retried (issue #267):
+    // 1 initial + 3 retries = 4 attempts before the error surfaces.
+    expect(timeoutMock.getCallCount()).toBe(4);
   });
 
   it('also maps ETIMEDOUT timeouts to NETWORK_ERROR', async () => {
@@ -1182,7 +1436,8 @@ describe('createApiClient - request timeout (#249)', () => {
       expect(err).toBeInstanceOf(BBError);
       expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
     }
-    expect(timeoutMock.getCallCount()).toBe(1);
+    // 1 initial + 3 network-error retries (issue #267)
+    expect(timeoutMock.getCallCount()).toBe(4);
   });
 
   it('surfaces a timeout-specific message distinct from the generic network error', async () => {
@@ -1222,5 +1477,160 @@ describe('createApiClient - request timeout (#249)', () => {
       expect(bbErr.message).toContain('Unable to reach Bitbucket API');
       expect(bbErr.message.toLowerCase()).not.toContain('timed out');
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Issue #267: retry transient network errors (no response received) on
+// idempotent requests.
+// ---------------------------------------------------------------------------
+
+describe('createApiClient - transient network error retry (#267)', () => {
+  let client: AxiosInstance;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
+
+  beforeEach(() => {
+    // Make sleep() instant so retries don't slow down the suite.
+    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+      fn();
+      return 0 as any;
+    }) as any;
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    globalThis.setTimeout = originalSetTimeout;
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('retries GET on ECONNRESET and succeeds once the connection recovers', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'ECONNRESET',
+      succeedAfter: 1,
+    });
+    const output = createMockOutputService();
+    client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    expect(response.data).toEqual({ ok: true });
+    expect(networkMock.getCallCount()).toBe(2);
+    expect(
+      output.logs.some((l) =>
+        l.startsWith('warning:Network error (ECONNRESET)')
+      )
+    ).toBe(true);
+  });
+
+  it('retries GET on EAI_AGAIN (temporary DNS failure) and succeeds', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'EAI_AGAIN',
+      succeedAfter: 2,
+    });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    // 2 failures + 1 success
+    expect(networkMock.getCallCount()).toBe(3);
+  });
+
+  it('retries ETIMEDOUT up to MAX_RETRIES then throws NETWORK_ERROR with the timeout message', async () => {
+    const timeoutMock = createTimeoutErrorAdapter('ETIMEDOUT');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      const bbErr = err as BBError;
+      expect(bbErr.code).toBe(ErrorCode.NETWORK_ERROR);
+      // Final-failure mapping is preserved: timeout-specific copy with the
+      // BB_HTTP_TIMEOUT hint.
+      expect(bbErr.message.toLowerCase()).toContain('timed out');
+      expect(bbErr.message).toContain('BB_HTTP_TIMEOUT');
+    }
+
+    // 1 initial attempt + MAX_RETRIES (3) retries = 4 attempts total.
+    expect(timeoutMock.getCallCount()).toBe(4);
+  });
+
+  it('does NOT retry POST on ECONNRESET (non-idempotent method)', async () => {
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNRESET' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.post('/test', { body: true });
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(networkMock.getCallCount()).toBe(1);
+  });
+
+  it('does NOT retry GET on ECONNREFUSED (permanent until fixed)', async () => {
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNREFUSED' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect(err).toBeInstanceOf(BBError);
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(networkMock.getCallCount()).toBe(1);
+  });
+
+  it('uses exponential backoff delays (1s/2s/4s) for network retries', async () => {
+    const setTimeoutCalls: number[] = [];
+    globalThis.setTimeout = ((fn: Function, ms?: number) => {
+      setTimeoutCalls.push(ms ?? 0);
+      fn();
+      return 0 as any;
+    }) as any;
+
+    const networkMock = createNetworkErrorAdapter({ code: 'ECONNRESET' });
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = networkMock.adapter as never;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as BBError).code).toBe(ErrorCode.NETWORK_ERROR);
+    }
+
+    expect(setTimeoutCalls).toContain(1000);
+    expect(setTimeoutCalls).toContain(2000);
+    expect(setTimeoutCalls).toContain(4000);
+  });
+
+  it('suppresses network retry warnings in --json mode', async () => {
+    const networkMock = createNetworkErrorAdapter({
+      code: 'ECONNRESET',
+      succeedAfter: 1,
+    });
+    const output = createMockOutputService();
+    output.setJsonFormatOptions({ json: true });
+    client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = networkMock.adapter as never;
+
+    const response = await client.get('/test');
+
+    expect(response.status).toBe(200);
+    expect(networkMock.getCallCount()).toBe(2);
+    expect(output.logs.filter((l) => l.startsWith('warning:'))).toHaveLength(0);
   });
 });

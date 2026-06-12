@@ -13,10 +13,6 @@ import type {
   PullrequestsApi,
 } from '../../generated/api.js';
 import {
-  collectPagesWithMeta,
-  resolveLimit,
-} from '../../services/pagination.js';
-import {
   getRawContent,
   getUserDisplayName,
 } from '../../services/response-parsers.js';
@@ -52,11 +48,10 @@ export class ListCommentsPRCommand extends BaseCommand<
     );
 
     const prId = this.parsePositiveInt(options.id, 'id');
-    const limit = resolveLimit(options);
 
-    const { items: values, hasMore } =
-      await collectPagesWithMeta<PullrequestComment>({
-        limit,
+    await this.runList<PullrequestComment>(
+      {
+        options,
         fetchPage: async (page, pagelen) => {
           const response =
             await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsGet(
@@ -72,37 +67,28 @@ export class ListCommentsPRCommand extends BaseCommand<
 
           return response.data;
         },
-      });
-
-    if (context.globalOptions.json) {
-      await this.output.json({
-        workspace: repoContext.workspace,
-        repoSlug: repoContext.repoSlug,
-        pullRequestId: prId,
-        count: values.length,
-        comments: values,
-      });
-      return;
-    }
-
-    if (values.length === 0) {
-      this.output.info('No comments found on this pull request');
-      return;
-    }
-
-    const rows = values.map((comment) => {
-      const content = getRawContent(comment.content) ?? '';
-      return [
-        comment.id?.toString() ?? '',
-        getUserDisplayName(comment.user) ?? 'Unknown',
-        comment.deleted
-          ? '[deleted]'
-          : this.truncateText(content, 60, context.globalOptions),
-        this.output.formatDate(comment.created_on ?? ''),
-      ];
-    });
-
-    this.output.table(['ID', 'Author', 'Content', 'Date'], rows);
-    this.printMoreHint(values.length, hasMore, 'comments');
+        wrapperKey: 'comments',
+        jsonMetadata: {
+          workspace: repoContext.workspace,
+          repoSlug: repoContext.repoSlug,
+          pullRequestId: prId,
+        },
+        emptyMessage: 'No comments found on this pull request',
+        tableHeaders: ['ID', 'Author', 'Content', 'Date'],
+        mapRow: (comment) => {
+          const content = getRawContent(comment.content) ?? '';
+          return [
+            comment.id?.toString() ?? '',
+            getUserDisplayName(comment.user) ?? 'Unknown',
+            comment.deleted
+              ? '[deleted]'
+              : this.truncateText(content, 60, context.globalOptions),
+            this.output.formatDate(comment.created_on ?? ''),
+          ];
+        },
+        noun: 'comments',
+      },
+      context
+    );
   }
 }

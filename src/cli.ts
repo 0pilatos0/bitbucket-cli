@@ -10,6 +10,18 @@ import {
   PullrequestMergeParametersMergeStrategyEnum,
   SnippetsWorkspaceGetRoleEnum,
 } from './generated/api.js';
+import {
+  DEFAULT_PIPELINE_SORT,
+  PIPELINE_SORTS,
+  PIPELINE_STATUSES,
+} from './commands/pipeline/list.command.js';
+import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
+import {
+  ISSUE_KINDS,
+  ISSUE_PRIORITIES,
+  ISSUE_STATES,
+} from './commands/issue/shared.js';
+import { WORKSPACE_ROLES } from './commands/workspace/list.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
@@ -1597,6 +1609,680 @@ snippetCommentsCmd
 
 snippetCmd.addCommand(snippetCommentsCmd);
 cli.addCommand(snippetCmd);
+
+// Pipeline commands
+const pipelineCmd = new Command('pipeline').description(
+  'Manage Bitbucket Pipelines (CI/CD)'
+);
+
+pipelineCmd
+  .command('list')
+  .description('List pipelines for a repository')
+  .addOption(
+    withCompletionChoices(
+      new Option('--status <status>', 'Filter by pipeline status'),
+      PIPELINE_STATUSES
+    )
+  )
+  .option('--branch <branch>', 'Filter by target branch')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '--sort <attribute>',
+        'Sort attribute (prefix with - for descending)'
+      ),
+      PIPELINE_SORTS
+    )
+  )
+  .option('--limit <number>', 'Maximum number of pipelines to list', '25')
+  .option('--all', 'List all pipelines (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pipeline list',
+        'bb pipeline list --status FAILED',
+        'bb pipeline list --branch main --limit 50',
+        "bb pipeline list --json --jq '.pipelines[].build_number'",
+      ],
+      validValues: {
+        'Valid statuses': [...PIPELINE_STATUSES],
+        'Valid sort attributes': [...PIPELINE_SORTS],
+      },
+      defaults: { limit: '25', sort: DEFAULT_PIPELINE_SORT },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListPipelinesCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+pipelineCmd
+  .command('view <id>')
+  .description(
+    'View pipeline details and step summary (id: build number or UUID)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pipeline view 42',
+        'bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}',
+        "bb pipeline view 42 --json --jq '.pipeline.state'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewPipelineCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+pipelineCmd
+  .command('run')
+  .description('Trigger a pipeline run')
+  .option(
+    '-b, --branch <branch>',
+    'Branch to run on (default: current git branch)'
+  )
+  .option('--commit <hash>', 'Run against a specific commit on the branch')
+  .option(
+    '-p, --pipeline <name>',
+    'Custom pipeline definition to run (from bitbucket-pipelines.yml)'
+  )
+  .option(
+    '--var <key=value...>',
+    'Pipeline variable (repeatable; value may contain =)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pipeline run',
+        'bb pipeline run --branch main',
+        'bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false',
+        "bb pipeline run --branch main --json --jq '.build_number'",
+      ],
+      defaults: { branch: 'current git branch' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.RunPipelineCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+pipelineCmd
+  .command('stop <id>')
+  .description('Stop a running pipeline (id: build number or UUID)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pipeline stop 42',
+        'bb pipeline stop {a1b2c3d4-0000-0000-0000-000000000000} --json',
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.StopPipelineCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+pipelineCmd
+  .command('logs <id>')
+  .description('Print the log of a pipeline step (id: build number or UUID)')
+  .option(
+    '-s, --step <uuid-or-index>',
+    'Step to fetch (UUID or 1-based index; default: the only step)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pipeline logs 42',
+        'bb pipeline logs 42 --step 2',
+        'bb pipeline logs 42 --step {step-uuid}',
+        "bb pipeline logs 42 --json --jq '.log'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.LogsPipelineCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(pipelineCmd);
+
+// Commit commands
+const commitCmd = new Command('commit').description(
+  'Inspect commits in a repository'
+);
+
+commitCmd
+  .command('list')
+  .description('List commits (defaults to the current git branch)')
+  .option(
+    '--ref <ref>',
+    'Branch, tag, or commit to list history for (default: current git branch, falling back to the repository default listing)'
+  )
+  .option('--limit <number>', 'Maximum number of commits to list', '25')
+  .option('--all', 'List all commits (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb commit list',
+        'bb commit list --ref main',
+        'bb commit list --ref v1.0.0 --limit 50',
+        "bb commit list --json --jq '.commits[].hash'",
+      ],
+      defaults: {
+        ref: 'current git branch (repository default listing outside a git repo)',
+        limit: '25',
+      },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListCommitsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+commitCmd
+  .command('view <sha>')
+  .description('View commit details (author, date, parents, full message)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb commit view abc1234',
+        'bb commit view abc1234def5678900000000000000000000000000',
+        "bb commit view abc1234 --json --jq '.commit.author.raw'",
+      ],
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewCommitCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(commitCmd);
+
+// Status commands (commit build statuses)
+const statusCmd = new Command('status').description(
+  'Manage build statuses on commits'
+);
+
+statusCmd
+  .command('list <sha>')
+  .description('List build statuses reported on a commit')
+  .option('--limit <number>', 'Maximum number of statuses to list', '25')
+  .option('--all', 'List all statuses (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb status list abc1234',
+        'bb status list abc1234 --all',
+        "bb status list abc1234 --json --jq '.statuses[].state'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListCommitStatusesCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+statusCmd
+  .command('set <sha>')
+  .description(
+    'Create or update a build status on a commit (idempotent per --key)'
+  )
+  .option('--key <key>', 'Unique status key, e.g. BB-DEPLOY (required)')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'Status state (required)'),
+      COMMIT_STATUS_STATES
+    )
+  )
+  .option('--url <url>', 'Link back to the build system')
+  .option('--name <name>', 'Build identifier, e.g. BB-DEPLOY-1')
+  .option('--description <description>', 'Short build description')
+  .option('--refname <refname>', 'Ref the build ran on, e.g. a branch name')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb status set abc1234 --key CI --state INPROGRESS',
+        'bb status set abc1234 --key CI --state SUCCESSFUL --url https://ci.example.com/builds/42',
+        'bb status set abc1234 --key CI --state FAILED --description "Unit tests failed" --refname main',
+        "bb status set abc1234 --key CI --state SUCCESSFUL --json --jq '.status.state'",
+      ],
+      validValues: { 'Valid states': [...COMMIT_STATUS_STATES] },
+    })
+  )
+  .action(async (sha, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.SetCommitStatusCommand,
+      withGlobalOptions({ sha, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(statusCmd);
+
+// Issue commands
+const issueCmd = new Command('issue').description(
+  'Manage issues in the repository issue tracker'
+);
+
+issueCmd
+  .command('list')
+  .description('List issues (defaults to open-ish states: new, open)')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'Filter by exact state'),
+      ISSUE_STATES
+    )
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Filter by kind'),
+      ISSUE_KINDS
+    )
+  )
+  .option('--assignee <username>', 'Filter by assignee username')
+  .option('--reporter <username>', 'Filter by reporter username')
+  .option(
+    '--query <q>',
+    'Raw Bitbucket q filter expression (replaces the default state filter; AND-ed with other flags)'
+  )
+  .option('--limit <number>', 'Maximum number of issues to list', '25')
+  .option('--all', 'List all issues (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue list',
+        'bb issue list --state resolved',
+        'bb issue list --kind bug --assignee some.user',
+        'bb issue list --query \'priority="blocker" AND state!="closed"\'',
+        "bb issue list --json --jq '.issues[].id'",
+      ],
+      validValues: {
+        'Valid states': [...ISSUE_STATES],
+        'Valid kinds': [...ISSUE_KINDS],
+      },
+      defaults: { state: 'new + open', limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListIssuesCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('view <id>')
+  .description('View issue details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue view 42',
+        "bb issue view 42 --json --jq '.issue.state'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('create')
+  .description('Create an issue')
+  .option('-t, --title <title>', 'Issue title (required)')
+  .option('-b, --body <text>', 'Issue description (Markdown)')
+  .option('-F, --body-file <file>', 'Read the issue description from a file')
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Issue kind'),
+      ISSUE_KINDS
+    )
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--priority <priority>', 'Issue priority'),
+      ISSUE_PRIORITIES
+    )
+  )
+  .option('--assignee <username>', 'Assign the issue to a user')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue create --title "Crash on login"',
+        'bb issue create --title "Crash on login" --kind bug --priority major',
+        'bb issue create --title "RFC: new API" --body-file ./rfc.md',
+        'bb issue create --title "Crash on login" --json --jq \'.issue.id\'',
+      ],
+      validValues: {
+        'Valid kinds': [...ISSUE_KINDS],
+        'Valid priorities': [...ISSUE_PRIORITIES],
+      },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateIssueCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('edit <id>')
+  .description('Edit an issue (requires at least one change flag)')
+  .option('-t, --title <title>', 'New title')
+  .option('-b, --body <text>', 'New description (replaces the existing body)')
+  .addOption(
+    withCompletionChoices(new Option('--kind <kind>', 'New kind'), ISSUE_KINDS)
+  )
+  .addOption(
+    withCompletionChoices(
+      new Option('--priority <priority>', 'New priority'),
+      ISSUE_PRIORITIES
+    )
+  )
+  .option('--assignee <username>', 'Reassign the issue to a user')
+  .addOption(
+    withCompletionChoices(
+      new Option('--state <state>', 'New state'),
+      ISSUE_STATES
+    )
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue edit 42 --title "Crash on login (Safari only)"',
+        'bb issue edit 42 --state on-hold --priority critical',
+        'bb issue edit 42 --assignee some.user --json',
+      ],
+      validValues: {
+        'Valid states': [...ISSUE_STATES],
+        'Valid kinds': [...ISSUE_KINDS],
+        'Valid priorities': [...ISSUE_PRIORITIES],
+      },
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.EditIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('close <id>')
+  .description('Close an issue (optionally posting a closing comment first)')
+  .option('-c, --comment <text>', 'Post this comment before closing')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue close 42',
+        'bb issue close 42 --comment "Fixed in 1.4.2"',
+        "bb issue close 42 --json --jq '.issue.state'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CloseIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+issueCmd
+  .command('comment <id>')
+  .description('Add a comment to an issue')
+  .option('-b, --body <text>', 'Comment text (Markdown, required)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb issue comment 42 --body "Reproduced on main"',
+        'bb issue comment 42 --body "Reproduced on main" --json --jq \'.comment.id\'',
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CommentIssueCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(issueCmd);
+
+// Workspace commands
+const workspaceCmd = new Command('workspace').description(
+  'Discover and inspect Bitbucket workspaces'
+);
+
+workspaceCmd
+  .command('list')
+  .description('List workspaces you have access to')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '--role <role>',
+        'Filter by your role (owner, collaborator, member)'
+      ),
+      WORKSPACE_ROLES
+    )
+  )
+  .option('--limit <number>', 'Maximum number of workspaces to list', '25')
+  .option('--all', 'List all workspaces (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb workspace list',
+        'bb workspace list --role owner',
+        "bb workspace list --json --jq '.workspaces[].slug'",
+      ],
+      validValues: { 'Valid roles': [...WORKSPACE_ROLES] },
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListWorkspacesCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+workspaceCmd
+  .command('view [slug]')
+  .description(
+    'View workspace details (defaults to the current workspace context)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb workspace view',
+        'bb workspace view my-workspace',
+        "bb workspace view my-workspace --json --jq '.workspace.uuid'",
+      ],
+      defaults: {
+        slug: 'resolved workspace (-w, current repo, BB_WORKSPACE, or defaultWorkspace)',
+      },
+    })
+  )
+  .action(async (slug, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewWorkspaceCommand,
+      withGlobalOptions({ slug, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(workspaceCmd);
+
+// Project commands
+const projectCmd = new Command('project').description(
+  'Manage projects in a workspace'
+);
+
+projectCmd
+  .command('list')
+  .description('List projects in a workspace')
+  .option('--limit <number>', 'Maximum number of projects to list', '25')
+  .option('--all', 'List all projects (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project list',
+        'bb project list -w my-workspace',
+        "bb project list --json --jq '.projects[].key'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListProjectsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+projectCmd
+  .command('view <key>')
+  .description('View project details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project view PROJ',
+        'bb project view PROJ -w my-workspace',
+        "bb project view PROJ --json --jq '.project.name'",
+      ],
+    })
+  )
+  .action(async (key, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewProjectCommand,
+      withGlobalOptions({ key, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+projectCmd
+  .command('create')
+  .description('Create a new project in a workspace')
+  .option('-k, --key <key>', 'Project key, e.g. PROJ (required; uppercased)')
+  .option('-n, --name <name>', 'Project name (required)')
+  .option('-d, --description <description>', 'Project description')
+  .option('--private', 'Create a private project (default)')
+  .option('--public', 'Create a public project')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb project create --key PROJ --name "My Project"',
+        'bb project create -k PROJ -n "My Project" -d "Team things" --public',
+        'bb project create -k PROJ -n "My Project" --json --jq \'.project.key\'',
+      ],
+      defaults: { private: 'true (visibility is private unless --public)' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateProjectCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(projectCmd);
 
 // Browse command (top-level)
 cli

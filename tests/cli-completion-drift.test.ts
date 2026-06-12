@@ -34,6 +34,11 @@ describe('CLI completion drift (issue #255)', () => {
       'activities',
       'statuses',
       'files',
+      'pipelines',
+      'commits',
+      'issues',
+      'workspaces',
+      'projects',
       'values',
     ];
 
@@ -52,6 +57,12 @@ describe('CLI completion drift (issue #255)', () => {
       'pr checks': 'statuses',
       'pr diff --stat': 'files',
       'pr diff --name-only': 'files',
+      'pipeline list': 'pipelines',
+      'commit list': 'commits',
+      'status list': 'statuses',
+      'issue list': 'issues',
+      'workspace list': 'workspaces',
+      'project list': 'projects',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

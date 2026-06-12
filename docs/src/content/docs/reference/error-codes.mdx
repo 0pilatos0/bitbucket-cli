@@ -301,6 +301,8 @@ bb config set defaultWorkspace myworkspace
 
 **Cause:** The request failed before an HTTP response was received (offline, DNS issue, proxy/TLS issue, etc.).
 
+Transient failures (dropped connections, temporary DNS errors, timeouts) on read requests are automatically retried up to 3 times with exponential backoff before this error surfaces. Permanent-looking failures (e.g. unknown host, connection refused) and write requests fail immediately.
+
 **Solution:**
 - Check internet and DNS connectivity
 - Verify proxy/TLS settings if applicable

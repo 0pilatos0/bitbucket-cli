@@ -1,0 +1,112 @@
+---
+title: Commit Commands - Inspect Repository History
+description: Reference for Bitbucket CLI commit commands. List commit history for a branch, tag, or revision and view full commit details from the command line.
+---
+
+Inspect commits in a Bitbucket repository — list the history of a branch, tag,
+or revision, and view the full details of a single commit.
+
+Commit commands operate at **repository** scope. Run them inside a cloned
+Bitbucket repository, or pass `-w, --workspace <workspace>` and
+`-r, --repo <repo>` explicitly.
+
+Global options available on all commit commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+Commit SHAs are accepted as raw strings: full 40-character hashes and
+abbreviated prefixes (e.g. `abc1234`) both pass through to the API unchanged,
+so humans and scripts can use whichever they have.
+
+---
+
+## `bb commit list`
+
+List commits, newest first.
+
+```bash
+bb commit list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--ref <ref>` | Branch, tag, or commit SHA to list history for (default: current git branch) |
+| `--limit <number>` | Maximum number of commits (default: 25) |
+| `--all` | List all commits (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Inside a git repository: history of the current branch
+bb commit list
+
+bb commit list --ref main
+bb commit list --ref v1.0.0 --limit 50
+
+# Stable JSON envelope: { workspace, repoSlug, [ref], count, commits }
+bb commit list --json
+
+# Hashes only, via built-in --jq
+bb commit list --json --jq '.commits[].hash'
+```
+
+### Notes
+
+- **Default ref:** with no `--ref`, the CLI uses the current git branch when
+  run inside a git repository. When branch detection fails (outside a git
+  repository, detached HEAD), it falls back to the repository's default
+  commit listing instead of erroring.
+- The table shows the short hash (7 characters), the first line of the commit
+  message (truncated to 60 characters; disable with `--no-truncate`), the
+  author (Bitbucket display name, or the name parsed from the raw git author),
+  and the commit date.
+- `--limit` is enforced across paginated responses; a hint appears when
+  results were capped (suppressed with `--json`).
+- An unknown `--ref` returns an actionable "Ref `<ref>` not found" error.
+
+---
+
+## `bb commit view`
+
+View the full details of a single commit.
+
+```bash
+bb commit view <sha> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `sha` | Commit hash (full or abbreviated, e.g. `abc1234`) |
+
+### Examples
+
+```bash
+bb commit view abc1234
+
+# Stable JSON envelope: { workspace, repoSlug, commit }
+bb commit view abc1234 --json
+
+# Raw author string of the commit
+bb commit view abc1234 --json --jq '.commit.author.raw'
+```
+
+### Notes
+
+- The human view shows the full hash, author (raw `Name <email>` when
+  available), date, parent commits (short hashes), and the complete commit
+  message including the body.
+- In `--json` mode, `commit` is the raw commit resource as returned by the
+  Bitbucket API (hash, author, parents, message, links, ...).
+- A `404` returns an actionable "Commit `<sha>` not found" error.
+
+---
+
+## See also
+
+- [Status Commands](/commands/status/) — read and report build statuses on commits.
+- [Scripting & Automation](/guides/scripting/) — JSON envelopes, `--jq`, exit codes.

@@ -24,11 +24,18 @@ The CLI uses these scopes:
 | Scope | Grants |
 |-------|--------|
 | `read:user:bitbucket` | Read your own user profile (required by `bb auth status`, used to verify any login) |
-| `read:repository:bitbucket` | List and view repositories, list default reviewers |
-| `write:repository:bitbucket` | Create repositories, manage default reviewers |
+| `read:repository:bitbucket` | List and view repositories, commits, and commit build statuses; list default reviewers |
+| `write:repository:bitbucket` | Create repositories, manage default reviewers, set commit build statuses |
 | `admin:repository:bitbucket` | Delete repositories |
 | `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, and reviewers |
 | `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark PRs ready; add/edit/delete comments; add/remove reviewers |
+| `read:pipeline:bitbucket` | List and view pipelines and their steps, read step logs |
+| `write:pipeline:bitbucket` | Trigger and stop pipelines |
+| `read:issue:bitbucket` | List and view issues |
+| `write:issue:bitbucket` | Create, edit, comment on, and close issues |
+| `read:workspace:bitbucket` | List and view workspaces |
+| `read:project:bitbucket` | List and view projects |
+| `admin:project:bitbucket` | Create projects |
 | `read:snippet:bitbucket` | List and view snippets |
 | `write:snippet:bitbucket` | Create, edit, and delete snippets |
 
@@ -85,6 +92,61 @@ context).
 | `bb pr reviewers add` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
 | `bb pr reviewers remove` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
 
+### Pipelines (`bb pipeline …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb pipeline list` | `read:pipeline:bitbucket` |
+| `bb pipeline view` | `read:pipeline:bitbucket` |
+| `bb pipeline logs` | `read:pipeline:bitbucket` |
+| `bb pipeline run` | `write:pipeline:bitbucket` |
+| `bb pipeline stop` | `write:pipeline:bitbucket` |
+
+### Commits (`bb commit …`)
+
+Commits are part of the repository resource, so commit commands reuse the
+repository scopes:
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb commit list` | `read:repository:bitbucket` |
+| `bb commit view` | `read:repository:bitbucket` |
+
+### Build Statuses (`bb status …`)
+
+Commit build statuses also live under the repository resource:
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb status list` | `read:repository:bitbucket` |
+| `bb status set` | `write:repository:bitbucket` |
+
+### Issues (`bb issue …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb issue list` | `read:issue:bitbucket` |
+| `bb issue view` | `read:issue:bitbucket` |
+| `bb issue create` | `write:issue:bitbucket` |
+| `bb issue edit` | `write:issue:bitbucket` |
+| `bb issue close` | `write:issue:bitbucket` |
+| `bb issue comment` | `write:issue:bitbucket` |
+
+### Workspaces (`bb workspace …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb workspace list` | `read:workspace:bitbucket` |
+| `bb workspace view` | `read:workspace:bitbucket` |
+
+### Projects (`bb project …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb project list` | `read:project:bitbucket` |
+| `bb project view` | `read:project:bitbucket` |
+| `bb project create` | `admin:project:bitbucket` |
+
 ### Snippets (`bb snippet …`)
 
 | Command | Required scopes |
@@ -114,6 +176,7 @@ creating the token.
 read:user:bitbucket
 read:repository:bitbucket
 read:pullrequest:bitbucket
+read:pipeline:bitbucket
 ```
 
 ### Bot account that creates and merges PRs
@@ -132,6 +195,25 @@ read:user:bitbucket
 read:repository:bitbucket
 write:repository:bitbucket
 admin:repository:bitbucket
+```
+
+### CI/CD automation (trigger pipelines, report build statuses)
+
+```
+read:user:bitbucket
+read:repository:bitbucket
+write:repository:bitbucket
+read:pipeline:bitbucket
+write:pipeline:bitbucket
+```
+
+### Issue triage bot
+
+```
+read:user:bitbucket
+read:repository:bitbucket
+read:issue:bitbucket
+write:issue:bitbucket
 ```
 
 <Aside type="caution" title="Principle of least privilege">

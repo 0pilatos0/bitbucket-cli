@@ -481,11 +481,17 @@ describe('CLI command registration', () => {
       'api',
       'auth',
       'browse',
+      'commit',
       'completion',
       'config',
+      'issue',
+      'pipeline',
       'pr',
+      'project',
       'repo',
       'snippet',
+      'status',
+      'workspace',
     ]);
   });
 
@@ -591,6 +597,62 @@ describe('CLI command registration', () => {
       'delete',
       'edit',
       'list',
+    ]);
+  });
+
+  it('should register all pipeline subcommands', () => {
+    const pipelineCmd = requireCommand('pipeline');
+    expect(pipelineCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'logs',
+      'run',
+      'stop',
+      'view',
+    ]);
+  });
+
+  it('should register all commit subcommands', () => {
+    const commitCmd = requireCommand('commit');
+    expect(commitCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all status subcommands', () => {
+    const statusCmd = requireCommand('status');
+    expect(statusCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'set',
+    ]);
+  });
+
+  it('should register all issue subcommands', () => {
+    const issueCmd = requireCommand('issue');
+    expect(issueCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'close',
+      'comment',
+      'create',
+      'edit',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all workspace subcommands', () => {
+    const workspaceCmd = requireCommand('workspace');
+    expect(workspaceCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all project subcommands', () => {
+    const projectCmd = requireCommand('project');
+    expect(projectCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'create',
+      'list',
+      'view',
     ]);
   });
 

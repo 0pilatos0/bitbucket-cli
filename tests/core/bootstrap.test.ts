@@ -15,6 +15,7 @@ import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
 import { ViewRepoCommand } from '../../src/commands/repo/view.command.js';
 import { CreatePRCommand } from '../../src/commands/pr/create.command.js';
+import type { AxiosInstance } from 'axios';
 
 describe('bootstrap()', () => {
   it('returns a Container with every registered service token wired up', () => {
@@ -117,6 +118,42 @@ describe('bootstrap()', () => {
     const output = container.resolve(ServiceTokens.OutputService);
     expect((viewRepo as unknown as { output: unknown }).output).toBe(output);
     expect((createPR as unknown as { output: unknown }).output).toBe(output);
+  });
+
+  it('constructs every generated API client on the single shared axios instance', () => {
+    Container.reset();
+    const container = bootstrap();
+
+    const shared = container.resolve<AxiosInstance>(
+      ServiceTokens.SharedApiAxios
+    );
+    // The shared instance is a singleton: resolving twice yields one object.
+    expect(container.resolve(ServiceTokens.SharedApiAxios)).toBe(shared);
+
+    // Generated typescript-axios clients store the constructor's axios arg on
+    // a protected `axios` property — assert identity through a cast.
+    const generatedClientTokens = [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.RepositoriesApi,
+      ServiceTokens.UsersApi,
+      ServiceTokens.CommitStatusesApi,
+      ServiceTokens.SnippetsApi,
+    ];
+    for (const token of generatedClientTokens) {
+      const client = container.resolve<{ axios: AxiosInstance }>(token);
+      expect(client.axios).toBe(shared);
+    }
+
+    // Non-generated consumers of the raw axios instance share it too.
+    const snippetFiles = container.resolve<{ axios: AxiosInstance }>(
+      ServiceTokens.SnippetFilesService
+    );
+    expect(snippetFiles.axios).toBe(shared);
+
+    const apiCommand = container.resolve<{ axios: AxiosInstance }>(
+      ServiceTokens.ApiCommand
+    );
+    expect(apiCommand.axios).toBe(shared);
   });
 
   it('every command exposes the required public shape (name, description, run)', () => {

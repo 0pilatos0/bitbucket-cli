@@ -96,6 +96,36 @@ export default defineConfig({
             },
             { label: "Snippet Commands", slug: "commands/snippet" },
             {
+              label: "Pipeline Commands",
+              slug: "commands/pipeline",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Commit Commands",
+              slug: "commands/commit",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Status Commands",
+              slug: "commands/status",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Issue Commands",
+              slug: "commands/issue",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Workspace Commands",
+              slug: "commands/workspace",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
+              label: "Project Commands",
+              slug: "commands/project",
+              badge: { text: "New", variant: "tip" },
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

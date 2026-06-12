@@ -44,7 +44,11 @@ Pick your editor and paste the command:
     **Draft:** `bb pr create -t "WIP" --draft` → later `bb pr ready <id>`
     **Comments:** `bb pr comments list <id>` / `bb pr comments add <id> "text"`
     **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`
-    **Raw API:** `bb api <endpoint>` — any Bitbucket 2.0 endpoint not covered above (e.g. `bb api /repositories/{workspace}/{repo}/issues`; supports `--paginate` and `--jq`)
+    **CI/CD:** `bb pipeline list`, `bb pipeline run --branch main`, `bb pipeline view/logs/stop <id>`
+    **Commits:** `bb commit list`, `bb commit view <sha>`; build statuses: `bb status list <sha>`, `bb status set <sha> --key CI --state SUCCESSFUL`
+    **Issues:** `bb issue list`, `bb issue view <id>`, `bb issue create -t "title"`, `bb issue edit/comment/close <id>`
+    **Workspaces & projects:** `bb workspace list/view`, `bb project list/view/create`
+    **Raw API:** `bb api <endpoint>` — any Bitbucket 2.0 endpoint not covered above (e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
 
     ## Tips
 
@@ -91,8 +95,24 @@ Pick your editor and paste the command:
     - `bb repo list` / `bb repo view` / `bb repo clone workspace/repo`
     - `bb repo default-reviewers list` / `add <uuid>` / `remove <uuid> --yes` - Manage repo default reviewers
 
+    **Pipelines (CI/CD):**
+    - `bb pipeline list` / `bb pipeline view <id>` / `bb pipeline logs <id> --step <n>`
+    - `bb pipeline run --branch main` / `bb pipeline stop <id>`
+
+    **Commits & build statuses:**
+    - `bb commit list` / `bb commit view <sha>`
+    - `bb status list <sha>` / `bb status set <sha> --key CI --state SUCCESSFUL`
+
+    **Issues:**
+    - `bb issue list` / `bb issue view <id>` / `bb issue create -t "title"`
+    - `bb issue edit <id>` / `bb issue comment <id> -b "text"` / `bb issue close <id>`
+
+    **Workspaces & projects:**
+    - `bb workspace list` / `bb workspace view [slug]`
+    - `bb project list` / `bb project view <key>` / `bb project create`
+
     **Raw API access:**
-    - `bb api <endpoint>` - Authenticated call to any Bitbucket 2.0 endpoint (escape hatch for anything without a typed command; e.g. `bb api /repositories/{workspace}/{repo}/issues`; supports `--paginate` and `--jq`)
+    - `bb api <endpoint>` - Authenticated call to any Bitbucket 2.0 endpoint (escape hatch for anything without a typed command; e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
 
     **Configuration:**
     - `bb config set defaultWorkspace myworkspace`
@@ -137,6 +157,10 @@ Pick your editor and paste the command:
     - `bb pr ready <id>` - Mark draft as ready
     - `bb pr comments add <id> "text"` - Comment on PR
     - `bb repo list/view/clone` - Repository operations
+    - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
+    - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
+    - `bb issue list/view/create/edit/comment/close` - Issue tracker
+    - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
     - `bb api <endpoint>` - Raw call to any Bitbucket 2.0 endpoint (escape hatch; `--paginate`, `--jq`)
     - `bb config set defaultWorkspace <ws>` - Set defaults
 
@@ -167,6 +191,10 @@ Pick your editor and paste the command:
     - `bb pr ready <id>` - Mark draft as ready
     - `bb pr comments add <id> "text"` - Comment on PR
     - `bb repo list/view/clone` - Repository operations
+    - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
+    - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
+    - `bb issue list/view/create/edit/comment/close` - Issue tracker
+    - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
     - `bb api <endpoint>` - Raw call to any Bitbucket 2.0 endpoint (escape hatch; `--paginate`, `--jq`)
     - `bb config set defaultWorkspace <ws>` - Set defaults
 
@@ -284,6 +312,12 @@ bb auth login   # Reads from env vars automatically
 | `admin:repository:bitbucket` | `bb repo delete` — delete repos (optional) |
 | `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb pr diff` — browse PRs |
 | `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge`, `bb pr approve` — manage PRs |
+| `read:pipeline:bitbucket` | `bb pipeline list`, `bb pipeline view`, `bb pipeline logs` — inspect CI/CD |
+| `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` — control CI/CD |
+| `read:issue:bitbucket` | `bb issue list`, `bb issue view` — browse issues |
+| `write:issue:bitbucket` | `bb issue create`, `bb issue edit`, `bb issue close` — manage issues |
+| `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` — discover workspaces |
+| `read:project:bitbucket` | `bb project list`, `bb project view` — browse projects |
 
 <Aside type="tip">
   For read-only workflows (listing and viewing PRs), you only need the `read` scopes. OAuth users don't need to select scopes manually — they are requested automatically.

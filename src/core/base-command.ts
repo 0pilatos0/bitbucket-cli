@@ -4,7 +4,59 @@
 
 import type { ICommand, CommandContext } from './interfaces/commands.js';
 import type { IOutputService } from './interfaces/services.js';
+import { WRAPPER_ARRAY_KEYS } from '../services/output.service.js';
+import {
+  collectPagesWithMeta,
+  resolveLimit,
+  type PaginatedCollection,
+} from '../services/pagination.js';
 import { BBError, ErrorCode } from '../types/errors.js';
+
+/**
+ * Declarative spec for {@link BaseCommand.runList}. Captures everything that
+ * varies between paginated list commands once context resolution and filter
+ * construction (which stay in each command) are done.
+ */
+export interface RunListSpec<TItem> {
+  /**
+   * The command options carrying `--limit` / `--all`; resolved via
+   * `resolveLimit()` (defaulting to 25, `Infinity` for `--all`).
+   */
+  options: { limit?: string; all?: boolean };
+  /** Fetch one page from the API (1-based page number). */
+  fetchPage: (
+    page: number,
+    pagelen: number
+  ) => Promise<PaginatedCollection<TItem>>;
+  /** Optional client-side filter applied to each fetched item. */
+  shouldInclude?: (item: TItem) => boolean;
+  /**
+   * Key under which the collected items array is emitted in the JSON
+   * envelope (e.g. `pullRequests`, `comments`). MUST be registered in
+   * `WRAPPER_ARRAY_KEYS` (src/services/output.service.ts) so `--json
+   * fields` / `--jq` projection unwraps the array; `runList()` throws if it
+   * is not, so drift is caught by any test exercising the command.
+   */
+  wrapperKey: string;
+  /**
+   * Extra envelope keys (workspace, repoSlug, filters, ...) spread BEFORE
+   * `count` so the serialized JSON keeps the metadata-first key order that
+   * tests and docs rely on.
+   */
+  jsonMetadata?: Record<string, unknown>;
+  /**
+   * Empty-state message for table mode (JSON mode still emits the full
+   * envelope with `count: 0`). Pass a function when the message depends on
+   * runtime state such as active filters.
+   */
+  emptyMessage: string | (() => string);
+  /** Table column headers. */
+  tableHeaders: string[];
+  /** Maps one item to its table row. */
+  mapRow: (item: TItem) => string[];
+  /** Noun for the "Showing N <noun>..." more-results footer. */
+  noun: string;
+}
 
 export abstract class BaseCommand<
   TOptions = unknown,
@@ -210,6 +262,59 @@ export abstract class BaseCommand<
       code: ErrorCode.VALIDATION_REQUIRED,
       message: `${warning}\nUse --yes to confirm.`,
     });
+  }
+
+  /**
+   * Shared driver for paginated list commands. Runs the common tail of every
+   * `bb ... list`-style command: resolve `--limit`/`--all`, collect pages via
+   * `collectPagesWithMeta`, then either emit the JSON envelope
+   * (`{ ...jsonMetadata, count, [wrapperKey]: items }`), print the
+   * empty-state message, or render the table followed by the more-results
+   * hint. Context resolution and filter construction remain the caller's
+   * responsibility — build those first, then delegate here.
+   */
+  protected async runList<TItem>(
+    spec: RunListSpec<TItem>,
+    context: CommandContext
+  ): Promise<void> {
+    if (!WRAPPER_ARRAY_KEYS.includes(spec.wrapperKey)) {
+      throw new Error(
+        `runList wrapperKey "${spec.wrapperKey}" is not registered in ` +
+          'WRAPPER_ARRAY_KEYS (src/services/output.service.ts). Register it ' +
+          'there so --json fields/--jq projection unwraps the items array.'
+      );
+    }
+
+    const limit = resolveLimit(spec.options);
+    const { items, hasMore } = await collectPagesWithMeta<TItem>({
+      limit,
+      fetchPage: spec.fetchPage,
+      shouldInclude: spec.shouldInclude,
+    });
+
+    if (context.globalOptions.json) {
+      await this.output.json({
+        ...(spec.jsonMetadata ?? {}),
+        count: items.length,
+        [spec.wrapperKey]: items,
+      });
+      return;
+    }
+
+    if (items.length === 0) {
+      this.output.info(
+        typeof spec.emptyMessage === 'function'
+          ? spec.emptyMessage()
+          : spec.emptyMessage
+      );
+      return;
+    }
+
+    this.output.table(
+      spec.tableHeaders,
+      items.map((item) => spec.mapRow(item))
+    );
+    this.printMoreHint(items.length, hasMore, spec.noun);
   }
 
   /**

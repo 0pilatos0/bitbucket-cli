@@ -133,10 +133,16 @@ export const ServiceTokens = {
   VersionService: 'VersionService',
 
   // API Clients
+  SharedApiAxios: 'SharedApiAxios',
   PullrequestsApi: 'PullrequestsApi',
   RepositoriesApi: 'RepositoriesApi',
   UsersApi: 'UsersApi',
   CommitStatusesApi: 'CommitStatusesApi',
+  CommitsApi: 'CommitsApi',
+  PipelinesApi: 'PipelinesApi',
+  IssueTrackerApi: 'IssueTrackerApi',
+  WorkspacesApi: 'WorkspacesApi',
+  ProjectsApi: 'ProjectsApi',
 
   // Commands - Auth
   LoginCommand: 'LoginCommand',
@@ -159,9 +165,6 @@ export const ServiceTokens = {
 
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: 'UrlBuilderService',
-
-  // Raw API passthrough (bb api)
-  ApiAxios: 'ApiAxios',
 
   // Commands - Top level
   BrowseCommand: 'BrowseCommand',
@@ -190,7 +193,6 @@ export const ServiceTokens = {
 
   // API Clients - Snippets
   SnippetsApi: 'SnippetsApi',
-  SnippetsAxios: 'SnippetsAxios',
   SnippetFilesService: 'SnippetFilesService',
 
   // Commands - Snippet
@@ -205,6 +207,38 @@ export const ServiceTokens = {
   AddSnippetCommentCommand: 'AddSnippetCommentCommand',
   EditSnippetCommentCommand: 'EditSnippetCommentCommand',
   DeleteSnippetCommentCommand: 'DeleteSnippetCommentCommand',
+
+  // Commands - Pipeline
+  ListPipelinesCommand: 'ListPipelinesCommand',
+  ViewPipelineCommand: 'ViewPipelineCommand',
+  RunPipelineCommand: 'RunPipelineCommand',
+  StopPipelineCommand: 'StopPipelineCommand',
+  LogsPipelineCommand: 'LogsPipelineCommand',
+
+  // Commands - Commit
+  ListCommitsCommand: 'ListCommitsCommand',
+  ViewCommitCommand: 'ViewCommitCommand',
+
+  // Commands - Status (commit build statuses)
+  ListCommitStatusesCommand: 'ListCommitStatusesCommand',
+  SetCommitStatusCommand: 'SetCommitStatusCommand',
+
+  // Commands - Issue
+  ListIssuesCommand: 'ListIssuesCommand',
+  ViewIssueCommand: 'ViewIssueCommand',
+  CreateIssueCommand: 'CreateIssueCommand',
+  EditIssueCommand: 'EditIssueCommand',
+  CloseIssueCommand: 'CloseIssueCommand',
+  CommentIssueCommand: 'CommentIssueCommand',
+
+  // Commands - Workspace
+  ListWorkspacesCommand: 'ListWorkspacesCommand',
+  ViewWorkspaceCommand: 'ViewWorkspaceCommand',
+
+  // Commands - Project
+  ListProjectsCommand: 'ListProjectsCommand',
+  ViewProjectCommand: 'ViewProjectCommand',
+  CreateProjectCommand: 'CreateProjectCommand',
 
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',

@@ -103,6 +103,18 @@ function extractOAuthErrorDescription(body: string): string | undefined {
 }
 
 export class OAuthService {
+  /**
+   * In-flight refresh lock. Bitbucket ROTATES the refresh_token on every
+   * refresh, so two concurrent POSTs to the token endpoint race: the trailing
+   * one sends an already-invalidated refresh_token, fails, and silently logs
+   * the user out. While a refresh is running, every caller — both the
+   * proactive path ({@link getValidAccessToken}) and the reactive 401 path in
+   * the api-client interceptor — awaits this same promise instead of starting
+   * a second POST. Cleared on settle (success or failure) so a later expiry
+   * can refresh again.
+   */
+  private refreshInFlight: Promise<string> | null = null;
+
   constructor(
     private readonly configService: IConfigService,
     private readonly credentialStore: ICredentialStore
@@ -158,9 +170,25 @@ export class OAuthService {
   }
 
   /**
-   * Refresh the access token using the refresh token
+   * Refresh the access token using the refresh token.
+   *
+   * Concurrent calls are deduplicated: only the first starts a POST to the
+   * token endpoint; the rest await the same promise and resolve to the same
+   * new access token. A failed refresh clears the lock on settle so the next
+   * call can retry with a fresh POST.
    */
-  public async refreshAccessToken(): Promise<string> {
+  public refreshAccessToken(): Promise<string> {
+    if (this.refreshInFlight) {
+      return this.refreshInFlight;
+    }
+    const refresh = this.performTokenRefresh().finally(() => {
+      this.refreshInFlight = null;
+    });
+    this.refreshInFlight = refresh;
+    return refresh;
+  }
+
+  private async performTokenRefresh(): Promise<string> {
     const credentials = await this.credentialStore.getOAuthCredentials();
     const clientId = await this.getClientId();
 

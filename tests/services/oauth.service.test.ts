@@ -393,6 +393,132 @@ describe('OAuthService', () => {
       expect(decoded).toBe('custom-id:custom-secret');
     });
 
+    it('should dedupe concurrent refresh calls into a single token POST', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'the-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+      const service = new OAuthService(configService, configService);
+
+      const fetchMock = mockFetch([
+        {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'deduped-token',
+            refresh_token: 'rotated-refresh',
+            expires_in: 7200,
+            token_type: 'bearer',
+            scopes: '',
+          }),
+        },
+      ]);
+
+      const tokens = await Promise.all([
+        service.refreshAccessToken(),
+        service.refreshAccessToken(),
+        service.refreshAccessToken(),
+      ]);
+
+      // Bitbucket rotates the refresh token on every refresh, so a second
+      // concurrent POST would send an invalidated refresh_token and fail.
+      expect(fetchMock.getCallCount()).toBe(1);
+      expect(tokens).toEqual([
+        'deduped-token',
+        'deduped-token',
+        'deduped-token',
+      ]);
+
+      const creds = await configService.getOAuthCredentials();
+      expect(creds.refreshToken).toBe('rotated-refresh');
+    });
+
+    it('should dedupe concurrent getValidAccessToken calls when the token is expired', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'the-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100, // expired
+      });
+      const service = new OAuthService(configService, configService);
+
+      const fetchMock = mockFetch([
+        {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'shared-fresh-token',
+            refresh_token: 'rotated-refresh',
+            expires_in: 7200,
+            token_type: 'bearer',
+            scopes: '',
+          }),
+        },
+      ]);
+
+      const tokens = await Promise.all([
+        service.getValidAccessToken(),
+        service.getValidAccessToken(),
+        service.getValidAccessToken(),
+      ]);
+
+      expect(fetchMock.getCallCount()).toBe(1);
+      expect(tokens).toEqual([
+        'shared-fresh-token',
+        'shared-fresh-token',
+        'shared-fresh-token',
+      ]);
+    });
+
+    it('should clear the in-flight lock after a failed refresh so the next call retries', async () => {
+      const configService = createMockConfigService({
+        authMethod: 'oauth',
+        oauthAccessToken: 'old-token',
+        oauthRefreshToken: 'the-refresh-token',
+        oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
+      });
+      const service = new OAuthService(configService, configService);
+
+      const fetchMock = mockFetch([
+        {
+          ok: false,
+          status: 503,
+          text: async () => 'service unavailable',
+        },
+        {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            access_token: 'second-attempt-token',
+            refresh_token: 'rotated-refresh',
+            expires_in: 7200,
+            token_type: 'bearer',
+            scopes: '',
+          }),
+        },
+      ]);
+
+      // Both concurrent waiters receive the failure from the single POST.
+      const [first, second] = await Promise.all([
+        outcome(service.refreshAccessToken()),
+        outcome(service.refreshAccessToken()),
+      ]);
+      expect(fetchMock.getCallCount()).toBe(1);
+      expect((first.error as { code: number }).code).toBe(
+        ErrorCode.AUTH_EXPIRED
+      );
+      expect((second.error as { code: number }).code).toBe(
+        ErrorCode.AUTH_EXPIRED
+      );
+
+      // The rejection is not cached: a later call starts a fresh POST.
+      const token = await service.refreshAccessToken();
+      expect(token).toBe('second-attempt-token');
+      expect(fetchMock.getCallCount()).toBe(2);
+    });
+
     it('should persist updated expiresAt as a unix timestamp in seconds', async () => {
       const configService = createMockConfigService({
         authMethod: 'oauth',

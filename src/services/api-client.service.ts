@@ -44,6 +44,52 @@ function resolveTimeoutMs(): number {
 
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
 
+/**
+ * Network-level error codes (no HTTP response received) considered transient
+ * and worth retrying. Rationale per code:
+ *
+ * - ECONNRESET:   the peer (or an intermediary proxy/LB) dropped an
+ *                 established socket mid-flight — classic transient blip.
+ * - ETIMEDOUT:    OS-level connect/read timeout, or axios's own timeout when
+ *                 `transitional.clarifyTimeoutError` is enabled.
+ * - ECONNABORTED: axios's default code for its own request timeout; a slow or
+ *                 momentarily overloaded server may answer on a fresh attempt.
+ * - EAI_AGAIN:    DNS resolver returned a *temporary* failure — by definition
+ *                 retryable (transient resolver/upstream hiccup).
+ * - EPIPE:        write on a socket the peer already closed (e.g. keep-alive
+ *                 connection reaped by a proxy); a new connection usually works.
+ *
+ * Deliberately excluded as (almost always) permanent until the user fixes
+ * something:
+ * - ENOTFOUND:    DNS says the host does not exist — misconfiguration/offline,
+ *                 not a blip; retrying just delays the actionable error.
+ * - ECONNREFUSED: the host actively rejected the connection (service down,
+ *                 wrong port, proxy misconfig) — unlikely to recover within
+ *                 our seconds-scale backoff window.
+ * - CERT/TLS errors (e.g. UNABLE_TO_VERIFY_LEAF_SIGNATURE): configuration
+ *                 problems, never transient.
+ */
+const RETRYABLE_NETWORK_CODES = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ECONNABORTED',
+  'EAI_AGAIN',
+  'EPIPE',
+]);
+
+/**
+ * Methods safe to retry after a network failure where we cannot know whether
+ * the server processed the request (the socket died before any response).
+ * Only RFC 9110 "safe" methods qualify: replaying them can never duplicate a
+ * side effect. Bitbucket's PUT/DELETE endpoints are *semantically* idempotent,
+ * but we stay conservative and exclude them: some trigger side effects beyond
+ * the resource itself (webhooks, notifications, pipeline runs), and a replay
+ * after partial server-side processing can surface confusing secondary errors
+ * (e.g. 404 on a DELETE that actually succeeded). Non-idempotent methods
+ * (POST/PATCH) keep the existing fail-fast behavior.
+ */
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
 const SENSITIVE_KEYS = new Set([
   'access_token',
   'refresh_token',
@@ -229,6 +275,38 @@ export function createApiClient(
             if (!output.isJsonMode()) {
               output.warning(
                 `${label}, retrying in ${(delay / 1000).toFixed(1)}s (attempt ${config.__retryCount}/${MAX_RETRIES})...`
+              );
+            }
+            await sleep(delay);
+            return instance(config);
+          }
+        }
+      }
+
+      // Retry transient network errors (request sent, no response received:
+      // dropped sockets, DNS hiccups, timeouts) — but only for idempotent
+      // methods, since without a response we cannot tell whether the server
+      // already processed the request. Shares __retryCount with the
+      // status-code path above so combined attempts stay bounded by
+      // MAX_RETRIES, and uses the same exponential backoff (no response means
+      // getRetryDelay never sees a Retry-After header).
+      if (
+        !error.response &&
+        error.request &&
+        error.code !== undefined &&
+        RETRYABLE_NETWORK_CODES.has(error.code)
+      ) {
+        const config = error.config as RetryableConfig | undefined;
+        const method = config?.method?.toUpperCase() ?? '';
+        if (config && IDEMPOTENT_METHODS.has(method)) {
+          const retryCount = config.__retryCount ?? 0;
+          if (retryCount < MAX_RETRIES) {
+            config.__retryCount = retryCount + 1;
+            const delay = getRetryDelay(error, config.__retryCount);
+            // Same JSON-mode suppression rationale as the status-code path.
+            if (!output.isJsonMode()) {
+              output.warning(
+                `Network error (${error.code}), retrying in ${(delay / 1000).toFixed(1)}s (attempt ${config.__retryCount}/${MAX_RETRIES})...`
               );
             }
             await sleep(delay);
