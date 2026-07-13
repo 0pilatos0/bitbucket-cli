@@ -44,6 +44,47 @@ bb api /repositories/my-ws --jq '.values[].name'          # filter with jq
 See the [API command reference](/commands/api/) for the full flag list and
 examples.
 
+Patch releases in 1.20 added configurable request timeouts (`BB_HTTP_TIMEOUT`),
+`--with-token` for piping secrets via stdin, and fixes for `--jq` shell
+completion. A drift-guard test now fails CI when the completion tables fall out
+of sync with the live command tree.
+
+## 1.21.0 — Six new command groups
+
+This release is all about filling the gaps. Six new command groups land,
+covering most of the remaining Bitbucket Cloud surface.
+
+**Commit & status** — `bb commit list` and `bb commit view <sha>` show commit
+history and details. `bb status list <sha>` lists build statuses for a commit;
+`bb status set <sha> --key <key> --state <state>` creates or updates a build
+status idempotently (CI re-runs can safely re-report the same key).
+
+**Issues** — `bb issue list`, `view`, `create`, `edit`, `close`, and `comment`
+mirror `gh issue` ergonomics. Filters include `--state`, `--kind`, `--assignee`,
+`--reporter`, and a raw `--query` escape hatch. Disabled issue trackers surface
+a clear 404 pointing to Repository settings.
+
+**Pipelines** — `bb pipeline list` (filter by `--status`/`--branch`, paginated),
+`bb pipeline view <id>` (details + per-step summary), `bb pipeline run`
+(trigger on branch, with `--commit`, custom `--pipeline`, and `--var key=value`),
+`bb pipeline stop <id>`, and `bb pipeline logs <id>` (`--step` by UUID or index).
+Pipeline IDs accept build numbers or UUIDs everywhere.
+
+**Workspace & project** — `bb workspace list` shows every workspace you can
+access (filter by `--role`); `bb workspace view [slug]` shows details.
+`bb project list`, `bb project view <key>`, and `bb project create --key <KEY>
+--name <name>` handle project discovery and creation.
+
+All six groups emit stable `--json` envelopes and integrate with repo-scoped
+context resolution.
+
+**Infrastructure** — Read requests now retry up to 3 times with exponential
+backoff on transient network failures (GET/HEAD/OPTIONS only). Concurrent
+OAuth token refreshes are serialized behind an in-flight lock so parallel
+requests share a single refresh. Shell completion is now derived from the live
+command tree and includes flag-value completion for enum options (e.g.
+`bb pr merge --strategy <Tab>` suggests valid strategies).
+
 ## 1.18.0 — Pagination hints and `--all`
 
 List commands now make truncation visible and let you opt out of pagination
