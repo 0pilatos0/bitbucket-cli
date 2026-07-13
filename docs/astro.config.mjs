@@ -98,32 +98,26 @@ export default defineConfig({
             {
               label: "Pipeline Commands",
               slug: "commands/pipeline",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Commit Commands",
               slug: "commands/commit",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Status Commands",
               slug: "commands/status",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Issue Commands",
               slug: "commands/issue",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Workspace Commands",
               slug: "commands/workspace",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Project Commands",
               slug: "commands/project",
-              badge: { text: "New", variant: "tip" },
             },
             {
               label: "Browse",
@@ -132,7 +126,6 @@ export default defineConfig({
             {
               label: "API",
               slug: "commands/api",
-              badge: { text: "New", variant: "tip" },
             },
             { label: "Config Commands", slug: "commands/config" },
             { label: "Completion", slug: "commands/completion" },
@@ -182,11 +175,7 @@ export default defineConfig({
           items: [
             { label: "Troubleshooting", slug: "help/troubleshooting" },
             { label: "FAQ", slug: "help/faq" },
-            {
-              label: "Changelog",
-              slug: "help/changelog",
-              badge: { text: "New", variant: "tip" },
-            },
+            { label: "Changelog", slug: "help/changelog" },
           ],
         },
       ],
