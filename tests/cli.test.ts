@@ -568,6 +568,10 @@ describe('CLI command registration', () => {
       'delete',
       'edit',
       'list',
+      'reply',
+      'resolve',
+      'unresolve',
+      'view',
     ]);
 
     const reviewersCmd = requireCommand('pr', 'reviewers');

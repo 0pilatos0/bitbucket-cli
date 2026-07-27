@@ -67,6 +67,10 @@ import { CommentPRCommand } from './commands/pr/comment.command.js';
 import { ListCommentsPRCommand } from './commands/pr/comments.list.command.js';
 import { EditCommentPRCommand } from './commands/pr/comments.edit.command.js';
 import { DeleteCommentPRCommand } from './commands/pr/comments.delete.command.js';
+import { ResolveCommentPRCommand } from './commands/pr/comments.resolve.command.js';
+import { UnresolveCommentPRCommand } from './commands/pr/comments.unresolve.command.js';
+import { ViewCommentPRCommand } from './commands/pr/comments.view.command.js';
+import { ReplyCommentPRCommand } from './commands/pr/comments.reply.command.js';
 import { AddReviewerPRCommand } from './commands/pr/reviewers.add.command.js';
 import { RemoveReviewerPRCommand } from './commands/pr/reviewers.remove.command.js';
 import { ListReviewersPRCommand } from './commands/pr/reviewers.list.command.js';
@@ -459,6 +463,46 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     container,
     ServiceTokens.DeleteCommentPRCommand,
     DeleteCommentPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ResolveCommentPRCommand,
+    ResolveCommentPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.UnresolveCommentPRCommand,
+    UnresolveCommentPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewCommentPRCommand,
+    ViewCommentPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ReplyCommentPRCommand,
+    ReplyCommentPRCommand,
     [
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,

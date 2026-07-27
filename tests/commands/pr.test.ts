@@ -17,6 +17,10 @@ import { ActivityPRCommand } from '../../src/commands/pr/activity.command.js';
 import { ListCommentsPRCommand } from '../../src/commands/pr/comments.list.command.js';
 import { DeleteCommentPRCommand } from '../../src/commands/pr/comments.delete.command.js';
 import { EditCommentPRCommand } from '../../src/commands/pr/comments.edit.command.js';
+import { ResolveCommentPRCommand } from '../../src/commands/pr/comments.resolve.command.js';
+import { UnresolveCommentPRCommand } from '../../src/commands/pr/comments.unresolve.command.js';
+import { ViewCommentPRCommand } from '../../src/commands/pr/comments.view.command.js';
+import { ReplyCommentPRCommand } from '../../src/commands/pr/comments.reply.command.js';
 import { ListReviewersPRCommand } from '../../src/commands/pr/reviewers.list.command.js';
 import { AddReviewerPRCommand } from '../../src/commands/pr/reviewers.add.command.js';
 import { RemoveReviewerPRCommand } from '../../src/commands/pr/reviewers.remove.command.js';
@@ -29,7 +33,7 @@ import {
   mockPullRequest,
   mockUser,
 } from '../setup.js';
-import { BBError, ErrorCode } from '../../src/types/errors.js';
+import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import type {
   Pullrequest,
   PullrequestComment,
@@ -123,6 +127,7 @@ function createMockPullrequestsApi(
     activityPages?: Array<Array<Record<string, unknown>>>;
     comments?: PullrequestComment[];
     commentsPages?: PullrequestComment[][];
+    comment?: PullrequestComment;
     throwOnGet?: boolean;
     throwOnList?: boolean;
     throwOnCreate?: boolean;
@@ -136,11 +141,24 @@ function createMockPullrequestsApi(
     throwOnComment?: boolean;
     throwOnCommentDelete?: boolean;
     throwOnCommentEdit?: boolean;
+    throwOnCommentResolve?: boolean;
+    throwOnCommentUnresolve?: boolean;
+    throwOnCommentGet?: boolean;
+    commentGetError?: unknown;
+    commentResolveError?: unknown;
+    commentUnresolveError?: unknown;
+    commentPostError?: unknown;
     onListCall?: (request: unknown, axiosOptions?: unknown) => void;
     onActivityCall?: (request: unknown, axiosOptions?: unknown) => void;
     onCommentsListCall?: (request: unknown, axiosOptions?: unknown) => void;
   } = {}
-): PullrequestsApi & { lastCommentBody?: Record<string, unknown> } {
+): PullrequestsApi & {
+  lastCommentBody?: Record<string, unknown>;
+  lastCommentRequest?: Record<string, unknown>;
+  lastResolveRequest?: Record<string, unknown>;
+  lastUnresolveRequest?: Record<string, unknown>;
+  lastCommentGetRequest?: Record<string, unknown>;
+} {
   const prs = options.pullRequests ?? [mockPullRequest];
   const allPullRequests = options.pullRequestPages
     ? options.pullRequestPages.flat()
@@ -433,11 +451,15 @@ function createMockPullrequestsApi(
       pullRequestId: number;
       pullrequestComment: Record<string, unknown>;
     }) {
+      if (options.commentPostError !== undefined) {
+        throw options.commentPostError;
+      }
       if (options.throwOnComment) {
         throw new Error('API Error');
       }
       const body = params.pullrequestComment;
       mockApi.lastCommentBody = body;
+      mockApi.lastCommentRequest = params;
       return createAxiosResponse({
         id: 201,
         type: 'pullrequest_comment',
@@ -474,11 +496,77 @@ function createMockPullrequestsApi(
         content: params.pullrequestComment.content,
       });
     },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolvePost(params: {
+      workspace: string;
+      repoSlug: string;
+      pullRequestId: number;
+      commentId: number;
+    }) {
+      if (options.commentResolveError !== undefined) {
+        throw options.commentResolveError;
+      }
+      if (options.throwOnCommentResolve) {
+        throw new Error('API Error');
+      }
+      mockApi.lastResolveRequest = params;
+      return createAxiosResponse({
+        type: 'comment_resolution',
+        user: mockUser,
+        created_on: '2024-01-03T00:00:00.000Z',
+      });
+    },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolveDelete(params: {
+      workspace: string;
+      repoSlug: string;
+      pullRequestId: number;
+      commentId: number;
+    }) {
+      if (options.commentUnresolveError !== undefined) {
+        throw options.commentUnresolveError;
+      }
+      if (options.throwOnCommentUnresolve) {
+        throw new Error('API Error');
+      }
+      mockApi.lastUnresolveRequest = params;
+      return createAxiosResponse(undefined);
+    },
+
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdGet(params: {
+      workspace: string;
+      repoSlug: string;
+      pullRequestId: number;
+      commentId: number;
+    }) {
+      if (options.commentGetError !== undefined) {
+        throw options.commentGetError;
+      }
+      if (options.throwOnCommentGet) {
+        throw new Error('API Error');
+      }
+      mockApi.lastCommentGetRequest = params;
+      return createAxiosResponse(
+        options.comment ??
+          ({
+            id: params.commentId,
+            type: 'pullrequest_comment',
+            content: { raw: 'Looks good to me' },
+            user: mockUser,
+            created_on: '2024-01-02T00:00:00.000Z',
+            deleted: false,
+          } as PullrequestComment)
+      );
+    },
   };
 
   // Return the mock as PullrequestsApi - we only implement the methods we use
   return mockApi as unknown as PullrequestsApi & {
     lastCommentBody?: Record<string, unknown>;
+    lastCommentRequest?: Record<string, unknown>;
+    lastResolveRequest?: Record<string, unknown>;
+    lastUnresolveRequest?: Record<string, unknown>;
+    lastCommentGetRequest?: Record<string, unknown>;
   };
 }
 
@@ -3523,6 +3611,568 @@ describe('EditCommentPRCommand', () => {
         { globalOptions: {} }
       )
     ).rejects.toThrow();
+  });
+});
+
+// ============================================================
+// ResolveCommentPRCommand tests
+// ============================================================
+
+describe('ResolveCommentPRCommand', () => {
+  const makeCommand = (
+    api: ReturnType<typeof createMockPullrequestsApi>,
+    contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    })
+  ) => {
+    const output = createMockOutputService();
+    return {
+      command: new ResolveCommentPRCommand(api, contextService, output),
+      output,
+    };
+  };
+
+  it('should resolve a comment and show success message', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs).toContain('success:Resolved comment #7 on PR #42');
+    expect(pullrequestsApi.lastResolveRequest).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+      pullRequestId: 42,
+      commentId: 7,
+    });
+  });
+
+  it('should return JSON with the resolution payload', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.commentId).toBe(7);
+    expect(parsed.resolution.type).toBe('comment_resolution');
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+
+  it('should throw when pr-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('--pr-id must be a positive integer.');
+  });
+
+  it('should throw when comment-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    try {
+      await command.execute(
+        { prId: '42', commentId: '0' },
+        { globalOptions: {} }
+      );
+      throw new Error('should have thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect((error as BBError).message).toContain(
+        '--comment-id must be a positive integer.'
+      );
+    }
+  });
+
+  it('should throw when no repo context available', async () => {
+    const { command } = makeCommand(
+      createMockPullrequestsApi(),
+      createMockContextService()
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow();
+  });
+
+  it('should propagate API errors without emitting a success line', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnCommentResolve: true,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('API Error');
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+  it('should wrap a 404 with a not-found message naming the location', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      commentResolveError: new APIError('Not Found', 404),
+    });
+    const { command } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow(
+      'Comment #7 not found on pull request #42 in workspace/repo.'
+    );
+  });
+});
+
+// ============================================================
+// UnresolveCommentPRCommand tests
+// ============================================================
+
+describe('UnresolveCommentPRCommand', () => {
+  const makeCommand = (
+    api: ReturnType<typeof createMockPullrequestsApi>,
+    contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    })
+  ) => {
+    const output = createMockOutputService();
+    return {
+      command: new UnresolveCommentPRCommand(api, contextService, output),
+      output,
+    };
+  };
+
+  it('should unresolve a comment and show success message', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs).toContain('success:Unresolved comment #7 on PR #42');
+    expect(pullrequestsApi.lastUnresolveRequest).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+      pullRequestId: 42,
+      commentId: 7,
+    });
+  });
+
+  it('should return JSON with identifiers only', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    expect(JSON.parse(jsonLog!.substring(5))).toEqual({
+      success: true,
+      pullRequestId: 42,
+      commentId: 7,
+    });
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+
+  it('should throw when pr-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('--pr-id must be a positive integer.');
+  });
+
+  it('should throw when comment-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
+    ).rejects.toThrow('--comment-id must be a positive integer.');
+  });
+
+  it('should throw when no repo context available', async () => {
+    const { command } = makeCommand(
+      createMockPullrequestsApi(),
+      createMockContextService()
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow();
+  });
+
+  it('should propagate API errors without emitting a success line', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnCommentUnresolve: true,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('API Error');
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+  it('should wrap a 404 with a not-found message naming the location', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      commentUnresolveError: new APIError('Not Found', 404),
+    });
+    const { command } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow(
+      'Comment #7 not found on pull request #42 in workspace/repo.'
+    );
+  });
+});
+
+// ============================================================
+// ViewCommentPRCommand tests
+// ============================================================
+
+describe('ViewCommentPRCommand', () => {
+  const makeCommand = (
+    api: ReturnType<typeof createMockPullrequestsApi>,
+    contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    })
+  ) => {
+    const output = createMockOutputService();
+    return {
+      command: new ViewCommentPRCommand(api, contextService, output),
+      output,
+    };
+  };
+
+  it('should render a detail block for the comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('#7');
+    expect(text).toContain('Test User');
+    expect(text).toContain('Looks good to me');
+    expect(text).toContain('unresolved');
+    expect(pullrequestsApi.lastCommentGetRequest).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+      pullRequestId: 42,
+      commentId: 7,
+    });
+  });
+
+  it('should report a resolved thread when resolution is present', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'Nit: rename this' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        resolution: {
+          type: 'comment_resolution',
+          user: mockUser,
+          created_on: '2024-01-03T00:00:00.000Z',
+        },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('[resolved]');
+    expect(text).not.toContain('[unresolved]');
+  });
+
+  it('should render [deleted] for a deleted comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'gone' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        deleted: true,
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('[deleted]');
+    expect(text).not.toContain('gone');
+  });
+
+  it('should output the raw comment object as JSON', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.id).toBe(7);
+    expect(parsed.type).toBe('pullrequest_comment');
+    expect(parsed.content.raw).toBe('Looks good to me');
+    expect(output.logs.filter((log) => log.startsWith('text:'))).toHaveLength(
+      0
+    );
+  });
+
+  it('should throw when comment-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
+    ).rejects.toThrow('--comment-id must be a positive integer.');
+  });
+
+  it('should wrap a 404 with a not-found message naming the comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      commentGetError: new APIError('Not Found', 404),
+    });
+    const { command } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow(
+      'Comment #7 not found on pull request #42 in workspace/repo.'
+    );
+  });
+
+  it('should propagate non-404 API errors', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnCommentGet: true,
+    });
+    const { command } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow('API Error');
+  });
+
+  it('should throw when no repo context available', async () => {
+    const { command } = makeCommand(
+      createMockPullrequestsApi(),
+      createMockContextService()
+    );
+
+    await expect(
+      command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
+    ).rejects.toThrow();
+  });
+  it('should render [pending] for an unpublished draft comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'draft note' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        pending: true,
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('[pending]');
+    expect(text).not.toContain('[unresolved]');
+  });
+
+  it('should render [no content] when the comment body is empty', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).toContain('[no content]');
+  });
+});
+
+// ============================================================
+// ReplyCommentPRCommand tests
+// ============================================================
+
+describe('ReplyCommentPRCommand', () => {
+  const makeCommand = (
+    api: ReturnType<typeof createMockPullrequestsApi>,
+    contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    })
+  ) => {
+    const output = createMockOutputService();
+    return {
+      command: new ReplyCommentPRCommand(api, contextService, output),
+      output,
+    };
+  };
+
+  it('should post a reply carrying the parent id and show success', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Agreed' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs).toContain('success:Replied to comment #7 on PR #42');
+    const body = pullrequestsApi.lastCommentBody as
+      | Record<string, unknown>
+      | undefined;
+    expect(body?.parent).toEqual({ type: 'pullrequest_comment', id: 7 });
+    expect(body?.content).toEqual({ raw: 'Agreed' });
+  });
+
+  it('should address the reply to the resolved workspace, repo and PR', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Agreed' },
+      { globalOptions: {} }
+    );
+
+    const request = pullrequestsApi.lastCommentRequest as
+      | Record<string, unknown>
+      | undefined;
+    expect(request?.workspace).toBe('workspace');
+    expect(request?.repoSlug).toBe('repo');
+    expect(request?.pullRequestId).toBe(42);
+  });
+
+  it('should return JSON with the created comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Agreed' },
+      { globalOptions: { json: true } }
+    );
+
+    const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.substring(5));
+    expect(parsed.success).toBe(true);
+    expect(parsed.pullRequestId).toBe(42);
+    expect(parsed.parentId).toBe(7);
+    expect(parsed.comment.id).toBe(201);
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+
+  it('should throw when pr-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute(
+        { prId: 'abc', commentId: '7', message: 'Agreed' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('--pr-id must be a positive integer.');
+  });
+
+  it('should throw when comment-id is not a positive integer', async () => {
+    const { command } = makeCommand(createMockPullrequestsApi());
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '0', message: 'Agreed' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('--comment-id must be a positive integer.');
+  });
+
+  it('should throw when no repo context available', async () => {
+    const { command } = makeCommand(
+      createMockPullrequestsApi(),
+      createMockContextService()
+    );
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '7', message: 'Agreed' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow();
+  });
+
+  it('should propagate API errors without emitting a success line', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      throwOnComment: true,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '7', message: 'Agreed' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('API Error');
+    expect(output.logs.some((log) => log.startsWith('success:'))).toBe(false);
+  });
+
+  it('should wrap a 404 with a not-found message naming the parent', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      commentPostError: new APIError('Not Found', 404),
+    });
+    const { command } = makeCommand(pullrequestsApi);
+
+    await expect(
+      command.execute(
+        { prId: '42', commentId: '7', message: 'Agreed' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow(
+      'Comment #7 not found on pull request #42 in workspace/repo.'
+    );
   });
 });
 

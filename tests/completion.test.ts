@@ -93,20 +93,26 @@ describe('generateCompletions', () => {
 
   describe('structural disambiguation of "comments"', () => {
     const expected = ['list', 'add', 'edit', 'delete'];
+    // `resolve`/`unresolve`/`view`/`reply` exist only under `pr comments`,
+    // so they cannot go in the array shared with the snippet assertion.
+    const prExpected = [...expected, 'resolve', 'unresolve', 'view', 'reply'];
 
     it('pr comments resolves to the pr comments group', () => {
       const names = complete('bb pr comments ');
-      expect(names).toEqual(expect.arrayContaining(expected));
+      expect(names).toEqual(expect.arrayContaining(prExpected));
     });
 
     it('snippet comments resolves to the snippet comments group', () => {
       const names = complete('bb snippet comments ');
       expect(names).toEqual(expect.arrayContaining(expected));
+      // pr-only names must be absent, otherwise this passes on the pr group too
+      expect(names).not.toContain('resolve');
+      expect(names).not.toContain('reply');
     });
 
     it('is not confused by flags between the parent and "comments"', () => {
       const names = complete('bb pr --json comments ');
-      expect(names).toEqual(expect.arrayContaining(expected));
+      expect(names).toEqual(expect.arrayContaining(prExpected));
     });
   });
 
