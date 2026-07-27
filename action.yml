@@ -1,0 +1,24 @@
+name: 'Bitbucket CLI'
+description: 'Install and authenticate Bitbucket CLI'
+inputs:
+  bb_username:
+    description: 'Bitbucket username'
+    required: false
+    env: BB_USERNAME
+  bb_api_token:
+    description: 'Bitbucket API token'
+    required: false
+    env: BB_API_TOKEN
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Install CLI
+      run: npm install -g @pilatos/bitbucket-cli
+
+    - name: Authenticate
+      shell: bash
+      run: bb auth login
