@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.21.1
+
+### Patch Changes
+
+- [`8dcf9f0`](https://github.com/0pilatos0/bitbucket-cli/commit/8dcf9f0f006718163c33ffbd1d666959eb64bf54) - Test runs are now isolated from real `BB_*` environment variables via a bun test preload, so a developer's working `bb` setup no longer breaks the test suite ([#294](https://github.com/0pilatos0/bitbucket-cli/issues/294)). No functional changes to the CLI itself.
+
 ## 1.21.0
 
 ### Minor Changes
