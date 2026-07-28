@@ -1771,6 +1771,61 @@ describe('ListCommentsPRCommand', () => {
     ).rejects.toThrow('--resolved and --unresolved cannot be combined');
   });
 
+  it('should show the filtered empty message when a filter matches nothing', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comments: [
+        {
+          id: 1,
+          type: 'pullrequest_comment',
+          content: { raw: 'Open thread' },
+          user: mockUser,
+          created_on: '2024-01-01T00:00:00.000Z',
+          deleted: false,
+        } as PullrequestComment,
+      ],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '1', resolved: true }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('No comments matched the requested filter')
+      )
+    ).toBe(true);
+  });
+
+  it('should show the default empty message without a filter', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({ comments: [] });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute({ id: '1' }, { globalOptions: {} });
+
+    expect(
+      output.logs.some((log) =>
+        log.includes('No comments found on this pull request')
+      )
+    ).toBe(true);
+  });
+
   it('should include the resolution filter in json output', async () => {
     const pullrequestsApi = createMockPullrequestsApi({
       comments: mixedResolutionComments(),
