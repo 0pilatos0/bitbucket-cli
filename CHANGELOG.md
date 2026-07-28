@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.22.0
+
+### Minor Changes
+
+- [#299](https://github.com/0pilatos0/bitbucket-cli/pull/299) [`d838063`](https://github.com/0pilatos0/bitbucket-cli/commit/d838063b6d50e33c9e5756aa62730452effe3fed) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr comments list` now shows a `Status` column (`resolved`, `pending`, or `open`) and supports `--resolved` / `--unresolved` flags to filter comments by resolution state, closing the remaining part of [#292](https://github.com/0pilatos0/bitbucket-cli/issues/292). The active filter is echoed under `filters.resolution` in `--json` output.
+
+- [#293](https://github.com/0pilatos0/bitbucket-cli/pull/293) [`2b77891`](https://github.com/0pilatos0/bitbucket-cli/commit/2b77891d691d7dd471241915e74fb6288e3831a3) Thanks [@AlexSuprun](https://github.com/AlexSuprun)! - Complete the `bb pr comments` surface with four new subcommands (issue [#292](https://github.com/0pilatos0/bitbucket-cli/issues/292)): `bb pr comments view <pr-id> <comment-id>` shows one comment with its author, date, state (`[resolved]`/`[unresolved]`/`[pending]`) and raw content; `bb pr comments reply <pr-id> <comment-id> <message>` posts a threaded reply attached to the parent comment; `bb pr comments resolve <pr-id> <comment-id>` and `bb pr comments unresolve <pr-id> <comment-id>` close and reopen a comment thread. All four support `--json`. Note that the Bitbucket API returns only a resolution record for `resolve` and no body for `unresolve`, so their JSON payloads carry the identifiers (plus the resolution for `resolve`) rather than the full comment — use `bb pr comments view` to read the comment back.
+
+### Patch Changes
+
+- [#293](https://github.com/0pilatos0/bitbucket-cli/pull/293) [`2b77891`](https://github.com/0pilatos0/bitbucket-cli/commit/2b77891d691d7dd471241915e74fb6288e3831a3) Thanks [@AlexSuprun](https://github.com/AlexSuprun)! - Fix `bb pr comments edit` failing with `Bad request`. The update payload sent a `type` key, which the Bitbucket comment endpoint rejects with `extra keys not allowed`; the body now carries content only. `bb pr comments reply` had the same problem on both `type` and `parent.type` and is fixed too.
+
+  API errors now include Bitbucket's `error.fields` detail, so a rejected payload reports `Bad request (type: extra keys not allowed)` instead of a bare `Bad request`.
+
+- [#293](https://github.com/0pilatos0/bitbucket-cli/pull/293) [`2b77891`](https://github.com/0pilatos0/bitbucket-cli/commit/2b77891d691d7dd471241915e74fb6288e3831a3) Thanks [@AlexSuprun](https://github.com/AlexSuprun)! - Fix `bb pr comments resolve` failing with `Bad request` on every comment. The resolve endpoint declares no request payload, so the generated client sent no body at all, and Bitbucket rejects the POST without one. The command now sends an empty JSON body. `bb pr comments unresolve` was never affected — Bitbucket accepts that DELETE with no body.
+
 ## 1.21.1
 
 ### Patch Changes
