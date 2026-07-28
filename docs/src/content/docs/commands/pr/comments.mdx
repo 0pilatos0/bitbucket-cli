@@ -1,6 +1,6 @@
 ---
 title: Comments
-description: List, add, edit, and delete pull request comments
+description: List, add, view, edit, reply to, resolve, unresolve, and delete pull request comments
 sidebar:
   order: 6
   badge:
@@ -20,7 +20,11 @@ Global options available on all PR commands: `--json`, `--no-color`, `-w, --work
 |------------|-------------|
 | `list <id>` | List comments on a pull request |
 | `add <id> <message>` | Add a comment to a pull request |
+| `view <pr-id> <comment-id>` | View a single comment on a pull request |
 | `edit <pr-id> <comment-id> <message>` | Edit a comment on a pull request |
+| `reply <pr-id> <comment-id> <message>` | Reply to a comment on a pull request |
+| `resolve <pr-id> <comment-id>` | Resolve a comment thread on a pull request |
+| `unresolve <pr-id> <comment-id>` | Reopen a resolved comment thread on a pull request |
 | `delete <pr-id> <comment-id>` | Delete a comment on a pull request |
 
 ---
@@ -137,6 +141,51 @@ bb pr comments add 42 "Good job!" --json
 
 ---
 
+## `bb pr comments view`
+
+View a single comment on a pull request, including whether its thread is resolved.
+
+```bash
+bb pr comments view <pr-id> <comment-id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | Comment ID |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# View comment #123 on PR #42
+bb pr comments view 42 123
+
+# View a comment in a specific repository
+bb pr comments view 42 123 -w myworkspace -r myrepo
+
+# Get the raw comment object as JSON
+bb pr comments view 42 123 --json
+```
+
+### Notes
+
+- The header shows `[resolved]` or `[unresolved]` for that specific comment. Bitbucket records the resolution on the comment that was resolved, so a reply inside a resolved thread still shows `[unresolved]`
+- Unpublished draft review comments show `[pending]` instead
+- Deleted comments render their content as `[deleted]`
+- `--json` prints the raw comment object returned by the API
+
+---
+
 ## `bb pr comments edit`
 
 Edit a comment on a pull request.
@@ -173,6 +222,135 @@ bb pr comments edit 42 123 "Revised feedback" -w myworkspace -r myrepo
 # Get updated comment as JSON
 bb pr comments edit 42 123 "Final comment" --json
 ```
+
+---
+
+## `bb pr comments reply`
+
+Reply to an existing comment. The new comment is attached to the parent comment, so it shows up in the same thread.
+
+```bash
+bb pr comments reply <pr-id> <comment-id> <message>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | ID of the comment to reply to |
+| `message` | Reply message |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Reply to comment #123 on PR #42
+bb pr comments reply 42 123 "Good catch, fixed."
+
+# Reply in a specific repository
+bb pr comments reply 42 123 "Fixed in the latest push" -w myworkspace -r myrepo
+
+# Get the created reply as JSON
+bb pr comments reply 42 123 "Done" --json
+```
+
+### Notes
+
+- Use `bb pr comments list <id>` to find the comment ID to reply to
+- The reply is attached to the parent comment; how Bitbucket anchors a reply to an inline comment is decided server-side
+
+---
+
+## `bb pr comments resolve`
+
+Resolve a comment thread on a pull request.
+
+```bash
+bb pr comments resolve <pr-id> <comment-id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | Comment ID |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Resolve comment thread #123 on PR #42
+bb pr comments resolve 42 123
+
+# Resolve in a specific repository
+bb pr comments resolve 42 123 -w myworkspace -r myrepo
+
+# Get the resolution as JSON
+bb pr comments resolve 42 123 --json
+```
+
+### Notes
+
+- Resolving is reversible with `bb pr comments unresolve`
+- `--json` returns `{ success, pullRequestId, commentId, resolution }`; the API returns the resolution record, not the full comment — use `bb pr comments view` to read the comment back
+
+---
+
+## `bb pr comments unresolve`
+
+Reopen a resolved comment thread on a pull request.
+
+```bash
+bb pr comments unresolve <pr-id> <comment-id>
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `pr-id` | Pull request ID |
+| `comment-id` | Comment ID |
+
+### Options
+
+| Option | Description |
+|---------|-------------|
+| `-w, --workspace <workspace>` | Workspace |
+| `-r, --repo <repo>` | Repository |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+# Reopen comment thread #123 on PR #42
+bb pr comments unresolve 42 123
+
+# Reopen in a specific repository
+bb pr comments unresolve 42 123 -w myworkspace -r myrepo
+
+# Get the result as JSON
+bb pr comments unresolve 42 123 --json
+```
+
+### Notes
+
+- The API returns no body, so `--json` reports only `{ success, pullRequestId, commentId }`
 
 ---
 

@@ -1237,6 +1237,94 @@ prCommentsCmd
     );
   });
 
+prCommentsCmd
+  .command('view <pr-id> <comment-id>')
+  .description('View a single comment on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments view 42 12345',
+        'bb pr comments view 42 12345 --json',
+      ],
+    })
+  )
+  .action(async (prId, commentId) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewCommentPRCommand,
+      withGlobalOptions({ prId, commentId }, context),
+      cli,
+      context
+    );
+  });
+
+prCommentsCmd
+  .command('reply <pr-id> <comment-id> <message>')
+  .description('Reply to a comment on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments reply 42 12345 "Good catch, fixed."',
+        'bb pr comments reply 42 12345 "Fixed in the latest push" --json',
+      ],
+    })
+  )
+  .action(async (prId, commentId, message) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ReplyCommentPRCommand,
+      withGlobalOptions({ prId, commentId, message }, context),
+      cli,
+      context
+    );
+  });
+
+prCommentsCmd
+  .command('resolve <pr-id> <comment-id>')
+  .description('Resolve a comment thread on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments resolve 42 12345',
+        'bb pr comments resolve 42 12345 --json',
+      ],
+    })
+  )
+  .action(async (prId, commentId) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ResolveCommentPRCommand,
+      withGlobalOptions({ prId, commentId }, context),
+      cli,
+      context
+    );
+  });
+
+prCommentsCmd
+  .command('unresolve <pr-id> <comment-id>')
+  .description('Reopen a resolved comment thread on a pull request')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb pr comments unresolve 42 12345',
+        'bb pr comments unresolve 42 12345 --json',
+      ],
+    })
+  )
+  .action(async (prId, commentId) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.UnresolveCommentPRCommand,
+      withGlobalOptions({ prId, commentId }, context),
+      cli,
+      context
+    );
+  });
+
 const prReviewersCmd = new Command('reviewers').description(
   'Manage pull request reviewers'
 );

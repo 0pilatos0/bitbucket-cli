@@ -353,13 +353,40 @@ export function createApiClient(
   return instance;
 }
 
+/**
+ * Flatten Bitbucket's `error.fields` map into `key: reason` pairs. Bitbucket
+ * pairs a terse message like "Bad request" with this map, and it is the only
+ * part that says which key was rejected.
+ */
+function formatErrorFields(fields: unknown): string | undefined {
+  if (typeof fields !== 'object' || fields === null || Array.isArray(fields)) {
+    return undefined;
+  }
+
+  const parts = Object.entries(fields as Record<string, unknown>).flatMap(
+    ([key, reason]) => {
+      const text = Array.isArray(reason)
+        ? reason.filter((item) => typeof item === 'string').join(', ')
+        : typeof reason === 'string'
+          ? reason
+          : '';
+      return text ? [`${key}: ${text}`] : [];
+    }
+  );
+
+  return parts.length > 0 ? parts.join('; ') : undefined;
+}
+
 function extractErrorMessage(data: unknown): string | undefined {
   if (typeof data === 'object' && data !== null) {
     const errorObj = data as Record<string, unknown>;
     if (typeof errorObj.error === 'object' && errorObj.error !== null) {
       const errorDetail = errorObj.error as Record<string, unknown>;
       if (typeof errorDetail.message === 'string') {
-        return errorDetail.message;
+        const fields = formatErrorFields(errorDetail.fields);
+        return fields
+          ? `${errorDetail.message} (${fields})`
+          : errorDetail.message;
       }
     }
     if (typeof errorObj.message === 'string') {

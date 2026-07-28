@@ -246,7 +246,7 @@ Returns an envelope with metadata and a named array:
 
 ### Pattern 2: Resource (View/Create Commands)
 
-Used by: `pr view`, `repo view`, `pr create`, `pr edit`
+Used by: `pr view`, `repo view`, `pr create`, `pr edit`, `pr comments view`
 
 Returns the raw Bitbucket API resource object directly, with no envelope:
 
@@ -275,7 +275,7 @@ bb pr view 42 --json | jq 'keys'
 
 ### Pattern 3: Action (Approve/Merge/Decline Commands)
 
-Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete`, `pr reviewers add/remove`, `auth login`, `auth logout`
+Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `auth login`, `auth logout`
 
 Returns a success indicator plus resource identifiers:
 

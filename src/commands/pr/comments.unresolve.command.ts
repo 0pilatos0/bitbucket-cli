@@ -1,5 +1,5 @@
 /**
- * Edit comment on PR command implementation
+ * Unresolve comment on PR command implementation
  */
 
 import { BaseCommand } from '../../core/base-command.js';
@@ -8,20 +8,19 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type {
-  PullrequestComment,
-  PullrequestsApi,
-} from '../../generated/api.js';
+import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
-export interface EditCommentPROptions extends GlobalOptions {}
+export interface UnresolveCommentPROptions extends GlobalOptions {}
 
-export class EditCommentPRCommand extends BaseCommand<
-  { prId: string; commentId: string; message: string } & EditCommentPROptions,
+export class UnresolveCommentPRCommand extends BaseCommand<
+  { prId: string; commentId: string } & UnresolveCommentPROptions,
   void
 > {
-  public readonly name = 'edit';
-  public readonly description = 'Edit a comment on a pull request';
+  public readonly name = 'unresolve';
+  public readonly description =
+    'Reopen a resolved comment thread on a pull request';
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
@@ -32,11 +31,7 @@ export class EditCommentPRCommand extends BaseCommand<
   }
 
   public async execute(
-    options: {
-      prId: string;
-      commentId: string;
-      message: string;
-    } & EditCommentPROptions,
+    options: { prId: string; commentId: string } & UnresolveCommentPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -47,20 +42,20 @@ export class EditCommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.prId, 'pr-id');
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    const response =
-      await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(
+    await this.pullrequestsApi
+      .repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolveDelete(
         {
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
           commentId: commentId,
-          // Bitbucket rejects `type` here with 400 "extra keys not allowed".
-          pullrequestComment: {
-            content: {
-              raw: options.message,
-            },
-          } as PullrequestComment,
         }
+      )
+      .catch((error: unknown) =>
+        rethrowWithNotFoundContext(
+          error,
+          `Comment #${commentId} not found on pull request #${prId} in ${repoContext.workspace}/${repoContext.repoSlug}.`
+        )
       );
 
     if (context.globalOptions.json) {
@@ -68,11 +63,10 @@ export class EditCommentPRCommand extends BaseCommand<
         success: true,
         pullRequestId: prId,
         commentId,
-        comment: response.data,
       });
       return;
     }
 
-    this.output.success(`Updated comment #${commentId} on PR #${prId}`);
+    this.output.success(`Unresolved comment #${commentId} on PR #${prId}`);
   }
 }
