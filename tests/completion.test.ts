@@ -106,8 +106,9 @@ describe('generateCompletions', () => {
       const names = complete('bb snippet comments ');
       expect(names).toEqual(expect.arrayContaining(expected));
       // pr-only names must be absent, otherwise this passes on the pr group too
-      expect(names).not.toContain('resolve');
-      expect(names).not.toContain('reply');
+      for (const prOnly of ['resolve', 'unresolve', 'view', 'reply']) {
+        expect(names).not.toContain(prOnly);
+      }
     });
 
     it('is not confused by flags between the parent and "comments"', () => {

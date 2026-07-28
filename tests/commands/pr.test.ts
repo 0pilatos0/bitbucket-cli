@@ -4083,6 +4083,155 @@ describe('ViewCommentPRCommand', () => {
 
     expect(output.logs.join('\n')).toContain('[no content]');
   });
+
+  it('should show the parent id when the comment is a reply', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'agreed' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        parent: { id: 5, type: 'pullrequest_comment' },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).toContain('Reply to: #5');
+  });
+
+  it('should omit the reply line for a top-level comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).not.toContain('Reply to:');
+  });
+
+  it('should show the file and line for an inline comment', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'off by one' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        inline: { path: 'src/index.ts', to: 42 },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).toContain('src/index.ts:42');
+  });
+
+  it('should fall back to the from line when a comment sits on a removed line', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'why was this dropped?' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        inline: { path: 'src/old.ts', from: 17 },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).toContain('src/old.ts:17');
+  });
+
+  it('should show a file-level inline comment without a line number', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'this whole file needs a rewrite' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        inline: { path: 'src/legacy.ts' },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('src/legacy.ts');
+    expect(text).not.toContain('src/legacy.ts:');
+  });
+
+  it('should name who resolved the thread', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'Nit: rename this' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        resolution: {
+          type: 'comment_resolution',
+          user: mockUser,
+          created_on: '2024-01-03T00:00:00.000Z',
+        },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs.join('\n')).toContain('Resolved by: Test User');
+  });
+
+  it('should still mark the thread resolved when the resolver is unknown', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      comment: {
+        id: 7,
+        type: 'pullrequest_comment',
+        content: { raw: 'Nit: rename this' },
+        user: mockUser,
+        created_on: '2024-01-02T00:00:00.000Z',
+        resolution: {
+          type: 'comment_resolution',
+          created_on: '2024-01-03T00:00:00.000Z',
+        },
+      } as PullrequestComment,
+    });
+    const { command, output } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    const text = output.logs.join('\n');
+    expect(text).toContain('[resolved]');
+    expect(text).not.toContain('Resolved by:');
+  });
 });
 
 // ============================================================
