@@ -1,4 +1,8 @@
 [test]
+# Strip real BB_* env vars before any suite loads, so a developer's working
+# `bb` setup can't leak into tests (issue #294).
+preload = ["./tests/preload.ts"]
+
 # Coverage is opt-in via the --coverage flag (see the `test:coverage` script in
 # package.json). We deliberately do NOT set `coverage = true` here so that a
 # plain `bun test` (local dev + the macOS/Windows CI legs) stays fast.
