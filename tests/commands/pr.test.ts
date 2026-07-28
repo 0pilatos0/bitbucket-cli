@@ -157,6 +157,7 @@ function createMockPullrequestsApi(
   lastCommentRequest?: Record<string, unknown>;
   lastCommentEditBody?: Record<string, unknown>;
   lastResolveRequest?: Record<string, unknown>;
+  lastResolveOptions?: Record<string, unknown>;
   lastUnresolveRequest?: Record<string, unknown>;
   lastCommentGetRequest?: Record<string, unknown>;
 } {
@@ -499,12 +500,15 @@ function createMockPullrequestsApi(
       });
     },
 
-    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolvePost(params: {
-      workspace: string;
-      repoSlug: string;
-      pullRequestId: number;
-      commentId: number;
-    }) {
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdResolvePost(
+      params: {
+        workspace: string;
+        repoSlug: string;
+        pullRequestId: number;
+        commentId: number;
+      },
+      axiosOptions?: Record<string, unknown>
+    ) {
       if (options.commentResolveError !== undefined) {
         throw options.commentResolveError;
       }
@@ -512,6 +516,7 @@ function createMockPullrequestsApi(
         throw new Error('API Error');
       }
       mockApi.lastResolveRequest = params;
+      mockApi.lastResolveOptions = axiosOptions;
       return createAxiosResponse({
         type: 'comment_resolution',
         user: mockUser,
@@ -568,6 +573,7 @@ function createMockPullrequestsApi(
     lastCommentRequest?: Record<string, unknown>;
     lastCommentEditBody?: Record<string, unknown>;
     lastResolveRequest?: Record<string, unknown>;
+    lastResolveOptions?: Record<string, unknown>;
     lastUnresolveRequest?: Record<string, unknown>;
     lastCommentGetRequest?: Record<string, unknown>;
   };
@@ -3677,6 +3683,20 @@ describe('ResolveCommentPRCommand', () => {
       repoSlug: 'repo',
       pullRequestId: 42,
       commentId: 7,
+    });
+  });
+
+  it('should send an empty body, which Bitbucket requires on this POST', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(pullrequestsApi.lastResolveOptions).toEqual({
+      data: {},
     });
   });
 

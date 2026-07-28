@@ -48,7 +48,10 @@ export class ResolveCommentPRCommand extends BaseCommand<
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
           commentId: commentId,
-        }
+        },
+        // Bitbucket answers 400 unless this POST carries a body. The endpoint
+        // declares no payload, so axios would send none at all.
+        { data: {} }
       )
       .catch((error: unknown) =>
         rethrowWithNotFoundContext(
