@@ -51,6 +51,8 @@ bb pr comments list <id>
 | `-r, --repo <repo>` | Repository |
 | `--limit <number>` | Maximum number of comments (default: 25) |
 | `--all` | List all comments (overrides `--limit`) |
+| `--resolved` | Only show resolved comments |
+| `--unresolved` | Only show unresolved comments |
 | `--no-truncate` | Show full comment content without truncation |
 | `--json` | Output as JSON |
 
@@ -59,6 +61,9 @@ bb pr comments list <id>
 ```bash
 # List comments on PR #42
 bb pr comments list 42
+
+# Only comments that still need attention
+bb pr comments list 42 --unresolved
 
 # List more comments
 bb pr comments list 42 --limit 50
@@ -80,6 +85,8 @@ bb pr comments list 42 --json
 
 - By default, comment content is truncated to 60 characters in the table view
 - Use `--no-truncate` to display the full comment text
+- The `Status` column shows `resolved`, `pending`, or `open`; Bitbucket records resolution on the thread root, so replies always show `open`
+- `--resolved` and `--unresolved` filter on the same resolution state and cannot be combined
 - `--limit` is enforced across paginated comment responses
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
 

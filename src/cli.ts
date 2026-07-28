@@ -1145,12 +1145,15 @@ prCommentsCmd
   .description('List comments on a pull request')
   .option('--limit <number>', 'Maximum number of comments (default: 25)')
   .option('--all', 'List all comments (overrides --limit)')
+  .option('--resolved', 'Only show resolved comments')
+  .option('--unresolved', 'Only show unresolved comments')
   .addHelpText(
     'after',
     buildHelpText({
       examples: [
         'bb pr comments list 42',
         'bb pr comments list 42 --no-truncate',
+        'bb pr comments list 42 --unresolved',
         'bb pr comments list 42 --all',
         'bb pr comments list 42 --limit 50 --json',
       ],
