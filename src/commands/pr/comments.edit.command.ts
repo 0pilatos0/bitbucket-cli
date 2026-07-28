@@ -8,7 +8,10 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi } from '../../generated/api.js';
+import type {
+  PullrequestComment,
+  PullrequestsApi,
+} from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface EditCommentPROptions extends GlobalOptions {}
@@ -51,12 +54,12 @@ export class EditCommentPRCommand extends BaseCommand<
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
           commentId: commentId,
+          // Bitbucket rejects `type` here with 400 "extra keys not allowed".
           pullrequestComment: {
-            type: 'pullrequest_comment',
             content: {
               raw: options.message,
             },
-          },
+          } as PullrequestComment,
         }
       );
 

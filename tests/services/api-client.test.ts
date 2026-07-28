@@ -1165,6 +1165,85 @@ describe('createApiClient - error message extraction', () => {
     }
   });
 
+  // Bitbucket answers a rejected payload with a terse "Bad request" plus an
+  // error.fields map naming each offending key. Without the map the message is
+  // undebuggable, so append it.
+  it('appends error.fields detail to the message', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: {
+          error: {
+            message: 'Bad request',
+            fields: {
+              type: 'extra keys not allowed',
+              'parent.type': 'extra keys not allowed',
+            },
+          },
+        },
+      },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      const message = (err as APIError).message;
+      expect(message).toContain('Bad request');
+      expect(message).toContain('type: extra keys not allowed');
+      expect(message).toContain('parent.type: extra keys not allowed');
+    }
+  });
+
+  it('joins array-valued field errors', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: {
+          error: {
+            message: 'Bad request',
+            fields: { title: ['required', 'too long'] },
+          },
+        },
+      },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as APIError).message).toContain('title: required, too long');
+    }
+  });
+
+  it('leaves the message untouched when fields is absent or empty', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 400, data: { error: { message: 'Bad request', fields: {} } } },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter as any;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      expect((err as APIError).message).toBe('Bad request');
+    }
+  });
+
   it('falls back to top-level message field', async () => {
     const mockAdapter = createMockAdapter([
       {

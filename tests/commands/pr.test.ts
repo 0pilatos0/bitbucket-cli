@@ -155,6 +155,7 @@ function createMockPullrequestsApi(
 ): PullrequestsApi & {
   lastCommentBody?: Record<string, unknown>;
   lastCommentRequest?: Record<string, unknown>;
+  lastCommentEditBody?: Record<string, unknown>;
   lastResolveRequest?: Record<string, unknown>;
   lastUnresolveRequest?: Record<string, unknown>;
   lastCommentGetRequest?: Record<string, unknown>;
@@ -487,6 +488,7 @@ function createMockPullrequestsApi(
       commentId: number;
       pullrequestComment: Record<string, unknown>;
     }) {
+      mockApi.lastCommentEditBody = params.pullrequestComment;
       if (options.throwOnCommentEdit) {
         throw new Error('API Error');
       }
@@ -564,6 +566,7 @@ function createMockPullrequestsApi(
   return mockApi as unknown as PullrequestsApi & {
     lastCommentBody?: Record<string, unknown>;
     lastCommentRequest?: Record<string, unknown>;
+    lastCommentEditBody?: Record<string, unknown>;
     lastResolveRequest?: Record<string, unknown>;
     lastUnresolveRequest?: Record<string, unknown>;
     lastCommentGetRequest?: Record<string, unknown>;
@@ -3543,6 +3546,32 @@ describe('EditCommentPRCommand', () => {
     ).toBe(true);
   });
 
+  // Bitbucket rejects `type` on the comment payload with 400 "extra keys not
+  // allowed", so the update body must carry content only.
+  it('should send only content, without type', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+
+    const command = new EditCommentPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Updated text' },
+      { globalOptions: {} }
+    );
+
+    const body = pullrequestsApi.lastCommentEditBody as
+      | Record<string, unknown>
+      | undefined;
+    expect(body).toEqual({ content: { raw: 'Updated text' } });
+  });
+
   it('should return JSON on success', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
@@ -4068,8 +4097,27 @@ describe('ReplyCommentPRCommand', () => {
     const body = pullrequestsApi.lastCommentBody as
       | Record<string, unknown>
       | undefined;
-    expect(body?.parent).toEqual({ type: 'pullrequest_comment', id: 7 });
+    expect(body?.parent).toEqual({ id: 7 });
     expect(body?.content).toEqual({ raw: 'Agreed' });
+  });
+
+  // Bitbucket rejects `type` on the comment payload and on `parent` with
+  // 400 "extra keys not allowed", so the body must carry neither.
+  it('should omit type from the payload and from parent', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command } = makeCommand(pullrequestsApi);
+
+    await command.execute(
+      { prId: '42', commentId: '7', message: 'Agreed' },
+      { globalOptions: {} }
+    );
+
+    const body = pullrequestsApi.lastCommentBody as
+      | Record<string, unknown>
+      | undefined;
+    expect(body).not.toHaveProperty('type');
+    expect(Object.keys(body ?? {}).sort()).toEqual(['content', 'parent']);
+    expect(body?.parent).not.toHaveProperty('type');
   });
 
   it('should address the reply to the resolved workspace, repo and PR', async () => {

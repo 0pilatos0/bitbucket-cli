@@ -48,16 +48,16 @@ export class ReplyCommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.prId, 'pr-id');
     const parentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    const body: PullrequestComment = {
-      type: 'pullrequest_comment',
+    // Bitbucket rejects `type` here and on `parent` with 400 "extra keys not
+    // allowed", so send content and the bare parent id only.
+    const body = {
       content: {
         raw: options.message,
       },
       parent: {
-        type: 'pullrequest_comment',
         id: parentId,
       },
-    };
+    } as PullrequestComment;
 
     const response = await this.pullrequestsApi
       .repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsPost({
