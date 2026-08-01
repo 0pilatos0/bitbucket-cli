@@ -295,8 +295,7 @@ describe('ViewProjectCommand', () => {
 describe('CreateProjectCommand', () => {
   it('should POST a typed project body (private by default)', async () => {
     let captured:
-      | { workspace?: string; project?: Record<string, unknown> }
-      | undefined;
+      { workspace?: string; project?: Record<string, unknown> } | undefined;
     const output = createMockOutputService();
     const command = new CreateProjectCommand(
       createMockProjectsApi({

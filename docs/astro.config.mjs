@@ -90,9 +90,7 @@ export default defineConfig({
             { label: "Repo Commands", slug: "commands/repo" },
             {
               label: 'PR Commands',
-              autogenerate: {
-                directory: 'commands/pr',
-              },
+              items: [{ autogenerate: { directory: 'commands/pr' } }],
             },
             { label: "Snippet Commands", slug: "commands/snippet" },
             {

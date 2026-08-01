@@ -70,8 +70,7 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
         },
         shouldInclude: (pullRequest) => {
           const source = pullRequest.source as
-            | { branch?: { name?: string } }
-            | undefined;
+            { branch?: { name?: string } } | undefined;
           return source?.branch?.name === currentBranch;
         },
       });
