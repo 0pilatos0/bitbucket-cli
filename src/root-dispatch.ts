@@ -115,16 +115,15 @@ export function resolveRootInvocation(
 
   const { command, unresolved } = resolveCommandPath(root, tokens);
 
-  // Every token named a real command, so the only mistake was flag position.
-  if (unresolved === undefined && swallowed !== undefined) {
-    return { kind: 'error', error: jsonFlagPositionError(tokens) };
-  }
-
   // Report the token that is actually wrong, against the candidates valid at
   // its own depth. Blaming `tokens[0]` here would misreport `--json prr list`
   // as "unknown command 'list'" — the one token the user got right.
-  return {
-    kind: 'error',
-    error: unknownCommandError(unresolved ?? tokens[0]!, command),
-  };
+  if (unresolved !== undefined) {
+    return { kind: 'error', error: unknownCommandError(unresolved, command) };
+  }
+
+  // Every token named a real command. Commander dispatches a valid command path
+  // before the root action ever runs (even after a `--` separator), so the only
+  // way to land here is `--json` having swallowed the first token.
+  return { kind: 'error', error: jsonFlagPositionError(tokens) };
 }

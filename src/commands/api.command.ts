@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { BaseCommand } from '../core/base-command.js';
+import { didYouMeanSuffix } from '../core/suggest.js';
 import type { CommandContext } from '../core/interfaces/commands.js';
 import type {
   IContextService,
@@ -190,9 +191,12 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
       if (positionalMethod !== undefined && !isHttpMethod(positionalMethod)) {
         throw new BBError({
           code: ErrorCode.VALIDATION_INVALID,
-          message: this.appendHelpHint(
-            `'${positionalMethod}' is not a valid HTTP method. Expected one of: ${HTTP_METHODS.join(', ')}.`
-          ),
+          // Same suggestion as the `-X/--method` path (`resolveMethod`), so
+          // `bb api GTE /user` and `bb api -X GTE /user` read alike.
+          message:
+            this.appendHelpHint(
+              `'${positionalMethod}' is not a valid HTTP method. Expected one of: ${HTTP_METHODS.join(', ')}.`
+            ) + didYouMeanSuffix(positionalMethod, HTTP_METHODS),
         });
       }
     } else {

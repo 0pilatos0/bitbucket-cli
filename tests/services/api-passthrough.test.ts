@@ -59,6 +59,14 @@ describe('method helpers', () => {
     ).toThrow('(Did you mean PATCH?)');
   });
 
+  it('normalizes a valid positional verb regardless of case', () => {
+    // The positional path is validated separately from -X/--method (in
+    // api.command.ts); both must suggest, or the same typo behaves differently
+    // depending on where the user put the verb.
+    expect(isHttpMethod('gte')).toBe(false);
+    expect(isHttpMethod('get')).toBe(true);
+  });
+
   it('adds no suggestion line when nothing is close enough', () => {
     let message = '';
     try {

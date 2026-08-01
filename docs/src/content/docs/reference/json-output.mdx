@@ -516,7 +516,7 @@ present, the shape is:
 | `1001` AUTH_REQUIRED | _(none)_ |
 | `1002` AUTH_INVALID | `status` (HTTP status, OAuth verification failures only) |
 | `1003` AUTH_EXPIRED | `status` (HTTP status from the token endpoint) |
-| `2001`–`2005` API_* | `status`, `method`, `url` (the request path, including its query string) — plus the top-level `statusCode` and `response` fields described above |
+| `2001`–`2005` API_* | `status`, `method`, `url` — plus the top-level `statusCode` and `response` fields described above. `url` is the request path only; pagination and filter parameters the CLI sends are not part of it, though a query string you write yourself (`bb api '/repositories/acme?role=owner'`) is |
 | `3001` GIT_NOT_REPOSITORY | _(none)_ |
 | `3002` GIT_COMMAND_FAILED | `command`, `exitCode` |
 | `3003` GIT_REMOTE_NOT_FOUND | `remote` |

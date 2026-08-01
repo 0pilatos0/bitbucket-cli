@@ -137,6 +137,20 @@ describe('resolveRootInvocation', () => {
       expect(dispatch([], undefined).kind).toBe('help');
       expect(dispatch(['prr'], true).kind).toBe('error');
     });
+
+    it('never blames a token that names a real command', () => {
+      // Guards the shape of the final branch. Commander dispatches any valid
+      // command path before the root action runs — even after a `--` separator
+      // (verified: `bb -- pr list` runs the command) — so a fully-resolving
+      // token list can only mean a misplaced --json. Whatever we answer here,
+      // it must not be "unknown command 'pr'".
+      for (const args of [['pr'], ['pr', 'list'], ['repo']]) {
+        const result = dispatch(args);
+        if (result.kind === 'error') {
+          expect(result.error.message).not.toContain('unknown command');
+        }
+      }
+    });
   });
 
   describe('bb help <command>', () => {

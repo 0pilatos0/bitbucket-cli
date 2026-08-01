@@ -135,9 +135,15 @@ export class ActivityPRCommand extends BaseCommand<
       .map((type) => type.trim().toLowerCase())
       .filter((type) => type.length > 0);
 
-    const invalid = requested.filter(
-      (type) => !VALID_ACTIVITY_TYPES.includes(type as ActivityType)
-    );
+    // Deduped: `--type coment,coment` should report the bad token once, not
+    // repeat the same suggestion line (and the same entry in `context.invalid`).
+    const invalid = [
+      ...new Set(
+        requested.filter(
+          (type) => !VALID_ACTIVITY_TYPES.includes(type as ActivityType)
+        )
+      ),
+    ];
 
     if (invalid.length > 0) {
       throw new BBError({
