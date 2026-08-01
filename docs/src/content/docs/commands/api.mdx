@@ -133,6 +133,11 @@ bb api /user
 - **Errors surface the API response.** On a non-2xx status, the API's error
   body is printed and the command exits non-zero. With `--json`, the error
   payload (including `statusCode` and `response`) is emitted as structured JSON.
+  A `401` or `403` also carries a `hint` with the next step to take. The generic
+  `404` hint is deliberately suppressed here — you supplied the URL yourself, so
+  advice about `--workspace`/`--repo` would not apply. Note the API error body
+  prints to **stdout** while the error line and its hint go to **stderr**, so in
+  a terminal the hint appears after the body.
 - **Retries and redaction are inherited** from the shared API client — rate
   limits (`429`) and the transient gateway errors `502`/`503`/`504` are retried
   with backoff, and sensitive values are redacted from `DEBUG` logs.

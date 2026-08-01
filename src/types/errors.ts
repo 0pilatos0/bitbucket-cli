@@ -94,18 +94,28 @@ export class AuthError extends BBError {
 export class APIError extends BBError {
   public readonly statusCode: number;
   public readonly response?: unknown;
+  /**
+   * Whether `message` was already rewritten to name the missing resource by
+   * one of the `rethrow*` helpers below. Read by `remediationHintLines()` to
+   * suppress the generic 404 next-step advice when the message is already
+   * specific. Deliberately NOT serialized by `toJSON()` — it is internal
+   * rendering state, not part of the `--json` error contract.
+   */
+  public readonly contextualized: boolean;
 
   constructor(
     message: string,
     statusCode: number,
     response?: unknown,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
+    opts: { contextualized?: boolean } = {}
   ) {
     const code = APIError.statusToErrorCode(statusCode);
     super({ code, message, context });
     this.name = 'APIError';
     this.statusCode = statusCode;
     this.response = response;
+    this.contextualized = opts.contextualized ?? false;
   }
 
   public toJSON(): Record<string, unknown> {
@@ -145,7 +155,9 @@ export function rethrowWithNotFoundContext(
   notFoundMessage: string
 ): never {
   if (error instanceof APIError && error.statusCode === 404) {
-    throw new APIError(notFoundMessage, 404, error.response, error.context);
+    throw new APIError(notFoundMessage, 404, error.response, error.context, {
+      contextualized: true,
+    });
   }
   throw error;
 }

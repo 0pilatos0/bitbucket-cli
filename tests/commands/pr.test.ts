@@ -1460,6 +1460,37 @@ describe('ActivityPRCommand', () => {
     ).rejects.toThrow(/--type must be one of/);
   });
 
+  it('should suggest a near-miss activity type per bad token', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    await expect(
+      command.execute({ id: '1', type: 'coment' }, { globalOptions: {} })
+    ).rejects.toThrow('(Did you mean comment?)');
+
+    // A comma list gets one suggestion line per invalid token.
+    let message = '';
+    try {
+      await command.execute(
+        { id: '1', type: 'coment,merg' },
+        { globalOptions: {} }
+      );
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toContain('(Did you mean comment?)');
+    expect(message).toContain('(Did you mean merge?)');
+  });
+
   it('should use changes_requested actor when both changes_requested and update are set', async () => {
     const pullrequestsApi = createMockPullrequestsApi({
       activityPages: [
@@ -2577,6 +2608,51 @@ describe('DiffPRCommand', () => {
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
+  });
+
+  describe('--color validation', () => {
+    const makeCommand = () => {
+      const output = createMockOutputService();
+      return new DiffPRCommand(
+        createMockPullrequestsApi(),
+        createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+        createMockGitService(),
+        output
+      );
+    };
+
+    it('rejects an invalid value instead of silently disabling color', async () => {
+      // Previously `--color alwyas` fell through to "not always", quietly
+      // dropping color and exiting 0.
+      await expect(
+        makeCommand().execute(
+          { id: '1', color: 'alwyas' as 'always' },
+          { globalOptions: {} }
+        )
+      ).rejects.toThrow('--color must be one of: auto, always, never');
+    });
+
+    it('suggests the intended value', async () => {
+      await expect(
+        makeCommand().execute(
+          { id: '1', color: 'alwyas' as 'always' },
+          { globalOptions: {} }
+        )
+      ).rejects.toThrow('(Did you mean always?)');
+    });
+
+    it('accepts each valid value', async () => {
+      for (const when of ['auto', 'always', 'never'] as const) {
+        await makeCommand().execute(
+          { id: '1', color: when },
+          { globalOptions: {} }
+        );
+      }
+    });
+
+    it('still allows the option to be omitted', async () => {
+      await makeCommand().execute({ id: '1' }, { globalOptions: {} });
+    });
   });
 
   it('should display diff for current branch when no ID provided', async () => {

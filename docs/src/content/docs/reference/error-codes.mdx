@@ -51,6 +51,10 @@ bb auth logout
 bb auth login
 ```
 
+The CLI prints this next step alongside the error:
+
+> Your Bitbucket credentials were rejected. Run `bb auth login` to re-authenticate.
+
 ### 1003 - AUTH_EXPIRED
 
 **Message:** OAuth token expired. Run `bb auth login` to re-authenticate.
@@ -87,6 +91,14 @@ bb auth login
 - Verify the resource exists in Bitbucket
 - Ensure you have access to the repository
 
+Where the message doesn't already name the missing resource, the CLI appends:
+
+> Verify the id or slug you passed, and that --workspace/--repo point at the right repository your token can see.
+
+The hint is omitted when the message is already specific (for example
+`Pull request 999 not found in acme/demo.`) and for `bb api`, where you supplied
+the URL yourself.
+
 ### 2003 - API_FORBIDDEN
 
 **Message:** Access denied
@@ -97,6 +109,15 @@ bb auth login
 1. Check your API token scopes at [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
 2. See [Token Scopes](/reference/token-scopes/) for the exact scope each `bb` command requires.
 3. If a scope is missing, mint a new token (you can't add scopes to an existing one) and re-authenticate with `bb auth login`.
+
+The CLI prints this next step alongside the error:
+
+> Your token may be missing a required scope. Scopes can't be added to an existing token — mint a new one, then run `bb auth login`.
+>
+> Docs: https://bitbucket-cli.paulvanderlei.com/reference/token-scopes/
+
+A `403` can also be a plain permission denial rather than a scope problem — the
+API doesn't distinguish the two, hence the hedged wording.
 
 ### 2004 - API_RATE_LIMITED
 
@@ -232,13 +253,37 @@ Common required fields:
 
 **Message:** Invalid value
 
-**Cause:** A provided value doesn't match expected format.
+**Cause:** A provided value doesn't match expected format, or an unknown
+top-level command was given.
 
 **Solution:**
 - Check the expected format in command help
 - Common issues:
   - PR ID must be a number
   - State must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
+  - An unknown command (`bb prr`)
+
+When a value or command name is close to a valid one, the CLI suggests the
+correction:
+
+```bash
+bb prr
+# ✗ unknown command 'prr'
+# (Did you mean pr?)
+
+bb pr list --state opne
+# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
+# (Did you mean OPEN?)
+```
+
+Enum values are matched **case-sensitively**, so a value that is right apart
+from its case gets a distinct message rather than a suggestion:
+
+```bash
+bb pr list --state open
+# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
+# (Values are case-sensitive — use OPEN.)
+```
 
 ### 5003 - FILE_NOT_FOUND
 
@@ -410,7 +455,7 @@ For JSON output, errors are emitted to stderr and include the error code:
 
 ```bash
 bb pr view 999 --json 2>&1
-# {"name":"BBError","code":2002,"message":"Pull request not found"}
+# {"name":"APIError","code":2002,"message":"Pull request 999 not found in acme/demo.","context":{"status":404,"method":"GET","url":"/repositories/acme/demo/pullrequests/999"},"statusCode":404}
 ```
 
 Typical JSON error payload fields:
@@ -419,3 +464,8 @@ Typical JSON error payload fields:
 - `code` - Numeric CLI error code
 - `message` - Human-readable message
 - `context` - Optional structured metadata
+- `hint` - Optional actionable next step (`401`, `403`, `404` only)
+- `statusCode` / `response` - `APIError` only: the upstream HTTP status and its
+  response body
+
+See [JSON output](/reference/json-output/) for the full envelope.

@@ -19,9 +19,18 @@ import {
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
+/**
+ * Allowed `--color <when>` values. Single-sourced here (like `PIPELINE_SORTS`
+ * in the pipeline list command) so `src/cli.ts` can advertise them for shell
+ * completion and `--help` without a circular import.
+ */
+export const COLOR_WHENS = ['auto', 'always', 'never'] as const;
+
+export type ColorWhen = (typeof COLOR_WHENS)[number];
+
 export interface DiffPROptions extends GlobalOptions {
   id?: string;
-  color?: 'auto' | 'always' | 'never';
+  color?: ColorWhen;
   nameOnly?: boolean;
   stat?: boolean;
   web?: boolean;
@@ -44,6 +53,13 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     options: DiffPROptions,
     context: CommandContext
   ): Promise<void> {
+    // Validate before the request so a typo fails fast. `--color` was
+    // advertised and typed but never checked, so `--color alwyas` silently
+    // fell through to "not always" and disabled color with exit 0.
+    if (options.color !== undefined) {
+      this.parseEnumOption(options.color, 'color', COLOR_WHENS);
+    }
+
     const repoContext = await this.contextService.requireRepoContextFor(
       options,
       context
@@ -337,7 +353,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
     return String(diff);
   }
 
-  private shouldColorize(colorOption?: 'auto' | 'always' | 'never'): boolean {
+  private shouldColorize(colorOption?: ColorWhen): boolean {
     if (!colorOption || colorOption === 'auto') {
       return process.stdout.isTTY ?? false;
     }

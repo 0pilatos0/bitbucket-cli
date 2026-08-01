@@ -68,7 +68,8 @@ export function rethrowTrackerDisabled(error: unknown): never {
       TRACKER_DISABLED_MESSAGE,
       404,
       error.response,
-      error.context
+      error.context,
+      { contextualized: true }
     );
   }
   throw error;
@@ -92,7 +93,8 @@ export function rethrowIssueNotFound(
         'disabled (Repository settings → Issue tracker).',
       404,
       error.response,
-      error.context
+      error.context,
+      { contextualized: true }
     );
   }
   throw error;
