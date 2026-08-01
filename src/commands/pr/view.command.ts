@@ -88,11 +88,9 @@ export class ViewPRCommand extends BaseCommand<
 
   private renderBranchInfo(pr: Pullrequest): void {
     const source = pr.source as
-      | { branch?: { name?: string }; commit?: { hash?: string } }
-      | undefined;
+      { branch?: { name?: string }; commit?: { hash?: string } } | undefined;
     const destination = pr.destination as
-      | { branch?: { name?: string }; commit?: { hash?: string } }
-      | undefined;
+      { branch?: { name?: string }; commit?: { hash?: string } } | undefined;
     const sourceBranch = this.output.cyan(source?.branch?.name ?? 'unknown');
     const destBranch = this.output.cyan(destination?.branch?.name ?? 'unknown');
     const arrow = this.output.gray(this.output.symbol(' → ', ' -> '));

@@ -14,9 +14,7 @@ import { resolveLimit } from '../../services/pagination.js';
 import { getUserDisplayName } from '../../services/response-parsers.js';
 
 const VALID_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum) as readonly (
-  | 'owner'
-  | 'contributor'
-  | 'member'
+  'owner' | 'contributor' | 'member'
 )[];
 
 export interface ListSnippetsOptions {

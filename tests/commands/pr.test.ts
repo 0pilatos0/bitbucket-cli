@@ -3771,8 +3771,7 @@ describe('EditCommentPRCommand', () => {
     );
 
     const body = pullrequestsApi.lastCommentEditBody as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(body).toEqual({ content: { raw: 'Updated text' } });
   });
 
@@ -4462,8 +4461,7 @@ describe('ReplyCommentPRCommand', () => {
 
     expect(output.logs).toContain('success:Replied to comment #7 on PR #42');
     const body = pullrequestsApi.lastCommentBody as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(body?.parent).toEqual({ id: 7 });
     expect(body?.content).toEqual({ raw: 'Agreed' });
   });
@@ -4480,8 +4478,7 @@ describe('ReplyCommentPRCommand', () => {
     );
 
     const body = pullrequestsApi.lastCommentBody as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(body).not.toHaveProperty('type');
     expect(Object.keys(body ?? {}).sort()).toEqual(['content', 'parent']);
     expect(body?.parent).not.toHaveProperty('type');
@@ -4497,8 +4494,7 @@ describe('ReplyCommentPRCommand', () => {
     );
 
     const request = pullrequestsApi.lastCommentRequest as
-      | Record<string, unknown>
-      | undefined;
+      Record<string, unknown> | undefined;
     expect(request?.workspace).toBe('workspace');
     expect(request?.repoSlug).toBe('repo');
     expect(request?.pullRequestId).toBe(42);

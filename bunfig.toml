@@ -20,5 +20,5 @@ coveragePathIgnorePatterns = ["src/generated/**", "src/index.ts", "src/cli.ts"]
 # Per-file floor enforced by Bun's exit code (the hard CI gate). Use the SCALAR
 # form: the object form ([test.coverageThreshold]) is not enforced on Bun 1.3.x.
 # Measured per-file floor is ~80% functions / ~90% lines; 0.75 leaves margin for
-# the pinned Bun 1.3.6 in CI. Ratchet upward toward 0.80 as coverage improves.
+# the pinned Bun 1.3.14 in CI. Ratchet upward toward 0.80 as coverage improves.
 coverageThreshold = 0.75

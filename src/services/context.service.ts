@@ -12,9 +12,7 @@ import { BBError, ErrorCode } from '../types/errors.js';
 import type { RepoContext, GlobalOptions } from '../types/config.js';
 
 type RepoContextFailureReason =
-  | 'not_a_git_repo'
-  | 'no_remote'
-  | 'remote_not_bitbucket';
+  'not_a_git_repo' | 'no_remote' | 'remote_not_bitbucket';
 
 interface GitRepoContextResult {
   context: RepoContext | null;

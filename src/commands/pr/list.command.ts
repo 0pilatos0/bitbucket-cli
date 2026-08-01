@@ -93,11 +93,9 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         mapRow: (pr: Pullrequest) => {
           const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
           const source = pr.source as
-            | { branch?: { name?: string } }
-            | undefined;
+            { branch?: { name?: string } } | undefined;
           const destination = pr.destination as
-            | { branch?: { name?: string } }
-            | undefined;
+            { branch?: { name?: string } } | undefined;
           return [
             `#${pr.id}`,
             this.truncateText(title ?? '', 50, context.globalOptions),
