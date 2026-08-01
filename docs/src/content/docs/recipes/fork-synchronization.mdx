@@ -5,7 +5,7 @@ description: Keep a forked Bitbucket repository up to date with its upstream —
 
 import { Aside } from '@astrojs/starlight/components';
 
-Fork-based contribution is common in open-source workflows: you fork an upstream repo, work on a feature branch in your fork, and open a PR back to upstream. Forks drift quickly, so you need a routine sync. This recipe combines `bb repo view` to discover the upstream URL and plain `git` for the fetch/rebase/push.
+Forks drift from upstream fast. This recipe uses `bb repo view` to discover the upstream clone URL and plain `git` for the fetch, rebase and push.
 
 ## Prerequisites
 
@@ -26,9 +26,10 @@ UPSTREAM_REPO="${UPSTREAM_REPO:?set UPSTREAM_REPO}"
 BRANCH="${BRANCH:-main}"
 
 # 1. Look up the upstream clone URL via bb (HTTPS).
-upstream_url=$(bb repo view \
-  -w "$UPSTREAM_WORKSPACE" -r "$UPSTREAM_REPO" --json \
-  --jq '.links.clone[] | select(.name == "https") | .href')
+#    Pipe --json to external `jq -r`: the built-in --jq JSON-encodes its
+#    output, so the URL would come back wrapped in literal double quotes.
+upstream_url=$(bb repo view -w "$UPSTREAM_WORKSPACE" -r "$UPSTREAM_REPO" --json \
+  | jq -r '.links.clone[] | select(.name == "https") | .href')
 
 if [ -z "$upstream_url" ]; then
   echo "Could not resolve HTTPS clone URL for $UPSTREAM_WORKSPACE/$UPSTREAM_REPO" >&2
@@ -71,21 +72,24 @@ UPSTREAM_WORKSPACE=acme \
 The script rebases instead of merging. If `main` on your fork has commits that aren't on upstream, the rebase will rewrite their hashes — anyone else pulling from your fork's `main` will see history change. Use a merge instead (`git merge upstream/$BRANCH`) if your fork shares `main` with collaborators.
 </Aside>
 
-## Recipe: sync, then open a PR for a feature branch
+## Recipe: sync, then open a pull request for a feature branch
 
-A common follow-up: after syncing `main`, rebase your feature branch and open a cross-fork PR back to upstream. `bb pr create` accepts source branch + destination workspace/repo, so you can target the upstream from your fork.
+After syncing `main`, rebase your feature branch and open a pull request (PR) back to upstream.
+
+`bb pr create` cannot do this. Its `-s`/`--source` and `-d`/`--destination` are both plain branch names resolved inside the `-w`/`-r` repository, so it has no way to name your fork as the source — pointing it at upstream either 404s or opens a same-repo PR in upstream. Use [`bb api`](/guides/scripting/#raw-api-access-escape-hatch) to POST the cross-fork body yourself.
 
 ```bash
 #!/bin/bash
 # sync-and-pr.sh
 set -euo pipefail
 
-UPSTREAM_WORKSPACE="${UPSTREAM_WORKSPACE:?}"
-UPSTREAM_REPO="${UPSTREAM_REPO:?}"
-FORK_WORKSPACE="${FORK_WORKSPACE:?}"   # your workspace
-FORK_REPO="${FORK_REPO:?}"             # your fork's repo slug
-FEATURE_BRANCH="${FEATURE_BRANCH:?}"
+UPSTREAM_WORKSPACE="${UPSTREAM_WORKSPACE:?set UPSTREAM_WORKSPACE}"
+UPSTREAM_REPO="${UPSTREAM_REPO:?set UPSTREAM_REPO}"
+FORK_WORKSPACE="${FORK_WORKSPACE:?set FORK_WORKSPACE}"   # your workspace
+FORK_REPO="${FORK_REPO:?set FORK_REPO}"                  # your fork's repo slug
+FEATURE_BRANCH="${FEATURE_BRANCH:?set FEATURE_BRANCH}"
 TITLE="${TITLE:-Update from $FEATURE_BRANCH}"
+DESTINATION="${DESTINATION:-main}"
 
 # 1. Sync main, then rebase the feature branch onto fresh main.
 BRANCH=main ./sync-fork.sh
@@ -94,21 +98,46 @@ git checkout "$FEATURE_BRANCH"
 git rebase main
 git push --force-with-lease origin "$FEATURE_BRANCH"
 
-# 2. Open a PR in the upstream repo, sourced from the fork's branch.
-#    Bitbucket Cloud uses cross-repo PRs by passing the source as a fork.
-bb pr create \
-  -w "$UPSTREAM_WORKSPACE" -r "$UPSTREAM_REPO" \
-  -t "$TITLE" \
-  -s "$FEATURE_BRANCH" \
-  -d main
+# 2. Open a PR in the upstream repository, sourced from the fork's branch.
+#    Build the body with jq so a title containing quotes or backslashes
+#    can't break the JSON.
+jq -n \
+  --arg title "$TITLE" \
+  --arg source "$FEATURE_BRANCH" \
+  --arg fork "$FORK_WORKSPACE/$FORK_REPO" \
+  --arg destination "$DESTINATION" \
+  '{
+     title: $title,
+     source: {
+       branch: { name: $source },
+       repository: { full_name: $fork }
+     },
+     destination: { branch: { name: $destination } }
+   }' \
+  | bb api POST "/repositories/$UPSTREAM_WORKSPACE/$UPSTREAM_REPO/pullrequests" --input -
 ```
 
-<Aside type="tip">
-Cross-fork PR creation in Bitbucket Cloud requires that the upstream repo allows forks-as-sources and that you have read access. Check the Bitbucket UI once if `bb pr create` rejects the request — the error message from the API is forwarded as the CLI exit reason.
-</Aside>
+The path is fully interpolated from shell variables, so `bb api` has no `{workspace}`/`{repo}` placeholders left to substitute. Don't mix the two forms in one path.
+
+### Usage
+
+```bash
+UPSTREAM_WORKSPACE=acme UPSTREAM_REPO=widget \
+  FORK_WORKSPACE=myuser FORK_REPO=widget \
+  FEATURE_BRANCH=feat/login \
+  TITLE="Add login button" \
+  ./sync-and-pr.sh
+```
+
+Cross-fork PRs require that the upstream repository accepts forks as sources and that your token can read it. If Bitbucket rejects the request, its message is printed to stderr as `✗ …` and the CLI exits `1`. Re-run with `--json` to get the same error as one compact line on stderr:
+
+```json
+{"name":"APIError","code":2003,"message":"You do not have access to create a pull request","statusCode":403}
+```
 
 ## Related
 
 - [Repository Context](/guides/repository-context/) — how `bb` resolves workspace/repo from your git remote
 - [`bb repo view`](/commands/repo/) — used here to fetch the upstream HTTPS clone URL
-- [`bb pr create`](/commands/pr/create-and-edit/) — for the second recipe's cross-fork PR
+- [`bb pr create`](/commands/pr/create-and-edit/) — same-repository PRs, where the source branch lives in the target repository
+- [Raw API access](/guides/scripting/#raw-api-access-escape-hatch) — `bb api`, used here for the cross-fork POST

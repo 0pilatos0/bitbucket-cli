@@ -3,13 +3,17 @@ title: Bulk reviewer assignment
 description: Assign a list of reviewers across many open pull requests at once — useful for team rotations, onboarding, and review coverage policies.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+The [Scripting guide](/guides/scripting/#example-scripts) covers batch *approval*. Assigning reviewers across many pull requests (PRs) in one pass is a separate workflow — team rotations, onboarding new reviewers, and enforcing minimum reviewer coverage on existing PRs.
 
-The [Scripting guide](/guides/scripting/#example-scripts) covers batch *approval*, but assigning reviewers across many PRs in one pass is a separate workflow. This recipe handles team rotations, onboarding new reviewers, and enforcing minimum reviewer coverage on existing PRs.
+## Identifying reviewers
+
+`bb pr reviewers add` takes an **account ID** (`712020:3cfed7e0-…`) or a **braced UUID** (`{c1cb1bb5-…}`). Bitbucket Cloud no longer resolves login names here, so a pool of `alice bob charlie` fails with a 404 on every call. See [Identifying users](/commands/pr/reviewers/#identifying-users) for how to look the IDs up once.
+
+Pick one form and use it consistently — an account ID never equals a UUID, so a pool that mixes the two breaks any comparison you do against PR author fields.
 
 ## Recipe: assign a fixed reviewer list
 
-The script below adds every username in `REVIEWERS` to every open PR in `WORKSPACE/REPO`. Existing reviewers are not removed; if a reviewer is already assigned, [`bb pr reviewers add`](/commands/pr/reviewers/#bb-pr-reviewers-add) is a no-op.
+Adds every account ID in `REVIEWERS` to every open PR in `WORKSPACE/REPO`. Existing reviewers are not removed; if a reviewer is already assigned, [`bb pr reviewers add`](/commands/pr/reviewers/#bb-pr-reviewers-add) is a no-op.
 
 ```bash
 #!/bin/bash
@@ -18,14 +22,17 @@ set -euo pipefail
 
 WORKSPACE="${WORKSPACE:-myworkspace}"
 REPO="${REPO:-myrepo}"
-# Space-separated usernames (Bitbucket handles, not display names)
-REVIEWERS="${REVIEWERS:-alice bob charlie}"
+# Space-separated Bitbucket account IDs (not usernames, not display names).
+REVIEWERS="${REVIEWERS:?set REVIEWERS to space-separated account IDs}"
 
 # Optional: skip PRs authored by a reviewer (you can't review your own PR)
 SKIP_SELF_REVIEW="${SKIP_SELF_REVIEW:-true}"
 
-open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json \
-  --jq '.pullRequests[] | "\(.id)\t\(.author.nickname // .author.display_name)"')
+# --all: without it, bb pr list stops at 25 and says nothing about it under --json.
+# External `jq -r`: the built-in --jq has no raw mode, so this filter would
+# return a JSON-quoted string with a two-character \t instead of a real tab.
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --all --json \
+  | jq -r '.pullRequests[] | "\(.id)\t\(.author.account_id)"')
 
 while IFS=$'\t' read -r pr_id author; do
   [ -n "$pr_id" ] || continue
@@ -41,7 +48,7 @@ while IFS=$'\t' read -r pr_id author; do
          -w "$WORKSPACE" -r "$REPO" >/dev/null 2>&1; then
       echo "  + added $reviewer"
     else
-      echo "  ! failed to add $reviewer (user not found, or perms)" >&2
+      echo "  ! failed to add $reviewer (bad account ID, or permissions)" >&2
     fi
 
     sleep 1   # rate-limit cushion
@@ -53,17 +60,15 @@ done <<< "$open_prs"
 
 ```bash
 WORKSPACE=myworkspace REPO=myrepo \
-  REVIEWERS="alice bob charlie" \
+  REVIEWERS="712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f 712020:9ab1f22c-51de-4e7d-9f0e-2b7a10cd3311" \
   ./bulk-assign-reviewers.sh
 ```
 
-<Aside type="tip">
-`bb pr reviewers add` looks up the user via the Bitbucket API every call, which means each iteration costs one extra request. For very large workloads, fetch the UUIDs once and reuse them — see the next recipe.
-</Aside>
+Each `bb pr reviewers add` costs three API requests: one to resolve the user, then a GET and a PUT on the pull request. At `PRs × reviewers × 3` that adds up quickly — see [Handling rate limits](#handling-rate-limits) below.
 
 ## Recipe: rotation by hash bucket
 
-If you want each PR to get *one* reviewer from a pool — for a round-robin team rotation — hash the PR ID into the reviewer list. This produces a stable, reproducible assignment without a database.
+To give each PR *one* reviewer from a pool — a round-robin team rotation — hash the PR ID into the pool. The assignment is stable and reproducible without a database.
 
 ```bash
 #!/bin/bash
@@ -72,9 +77,14 @@ set -euo pipefail
 
 WORKSPACE="${WORKSPACE:-myworkspace}"
 REPO="${REPO:-myrepo}"
-POOL=(alice bob charlie dana)
+# Account IDs, same rule as above.
+POOL=(
+  "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+  "712020:9ab1f22c-51de-4e7d-9f0e-2b7a10cd3311"
+  "712020:c40be5aa-7c19-4a0b-83f2-6d1e94ab7702"
+)
 
-open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '.pullRequests[].id')
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --all --json --jq '.pullRequests[].id')
 
 for pr_id in $open_prs; do
   idx=$(( pr_id % ${#POOL[@]} ))
@@ -90,8 +100,9 @@ done
 The CLI already retries 429 responses up to 3 times automatically. For *very* large bulk operations (hundreds of PRs × multiple reviewers), prefer:
 
 1. A larger sleep between PRs (`sleep 2` or `sleep 3`).
-2. Splitting the run across cron windows.
-3. Wrapping individual `bb` calls in the [retry wrapper](/recipes/retry-wrapper/) for the rare case of *persistent* 429s.
+2. Bounding each run: swap `--all` for `--limit 50` so one pass can't stretch for hours. There is no offset flag, so a plain re-run sees the same 50 PRs — record the IDs you have already handled and skip them next time.
+3. Splitting the run across cron windows.
+4. Wrapping individual `bb` calls in the [retry wrapper](/recipes/retry-wrapper/) for the rare case of *persistent* 429s.
 
 ## Related
 

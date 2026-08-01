@@ -3,11 +3,11 @@ title: Error Codes
 description: Complete reference of error codes and their meanings
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+Every failure carries a numeric `code` in the `--json` error payload
+(`{"code": 2002, …}`). The process exit status is always `1`, so branch on
+`code`, not on the exit status. Ctrl-F the number below.
 
-When commands fail, the CLI returns structured errors with specific error codes. Understanding these codes helps you diagnose issues quickly.
-
-## Error Code Ranges
+## Error code ranges
 
 | Range | Category | Description |
 |-------|----------|-------------|
@@ -23,7 +23,7 @@ When commands fail, the CLI returns structured errors with specific error codes.
 
 ---
 
-## Authentication Errors (1xxx)
+## Authentication errors (1xxx)
 
 ### 1001 - AUTH_REQUIRED
 
@@ -67,18 +67,27 @@ The CLI prints this next step alongside the error:
 
 ---
 
-## API Errors (2xxx)
+## API errors (2xxx)
 
 ### 2001 - API_REQUEST_FAILED
 
 **Message:** API request failed
 
-**Cause:** General network or API failure.
+**Cause:** Bitbucket answered with an unexpected HTTP status below 500 that
+isn't 401/403/404/429 — typically 400 (malformed request body) or 409
+(conflict, e.g. merging a pull request that is already merged). The server did
+respond, so this is not a connectivity problem.
 
-**Solution:**
-- Check your internet connection
-- Verify Bitbucket status at [status.bitbucket.org](https://status.bitbucket.org)
-- Retry the command
+**Solution:** Read `message` and `response` in the JSON error payload; they
+carry Bitbucket's own explanation.
+
+```bash
+bb pr merge 42 --json 2> err.json
+jq '.statusCode, .message, .response' err.json
+```
+
+Connection failures are [7001](#7001---network_error); server faults are
+[2005](#2005---api_server_error).
 
 ### 2002 - API_NOT_FOUND
 
@@ -123,12 +132,16 @@ API doesn't distinguish the two, hence the hedged wording.
 
 **Message:** Rate limit exceeded
 
-**Cause:** You've made too many API requests in a short period.
+**Cause:** Bitbucket returned 429 and the CLI's three automatic retries — which
+honour the `Retry-After` header — were all exhausted.
 
-**Solution:**
-- Wait a few minutes before retrying
-- For scripts, implement exponential backoff
-- Consider caching results when possible
+**Solution:** Reduce request volume. Prefer `--limit` over `--all`, and batch
+with `bb api --paginate` instead of looping single calls:
+
+```bash
+bb pr list --limit 25 --json
+bb api /repositories/myworkspace/myrepo/pullrequests --paginate --json
+```
 
 ### 2005 - API_SERVER_ERROR
 
@@ -142,17 +155,13 @@ API doesn't distinguish the two, hence the hedged wording.
 
 ---
 
-## Git Errors (3xxx)
+## Git errors (3xxx)
 
 ### 3001 - GIT_NOT_REPOSITORY
 
-**Message:** Not a git repository
-
-**Cause:** The current directory is not a git repository, but the command requires one.
-
-**Solution:**
-- Navigate to a git repository directory, or
-- Use explicit flags: `-w <workspace> -r <repo>`
+Reserved. No code path currently emits `3001` — running outside a git
+repository surfaces as [6001 CONTEXT_REPO_NOT_FOUND](#6001---context_repo_not_found).
+Don't branch on `3001` in scripts.
 
 ### 3002 - GIT_COMMAND_FAILED
 
@@ -180,7 +189,7 @@ git remote add origin git@bitbucket.org:workspace/repo.git
 
 ---
 
-## Config Errors (4xxx)
+## Config errors (4xxx)
 
 ### 4001 - CONFIG_READ_FAILED
 
@@ -216,22 +225,34 @@ bb auth login
 
 **Message:** Invalid configuration key
 
-**Cause:** Attempted to get/set an unknown configuration key.
+**Cause:** Attempted to get or set an unknown configuration key.
 
-**Solution:**
-Valid configuration keys are:
-- `defaultWorkspace` - Default workspace
-- `skipVersionCheck` - Disable update notifications
-- `versionCheckInterval` - Days between update checks
+**Solution:** Use a valid key. `bb config set` accepts four:
+
+| Key | Meaning |
+|-----|---------|
+| `defaultWorkspace` | Workspace used when `-w` is omitted |
+| `skipVersionCheck` | Disable update notifications |
+| `versionCheckInterval` | Days between update checks |
+| `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create` |
+
+`bb config get` accepts those four plus `username`.
 
 ```bash
 bb config set defaultWorkspace myworkspace
+bb config get username
 bb config list
 ```
 
+Two keys get a distinct message instead of the unknown-key one. `bb config set
+username` and `bb config set apiToken` point you at `bb auth login`; `bb config
+get apiToken` points you at `bb auth token`. Every other credential field
+(`oauthAccessToken` and friends) is not a config key at all and falls through to
+the unknown-key message above.
+
 ---
 
-## Validation Errors (5xxx)
+## Validation errors (5xxx)
 
 ### 5001 - VALIDATION_REQUIRED
 
@@ -259,12 +280,26 @@ top-level command was given.
 **Solution:**
 - Check the expected format in command help
 - Common issues:
-  - PR ID must be a number
+  - Pull request ID must be a number
   - State must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
   - An unknown command (`bb prr`)
+  - `--json` placed before the subcommand, so it ate the subcommand as its
+    field list — see [Troubleshooting](/help/troubleshooting/)
 
-When a value or command name is close to a valid one, the CLI suggests the
-correction:
+The misplaced-`--json` case names the token it swallowed. Because `--json` did
+take effect, it comes back as an error envelope on stderr:
+
+```bash
+bb --json pr list
+```
+
+```json
+{"name":"BBError","code":5002,"message":"--json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.\nPut --json after the subcommand: bb pr list --json","context":{"command":"pr","args":["list"]}}
+```
+
+When a value or name is close to a valid one, the CLI suggests the correction.
+This fires for unknown commands, enum option values, config keys, `bb pr
+activity --type` tokens, and `bb api` HTTP methods:
 
 ```bash
 bb prr
@@ -274,6 +309,10 @@ bb prr
 bb pr list --state opne
 # ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
 # (Did you mean OPEN?)
+
+bb config set defaultWorkspce foo
+# ✗ Unknown config key 'defaultWorkspce'. Valid keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+# (Did you mean defaultWorkspace?)
 ```
 
 Enum values are matched **case-sensitively**, so a value that is right apart
@@ -289,17 +328,33 @@ bb pr list --state open
 
 **Message:** File not found: `<path>`
 
-**Cause:** A file referenced by an option (e.g. `--file` for `bb snippet create`/`edit`, `--body-file` for `bb pr edit`) doesn't exist on disk, or a named file isn't present inside a snippet.
+**Cause:** A file referenced by an option (`--file` on `bb snippet create`/`edit`,
+`--body-file` on `bb pr edit`/`bb issue create`, `-F key=@file` or `--input` on
+`bb api`) doesn't exist on disk, or a named file isn't present inside a snippet.
 
 **Solution:**
 - Verify the path is correct relative to the current working directory
 - For `bb snippet view --file <name>`, list snippet files first to confirm the name
 
-The `context` field on this error includes the missing path under `file` (or `bodyFile`), which scripts can key on to differentiate it from a generic `VALIDATION_INVALID`.
+The `context` field carries the offending path, so scripts can tell this apart
+from a generic `VALIDATION_INVALID`. The key depends on the command:
+
+| Key | Set by |
+|-----|--------|
+| `file` | `bb snippet create/edit/view`, `bb issue create --body-file` |
+| `bodyFile` | `bb pr edit --body-file` only |
+| `path` | `bb api -F key=@file`, `bb api --input <file>` |
+
+`bb snippet view --file` also attaches `available`, the list of filenames the
+snippet actually contains.
+
+`bb pr edit --body-file` only reports `5003` when the read failed with `ENOENT`.
+Any other read failure (a permission error, or pointing at a directory) is
+reported as [9999 UNKNOWN](#9999---unknown).
 
 ---
 
-## Context Errors (6xxx)
+## Context errors (6xxx)
 
 ### 6001 - CONTEXT_REPO_NOT_FOUND
 
@@ -338,24 +393,37 @@ bb config set defaultWorkspace myworkspace
 
 ---
 
-## Network Errors (7xxx)
+## Network errors (7xxx)
 
 ### 7001 - NETWORK_ERROR
-
-**Message:** Network error: Unable to reach Bitbucket API
 
 **Cause:** The request failed before an HTTP response was received (offline, DNS issue, proxy/TLS issue, etc.).
 
 Transient failures (dropped connections, temporary DNS errors, timeouts) on read requests are automatically retried up to 3 times with exponential backoff before this error surfaces. Permanent-looking failures (e.g. unknown host, connection refused) and write requests fail immediately.
 
+`7001` has two distinct messages. The connectivity one:
+
+> Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.
+
+And the timeout one, when the server accepted the connection but never answered:
+
+> Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.
+
 **Solution:**
 - Check internet and DNS connectivity
 - Verify proxy/TLS settings if applicable
-- Retry the command after connectivity is restored
+- If the message says *timed out*, raise or remove the 30-second default:
+
+```bash
+BB_HTTP_TIMEOUT=60000 bb pr list   # 60 seconds
+BB_HTTP_TIMEOUT=0 bb pr list       # no timeout
+```
+
+See [Environment Variables](/reference/environment-variables/) for the full list.
 
 ---
 
-## Output Formatting Errors (8xxx)
+## Output formatting errors (8xxx)
 
 ### 8001 - JQ_FAILED
 
@@ -373,16 +441,31 @@ bb pr list --json | jq '<expression>'
 
 ### 8002 - JSON_FORMAT_INVALID
 
-**Message:** `--jq requires --json` or similar formatting validation failure.
+`8002` has exactly two messages.
 
-**Cause:** Incompatible combination of output flags.
+**`--jq requires --json`** — add `--json`, with or without a field list:
 
-**Solution:**
-- `--jq` requires `--json`. Add `--json` (with or without a field list).
+```bash
+bb pr list --json --jq '.count'
+```
+
+`bb api` is exempt, because its output is already JSON: `bb api /repositories/my-ws --jq '.values[].name'` needs no `--json`.
+
+This one prints as plain text on stderr (`✗ --jq requires --json`) rather than
+as a JSON envelope, because JSON mode was never enabled — scripts cannot parse
+`.code` for it.
+
+**`--json field list cannot be empty`** — triggered by `--json ""` or `--json ,,,`.
+Drop the argument to get the full output, or name at least one field:
+
+```bash
+bb pr list --json
+bb pr list --json id,title
+```
 
 ---
 
-## Shell Completion Errors (9xxx)
+## Shell completion errors (9001–9002)
 
 ### 9001 - COMPLETION_INSTALL_FAILED
 
@@ -407,7 +490,7 @@ bb pr list --json | jq '<expression>'
 
 ---
 
-## Unknown Errors (9xxx)
+## Unknown errors (9999)
 
 ### 9999 - UNKNOWN
 
@@ -425,47 +508,40 @@ DEBUG=true bb <your-command> 2>&1
 
 ---
 
-## Exit Codes and Error Codes
+## Exit codes and error codes
 
-The process exit code is intentionally minimal — `0` for success and `1` for
-any failure. The numeric error code on this page lives in the JSON error
-payload's `code` field, not in the exit status. To branch on a specific
-failure mode in a script, parse stderr JSON and read `.code`.
+`0` on success, `1` on any failure. The exit status never carries the error
+code — read it from the stderr payload instead:
+
+```bash
+bb pr view 999 --json 2> err.json || jq -r '.code' err.json
+# 2002
+```
+
+That payload is a single-line JSON object:
+
+```json
+{"name":"APIError","code":2002,"message":"Pull request 999 not found in acme/demo.","context":{"status":404,"method":"GET","url":"/repositories/acme/demo/pullrequests/999"},"statusCode":404}
+```
 
 See [Exit Codes in the scripting guide](/guides/scripting/#exit-codes) for a
-full example.
+worked example, and [JSON Output](/reference/json-output/) for every payload
+field and the `context` shape per code.
 
-## Handling Errors in Scripts
+## Handling errors in scripts
 
-When using the CLI in scripts, check the exit code and handle errors appropriately:
+Keep stdout and stderr on separate files. Folding stderr into the data file
+(`> prs.json 2>&1`) puts the error envelope — and any warning the CLI prints —
+inside `prs.json`, which breaks `jq` on the next line.
 
 ```bash
 #!/bin/bash
-set -e
+set -euo pipefail
 
-if ! bb pr list -w myworkspace -r myrepo --json > prs.json 2>&1; then
-  echo "Failed to list PRs"
+if ! bb pr list -w myworkspace -r myrepo --json > prs.json 2> pr-error.json; then
+  echo "Failed to list PRs: $(jq -r '.message // "unknown error"' pr-error.json)"
   exit 1
 fi
 
-# Process prs.json...
+jq -r '.pullRequests[].title' prs.json
 ```
-
-For JSON output, errors are emitted to stderr and include the error code:
-
-```bash
-bb pr view 999 --json 2>&1
-# {"name":"APIError","code":2002,"message":"Pull request 999 not found in acme/demo.","context":{"status":404,"method":"GET","url":"/repositories/acme/demo/pullrequests/999"},"statusCode":404}
-```
-
-Typical JSON error payload fields:
-
-- `name` - Error class name
-- `code` - Numeric CLI error code
-- `message` - Human-readable message
-- `context` - Optional structured metadata
-- `hint` - Optional actionable next step (`401`, `403`, `404` only)
-- `statusCode` / `response` - `APIError` only: the upstream HTTP status and its
-  response body
-
-See [JSON output](/reference/json-output/) for the full envelope.

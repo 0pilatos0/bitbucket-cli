@@ -5,9 +5,9 @@ sidebar:
   order: 7
 ---
 
-Manage pull request reviewers.
+Manage pull request (PR) reviewers.
 
-Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
 
 :::tip[Looking for repo-level defaults?]
 This page covers reviewers on **existing** pull requests. To manage the repository's **default reviewers** — the list Bitbucket auto-suggests when someone opens a PR — see [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers). `bb pr create` can also auto-apply them via `--default-reviewers` or the `prCreateIncludeDefaultReviewers` config key.
@@ -20,11 +20,23 @@ Bitbucket Cloud no longer accepts the legacy `username` (login name) when modify
 - An **account ID**, e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`
 - A **UUID** wrapped in braces, e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`
 
-Both forms are returned by `bb pr reviewers list --json` (the `account_id` and `uuid` fields), so you can pipe the output of one command into another to script reviewer changes. See [`bb pr create`](/commands/pr/create-and-edit/#bb-pr-create) for matching `--reviewer` examples.
+Both forms come back from `bb pr reviewers list --json`, as the `account_id` and `uuid` fields:
+
+```bash
+# One object per reviewer: [{"account_id": "712020:3cfed..."}, …]
+bb pr reviewers list 42 --json account_id
+
+# Copy every reviewer from PR #42 onto PR #43
+for u in $(bb pr reviewers list 42 --json --jq '.reviewers[].account_id' | tr -d '"'); do
+  bb pr reviewers add 43 "$u"
+done
+```
+
+Two things to watch in scripts. `--json <fields>` projects across the `reviewers` array and drops the surrounding `{workspace, repoSlug, pullRequestId, count}` envelope, so you get a bare array of objects — not bare IDs. And the built-in jq runs without `-r`, so strings arrive JSON-quoted; strip the quotes with `tr -d '"'` or interpolate inside jq.
+
+See [`bb pr create`](/commands/pr/create-and-edit/#bb-pr-create) for matching `--reviewer` examples.
 
 ## `bb pr reviewers`
-
-### Subcommands
 
 | Subcommand | Description |
 |------------|-------------|
@@ -32,139 +44,100 @@ Both forms are returned by `bb pr reviewers list --json` (the `account_id` and `
 | `add <id> <user>` | Add a reviewer to a pull request |
 | `remove <id> <user>` | Remove a reviewer from a pull request |
 
+None of the three take command-specific options — only the global ones. `<id>` is the pull request ID; `<user>` is an account ID or a braced UUID.
+
 ---
 
 ## `bb pr reviewers list`
-
-List reviewers assigned to a pull request.
 
 ```bash
 bb pr reviewers list <id>
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
-
 ```bash
 # List reviewers on PR #42
 bb pr reviewers list 42
 
-# List reviewers in specific repository
+# List reviewers in a specific repository
 bb pr reviewers list 42 -w myworkspace -r myrepo
-
-# Get reviewers as JSON for scripting
-bb pr reviewers list 42 --json
 ```
 
-### Notes
+Human output is a two-column table of display name and account ID. If the pull request has no reviewers, the command prints `No reviewers assigned to this pull request`. The deprecated `username` field is never shown — Bitbucket Cloud stopped returning it for GDPR reasons.
 
-- Displays reviewers in a table with display name and account ID
-- Shows a message if no reviewers are assigned
-- Due to Bitbucket Cloud GDPR changes, the deprecated `username` field is not displayed
+`--json` returns the full envelope:
+
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "pullRequestId": 42,
+  "count": 1,
+  "reviewers": [
+    {
+      "display_name": "Jane Doe",
+      "account_id": "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f",
+      "uuid": "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+    }
+  ]
+}
+```
 
 ---
 
 ## `bb pr reviewers add`
 
-Add a reviewer to a pull request by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
+Add a reviewer by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
 
 ```bash
 bb pr reviewers add <id> <user>
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-| `user` | Account ID (e.g. `712020:3cfed7e0-…`) or UUID (`{c1cb1bb5-…}`) of the user to add |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
-
 ```bash
-# Add reviewer by account ID
+# By account ID
 bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
 
-# Add reviewer by UUID (note the braces)
+# By UUID (keep the braces, and quote the argument so the shell leaves them alone)
 bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
-
-# Add reviewer in specific repository
-bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" -w myworkspace -r myrepo
-
-# Add reviewer and get result as JSON
-bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --json
 ```
 
-### Notes
-
-- The user must exist in Bitbucket; you'll get a clear error message if the user is not found
-- If the user is already a reviewer, the command succeeds without making changes
-- Uses UUID for identification (GDPR-compliant)
+Adding someone who is already a reviewer succeeds and changes nothing.
 
 ---
 
 ## `bb pr reviewers remove`
 
-Remove a reviewer from a pull request by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
+Remove a reviewer by account ID or UUID. Same `<user>` rules as `add`.
 
 ```bash
 bb pr reviewers remove <id> <user>
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-| `user` | Account ID (e.g. `712020:3cfed7e0-…`) or UUID (`{c1cb1bb5-…}`) of the reviewer to remove |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
-
 ```bash
-# Remove reviewer by account ID
+# By account ID
 bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
 
-# Remove reviewer by UUID (note the braces)
+# By UUID
 bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
-
-# Remove reviewer in specific repository
-bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" -w myworkspace -r myrepo
-
-# Remove reviewer and get result as JSON
-bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --json
 ```
 
-### Notes
+Removing someone who is not a reviewer succeeds and changes nothing.
 
-- The user must exist in Bitbucket; you'll get a clear error message if the user is not found
-- If the user is not a reviewer on the PR, the command succeeds without making changes
-- Uses UUID for identification (GDPR-compliant)
+## JSON output for `add` and `remove`
+
+Both commands emit the same envelope. `reviewer.username` echoes the `<user>` value you passed, whatever form it was in; `reviewer.uuid` is the resolved UUID.
+
+```json
+{
+  "success": true,
+  "pullRequestId": 42,
+  "reviewer": {
+    "username": "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f",
+    "uuid": "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+  },
+  "pullRequest": { "id": 42, "title": "Add user authentication" }
+}
+```
+
+## When the user lookup fails
+
+Both commands resolve `<user>` through Bitbucket's user endpoint before touching the pull request. A bad account ID or UUID fails there with a 404, carrying whatever message Bitbucket returns. The CLI appends its generic 404 hint, which mentions `--workspace` and `--repo` — but for these two commands the wrong value is almost always the `<user>` argument, not the repository.

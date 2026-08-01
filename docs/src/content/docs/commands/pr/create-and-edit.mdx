@@ -5,13 +5,15 @@ sidebar:
   order: 2
 ---
 
-Create and inspect pull requests.
+Create and inspect pull requests (PRs).
 
-Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+
+Field projection (`--json id,title`) works on list commands such as `bb pr list`. It does not work on `bb pr create`, `bb pr edit` or `bb pr view`. The payload there is a single PR carrying a `reviewers` array, and the projector unwraps that array instead — you get the reviewers back, or `[]` when there are none. Use `--json --jq '{...}'` on those three.
 
 ## `bb pr create`
 
-Create a new pull request.
+Create a pull request.
 
 ```bash
 bb pr create [options]
@@ -21,18 +23,15 @@ bb pr create [options]
 
 | Option | Description |
 |--------|-------------|
-| `-t, --title <title>` | Pull request title (required) |
-| `-b, --body <body>` | Pull request description |
+| `-t, --title <title>` | PR title (required) |
+| `-b, --body <body>` | PR description |
 | `-s, --source <branch>` | Source branch (default: current branch) |
 | `-d, --destination <branch>` | Destination branch (default: main) |
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `--close-source-branch` | Close source branch after merge |
-| `--draft` | Create the pull request as draft |
+| `--draft` | Create the PR as draft |
 | `--reviewer <user>` | Add a reviewer by account ID or `{uuid}` (repeatable) |
 | `--default-reviewers` | Include the repository's default reviewers (opt-in) |
 | `--no-default-reviewers` | Skip default reviewers even when the config key enables them |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -49,7 +48,7 @@ bb pr create -t "Hotfix: Critical bug" --close-source-branch
 # Create a draft PR
 bb pr create -t "WIP: Add feature" --draft
 
-# Auto-add the repo's default reviewers (matches the Bitbucket web UI)
+# Auto-add the repository's default reviewers (matches the Bitbucket web UI)
 bb pr create -t "Add new feature" --default-reviewers
 
 # Add specific reviewers (repeatable; accepts account ID or {uuid})
@@ -63,9 +62,6 @@ bb pr create -t "Add new feature" --default-reviewers \
 
 # Capture the new PR's URL from JSON output for scripting
 bb pr create -t "Add new feature" --json --jq '.links.html.href'
-
-# Project the response to just the fields you need
-bb pr create -t "Add new feature" --json id,title,links.html.href
 ```
 
 ### Reviewers
@@ -80,7 +76,7 @@ By default `bb pr create` does **not** attach reviewers to the PR — this diffe
   bb config set prCreateIncludeDefaultReviewers true
   ```
   Pass `--no-default-reviewers` to skip defaults for a single invocation when this is enabled.
-- If the default-reviewer fetch fails (network error, permission issue, etc.), the PR is still created without reviewers and a warning is printed — the failure does not block the creation.
+- If the default-reviewer fetch fails (network error, permission issue, etc.) the CLI prints `Could not fetch default reviewers: … Continuing without them.` and creates the PR anyway. Only the *defaults* are dropped — reviewers you passed with `--reviewer` are still attached. A failed `--reviewer` lookup, by contrast, aborts the create.
 
 See [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers) to inspect or manage the underlying default reviewer list.
 
@@ -94,42 +90,35 @@ Edit an existing pull request's title or description.
 bb pr edit [id] [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID (optional - auto-detects from current branch) |
+`[id]` is the PR number. Omit it to auto-detect the open PR whose source branch matches your current git branch.
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-t, --title <title>` | New pull request title |
-| `-b, --body <body>` | New pull request description |
+| `-t, --title <title>` | New PR title |
+| `-b, --body <body>` | New PR description |
 | `-F, --body-file <file>` | Read description from file |
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
-# Edit PR title by ID
+# Edit the title by ID
 bb pr edit 42 -t "Updated: Add new feature"
 
-# Edit PR description
+# Edit the description
 bb pr edit 42 -b "This PR implements the new login flow"
 
 # Edit both title and description
 bb pr edit 42 -t "New title" -b "New description"
 
-# Auto-detect PR from current branch and update title
+# Auto-detect the PR from the current branch and update the title
 bb pr edit -t "Updated title"
 
-# Read description from a file
+# Read the description from a file
 bb pr edit 42 -F description.md
 
-# Get updated PR as JSON
+# Get the updated PR as JSON
 bb pr edit 42 -t "New title" --json
 ```
 
@@ -137,7 +126,8 @@ bb pr edit 42 -t "New title" --json
 
 - When no ID is provided, the command searches for an open PR where the source branch matches your current git branch
 - At least one of `--title`, `--body`, or `--body-file` must be provided
-- The `--body-file` option reads the entire file contents as the new description
+- If both `-b/--body` and `-F/--body-file` are given, the file wins and no error is raised. This differs from `bb issue create`, which rejects the combination
+- An unreadable path fails with `Failed to read file '<path>': <reason>`
 
 ---
 
@@ -153,12 +143,10 @@ bb pr list [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
 | `--limit <number>` | Maximum number of PRs (default: 25) |
-| `--mine` | Show only pull requests where you are a reviewer |
-| `--json` | Output as JSON |
+| `--all` | List all PRs (overrides `--limit`) |
+| `--mine` | Show only PRs where you are a reviewer |
 
 ### Examples
 
@@ -187,7 +175,10 @@ bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
 # List more results
 bb pr list --limit 50
 
-# Show only pull requests assigned to you for review
+# Fetch every open PR, ignoring the default limit of 25
+bb pr list --all
+
+# Show only PRs assigned to you for review
 bb pr list --mine
 ```
 
@@ -195,11 +186,12 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
+- The TITLE column is truncated to 50 characters, and the `[DRAFT] ` prefix counts against that budget. Pass `--no-truncate` for full titles; `--json` output is never truncated
 
 :::caution[`--mine` does not mean "my PRs"]
-`--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, use `--json` with `jq`:
+`--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, filter the JSON yourself:
 ```bash
-bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "your-username")'
+bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "your-username")'
 ```
 :::
 
@@ -213,19 +205,7 @@ View pull request details.
 bb pr view <id> [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
+`<id>` is the PR number.
 
 ### Examples
 
@@ -239,9 +219,9 @@ bb pr view 42 -w myworkspace -r myrepo
 # Get PR details as JSON
 bb pr view 42 --json
 
-# Project to specific fields
-bb pr view 42 --json id,title,state,author.display_name
+# Pick out fields with built-in --jq
+bb pr view 42 --json --jq '{id, title, state, author: .author.display_name}'
 
-# Extract just the web URL with built-in --jq
+# Extract just the web URL
 bb pr view 42 --json --jq '.links.html.href'
 ```

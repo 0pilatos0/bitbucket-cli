@@ -5,9 +5,11 @@ description: Complete reference for the bb configuration file
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-The Bitbucket CLI stores configuration in a JSON file. This page documents the file format, location, and available settings.
+All persistent settings live in one JSON file, written by `bb auth login` and
+`bb config set`. This page documents the file itself; for the commands that read
+and write it, see the [Config command reference](/commands/config/).
 
-## File Location
+## File location
 
 <Tabs>
   <TabItem label="macOS / Linux">
@@ -26,9 +28,9 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 
 ---
 
-## Configuration Schema
+## Configuration schema
 
-| Key | Type | Description | Set By |
+| Key | Type | Description | Set by |
 |-----|------|-------------|--------|
 | `authMethod` | `"basic"` \| `"oauth"` | Active authentication method | `bb auth login` |
 | `username` | string | Your Bitbucket username (API token auth) | `bb auth login -u` |
@@ -41,10 +43,10 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 | `defaultWorkspace` | string | Default workspace | `bb config set defaultWorkspace` |
 | `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
 | `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
-| `prCreateIncludeDefaultReviewers` | boolean | Auto-add the repo's default reviewers on `bb pr create` (default: false) | `bb config set` |
+| `prCreateIncludeDefaultReviewers` | boolean | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set` |
 | `lastVersionCheck` | string | Timestamp of last update check | Automatic |
 
-### Example Configuration (OAuth)
+### Example configuration (OAuth)
 
 ```json
 {
@@ -56,7 +58,7 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 }
 ```
 
-### Example Configuration (API Token)
+### Example configuration (API token)
 
 ```json
 {
@@ -71,38 +73,46 @@ The Bitbucket CLI stores configuration in a JSON file. This page documents the f
 
 ---
 
-## Managing Configuration
+## Managing configuration
 
-### View All Settings
+### View all settings
 
 ```bash
 bb config list
 ```
 
 Output:
-```
+```text
 Config file: /Users/you/.config/bb/config.json
 
 KEY               VALUE
-----------------  ------------------------
+----------------  -----------
 username          myuser
-apiToken          ********
 defaultWorkspace  myworkspace
+apiToken          ********
 skipVersionCheck  false
+
+Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
 ```
 
-<Aside type="note">
-The API token is masked for security. Use `bb auth token` to see the actual token.
-</Aside>
+The API token is masked. Use `bb auth token` to see the real value.
 
-### Get a Specific Value
+### Get a specific value
 
 ```bash
 bb config get defaultWorkspace
 # Output: myworkspace
 ```
 
-### Set a Value
+Values are stored as native JSON types, so for the typed keys `--json` returns
+a real boolean or number rather than a quoted string:
+
+```bash
+bb config get skipVersionCheck --json
+# {"key":"skipVersionCheck","value":true}
+```
+
+### Set a value
 
 ```bash
 bb config set defaultWorkspace myworkspace
@@ -110,11 +120,11 @@ bb config set skipVersionCheck true
 bb config set versionCheckInterval 7
 ```
 
-#### Settable Keys
+#### Settable keys
 
-`bb config set` only accepts these four keys (the full list lives in
-`SETTABLE_CONFIG_KEYS` in `src/types/config.ts`). Everything else is either
-managed by the auth flow or written automatically by the CLI.
+`bb config set` accepts these four keys; `bb config list` prints the current
+list as a footer. Everything else is written by `bb auth login` or by the CLI
+itself.
 
 | Key | Type | Example |
 |-----|------|---------|
@@ -123,17 +133,28 @@ managed by the auth flow or written automatically by the CLI.
 | `versionCheckInterval` | integer (days, ≥ 1) | `bb config set versionCheckInterval 7` |
 | `prCreateIncludeDefaultReviewers` | boolean | `bb config set prCreateIncludeDefaultReviewers true` |
 
-Typed key validation:
+`skipVersionCheck` and `prCreateIncludeDefaultReviewers` accept only `true` or
+`false`. `versionCheckInterval` accepts only positive integers (`>= 1`).
 
-- `skipVersionCheck` accepts only `true` or `false`
-- `versionCheckInterval` accepts only positive integers (`>= 1`)
-- `prCreateIncludeDefaultReviewers` accepts only `true` or `false`
+#### Readable keys
+
+`bb config get` has its own allowlist, and it is not the same one:
+
+```text
+username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+```
+
+`username` is readable but not settable — change it with `bb auth login -u`.
+`bb config get apiToken` refuses:
+
+```text
+Cannot display 'apiToken' - it is part of your authentication credentials, not config. Use 'bb auth token' to retrieve credentials, or run 'bb config list' to see readable keys.
+```
+
+Any other key throws `Unknown config key '<key>'` with the valid list and a
+suggestion, e.g. `(Did you mean defaultWorkspace?)`.
 
 #### `prCreateIncludeDefaultReviewers` and the `--default-reviewers` flag
-
-The config key sets the default behavior for `bb pr create`. The per-command
-flag — `--default-reviewers` or `--no-default-reviewers` — always wins when
-present, so you can opt in or out for a single PR without changing the config.
 
 | Config | Flag | Result |
 |--------|------|--------|
@@ -142,23 +163,11 @@ present, so you can opt in or out for a single PR without changing the config.
 | unset / `false` | `--default-reviewers` | Default reviewers are added |
 | `true` | `--no-default-reviewers` | Default reviewers are **not** added |
 
-In short: the flag is an explicit override; the config is only consulted when
-neither `--default-reviewers` nor `--no-default-reviewers` is passed.
+### Protected keys
 
-Values are stored as native JSON types, so `bb config get <key> --json` returns booleans/numbers for these keys.
+These keys cannot be set with `bb config set`:
 
-Example:
-
-```bash
-bb config get skipVersionCheck --json
-# {"key":"skipVersionCheck","value":true}
-```
-
-### Protected Keys
-
-Some configuration keys cannot be set directly:
-
-| Key | Reason | How to Set |
+| Key | Reason | How to set |
 |-----|--------|------------|
 | `username` | Tied to authentication | Use `bb auth login -u` |
 | `apiToken` | Security-sensitive | Use `bb auth login -p` |
@@ -169,86 +178,86 @@ Some configuration keys cannot be set directly:
 
 ---
 
-## Update Notifications
+## Update notifications
 
-The CLI opportunistically checks for updates after any command, so you stay current with the latest features and bug fixes without it getting in the way of scripts.
+After every command the CLI checks npm for a newer version, at most once per
+`versionCheckInterval` days (default 1). The notice goes to stderr, and only
+when stderr is a TTY, so `--json` and piped output stay clean. It is skipped
+entirely in CI and when `skipVersionCheck` is true.
 
-### How It Works
+### Example notification
 
-- Checks npm registry for the latest version
-- Compares with your installed version
-- Shows a notification if an update is available
-- Caches the check result for 24 hours (configurable)
-- Prints the notice to **stderr**, and only in an interactive terminal — so `--json` and piped output stay clean
-- Skips checks in CI environments automatically
+```text
 
-### Example Notification
-
-```
-⚠ A new version is available: 1.12.0 (you have 1.11.0)
+──────────────────────────────────────────────────
+A new version is available: <latest> (you have <current>)
   Run 'bun install -g @pilatos/bitbucket-cli' to update
   Or disable with 'bb config set skipVersionCheck true'
+──────────────────────────────────────────────────
+
 ```
 
-### Disable Notifications
+There is no warning glyph. The separator rules are 50 box-drawing dashes, or
+50 ASCII hyphens under `--no-unicode`.
 
-To permanently disable update notifications:
+### Disable notifications
 
 ```bash
 bb config set skipVersionCheck true
 ```
 
-### Change Check Frequency
+### Change check frequency
 
-To check less frequently (e.g., once per week):
+`versionCheckInterval` is in days. Once per week:
 
 ```bash
 bb config set versionCheckInterval 7
 ```
 
-<Aside type="tip">
-The `versionCheckInterval` value is in days. Set it to a higher number if you prefer fewer interruptions.
-</Aside>
+---
+
+## Configuration precedence
+
+Command-line flags beat the git remote, which beats `BB_WORKSPACE`, which beats
+the config file:
+
+```bash
+bb pr list -w otherworkspace -r otherrepo   # flags win
+cd /path/to/cloned-repo && bb pr list       # git remote
+BB_WORKSPACE=myworkspace bb repo list       # env var
+bb config set defaultWorkspace myworkspace  # config file
+```
+
+The full order, including which commands skip the git-remote step, is in
+[Environment Variables](/reference/environment-variables/#resolution-order).
+[Understanding Repository Context](/guides/repository-context/) has worked
+examples.
+
+Some runtime behavior is tuned only with environment variables, not config
+keys — `BB_HTTP_TIMEOUT` for the API request timeout, for example.
 
 ---
 
-## Configuration Precedence
+## File permissions
 
-When determining workspace and repository, the CLI checks sources in this order:
+The config file holds your API token, so the CLI creates the directory `0700`
+and the file `0600`, and writes atomically (temp file, then rename).
 
-1. **Command-line flags** (highest priority)
-   ```bash
-   bb pr list -w otherworkspace -r otherrepo
-   ```
+| Platform | Directory | File |
+|----------|-----------|------|
+| macOS/Linux | `0700` (owner only) | `0600` (owner read/write only) |
+| Windows | Inherits user profile permissions | Inherits user profile permissions |
 
-2. **Git repository remote** (if in a git repo)
-   ```bash
-   cd /path/to/cloned-repo
-   bb pr list  # Uses workspace/repo from git remote
-   ```
+On macOS and Linux the CLI also *verifies* both on every read. If any group or
+other bit is set, every command fails with error 4001 until you fix it:
 
-3. **Configuration file** (lowest priority)
-   ```bash
-   bb config set defaultWorkspace myworkspace
-   bb pr list  # Uses config default
-   ```
+```text
+Config file has insecure permissions (644); expected 600. Run: chmod 600 /Users/you/.config/bb/config.json
+Config directory has insecure permissions (755); expected 700. Run: chmod 700 /Users/you/.config/bb
+```
 
-See [Understanding Repository Context](/guides/repository-context/) for detailed examples.
-
-<Aside type="note">
-Some runtime behavior is tuned with environment variables rather than config-file keys — for example `BB_HTTP_TIMEOUT` for the API request timeout. See [Environment Variables](/reference/environment-variables/).
-</Aside>
-
----
-
-## File Permissions
-
-The configuration file contains sensitive data (API token). The CLI sets appropriate permissions automatically:
-
-| Platform | Permissions |
-|----------|-------------|
-| macOS/Linux | `0600` (owner read/write only) |
-| Windows | Inherits user profile permissions |
+Windows skips the check, and a path that does not exist yet is not checked, so
+a fresh install never hits this.
 
 <Aside type="caution" title="Security">
 Never share your config file or commit it to version control. The API token grants access to your Bitbucket account.
@@ -256,21 +265,21 @@ Never share your config file or commit it to version control. The API token gran
 
 ---
 
-## Reset Configuration
+## Reset configuration
 
-### Clear Authentication Only
+### Clear authentication only
 
 ```bash
 bb auth logout
 ```
 
-This removes authentication credentials (OAuth tokens or API token) but keeps `defaultWorkspace` and other settings. For OAuth, it also revokes the token on Bitbucket's side.
+This removes authentication credentials (OAuth tokens or API token) but keeps
+`defaultWorkspace` and other settings. For OAuth, it also revokes the token on
+Bitbucket's side.
 
-It does not perform a full config reset.
+### Full reset
 
-### Full Reset
-
-Delete the configuration file entirely:
+Delete the config file entirely:
 
 <Tabs>
   <TabItem label="macOS / Linux">
@@ -295,36 +304,47 @@ bb auth login
 
 ## Troubleshooting
 
-### "Cannot read config file"
+### "Config file is not valid JSON"
 
-The file may be corrupted. Delete and recreate it:
+Fix the file by hand, or delete it and log in again:
 
 ```bash
 rm ~/.config/bb/config.json
 bb auth login
 ```
 
-### "Cannot write config file"
+### "Config file has insecure permissions"
 
-Check directory permissions:
+```bash
+chmod 700 ~/.config/bb
+chmod 600 ~/.config/bb/config.json
+```
+
+### "Failed to read config file"
+
+The path exists but is unreadable. Check ownership and permissions:
 
 ```bash
 ls -la ~/.config/bb/
 ```
 
-Create the directory if it doesn't exist:
+### "Failed to write config file" / "Failed to create config directory"
+
+The parent directory is missing or not writable:
 
 ```bash
 mkdir -p ~/.config/bb
+ls -ld ~/.config/bb
 ```
 
-### Config Not Being Used
+### Config not being used
 
 Verify the CLI is reading from the expected location:
 
 ```bash
 bb config list
-# Check the "Configuration file:" line
+# Check the "Config file:" line
 ```
 
-Remember that command-line flags and git context take precedence over config file settings.
+Command-line flags, git context and `BB_WORKSPACE` all take precedence over
+config file settings.

@@ -3,9 +3,7 @@ title: Quick Start
 description: Get up and running with Bitbucket CLI in 60 seconds
 ---
 
-import { Steps, Aside, Code } from '@astrojs/starlight/components';
-
-Get productive with the Bitbucket CLI in under a minute.
+import { Steps, Aside } from '@astrojs/starlight/components';
 
 ## TL;DR
 
@@ -16,22 +14,12 @@ bb repo clone myworkspace/myrepo
 bb pr create -t "My feature"
 ```
 
----
-
 ## Prerequisites
 
-Before you begin, you'll need:
+- **[Bun](https://bun.sh) runtime 1.0+**. Installing via npm or pnpm does not install Bun. Without it, `bb` exits with `Error: This CLI requires the Bun runtime.` See [Installation](/getting-started/installation/).
+- A **Bitbucket Cloud** account.
 
-- **[Bun](https://bun.sh) runtime 1.0+** installed (required to run the CLI)
-- A **Bitbucket Cloud** account
-
-<Aside type="caution">
-The CLI requires Bun runtime to execute. You can install the package via npm/pnpm/bun, but Bun must be available on your system to run `bb` commands.
-</Aside>
-
----
-
-## Step-by-Step Setup
+## Step-by-step setup
 
 <Steps>
 
@@ -54,10 +42,12 @@ The CLI requires Bun runtime to execute. You can install the package via npm/pnp
 
    This opens your browser to authorize the CLI with your Bitbucket account. No token setup needed.
 
-   For CI/CD or headless environments, use an API token instead:
+   For CI/CD or headless environments, pipe an API token in on stdin:
    ```bash
-   bb auth login -u your-username -p your-api-token
+   echo "$BB_API_TOKEN" | bb auth login -u your-username --with-token
    ```
+
+   If `BB_API_TOKEN` is set in your environment, a bare `bb auth login` uses API token auth instead of OAuth.
 
    Verify it worked:
    ```bash
@@ -66,14 +56,14 @@ The CLI requires Bun runtime to execute. You can install the package via npm/pnp
 
    See the [Authentication guide](/getting-started/authentication/) for full details.
 
-3. **Clone a Repository**
+3. **Clone a repository**
 
    ```bash
    bb repo clone myworkspace/myrepo
    cd myrepo
    ```
 
-4. **Create Your First PR**
+4. **Create your first pull request**
 
    ```bash
    git checkout -b feature/my-feature
@@ -87,11 +77,7 @@ The CLI requires Bun runtime to execute. You can install the package via npm/pnp
 
 </Steps>
 
----
-
-## Common Commands
-
-Here are the commands you'll use most often:
+## Common commands
 
 | Command | Description |
 |---------|-------------|
@@ -107,9 +93,7 @@ Here are the commands you'll use most often:
 | `bb browse src/cli.ts:20` | Open a file at a specific line in your browser |
 | `bb api /user` | Call any Bitbucket API endpoint (escape hatch) |
 
----
-
-## Set a Default Workspace
+## Set a default workspace
 
 Not sure what your workspace slug is? List the workspaces you have access to:
 
@@ -126,15 +110,11 @@ bb config set defaultWorkspace myworkspace
 Now commands will use this workspace automatically:
 
 ```bash
-bb repo list          # Lists repos in "myworkspace"
+bb repo list          # Lists repositories in "myworkspace"
 bb pr list -r myrepo  # Lists PRs in "myworkspace/myrepo"
 ```
 
----
-
-## Enable Tab Completion
-
-Get intelligent tab completion for commands and options:
+## Enable tab completion
 
 ```bash
 bb completion install
@@ -143,13 +123,11 @@ bb completion install
 Restart your shell, then try:
 
 ```bash
-bb <Tab>                         # Shows: auth, repo, pr, snippet, browse, api, config, completion
+bb <Tab>                         # Shows every top-level command
 bb pr <Tab>                      # Shows: activity, approve, checkout, checks, comments, create, decline, diff, edit, list, merge, ready, reviewers, view
 bb pr create -<Tab>              # Shows available flags
 bb pr merge 42 --strategy <Tab>  # Shows: merge_commit, squash, fast_forward, ...
 ```
-
----
 
 ## Scripting with JSON
 
@@ -167,21 +145,21 @@ bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
 See [JSON Output](/reference/json-output/) for the full shape reference and the [Scripting guide](/guides/scripting/) for end-to-end automation patterns.
 </Aside>
 
----
-
 ## Update notifications
 
-When a newer version is available on npm, `bb` prints a one-time nudge after
-the next command finishes:
+When a newer version is available on npm, `bb` writes a one-time notice to stderr after the next command finishes:
 
 ```text
-⚠ A new version is available: 1.14.0 (you have 1.13.0)
-  Run 'npm install -g @pilatos/bitbucket-cli' to update
+──────────────────────────────────────────────────
+A new version is available: 1.23.0 (you have 1.22.0)
+  Run 'bun install -g @pilatos/bitbucket-cli' to update
   Or disable with 'bb config set skipVersionCheck true'
+──────────────────────────────────────────────────
 ```
 
-The check runs at most once per `versionCheckInterval` (default: 24 hours) and
-is skipped automatically in CI environments. Disable it permanently with:
+Under `--no-unicode` or `BB_NO_UNICODE`, the horizontal rules are drawn with `-` instead of `─`.
+
+The notice never appears with `--json`, when stderr is not a TTY, or in CI environments. The check itself runs at most once every `versionCheckInterval` days (default: 1). Disable it permanently with:
 
 ```bash
 bb config set skipVersionCheck true
@@ -190,14 +168,10 @@ bb config set skipVersionCheck true
 See the [Configuration File reference](/reference/configuration/) for related
 settings.
 
----
-
-## Next Steps
-
-You're all set! Here's where to go next:
+## Next steps
 
 - **[Command Reference](/commands/auth/)** - Full documentation for all commands
-- **[Repository Context](/guides/repository-context/)** - How the CLI detects your workspace/repo
+- **[Repository Context](/guides/repository-context/)** - How the CLI detects your workspace/repository
 - **[Scripting & Automation](/guides/scripting/)** - Use bb in scripts and CI/CD
 - **[JSON Output Reference](/reference/json-output/)** - Field projection, `--jq` filtering, output shapes
 - **[AI Agent Integration](/guides/ai-agents/)** - Wire the CLI into Claude Code, Cursor, or Windsurf

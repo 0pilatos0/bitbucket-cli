@@ -5,11 +5,11 @@ description: Reference for Bitbucket CLI snippet commands. Create, view, edit, d
 
 Manage Bitbucket Cloud snippets — workspace-scoped code/text pastes.
 
-Snippet commands operate at **workspace** scope (no repo context required). Use
-`-w, --workspace <workspace>` or set a default with
+Snippet commands operate at **workspace** scope (no repository context
+required). Use `-w, --workspace <workspace>` or set a default with
 `bb config set defaultWorkspace <workspace>`.
 
-Global options available on all snippet commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
+Global options available on all snippet commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`. See [Global flags](/reference/global-flags/) for the full list. The per-command tables below list only command-specific options.
 
 ---
 
@@ -25,11 +25,9 @@ bb snippet list [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `--role <role>` | Filter by authenticated user's role: `owner`, `contributor`, or `member` |
 | `--limit <number>` | Maximum number of snippets (default: 25) |
 | `--all` | List all snippets (overrides `--limit`) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -48,6 +46,8 @@ bb snippet list --json --jq '.snippets[] | select(.is_private == false) | .title
 
 ### Notes
 
+- Table columns: ID, TITLE, VISIBILITY, CREATOR, UPDATED.
+- **JSON envelope:** `{ workspace, count, snippets }`.
 - `--limit` is enforced across paginated responses.
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
 
@@ -71,10 +71,8 @@ bb snippet view <id> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-f, --file <name>` | Print contents of a specific file in the snippet |
 | `--files` | Print contents of all files in the snippet |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -84,6 +82,21 @@ bb snippet view kypj --json
 bb snippet view kypj --file config.yml
 bb snippet view kypj --files
 ```
+
+### Notes
+
+- `--file` takes precedence over `--files`. Pass both and only the single file
+  is printed.
+- An unknown file name fails with `File not found in snippet: <name>`
+  (`5003 FILE_NOT_FOUND`, see [Error codes](/reference/error-codes/)). The error
+  context carries `available` with the snippet's actual file names.
+- `--files` prints the snippet header first, then each file under a bold
+  `── <name> ──` heading. With the global `--no-unicode` the separator renders
+  as `--`.
+- **JSON shapes** differ per flag:
+  - no flag → the bare Bitbucket snippet object, no envelope
+  - `--file <name>` → `{ file, content }`
+  - `--files` → `{ snippet, files: { "<name>": "<content>" } }`
 
 ---
 
@@ -100,18 +113,19 @@ bb snippet create [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-t, --title <title>` | Snippet title (required) |
-| `-f, --file <path...>` | One or more file paths to include (required) |
+| `-f, --file <path...>` | File path(s) to include (required; variadic — pass several paths or repeat the flag) |
 | `--private` | Create a private snippet (default) |
 | `--public` | Create a public snippet |
-| `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
 bb snippet create -t "My snippet" -f file.txt
 bb snippet create -t "Config files" -f config.yml -f setup.sh --public
+
+# Capture the new snippet id
+bb snippet create -t "My snippet" -f file.txt --json --jq '.id'
 ```
 
 ### Notes
@@ -119,6 +133,7 @@ bb snippet create -t "Config files" -f config.yml -f setup.sh --public
 - Snippets are private by default.
 - `--private` and `--public` cannot both be set.
 - Each `--file` must exist on disk; missing files fail the command before any upload.
+- `--json` emits the bare Bitbucket snippet object, with no envelope.
 
 ---
 
@@ -134,18 +149,16 @@ bb snippet edit <id> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `id` | Snippet encoded ID |
+| `id` | Snippet encoded ID (e.g. `kypj`) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-t, --title <title>` | New title |
 | `--private` | Make snippet private |
 | `--public` | Make snippet public |
-| `-f, --file <path...>` | Replace or add file(s); sends a multipart update |
-| `--json` | Output as JSON |
+| `-f, --file <path...>` | Replace or add file(s); sends a multipart update (variadic) |
 
 ### Examples
 
@@ -160,24 +173,29 @@ bb snippet edit kypj -f updated.txt
 - Metadata-only edits (title, visibility) send a JSON PUT.
 - Passing `--file` switches to a multipart PUT and uploads the given files.
 - At least one of `--title`, `--private`, `--public`, or `--file` is required.
+- `--json` emits the bare Bitbucket snippet object, with no envelope.
 
 ---
 
 ## `bb snippet delete`
 
-Delete a snippet. Permanent.
+Delete a snippet.
 
 ```bash
 bb snippet delete <id> [options]
 ```
 
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Snippet encoded ID (e.g. `kypj`) |
+
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-y, --yes` | Confirm deletion (required) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -185,8 +203,12 @@ bb snippet delete <id> [options]
 bb snippet delete kypj --yes
 ```
 
+### Notes
+
+- **JSON envelope:** `{ success, snippetId, workspace }`.
+
 :::danger
-This action is permanent and cannot be undone.
+Deletion is permanent and cannot be undone. There is no interactive prompt — without `--yes` the command exits with `This will permanently delete snippet <id>.` followed by `Use --yes to confirm.`
 :::
 
 ---
@@ -200,12 +222,23 @@ bb snippet watch <id> [options]
 bb snippet unwatch <id> [options]
 ```
 
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Snippet encoded ID (e.g. `kypj`) |
+
 ### Examples
 
 ```bash
 bb snippet watch kypj
 bb snippet unwatch kypj
 ```
+
+### Notes
+
+- **JSON envelope:** `{ success, snippetId, watching }` — `watching` is `true`
+  for `watch` and `false` for `unwatch`.
 
 ---
 
@@ -217,14 +250,18 @@ List comments on a snippet.
 bb snippet comments list <id> [options]
 ```
 
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Snippet encoded ID (e.g. `kypj`) |
+
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `--limit <number>` | Maximum number of comments (default: 25) |
 | `--all` | List all comments (overrides `--limit`) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -234,6 +271,15 @@ bb snippet comments list kypj --all
 bb snippet comments list kypj --limit 50 --json
 ```
 
+### Notes
+
+- Table columns: ID, AUTHOR, DATE, CONTENT.
+- CONTENT is truncated to 60 characters; pass the global `--no-truncate` for
+  full comment bodies (`--json` always carries the full value). DATE is
+  formatted with `--locale`/`BB_LOCALE`, falling back to the system locale and
+  then `en-US`.
+- **JSON envelope:** `{ workspace, snippetId, count, comments }`.
+
 ---
 
 ## `bb snippet comments add`
@@ -241,22 +287,35 @@ bb snippet comments list kypj --limit 50 --json
 Add a comment to a snippet.
 
 ```bash
-bb snippet comments add <id> [options]
+bb snippet comments add <id> [message] [options]
 ```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `id` | Snippet encoded ID (e.g. `kypj`) |
+| `message` | Comment body. Alternative to `-m, --message`; one of the two is required. The positional wins if both are passed. |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-m, --message <message>` | Comment body (required) |
-| `--json` | Output as JSON |
+| `-m, --message <text>` | Comment body (alternative to the positional `message`) |
 
 ### Examples
 
 ```bash
+bb snippet comments add kypj "Great snippet!"
 bb snippet comments add kypj -m "Great snippet!"
+bb snippet comments add kypj "Great snippet!" --json
 ```
+
+### Notes
+
+- Omitting both forms fails with
+  `Comment message is required. Use --message option.`
+- **JSON envelope:** `{ success, snippetId, comment }` with the created comment.
 
 ---
 
@@ -268,11 +327,25 @@ Edit a comment on a snippet.
 bb snippet comments edit <snippet-id> <comment-id> <message> [options]
 ```
 
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `snippet-id` | Snippet encoded ID (e.g. `kypj`) |
+| `comment-id` | Numeric comment ID (e.g. `123`) |
+| `message` | Replacement comment body (Markdown) |
+
 ### Examples
 
 ```bash
 bb snippet comments edit kypj 123 "Updated comment"
+bb snippet comments edit kypj 123 "Updated comment" --json
 ```
+
+### Notes
+
+- The message replaces the existing body outright.
+- **JSON envelope:** `{ success, snippetId, comment }` with the updated comment.
 
 ---
 
@@ -284,16 +357,27 @@ Delete a comment on a snippet.
 bb snippet comments delete <snippet-id> <comment-id> [options]
 ```
 
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `snippet-id` | Snippet encoded ID (e.g. `kypj`) |
+| `comment-id` | Numeric comment ID (e.g. `123`) |
+
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-y, --yes` | Confirm deletion (required) |
-| `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
 bb snippet comments delete kypj 123 --yes
 ```
+
+### Notes
+
+- There is no interactive prompt. Without `--yes` the command fails with
+  `This will permanently delete comment #<comment-id> on snippet <snippet-id>.`
+- **JSON envelope:** `{ success, snippetId, commentId }`.

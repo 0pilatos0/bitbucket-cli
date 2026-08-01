@@ -12,21 +12,16 @@ Issue commands operate at **repository** scope. Run them inside a cloned
 Bitbucket repository, or pass `-w, --workspace <workspace>` and
 `-r, --repo <repo>` explicitly.
 
-Global options available on all issue commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all issue commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo`. See [Global flags](/reference/global-flags/) for the full list. The per-command tables below list only command-specific options.
 
 <Aside type="caution">
   Bitbucket's issue tracker is **opt-in per repository** and disabled by
-  default — many teams use Jira instead. When the tracker is disabled, the
-  Bitbucket API answers `404` on every issues endpoint, so `bb issue list` and
-  `bb issue create` fail with: *"This repository's issue tracker is disabled
-  (or the repo was not found). Enable it under Repository settings → Issue
-  tracker on Bitbucket, or check `--workspace`/`--repo`. Many teams use Jira
-  instead — see the docs."* Enable the tracker under **Repository settings →
-  Issue tracker** before using these commands.
+  default. When it is off, every issues endpoint answers `404` and
+  `bb issue list` / `bb issue create` report: *"This repository's issue tracker
+  is disabled (or the repo was not found). Enable it under Repository settings →
+  Issue tracker on Bitbucket, or check `--workspace`/`--repo`. Many teams use
+  Jira instead — see the docs."*
 </Aside>
-
-Issue IDs are accepted as raw numeric strings (e.g. `42`), so humans and
-scripts can pass them straight through.
 
 ---
 
@@ -43,8 +38,6 @@ bb issue list [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `--state <state>` | Filter by exact state: `submitted`, `new`, `open`, `resolved`, `on-hold`, `invalid`, `duplicate`, `wontfix`, or `closed` |
 | `--kind <kind>` | Filter by kind: `bug`, `enhancement`, `proposal`, or `task` |
 | `--assignee <username>` | Filter by assignee username |
@@ -52,7 +45,6 @@ bb issue list [options]
 | `--query <q>` | Raw Bitbucket `q` filter expression (escape hatch) |
 | `--limit <number>` | Maximum number of issues (default: 25) |
 | `--all` | List all issues (overrides `--limit`) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -75,14 +67,20 @@ bb issue list --json --jq '.issues[] | select(.priority == "critical") | .id'
 ### Notes
 
 - **Filter composition:** without `--state` or `--query` the command filters on
-  `(state="new" OR state="open")`, mirroring `gh issue list` defaulting to open
-  issues. An explicit `--state` matches exactly (the CLI's `on-hold` maps to
-  the API's `"on hold"`). `--kind`, `--assignee`, and `--reporter` clauses are
-  AND-ed on. `--query` is used verbatim and replaces the default state filter,
-  but is still AND-ed with the other flags.
-- **JSON envelope:** `{ workspace, repoSlug, filters, count, issues }`. The
-  `filters` object echoes the active flags plus the effective `q` expression
-  that was sent to the API.
+  `(state="new" OR state="open")`. An explicit `--state` matches exactly (the
+  CLI's `on-hold` maps to the API's `"on hold"`). `--kind`, `--assignee`, and
+  `--reporter` clauses are AND-ed on.
+- **`--query` grouping:** the expression replaces the default state filter. It
+  is wrapped in parentheses and placed first in the AND-ed clause list, so a
+  top-level `OR` inside it stays correctly grouped against
+  `--kind`/`--assignee`/`--reporter`. The composed expression comes back as
+  `filters.q` in `--json` output.
+- **JSON envelope:** `{ workspace, repoSlug, filters, count, issues }`, where
+  `filters` echoes the active flags plus the effective `q` expression.
+- TITLE is truncated to 50 characters in the table; pass the global
+  `--no-truncate` for full titles (`--json` always carries the full value).
+  UPDATED is formatted with `--locale`/`BB_LOCALE`, falling back to the system
+  locale and then `en-US`.
 - `--limit` is enforced across paginated responses; a hint shows when results
   were capped (suppressed with `--json`).
 
@@ -102,20 +100,12 @@ bb issue view <id> [options]
 |----------|-------------|
 | `id` | Issue ID (e.g. `42`) |
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
 bb issue view 42
 
-# Machine-readable
+# Print just the state, for a CI guard
 bb issue view 42 --json --jq '.issue.state'
 ```
 
@@ -124,7 +114,8 @@ bb issue view 42 --json --jq '.issue.state'
 - Human output shows the id, title, state, kind, priority, reporter, assignee,
   created/updated dates, votes, the issue body, and the web URL.
 - **JSON envelope:** `{ workspace, repoSlug, issue }`.
-- A `404` is reported as `Issue #<id> not found`, with a reminder that a
+- A `404` is reported as
+  `Issue #<id> not found in <workspace>/<repo>.`, with a reminder that a
   disabled issue tracker 404s identically.
 
 ---
@@ -141,15 +132,12 @@ bb issue create --title <title> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-t, --title <title>` | Issue title (**required**) |
 | `-b, --body <text>` | Issue description (Markdown) |
 | `-F, --body-file <file>` | Read the description from a file (mutually exclusive with `--body`) |
 | `--kind <kind>` | `bug`, `enhancement`, `proposal`, or `task` |
 | `--priority <priority>` | `trivial`, `minor`, `major`, `critical`, or `blocker` |
 | `--assignee <username>` | Assign the issue to a user |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -183,21 +171,18 @@ bb issue edit <id> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `id` | Issue ID |
+| `id` | Issue ID (e.g. `42`) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-t, --title <title>` | New title |
 | `-b, --body <text>` | New description (replaces the existing body) |
 | `--kind <kind>` | New kind |
 | `--priority <priority>` | New priority |
 | `--assignee <username>` | Reassign to a user |
 | `--state <state>` | New state (`on-hold` for the API's `"on hold"`) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -205,7 +190,7 @@ bb issue edit <id> [options]
 bb issue edit 42 --title "Crash on login (Safari only)"
 bb issue edit 42 --state on-hold --priority critical
 
-# Machine-readable
+# Confirm the reassignment landed
 bb issue edit 42 --assignee some.user --json --jq '.issue.assignee.display_name'
 ```
 
@@ -229,16 +214,13 @@ bb issue close <id> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `id` | Issue ID |
+| `id` | Issue ID (e.g. `42`) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-c, --comment <text>` | Post this comment before closing |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -246,14 +228,14 @@ bb issue close <id> [options]
 bb issue close 42
 bb issue close 42 --comment "Fixed in 1.4.2"
 
-# Machine-readable
+# Verify the new state
 bb issue close 42 --json --jq '.issue.state'
 ```
 
 ### Notes
 
 - With `--comment`, the comment is posted **before** the state change so it
-  lands while the issue is still open (matching `gh issue close --comment`).
+  lands while the issue is still open.
 - **JSON envelope:** `{ workspace, repoSlug, issue }` with the closed issue.
 
 ---
@@ -270,23 +252,20 @@ bb issue comment <id> --body <text>
 
 | Argument | Description |
 |----------|-------------|
-| `id` | Issue ID |
+| `id` | Issue ID (e.g. `42`) |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-b, --body <text>` | Comment text in Markdown (**required**) |
-| `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
 bb issue comment 42 --body "Reproduced on main"
 
-# Machine-readable
+# Capture the new comment id
 bb issue comment 42 --body "Reproduced on main" --json --jq '.comment.id'
 ```
 

@@ -1,36 +1,46 @@
 ---
-title: Install Bitbucket CLI - npm, pnpm, Bun Setup Guide
-description: Step-by-step installation guide for Bitbucket CLI using npm, pnpm, or Bun. Learn prerequisites, global installation, and build from source. Get started in minutes.
+title: Installation
+description: Install the Bitbucket CLI with npm, pnpm, or Bun, or build it from source. Requires the Bun runtime.
 ---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) runtime 1.0 or higher (required to run the CLI)
+- [Bun](https://bun.sh) runtime 1.0 or higher — the CLI runs on Bun, not Node.js
 - Git
+
+Install Bun if `bun --version` fails:
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+For other platforms and install methods, see [bun.sh](https://bun.sh).
 
 ## Install
 
-You can install the CLI using any package manager, but **Bun runtime is required** to execute it.
+Any package manager works. Bun is still required to run `bb`.
 
-### Using npm
+<Tabs>
+  <TabItem label="npm">
+    ```bash
+    npm install -g @pilatos/bitbucket-cli
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm add -g @pilatos/bitbucket-cli
+    ```
+  </TabItem>
+  <TabItem label="Bun">
+    ```bash
+    bun install -g @pilatos/bitbucket-cli
+    ```
+  </TabItem>
+</Tabs>
 
-```bash
-npm install -g @pilatos/bitbucket-cli
-```
-
-### Using pnpm
-
-```bash
-pnpm add -g @pilatos/bitbucket-cli
-```
-
-### Using Bun
-
-```bash
-bun install -g @pilatos/bitbucket-cli
-```
-
-## Build from Source
+## Build from source
 
 ```bash
 # Clone the repository
@@ -47,12 +57,15 @@ bun run build
 bun link
 ```
 
-## Verify Installation
+## Verify installation
 
 ```bash
 bb --version
 ```
 
-## Next Steps
+## Next steps
 
-After installation, you'll need to [authenticate](/getting-started/authentication/) with your Bitbucket account.
+[Authenticate](/getting-started/authentication/) with your Bitbucket account.
+
+Then install [shell completion](/commands/completion/) so your shell can
+complete `bb` subcommands and flags.

@@ -5,7 +5,7 @@ description: Authentication commands reference
 
 Manage authentication with Bitbucket.
 
-Global options available on all auth commands: `--json`, `--no-color`.
+Global options available on all auth commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--locale <locale>`. See [Global flags](/reference/global-flags/) for the full list.
 
 ## `bb auth login`
 
@@ -22,10 +22,9 @@ bb auth login [options]
 | `-u, --username <username>` | Bitbucket username (implies API token auth) |
 | `-p, --password <password>` | Bitbucket API token (implies API token auth) |
 | `--with-token` | Read the API token from stdin so it never appears in shell history or process args (implies API token auth) |
-| `--app-password` | Use API token authentication instead of OAuth (legacy flag name — uses API tokens, not app passwords) |
+| `--app-password` | Use API token authentication instead of OAuth (see the note below) |
 | `--client-id <clientId>` | Custom OAuth consumer client ID |
 | `--client-secret <clientSecret>` | Custom OAuth consumer client secret |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -53,9 +52,16 @@ bb auth login
 read from stdin, so it never lands in your shell history or in process-listing
 tools like `ps`. It pairs well with secret managers, e.g.
 `my-secret-tool get bb-token | bb auth login -u myuser --with-token`.
+
+Two rules: `--with-token` cannot be combined with `-p/--password` (hard error,
+`VALIDATION_INVALID`), and it reads all of stdin and trims it, so an empty
+stdin fails instead of prompting — `bb auth login -u me --with-token < /dev/null`
+errors with `No API token found on stdin.`
 :::
 
-### How It Works
+### How it works
+
+OAuth is used unless any of `--app-password`, `--with-token`, `-u`, `-p`, or the `BB_API_TOKEN` environment variable is present.
 
 **OAuth flow (default):**
 
@@ -73,7 +79,7 @@ headless hosts (SSH sessions, containers, CI) use API token auth — ideally
 `--with-token` — instead.
 :::
 
-**API token flow (with `-u`/`-p`, `--with-token`, or `--app-password`):**
+**API token flow:**
 
 1. You provide your Bitbucket username and API token (token via `-p`, piped to
    stdin with `--with-token`, or the `BB_API_TOKEN` environment variable)
@@ -81,36 +87,21 @@ headless hosts (SSH sessions, containers, CI) use API token auth — ideally
 3. The CLI verifies the credentials by fetching your user information
 4. If verification fails, credentials are not saved
 
-### Auth Method Detection
-
-The CLI determines which flow to use based on flags:
-
-| Condition | Auth Method |
-|-----------|------------|
-| No flags | OAuth |
-| `-u` or `-p` provided | API Token |
-| `--with-token` flag | API Token (read from stdin) |
-| `--app-password` flag | API Token |
-| `BB_API_TOKEN` env var set | API Token |
-
 :::note
-The `--app-password` flag is a legacy name. It triggers API token authentication, not Bitbucket app passwords (which are deprecated). Prefer using `-u`/`-p` flags or environment variables instead.
+The `--app-password` flag is a legacy name. It triggers API token authentication, not Bitbucket app passwords (which are deprecated). Prefer `-u`/`-p`, `--with-token`, or the environment variables.
 :::
 
-### Required Scopes (API Token)
+### Required scopes (API token)
 
-When using API tokens, your token needs these scopes:
+`bb auth login` and `bb auth status` need `read:user:bitbucket` to verify your identity, and so does `bb pr list --mine` (it resolves your account UUID).
 
-- `read:user:bitbucket` — verify your identity
-- `read:repository:bitbucket` — list and view repositories
-- `write:repository:bitbucket` — create repositories
-- `admin:repository:bitbucket` — delete repositories (optional)
-- `read:pullrequest:bitbucket` — list and view pull requests
-- `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
+Repository and pull request commands need `read:repository:bitbucket` and `read:pullrequest:bitbucket`, plus the matching `write:` scopes to create, edit, merge, approve, or decline. Creating a repository needs the admin scope (legacy `repository:admin`) and deleting one needs the delete scope (legacy `repository:delete`); Atlassian publishes these as `admin:repository:bitbucket` and `delete:repository:bitbucket`.
 
-OAuth scopes are requested automatically during authorization.
+Everything else — pipelines, issues, snippets, projects — needs its own scope. See [Token scopes](/reference/token-scopes/) for the per-command table.
 
-See the [Authentication guide](/getting-started/authentication/) for detailed setup instructions.
+OAuth logins request a fixed scope set: `account repository repository:admin pullrequest pullrequest:write`. Commands outside repositories and pull requests (`bb pipeline`, `bb issue`, `bb snippet`, `bb project`) are not covered, and neither is `bb repo delete`. Use an API token with the matching scopes for those.
+
+See the [Authentication guide](/getting-started/authentication/) for setup instructions.
 
 ---
 
@@ -122,24 +113,23 @@ Log out of Bitbucket and remove stored credentials.
 bb auth logout [options]
 ```
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
 bb auth logout
+
+# Machine-readable result
+bb auth logout --json
 ```
 
-### What Gets Removed
+### What gets removed
 
 - **OAuth**: Revokes the token on Bitbucket's side, then removes `oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, `authMethod`, and custom OAuth consumer credentials from the config file.
 - **API Token**: Removes `username` and `apiToken` from the config file.
 
 Other settings like `defaultWorkspace`, `skipVersionCheck`, and `versionCheckInterval` are preserved.
+
+If revocation fails, the CLI still clears local credentials and warns you to revoke the token manually (`revokeFailed: true` in `--json`).
 
 ---
 
@@ -150,12 +140,6 @@ Show current authentication status and account information.
 ```bash
 bb auth status [options]
 ```
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -175,8 +159,9 @@ When authenticated with OAuth:
   Authentication: OAuth
   Username: myuser
   Display name: My Name
-  Account ID: 123456789
+  Account ID: 712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f
   Token expires: in 1h 42m
+  Default workspace: myworkspace
 ```
 
 When authenticated with API token:
@@ -185,14 +170,21 @@ When authenticated with API token:
   Authentication: API Token
   Username: myuser
   Display name: My Name
-  Account ID: 123456789
+  Account ID: 712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f
+  Default workspace: myworkspace
 ```
+
+The `Default workspace:` line appears only when `defaultWorkspace` is set. On an OAuth login with a stale token, `Token expires:` reads `expired (will refresh automatically)`.
 
 When not authenticated:
 ```
 ℹ Not logged in
 Run bb auth login to authenticate.
 ```
+
+:::caution
+`bb auth status --json` reports `method: "basic"` for API-token logins, while `bb auth login --json` reports `method: "api_token"` for the same credentials. In scripts, match on `!== "oauth"` rather than on either literal. See [JSON output](/reference/json-output/) for the full payloads.
+:::
 
 ---
 
@@ -204,17 +196,20 @@ Print the current access token.
 bb auth token [options]
 ```
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
 # Print the token
 bb auth token
+
+# Copy it to the clipboard
+bb auth token | pbcopy
+
+# Use it against the raw API (OAuth login — bearer token)
+curl -H "Authorization: Bearer $(bb auth token)" https://api.bitbucket.org/2.0/user
+
+# Use it against the raw API (API token login — base64 basic credentials)
+curl -H "Authorization: Basic $(bb auth token)" https://api.bitbucket.org/2.0/user
 
 # Get token as JSON
 bb auth token --json
@@ -222,16 +217,9 @@ bb auth token --json
 
 ### Output
 
-- **OAuth**: Prints the bearer access token (automatically refreshes if expired).
-- **API Token**: Prints a base64-encoded `username:apiToken` string suitable for HTTP Basic auth headers.
-
-### Use Cases
-
-This is useful for:
-- Debugging authentication issues
-- Using the token with other tools or scripts
-- Verifying token format
+- **OAuth**: Prints the bearer access token (automatically refreshes if expired). `--json` reports `type: "bearer"`.
+- **API Token**: Prints a base64-encoded `username:apiToken` string suitable for HTTP Basic auth headers. `--json` reports `type: "basic"`.
 
 :::caution
-Keep your token secure! Anyone with this token can access your Bitbucket account with the scopes you've granted.
+Anyone holding this token has your Bitbucket access, within the scopes you granted. Don't paste it into logs, CI output, or issue reports.
 :::

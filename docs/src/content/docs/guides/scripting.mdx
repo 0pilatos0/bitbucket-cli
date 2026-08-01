@@ -3,13 +3,11 @@ title: Scripting & Automation - Bitbucket CLI for CI/CD Workflows
 description: Learn how to use Bitbucket CLI in automation scripts and CI/CD pipelines. JSON output, exit codes, error handling, and practical examples for DevOps workflows.
 ---
 
-import { Aside, Tabs, TabItem, Code } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-The Bitbucket CLI is designed for both interactive use and automation. This guide covers JSON output, exit codes, and scripting patterns.
+## JSON output mode
 
-## JSON Output Mode
-
-All commands support the `--json` flag for machine-readable output:
+Add `--json` for machine-readable output:
 
 ```bash
 bb pr list --json
@@ -17,19 +15,42 @@ bb repo list --json
 bb pr view 42 --json
 ```
 
-For list-style commands, results are limited by default. Pass `--limit` when
-your automation needs more rows.
+<Aside type="caution">
+`--json` must come **after** the subcommand. Its field-list argument is
+optional, so `bb --json pr list` swallows `pr` as the field list, leaves `list`
+to be parsed as a top-level command, and exits 1 with error code 5002. Write
+`bb pr list --json`. If you need the flag before the subcommand, use the equals
+form: `bb --json=id,title pr list`.
+</Aside>
 
-### Built-in Field Selection and jq
+Paginated list commands return 25 rows by default. Pass `--all` to fetch every
+page, or `--limit <n>` for a specific cap — `--all` wins if you pass both.
+`--limit` must be a positive integer; anything else fails with `--limit must be
+a positive integer` (error code 5002). There is no `--page` flag; pagination is
+followed internally.
+
+```bash
+bb pr list --json --all
+bb pr list --json --limit 100
+```
+
+Twelve commands take `--limit` and `--all`: `repo list`, `pr list`,
+`pr activity`, `pr comments list`, `snippet list`, `snippet comments list`,
+`pipeline list`, `commit list`, `status list`, `issue list`, `workspace list`,
+`project list`. Other list-style commands return their full result set and
+accept neither flag — `bb pr reviewers list` and
+`bb repo default-reviewers list`, for example.
+
+### Field selection and `--jq`
 
 Two flags inspired by the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting)
-let you slice and filter output without an external `jq` binary:
+slice and filter output without an external `jq` binary:
 
 ```bash
 # Project to a comma-separated field list
 bb pr list --json id,title,state
 
-# Pipe through embedded jq (requires --json)
+# Filter through the embedded jq (requires --json)
 bb pr list --json --jq '.pullRequests[].title'
 
 # Combine both
@@ -41,60 +62,55 @@ When `--json fields` is passed against a list-style command, the wrapper
 envelope is dropped and the field list is projected per-item — the result is
 a flat array. See [JSON Output reference](/reference/json-output/) for details.
 
-### Parsing with jq
-
-The built-in `--jq` matches the syntax of the standalone
-[jq](https://jqlang.github.io/jq/) binary, so existing expressions work
-either way:
+`--jq` matches the syntax of the standalone
+[jq](https://jqlang.github.io/jq/) binary, so existing expressions work either
+way. These two are equivalent:
 
 ```bash
-# Built-in (no external dependency, cross-platform)
 bb pr list --json --jq '.pullRequests[].title'
-
-# External jq (equivalent)
 bb pr list --json | jq '.pullRequests[].title'
-
-# Get PR count
-bb pr list --json --jq '.count'
-
-# Filter by state
-bb pr list -s MERGED --json --jq '.count'
-
-# Project specific fields
-bb pr list --json --jq '.pullRequests[] | {id, title, author: .author.display_name}'
-
-# Filter by author
-bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
-
-# PR URLs
-bb pr list --json --jq '.pullRequests[].links.html.href'
-
-# Web diff URL for a PR
-bb pr diff 42 --web --json --jq '.url'
 ```
 
-### Common jq Patterns
+### jq patterns
 
 ```bash
+# Open PR count (--state defaults to OPEN)
+bb pr list --json --all --jq '.count'
+
+# Merged PR count
+bb pr list -s MERGED --json --all --jq '.count'
+
+# Project specific fields
+bb pr list --json --all --jq '.pullRequests[] | {id, title, author: .author.display_name}'
+
+# Filter by author
+bb pr list --json --all --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
+
+# PR web URLs
+bb pr list --json --all --jq '.pullRequests[].links.html.href'
+
+# Web diff URL for one PR
+bb pr diff 42 --web --json --jq '.url'
+
 # PRs updated in the last 7 days
-bb pr list --json | jq --arg date "$(date -d '7 days ago' -Iseconds 2>/dev/null || \
+bb pr list --json --all | jq --arg date "$(date -d '7 days ago' -Iseconds 2>/dev/null || \
   date -v-7d -Iseconds)" \
   '.pullRequests[] | select(.updated_on > $date)'
 
-# PRs targeting main branch
-bb pr list --json | jq '.pullRequests[] | select(.destination.branch.name == "main")'
+# PRs targeting main
+bb pr list --json --all | jq '.pullRequests[] | select(.destination.branch.name == "main")'
 
 # Group PRs by author
-bb pr list --json | jq '.pullRequests | group_by(.author.nickname // .author.display_name) | map({author: (.[0].author.nickname // .[0].author.display_name), count: length})'
+bb pr list --json --all | jq '.pullRequests | group_by(.author.nickname // .author.display_name) | map({author: (.[0].author.nickname // .[0].author.display_name), count: length})'
 ```
 
 ---
 
-## Raw API Access (Escape Hatch)
+## Raw API access (escape hatch)
 
 When no typed command covers what you need, [`bb api`](/commands/api/) calls any
-Bitbucket Cloud 2.0 endpoint through the same authenticated stack — so scripts
-are never blocked. Its output is already JSON, so `--jq` works without `--json`.
+Bitbucket Cloud 2.0 endpoint through the same authenticated stack. Its output is
+already JSON, so `--jq` works without `--json`.
 
 ```bash
 # Any endpoint, authenticated
@@ -116,71 +132,65 @@ checkout. See the [API command reference](/commands/api/) for every flag.
 
 ---
 
-## Exit Codes
-
-The CLI uses a deliberately small exit-code surface:
+## Exit codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
 | 1 | Any failure (authentication, API, validation, network, jq, …) |
 
-There is **no `2`/`3`/etc. mapping** — every failure exits with `1`. To branch
-on the specific failure mode in a script, parse the JSON error written to
-stderr and read its `code` field, which corresponds to one of the
-[error codes](/reference/error-codes/).
-
-```bash
-if ! bb pr view 999 --json > out.json 2> err.json; then
-  code=$(jq -r '.code' err.json)
-  case "$code" in
-    1001|1002|1003) echo "auth problem";;
-    2002)            echo "PR not found";;
-    *)               echo "other failure ($code)";;
-  esac
-fi
-```
-
-### Checking Exit Codes
-
-```bash
-#!/bin/bash
-
-if bb pr list -w myworkspace -r myrepo > /dev/null 2>&1; then
-  echo "Success"
-else
-  echo "Failed with exit code: $?"
-fi
-```
-
-### Error Handling Patterns
-
-```bash
-#!/bin/bash
-set -e  # Exit on any error
-
-# Or handle errors explicitly
-bb pr list --json > prs.json || {
-  echo "Failed to list PRs"
-  exit 1
-}
-```
-
-<Aside type="tip">
-In `--json` mode, success JSON is written to stdout and error JSON is written to stderr.
-Parse them separately in scripts.
-</Aside>
-
-```bash
-if ! bb config get invalidKey --json > out.json 2> err.json; then
-  jq '.' err.json
-  exit 1
-fi
-```
+There is **no `2`/`3`/etc. mapping** — every failure exits with `1`. To branch on
+the specific failure mode, read the `code` field of the JSON error envelope,
+which is one of the [error codes](/reference/error-codes/).
 
 ---
 
-## Environment Variables
+## Error handling
+
+In `--json` mode, success JSON goes to stdout and the error envelope goes to
+stderr. Redirect them separately:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+if ! bb pr view 999 -w myworkspace -r myrepo --json > out.json 2> err.json; then
+  code=$(jq -r '.code' err.json)
+  case "$code" in
+    1001|1002|1003) echo "auth problem";;
+    2002)           echo "PR not found";;
+    *)              echo "other failure ($code): $(jq -r '.message' err.json)";;
+  esac
+  exit 1
+fi
+```
+
+The error envelope carries:
+
+| Field | Notes |
+|-------|-------|
+| `name` | Error class — `BBError`, `AuthError`, `APIError`, … |
+| `code` | Numeric [error code](/reference/error-codes/) |
+| `message` | Human-readable failure description |
+| `context` | Extra detail (ids, keys, args); omitted when the error carries none |
+| `statusCode` | HTTP status — `APIError` only |
+| `response` | Raw API response body — `APIError` only, when non-empty |
+| `hint` | Remediation advice; optional, see below |
+
+`hint` appears only on API errors with status 401, 403, or 404, and is skipped
+on 404 when the message already names the missing resource. Treat it as
+optional in scripts.
+
+Argument-parsing failures are the exception. An unknown option, a missing
+argument, or too many arguments prints a **plain text** usage error to stderr
+and exits 1 even under `--json`, so `jq` cannot parse it. The one parse failure
+that still emits an envelope is an unknown top-level command — `bb bogus --json`
+returns code 5002, while `bb pr bogus --json` prints
+`error: unknown command 'bogus'` as plain text.
+
+---
+
+## Environment variables
 
 For non-interactive scripts, use environment variables:
 
@@ -196,80 +206,70 @@ See [Environment Variables Reference](/reference/environment-variables/) for det
 
 ---
 
-## Built-in Resilience
+## Built-in resilience
 
-The CLI handles common transient failures automatically — you don't need to implement this yourself in most cases.
+### Automatic retry
 
-### Automatic Retry
+API requests that fail with HTTP 429, 502, 503, or 504 are retried up to 3 times
+with exponential backoff. Add your own retry loop only if you need more than 3
+attempts.
 
-API requests that fail with transient errors (HTTP 429, 502, 503, 504) are retried automatically up to 3 times with exponential backoff. This means rate-limited or temporarily unavailable responses are handled without any extra scripting.
+### OAuth token refresh
 
-### OAuth Token Refresh
-
-OAuth access tokens expire after 2 hours. The CLI refreshes them automatically — both proactively (before expiry) and reactively (on 401 responses). Long-running scripts using OAuth don't need manual re-authentication.
-
-<Aside type="tip">
-The built-in retry covers most transient failures. Only add your own retry logic if you need custom behavior beyond 3 attempts.
-</Aside>
+OAuth access tokens expire after 2 hours. The CLI refreshes them automatically —
+proactively before expiry and reactively on 401 responses. Long-running OAuth
+scripts never need to re-authenticate manually.
 
 ---
 
-## Scripting Best Practices
+## Scripting best practices
 
-### Always Use Explicit Flags
+### Always pass `-w` and `-r`
 
-Don't rely on context detection in scripts:
+Workspace and repository detection reads the git remote of the current
+checkout. CI runners frequently check out with a non-Bitbucket remote, or no
+remote at all, so context detection fails there.
 
 ```bash
 # Good - explicit and reliable
 bb pr list -w myworkspace -r myrepo --json
 
-# Bad - may fail if context can't be detected
+# Bad - fails when the checkout has no Bitbucket remote
 bb pr list --json
 ```
 
-### Handle Persistent Failures
-
-The CLI retries transient errors automatically (see [Built-in Resilience](#built-in-resilience) above). For persistent failures, handle the exit code:
-
-```bash
-#!/bin/bash
-
-if ! bb pr list -w workspace -r repo --json > prs.json 2>error.json; then
-  echo "Failed to list PRs"
-  cat error.json
-  exit 1
-fi
-```
-
-### Add Delays in Loops
+### Add delays in loops
 
 When making many sequential API calls, add short delays to avoid hitting rate limits:
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
-for pr_id in $(bb pr list --json | jq -r '.pullRequests[].id'); do
-  bb pr view "$pr_id" --json
+WORKSPACE="myworkspace"
+REPO="myrepo"
+
+for pr_id in $(bb pr list -w "$WORKSPACE" -r "$REPO" --json --all | jq -r '.pullRequests[].id'); do
+  bb pr view "$pr_id" -w "$WORKSPACE" -r "$REPO" --json
   sleep 1
 done
 ```
 
 ---
 
-## Example Scripts
+## Example scripts
 
 :::tip[Looking for a recipe?]
 For ready-to-copy workflows — auto-merge on green CI, bulk reviewer assignment, fork sync, jq analytics, and retry wrappers — see the [Recipes section](/recipes/).
 :::
 
-### Batch PR Approval
+### Batch pull request approval
 
-Approve all open PRs from a specific author:
+Approve all open pull requests (PRs) from a specific author:
 
 ```bash
 #!/bin/bash
-set -e
+set -euo pipefail
 
 WORKSPACE="myworkspace"
 REPO="myrepo"
@@ -277,7 +277,7 @@ AUTHOR="trusted-bot"
 
 echo "Finding PRs from $AUTHOR..."
 
-pr_ids=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json | \
+pr_ids=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --all | \
   jq -r --arg author "$AUTHOR" '.pullRequests[] | select((.author.nickname // .author.display_name) == $author) | .id')
 
 for pr_id in $pr_ids; do
@@ -289,12 +289,13 @@ done
 echo "Done!"
 ```
 
-### PR Status Report
+### PR status report
 
 Generate a markdown report of open PRs:
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 
 WORKSPACE="myworkspace"
 REPO="myrepo"
@@ -304,7 +305,7 @@ echo ""
 echo "Generated: $(date)"
 echo ""
 
-bb pr list -w "$WORKSPACE" -r "$REPO" --json | jq -r '.pullRequests[] |
+bb pr list -w "$WORKSPACE" -r "$REPO" --json --all | jq -r '.pullRequests[] |
   "## PR #\(.id): \(.title)\n" +
   "- **Author:** \(.author.display_name)\n" +
   "- **Branch:** \(.source.branch.name) → \(.destination.branch.name)\n" +
@@ -312,13 +313,13 @@ bb pr list -w "$WORKSPACE" -r "$REPO" --json | jq -r '.pullRequests[] |
   "- **Link:** \(.links.html.href)\n"'
 ```
 
-### Auto-Close Stale PRs
+### Auto-close stale PRs
 
 Decline PRs not updated in 30 days:
 
 ```bash
 #!/bin/bash
-set -e
+set -euo pipefail
 
 WORKSPACE="myworkspace"
 REPO="myrepo"
@@ -329,7 +330,7 @@ cutoff=$(date -d "$DAYS_OLD days ago" -Iseconds 2>/dev/null || \
 
 echo "Finding PRs older than $DAYS_OLD days..."
 
-stale_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json | \
+stale_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --all | \
   jq -r --arg cutoff "$cutoff" '.pullRequests[] | select(.updated_on < $cutoff) | .id')
 
 if [ -z "$stale_prs" ]; then
@@ -343,6 +344,3 @@ for pr_id in $stale_prs; do
   sleep 1
 done
 ```
-
-
-

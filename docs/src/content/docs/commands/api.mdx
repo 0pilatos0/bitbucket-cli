@@ -3,29 +3,29 @@ title: API Command — Raw Authenticated Bitbucket API Access
 description: Call any Bitbucket Cloud 2.0 API endpoint through the CLI's authenticated stack — the escape hatch for endpoints not yet wrapped by a typed command. Mirrors gh api.
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+`bb api` sends an authenticated request to any Bitbucket Cloud 2.0 endpoint
+through the same stack as every other command: Basic/Bearer auth, automatic
+OAuth token refresh, rate-limit and transient-error retries, and secret
+redaction. Same shape as `gh api`.
 
-`bb api` makes an authenticated request to **any** Bitbucket Cloud 2.0 API
-endpoint, reusing the same stack as every other command: Basic/Bearer auth,
-automatic OAuth token refresh, rate-limit and transient-error retries, and
-secret redaction. It is the escape hatch for endpoints not yet wrapped by a
-typed command family, so you are never blocked. Mirrors `gh api`.
-
-Global options: `--json [fields]`, `--jq <expression>`, `--no-color`,
-`-w, --workspace`, `-r, --repo`.
+Every global flag is inherited — see [Global Flags](/reference/global-flags/).
+The ones that matter here are `--json [fields]`, `--jq <expression>`,
+`-w/--workspace`, `-r/--repo`, and `--no-color`/`--no-unicode`, which style the
+error and `--paginate` warning lines. `--no-truncate` and `--locale` change
+nothing: `bb api` prints no tables and no dates.
 
 ## `bb api`
 
 ```bash
-bb api [method] <endpoint> [options]
+bb api [options] [method] <endpoint>
 ```
 
 ### Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `method` | Optional HTTP verb (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`). When omitted, defaults to `GET`, or `POST` when fields/body are present. Both `bb api GET /user` and `bb api /user` work. |
-| `endpoint` | The API path, relative to `https://api.bitbucket.org/2.0` (a leading `/` is optional). `{workspace}` and `{repo}` placeholders are substituted from `--workspace`/`--repo` or the current repository. |
+| `method` | Optional HTTP verb (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`), case-insensitive. When omitted, defaults to `GET`, or `POST` when fields/body are present. Both `bb api GET /user` and `bb api /user` work. |
+| `endpoint` | The API path, relative to `https://api.bitbucket.org/2.0` (a leading `/` is optional). A redundant leading `/2.0` is stripped, so paths copied straight out of the Bitbucket REST docs (`/2.0/user`) work unchanged. `{workspace}` and `{repo}` placeholders are substituted from `--workspace`/`--repo` or the current repository. |
 
 ### Options
 
@@ -39,6 +39,30 @@ bb api [method] <endpoint> [options]
 | `-i, --include` | Print the HTTP status line and response headers before the body (text mode only — suppressed under `--json`). |
 | `--paginate` | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only). |
 
+### Argument errors
+
+Positionals are strict: at most two, and with two the first must be an HTTP
+verb. Every case below exits `1` without sending a request.
+
+```text
+$ bb api
+✗ An endpoint path is required (e.g. /user). Run `bb api --help` for usage.
+
+$ bb api GET
+✗ An endpoint path is required after the method (e.g. bb api GET /user). Run `bb api --help` for usage.
+
+$ bb api GTE /user
+✗ 'GTE' is not a valid HTTP method. Expected one of: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. Run `bb api --help` for usage.
+(Did you mean GET?)
+
+$ bb api -X GTE /user
+✗ --method must be one of: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+(Did you mean GET?)
+
+$ bb api GET /user /extra
+error: too many arguments for 'api'. Expected 2 arguments but got 3: GET, /user, /extra.
+```
+
 ### Examples
 
 ```bash
@@ -48,11 +72,14 @@ bb api /user
 # Explicit method (equivalent to the above)
 bb api GET /user
 
-# List every pull request, following pagination, using the current repo
+# List every pull request, following pagination, using the current repository
 bb api /repositories/{workspace}/{repo}/pullrequests --paginate
 
 # Create an issue (method inferred as POST because fields are present)
-bb api POST /repositories/my-ws/my-repo/issues -f title=Bug -F priority=3
+bb api /repositories/my-ws/my-repo/issues -f title=Bug -f priority=major
+
+# -F applies gh-style magic typing: true/false/null and numbers become JSON literals
+bb api PUT /repositories/my-ws/my-repo -F is_private=true
 
 # Send a JSON body from a file
 bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
@@ -72,19 +99,15 @@ bb api -i /user
 
 ### How fields are sent
 
-- **`GET` / `HEAD`** — `-f`/`-F` fields are appended as a URL query string
+- **`GET` / `HEAD`** — `-f`/`-F` are appended as a URL query string
   (`?key=value&...`).
-- **Other methods** — `-f`/`-F` fields are assembled into a JSON request body.
-- **`--input`** — sends the file (or stdin) contents as the raw body verbatim,
-  and cannot be combined with `-f`/`-F`.
+- **Every other method** — `-f`/`-F` are assembled into a JSON request body.
 - Repeating the same key turns it into an array, matching `gh`.
 
 ### Placeholders
 
-`{workspace}` and `{repo}` in the endpoint are filled from `--workspace` /
-`--repo` or inferred from the current git checkout. Repository context is only
-resolved when a placeholder is actually present, so `bb api /user` works
-anywhere.
+`{workspace}` and `{repo}` are resolved only when they actually appear in the
+path, so `bb api /user` works outside a checkout.
 
 ```bash
 # Inside a Bitbucket checkout, these resolve automatically:
@@ -97,10 +120,10 @@ bb api -w my-ws -r my-repo /repositories/{workspace}/{repo}/commits
 ### Output
 
 The response body is printed to stdout. JSON responses are pretty-printed and
-respect the global `--json [fields]` projection and `--jq` filtering; non-JSON
+respect the global `--json [fields]` projection and `--jq` filtering. Non-JSON
 responses (e.g. raw diffs) are printed verbatim, and `--json`/`--jq` are inert
 on them. An empty response body (e.g. a `HEAD` or `204`) prints nothing in text
-mode, and `{}` under `--json` so a downstream `jq` never sees zero bytes.
+mode, and `{}` under `--json`, so a downstream `jq` never sees zero bytes.
 
 ```bash
 bb api /user
@@ -115,11 +138,21 @@ bb api /user
 }
 ```
 
-<Aside type="note">
-  Unlike list/table commands, `bb api` output is already JSON, so `--jq` works
-  on its own — you do **not** need to pass `--json` as well:
-  `bb api /repositories/my-ws --jq '.values[].name'`.
-</Aside>
+`bb api` is the only command where `--jq` works without `--json`; everywhere
+else a bare `--jq` fails with `✗ --jq requires --json`.
+
+On a paginated endpoint, `--json <fields>` unwraps the `values` array and drops
+the envelope (`pagelen`, `size`, `next`), returning a bare array of projected
+objects. Projection runs before `--jq`, so once you pass `--json <fields>` the
+expression sees that flat array — use `.[]`, not `.values[]`.
+
+```bash
+# Envelope intact
+bb api /repositories/my-ws --jq '.values[].name'
+
+# Projected and unwrapped
+bb api /repositories/my-ws --json name --jq '.[].name'
+```
 
 ### Notes
 
@@ -130,6 +163,13 @@ bb api /user
   when they point at `api.bitbucket.org`. This prevents the CLI from sending
   your token to a foreign host. Pagination cursors (which are absolute
   `api.bitbucket.org` URLs) are followed safely.
+- **`--paginate` degrades instead of erroring.** On a non-`GET`/`HEAD` request
+  it prints `--paginate only applies to GET/HEAD requests; ignoring it.` on
+  stderr and sends the request unpaginated. If the first response has no
+  `values` array — a single resource rather than a collection — it prints
+  `--paginate: response has no "values" array; returning the first page only.`
+  and returns page 1. Both warnings are suppressed under `--json`. Combined
+  with `-i`, the status line and headers printed are the first page's.
 - **Errors surface the API response.** On a non-2xx status, the API's error
   body is printed and the command exits non-zero. With `--json`, the error
   payload (including `statusCode` and `response`) is emitted as structured JSON.

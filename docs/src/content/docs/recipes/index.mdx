@@ -5,9 +5,9 @@ description: Cookbook of common Bitbucket CLI workflows — auto-merge, bulk rev
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-A cookbook of ready-to-copy workflows that combine `bb` commands with `jq` and shell to solve the patterns we see most often. Each recipe is a complete, runnable script — drop it into a CI job or a dotfile and adjust workspace/repo names.
+Ready-to-copy workflows that combine `bb` with `jq` and shell. Each recipe is a complete, runnable script — drop it into a CI job or a dotfile and adjust the workspace and repository names.
 
-If you are looking for the *primitives* these recipes are built on, see the [Scripting & Automation guide](/guides/scripting/) and the [CI/CD Integration guide](/guides/cicd/).
+For the *primitives* these recipes are built on, see the [Scripting & Automation guide](/guides/scripting/) and the [CI/CD Integration guide](/guides/cicd/).
 
 ## Available recipes
 
@@ -20,7 +20,7 @@ If you are looking for the *primitives* these recipes are built on, see the [Scr
   <LinkCard
     title="Bulk reviewer assignment"
     href="/recipes/bulk-reviewer-assignment/"
-    description="Assign a fixed list of reviewers across many open PRs (team rotations, onboarding)."
+    description="Assign a fixed list of reviewers across many open pull requests (team rotations, onboarding)."
   />
   <LinkCard
     title="Fork synchronization"
@@ -41,7 +41,8 @@ If you are looking for the *primitives* these recipes are built on, see the [Scr
 
 ## Conventions used in these recipes
 
-- All recipes assume `bb auth login` has already succeeded (interactively or via `BB_USERNAME` / `BB_API_TOKEN` env vars).
-- `WORKSPACE` and `REPO` are referenced as shell variables — set them at the top of the script or export them from your CI environment.
-- The CLI already retries transient HTTP 429 / 5xx errors up to 3 times with exponential backoff. The [retry wrapper recipe](/recipes/retry-wrapper/) is only for failures that persist past that.
-- `--json` output shapes are stable; see the [JSON Output reference](/reference/json-output/) for the envelope structure of list-style commands.
+- All recipes assume `bb auth login` has already succeeded — interactively, or via the `BB_USERNAME` and `BB_API_TOKEN` env vars.
+- `WORKSPACE` and `REPO` are read from the environment with a `${VAR:-default}` fallback. Export them in CI, or edit the defaults at the top of the script.
+- List commands default to `--limit 25`. Pass `--all` wherever a recipe has to see every result — the `Showing 25 pull requests. Use --limit <n> or --all to see more.` hint is printed with table output only, never under `--json`.
+- The CLI already retries HTTP 429, 502, 503 and 504 up to 3 times with exponential backoff. It also retries `ECONNRESET`, `ETIMEDOUT`, `ECONNABORTED`, `EAI_AGAIN` and `EPIPE` on GET, HEAD and OPTIONS. Nothing else is retried — a 500 is not, and neither is `ENOTFOUND` or a TLS failure. The [retry wrapper recipe](/recipes/retry-wrapper/) is for failures that persist past that.
+- `--jq` JSON-encodes its output: strings come back with quotes around them. Pipe `--json` to external `jq -r` when you need a raw string for the shell. See the [JSON Output reference](/reference/json-output/) for the envelope structure of list-style commands.

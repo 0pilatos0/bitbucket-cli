@@ -15,27 +15,24 @@ This recipe is for the cases where it isn't:
 
 ## What you'll see when retry kicks in
 
-The built-in retry is silent on success. On the third and final failure you'll see an error like:
+Each built-in retry announces itself on stderr — `⚠ Rate limited, retrying in 1.0s (attempt 1/3)...` — unless you passed `--json`, which suppresses the chatter so it can't pollute a structured pipeline. After the third and final failure, the CLI prints Bitbucket's own message to stderr, prefixed with a red `✗` (or `ERR ` under `--no-unicode`). For a rate limit that is typically:
 
-```
-Error: API request failed: 429 Too Many Requests
+```text
+✗ Rate limit for this resource has been exceeded
 ```
 
-If you also pass `--json`, the structured error shape on stderr looks like:
+The HTTP status number does not appear in text mode. To branch on it, pass `--json`: the error envelope goes to stderr as a single compact line.
 
 ```json
-{
-  "error": {
-    "code": "API_ERROR",
-    "message": "API request failed: 429 Too Many Requests"
-  }
-}
+{"name":"APIError","code":2004,"message":"Rate limit for this resource has been exceeded","context":{"status":429},"statusCode":429,"response":{"type":"error","error":{"message":"Rate limit for this resource has been exceeded"}}}
 ```
 
-That JSON shape is stable — see the [Error Codes reference](/reference/error-codes/). If you see this and the operation is idempotent, retrying is safe.
+The envelope is flat — there is no `error` wrapper object — and `code` is a number from the [Error Codes reference](/reference/error-codes/), here `2004` (`API_RATE_LIMITED`). `statusCode` and `response` appear on API errors only; a validation or config error has neither, and `context` on an API error also carries `method` and `url` (trimmed above). A `hint` string is added for 401, 403 and 404 responses; a 429 gets no hint.
+
+If the operation is idempotent, retrying is safe.
 
 <Aside type="caution">
-**Don't blanket-retry mutating commands.** `bb pr create`, `bb pr merge`, `bb pr approve`, and similar can succeed *server-side* even when the response read fails. A retry might create a duplicate PR or re-approve. Limit the wrapper below to read-only commands or commands you've made idempotent (e.g., check existence before creating).
+**Don't blanket-retry mutating commands.** `bb pr create`, `bb pr merge`, `bb pr approve`, and similar can succeed *server-side* even when the response read fails. A retry might create a duplicate pull request (PR) or re-approve. Limit the wrapper below to read-only commands or commands you've made idempotent (e.g., check existence before creating).
 </Aside>
 
 ## Recipe: bb-with-retry wrapper
@@ -62,9 +59,10 @@ attempt=1
 delay="$INITIAL_DELAY"
 
 while true; do
-  if bb "$@"; then
-    exit 0
-  fi
+  # `bb "$@" && exit 0`, not `if bb "$@"; then exit 0; fi` — after a
+  # non-taken `if` branch, $? is the status of the `if` itself (always 0),
+  # so the wrapper would report "exit 0" and exit 0 on total failure.
+  bb "$@" && exit 0
   exit_code=$?
 
   if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
@@ -100,11 +98,16 @@ MAX_ATTEMPTS=10 INITIAL_DELAY=5 ./bb-retry.sh pr view 42 --json
 
 ## Recipe: retry only on a specific error code
 
-If you only want to retry on rate-limit errors and *not* on, say, authentication failures, parse the structured error:
+To retry rate limits but *not* authentication failures, run the command with `--json` and read `statusCode` off the error envelope. Do not grep the text-mode message for `429`: that message is Bitbucket's own prose and usually contains no digits at all, while any PR title containing "502" would match.
 
 ```bash
 #!/bin/bash
 # bb-retry-on-rate-limit.sh
+#
+# Usage:
+#   ./bb-retry-on-rate-limit.sh pr list -w myworkspace -r myrepo
+#
+# Appends --json so the error envelope is machine-readable.
 set -euo pipefail
 
 MAX_ATTEMPTS=5
@@ -113,30 +116,32 @@ delay=2
 
 while true; do
   err_file=$(mktemp)
-  if bb "$@" 2> "$err_file"; then
-    rm -f "$err_file"
-    exit 0
-  fi
+  bb "$@" --json 2> "$err_file" && { rm -f "$err_file"; exit 0; }
 
   err_msg=$(cat "$err_file")
   rm -f "$err_file"
 
+  # statusCode exists on API errors only; empty for validation/config errors.
+  status=$(printf '%s' "$err_msg" | jq -r '.statusCode // empty' 2>/dev/null || true)
+
   # Retry only on rate-limit / transient gateway errors.
-  if echo "$err_msg" | grep -qE '429|502|503|504'; then
-    if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+  case "$status" in
+    429|502|503|504)
+      if [ "$attempt" -ge "$MAX_ATTEMPTS" ]; then
+        echo "$err_msg" >&2
+        exit 1
+      fi
+      echo "HTTP $status, retrying in ${delay}s..." >&2
+      sleep "$delay"
+      delay=$(( delay * 2 ))
+      attempt=$(( attempt + 1 ))
+      ;;
+    *)
+      # Non-transient (or no statusCode at all): fail fast.
       echo "$err_msg" >&2
       exit 1
-    fi
-    echo "Transient error, retrying in ${delay}s..." >&2
-    sleep "$delay"
-    delay=$(( delay * 2 ))
-    attempt=$(( attempt + 1 ))
-    continue
-  fi
-
-  # Non-transient: fail fast.
-  echo "$err_msg" >&2
-  exit 1
+      ;;
+  esac
 done
 ```
 
@@ -144,14 +149,14 @@ done
 
 The wrappers above are the right answer when the built-in retry has been exhausted. They are *not* the right answer for:
 
-- **Auth failures** (`Authentication required`) — retrying won't help; fix the credentials.
-- **404 / not-found errors** — these don't get more found over time.
-- **Validation errors** (`requireOption()` failures) — these are bugs in your script, not transient.
+- **Auth failures** — `Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.` (`code: 1001`). Retrying won't help; fix the credentials.
+- **404 / not-found errors** (`code: 2002`) — these don't get more found over time.
+- **Validation errors** (`code: 5001` or `5002`, e.g. `Option --title is required`) — bugs in your script, not transient.
 
-The CLI exits with code `1` for all of these, same as for transient errors. Use the JSON error shape on stderr (`.error.code`) to distinguish them rather than retrying everything.
+The CLI exits `1` for all of these, same as for transient errors. Branch on the JSON envelope instead. Use `jq -r '.statusCode // .code'`: `statusCode` is present on API errors, and `code` covers the rest.
 
 ## Related
 
 - [Scripting & Automation: Built-in Resilience](/guides/scripting/#built-in-resilience)
-- [Error Codes reference](/reference/error-codes/) — the stable `.error.code` values to branch on
+- [Error Codes reference](/reference/error-codes/) — the numeric `code` values to branch on
 - [JSON Output reference](/reference/json-output/) — the success/error envelope shapes

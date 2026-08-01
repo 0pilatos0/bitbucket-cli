@@ -14,6 +14,98 @@ and is updated on every release.
   See [Configuration File](/reference/configuration/) for related settings.
 </Aside>
 
+## Unreleased — Typo suggestions and remediation hints
+
+- **"Did you mean …?"** on a mistyped command or enum value. Unknown top-level
+  commands (`bb prr` → `(Did you mean pr?)`), every `must be one of` option
+  (`--state`, `--kind`, `--priority`, `--sort`, `--status`, `--role`,
+  `--strategy`, `--color`), `bb config get|set <key>`, each bad token in
+  `bb pr activity --type`, and both HTTP-method forms of `bb api`. Matching
+  folds case, and a value that is right apart from its case gets its own
+  message: `(Values are case-sensitive — use OPEN.)`
+- **Remediation hints** on `401`, `403` and `404` failures — one actionable
+  line pointing at `bb auth login`, at
+  [Token Scopes](/reference/token-scopes/), or at the id/slug and
+  `--workspace`/`--repo` you passed. Under `--json` the text arrives as a new
+  optional top-level `hint` field; existing envelope keys are unchanged. The
+  `404` hint is suppressed where the message already names the missing resource
+  and for `bb api`, where you supplied the URL.
+- **`bb help <command>`** now works (`bb help pr`, `bb help pr comments`); it
+  previously failed with `too many arguments`.
+- **`bb --json pr list`** now explains that `--json` swallowed `pr` as its field
+  list and shows the correct flag position.
+- **Behavior change:** `bb pr diff --color <when>` validates its value. A typo
+  such as `--color alwyas` used to silently disable color and exit `0`; it now
+  fails with the valid values and a suggestion.
+
+Known limitation: `bb --json <typo>` with nothing following still prints root
+help and exits `0` — it is indistinguishable from a genuine field list.
+
+## 1.22.0 — Pull request comment threads
+
+Four new `bb pr comments` subcommands complete the surface, and `list` can now
+filter by resolution state.
+
+- **`bb pr comments view <pr-id> <comment-id>`** shows one comment with its
+  author, date, state (`[resolved]`/`[unresolved]`/`[pending]`) and raw content.
+- **`bb pr comments reply <pr-id> <comment-id> <message>`** posts a threaded
+  reply attached to the parent comment.
+- **`bb pr comments resolve` / `unresolve <pr-id> <comment-id>`** close and
+  reopen a thread. Bitbucket returns only a resolution record for `resolve` and
+  no body for `unresolve`, so their `--json` payloads carry identifiers rather
+  than the full comment — read it back with `bb pr comments view`.
+- **`bb pr comments list`** gained a `Status` column (`resolved`, `pending`, or
+  `open`) plus `--resolved` / `--unresolved` filters. The active filter is
+  echoed under `filters.resolution` in `--json`.
+
+```bash
+bb pr comments list 42 --unresolved
+bb pr comments reply 42 987654 "Fixed in the follow-up commit."
+bb pr comments resolve 42 987654
+```
+
+**Bug fixes:** `bb pr comments edit` and `reply` no longer fail with
+`Bad request` — the update payload was sending a `type` key the endpoint
+rejects. `bb pr comments resolve` now sends an empty JSON body, which that
+endpoint requires. API errors also carry Bitbucket's `error.fields` detail now,
+so a rejected payload reports `Bad request (type: extra keys not allowed)`
+instead of a bare `Bad request`.
+
+See the [PR comments reference](/commands/pr/comments/) for the full flag list.
+
+## 1.21.0 — Six new command groups
+
+**Commit & status** — `bb commit list` and `bb commit view <sha>` show commit
+history and details. `bb status list <sha>` lists build statuses for a commit;
+`bb status set <sha> --key <key> --state <state>` creates or updates a build
+status idempotently (CI re-runs can safely re-report the same key).
+
+**Issues** — `bb issue list`, `view`, `create`, `edit`, `close`, and `comment`
+mirror `gh issue` ergonomics. Filters include `--state`, `--kind`, `--assignee`,
+`--reporter`, and a raw `--query` escape hatch. Disabled issue trackers surface
+a clear 404 pointing to Repository settings.
+
+**Pipelines** — `bb pipeline list` (filter by `--status`/`--branch`, paginated),
+`bb pipeline view <id>` (details + per-step summary), `bb pipeline run`
+(trigger on branch, with `--commit`, custom `--pipeline`, and `--var key=value`),
+`bb pipeline stop <id>`, and `bb pipeline logs <id>` (`--step` by UUID or index).
+Pipeline IDs accept build numbers or UUIDs everywhere.
+
+**Workspace & project** — `bb workspace list` shows every workspace you can
+access (filter by `--role`); `bb workspace view [slug]` shows details.
+`bb project list`, `bb project view <key>`, and `bb project create --key <KEY>
+--name <name>` handle project discovery and creation.
+
+All six groups emit stable `--json` envelopes and integrate with repo-scoped
+context resolution.
+
+**Infrastructure** — Read requests now retry up to 3 times with exponential
+backoff on transient network failures (GET/HEAD/OPTIONS only). Concurrent
+OAuth token refreshes are serialized behind an in-flight lock so parallel
+requests share a single refresh. Shell completion is now derived from the live
+command tree and includes flag-value completion for enum options (e.g.
+`bb pr merge --strategy <Tab>` suggests valid strategies).
+
 ## 1.20.0 — `bb api`
 
 A raw, authenticated passthrough to **any** Bitbucket Cloud 2.0 API endpoint —
@@ -49,50 +141,26 @@ Patch releases in 1.20 added configurable request timeouts (`BB_HTTP_TIMEOUT`),
 completion. A drift-guard test now fails CI when the completion tables fall out
 of sync with the live command tree.
 
-## 1.21.0 — Six new command groups
+## 1.19.0 — `BB_WORKSPACE`
 
-This release is all about filling the gaps. Six new command groups land,
-covering most of the remaining Bitbucket Cloud surface.
-
-**Commit & status** — `bb commit list` and `bb commit view <sha>` show commit
-history and details. `bb status list <sha>` lists build statuses for a commit;
-`bb status set <sha> --key <key> --state <state>` creates or updates a build
-status idempotently (CI re-runs can safely re-report the same key).
-
-**Issues** — `bb issue list`, `view`, `create`, `edit`, `close`, and `comment`
-mirror `gh issue` ergonomics. Filters include `--state`, `--kind`, `--assignee`,
-`--reporter`, and a raw `--query` escape hatch. Disabled issue trackers surface
-a clear 404 pointing to Repository settings.
-
-**Pipelines** — `bb pipeline list` (filter by `--status`/`--branch`, paginated),
-`bb pipeline view <id>` (details + per-step summary), `bb pipeline run`
-(trigger on branch, with `--commit`, custom `--pipeline`, and `--var key=value`),
-`bb pipeline stop <id>`, and `bb pipeline logs <id>` (`--step` by UUID or index).
-Pipeline IDs accept build numbers or UUIDs everywhere.
-
-**Workspace & project** — `bb workspace list` shows every workspace you can
-access (filter by `--role`); `bb workspace view [slug]` shows details.
-`bb project list`, `bb project view <key>`, and `bb project create --key <KEY>
---name <name>` handle project discovery and creation.
-
-All six groups emit stable `--json` envelopes and integrate with repo-scoped
-context resolution.
-
-**Infrastructure** — Read requests now retry up to 3 times with exponential
-backoff on transient network failures (GET/HEAD/OPTIONS only). Concurrent
-OAuth token refreshes are serialized behind an in-flight lock so parallel
-requests share a single refresh. Shell completion is now derived from the live
-command tree and includes flag-value completion for enum options (e.g.
-`bb pr merge --strategy <Tab>` suggests valid strategies).
+- **`BB_WORKSPACE`** is now actually read. It slots into workspace resolution
+  between git context and the config file, so the full order is
+  `--workspace` → git remote → `BB_WORKSPACE` → `config.defaultWorkspace`.
+  Previously the variable was advertised in `.env.example` but consulted
+  nowhere.
+- New [Global Flags](/reference/global-flags/) reference page consolidating
+  every flag that works on every command.
+- The environment-variable reference gained rows for `BB_WORKSPACE`,
+  `BB_LOCALE`, and `BB_NO_UNICODE`, and clarified that `DEBUG` must be the
+  literal string `true`.
 
 ## 1.18.0 — Pagination hints and `--all`
 
 List commands now make truncation visible and let you opt out of pagination
 in one flag.
 
-- **`--all`** fetches every page and overrides `--limit`. Available on
-  `bb repo list`, `bb pr list`, `bb pr activity`, `bb pr comments list`,
-  `bb snippet list`, and `bb snippet comments list`.
+- **`--all`** fetches every page and overrides `--limit`. Available on every
+  `list`-style command.
 - When `--limit` truncates a list, a dim footer prints
   `Showing 25 repositories. Use --limit <n> or --all to see more.` — no more
   silently-clipped output. The hint is suppressed in `--json` mode.
@@ -100,12 +168,10 @@ in one flag.
   (e.g. a repo description with a line break) are now collapsed to a single
   space so rows stay aligned. Multi-line `text()` output is unaffected.
 
-See [Global Flags → `--all`](/reference/global-flags/#--all) for the full
+See [Global Flags → `--all`](/reference/global-flags/#--all) for the current
 list of supported commands.
 
 ## 1.17.0 — Locale, Unicode toggle, spinner, global `--no-truncate`
-
-A polish-heavy release focused on output ergonomics.
 
 - **Locale-aware dates** via `--locale <tag>` and `BB_LOCALE`. Resolution
   walks `--locale` → `BB_LOCALE` → `LC_TIME` → `LC_ALL` → `LANG` → `en-US`.
@@ -148,14 +214,16 @@ and examples.
 
 Patch releases in the 1.16 line tightened help text, made the API client's
 retry messages route through the output service (silenced in `--json` mode),
-and standardised the `--yes` confirmation prompt across destructive commands.
+and standardised the `--yes` confirmation gate across destructive commands:
+without `-y/--yes` they now fail uniformly with `Use --yes to confirm.` rather
+than prompting.
 
-## 1.15.0 — Stability and warnings polish
+## 1.15.0 — Output consistency
 
-Internal hardening and small UX improvements. Empty-result messages on list
-commands now use a consistent `ℹ` info icon, and dividers across framed
-output (`pr view`, `pr checks`, `snippet view`, the version-update banner)
-share a single helper for a uniform look.
+- Empty-result messages on list commands use a consistent `ℹ` info icon.
+- Dividers across framed output (`pr view`, `pr checks`, `snippet view`, the
+  version-update banner) share a single helper, so they all render at the same
+  width and colour.
 
 ## 1.14.0 — `--json <fields>` projection and `--jq <expression>`
 
@@ -163,7 +231,7 @@ Match the `gh` CLI's JSON formatting flags so muscle memory and scripts port
 over cleanly.
 
 - `--json [fields]` accepts an optional comma-separated field list
-  (e.g. `--json number,title,author.display_name`). Bare `--json` keeps the
+  (e.g. `--json id,title,author.display_name`). Bare `--json` keeps the
   existing full-object output for backwards compatibility.
 - `--jq <expression>` runs the JSON output through an embedded
   [`jq-wasm`](https://www.npmjs.com/package/jq-wasm) engine. Requires `--json`.
@@ -174,9 +242,9 @@ over cleanly.
 - Invalid jq expressions exit non-zero with the underlying jq error.
 
 ```bash
-bb pr list --json number,title,state
+bb pr list --json id,title,state
 bb pr list --json author --jq '.[].author.display_name'
-bb pr list --json number,title,state --jq '.[] | select(.state == "OPEN") | .title'
+bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
 ```
 
 See the [Scripting & Automation guide](/guides/scripting/) for end-to-end

@@ -5,7 +5,7 @@ description: Count PRs per state, sum diff sizes, group by author, and export to
 
 import { Aside } from '@astrojs/starlight/components';
 
-The [Scripting guide](/guides/scripting/#common-jq-patterns) lists three starter jq patterns. This recipe expands that into a small analytics toolkit you can paste into a weekly report job.
+The [Scripting guide](/guides/scripting/#jq-patterns) lists starter jq patterns. This recipe expands them into a small analytics toolkit you can paste into a weekly report job.
 
 All recipes assume:
 
@@ -14,50 +14,71 @@ WORKSPACE=myworkspace
 REPO=myrepo
 ```
 
-## Count PRs per state
+Two things will bite you on this page if you skip them:
 
-`bb pr list` only returns one state at a time, so to count across all states fetch each separately and combine:
+- **`count` is what was fetched, not what exists.** `bb pr list` stops at `--limit 25` by default, so `.count` maxes out at 25 and the `Use --limit <n> or --all to see more.` hint is suppressed under `--json`. Pass `--all` whenever the number itself is the answer.
+- **`--jq` JSON-encodes its output.** There is no raw mode. When you need a bare string for the shell or a file, pipe `--json` into external `jq -r` instead.
+
+## Count pull requests per state
+
+`bb pr list` returns one state at a time, so fetch each separately and combine:
 
 ```bash
 for state in OPEN MERGED DECLINED SUPERSEDED; do
-  count=$(bb pr list -w "$WORKSPACE" -r "$REPO" -s "$state" --json --jq '.count')
+  count=$(bb pr list -w "$WORKSPACE" -r "$REPO" -s "$state" --all --json --jq '.count')
   printf "%-12s %s\n" "$state" "$count"
 done
 ```
 
 Sample output:
 
-```
+```text
 OPEN         12
 MERGED       340
 DECLINED     8
 SUPERSEDED   2
 ```
 
-If you only need a snapshot of currently open PRs grouped by state attribute, a one-liner suffices:
+The loop is not avoidable: `--state` takes one value and defaults to `OPEN`, so a single fetch can only ever contain one state and `group_by(.state)` would return one group. Grouping is still useful on other attributes of a single fetch — open PRs per target branch, for example:
 
 ```bash
-bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '
+bb pr list -w "$WORKSPACE" -r "$REPO" --all --json --jq '
   .pullRequests
-  | group_by(.state)
-  | map({ state: .[0].state, count: length })
+  | group_by(.destination.branch.name)
+  | map({ branch: .[0].destination.branch.name, count: length })
+  | sort_by(-.count)
 '
 ```
 
 ## Sum additions and deletions across PRs
 
-`pr list` does not include diff stats — they come from `bb pr diff <id> --json --stat` (or equivalent). For aggregate volume, walk every PR and sum:
+`bb pr list` does not include diff stats. `bb pr diff <id> --stat --json` does, and it already totals them for you:
+
+```json
+{
+  "workspace": "myworkspace",
+  "repoSlug": "myrepo",
+  "pullRequestId": 42,
+  "mode": "stat",
+  "files": [{ "path": "src/auth.ts", "additions": 31, "deletions": 4 }],
+  "filesChanged": 1,
+  "totalAdditions": 31,
+  "totalDeletions": 4
+}
+```
+
+The totals are per PR — there is no aggregate endpoint — so the outer loop still stands. Read `totalAdditions` and `totalDeletions` rather than re-summing `.files`:
 
 ```bash
 #!/bin/bash
 total_added=0
 total_deleted=0
 
-for pr_id in $(bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --json \
+for pr_id in $(bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --all --json \
                  --jq '.pullRequests[].id'); do
   stats=$(bb pr diff "$pr_id" -w "$WORKSPACE" -r "$REPO" --stat --json)
-  added=$(echo "$stats" | jq '[.files[].additions] | add // 0')
-  deleted=$(echo "$stats" | jq '[.files[].deletions] | add // 0')
+  added=$(echo "$stats" | jq '.totalAdditions')
+  deleted=$(echo "$stats" | jq '.totalDeletions')
   total_added=$(( total_added + added ))
   total_deleted=$(( total_deleted + deleted ))
   sleep 1
@@ -68,13 +89,13 @@ echo "Total deleted: $total_deleted"
 ```
 
 <Aside type="tip">
-This makes one HTTP request per PR. For a few dozen PRs it's fine; for hundreds, schedule it overnight or scope to a date range with `--jq '... | select(.updated_on >= "2025-01-01")'` before the inner loop.
+This makes one HTTP request per PR. For a few dozen PRs it's fine; for hundreds, schedule it overnight or scope to a date range with `--jq '... | select(.updated_on >= "2025-01-01")'` before the inner loop. That is a lexicographic string compare, which works because Bitbucket's timestamps are zero-padded ISO 8601.
 </Aside>
 
 ## Group by author with counts
 
 ```bash
-bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '
+bb pr list -w "$WORKSPACE" -r "$REPO" --all --json --jq '
   .pullRequests
   | group_by(.author.nickname // .author.display_name)
   | map({
@@ -107,10 +128,10 @@ bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --limit 200 --json --jq '
 
 ## CSV export
 
-To export an open-PRs report into a spreadsheet, use jq's `@csv`:
+Use jq's `@csv` — through **external** `jq -r`, not `--jq`. `@csv` produces a jq string, and `--jq` would JSON-encode it again, wrapping every line in a second pair of quotes and backslash-escaping the inner ones. The result is not valid CSV.
 
 ```bash
-bb pr list -w "$WORKSPACE" -r "$REPO" --limit 500 --json --jq '
+bb pr list -w "$WORKSPACE" -r "$REPO" --all --json | jq -r '
   ["id","title","author","state","created_on","source","destination"],
   (
     .pullRequests[]
@@ -132,32 +153,38 @@ head -3 prs.csv
 
 Sample output:
 
-```
+```text
 "id","title","author","state","created_on","source","destination"
-42,"Add login button","alice","OPEN","2025-01-04T09:11:00Z","feat/login","main"
-43,"Fix typo in README","bob","OPEN","2025-01-04T11:22:00Z","fix/typo","main"
+42,"Add login button","alice","OPEN","2025-01-04T09:11:00.993890+00:00","feat/login","main"
+43,"Fix typo in README","bob","OPEN","2025-01-04T11:22:41.118201+00:00","fix/typo","main"
 ```
 
 ## PR cycle time (created → merged)
 
+Bitbucket timestamps look like `2018-08-15T23:50:59.993890+00:00`. jq's `fromdateiso8601` is `strptime("%Y-%m-%dT%H:%M:%SZ")`, which rejects both the fractional seconds and the numeric offset — feeding it a raw Bitbucket timestamp fails the whole filter with `jq evaluation failed: …` (error code `8001`), it does not just skip a row. Strip both first:
+
 ```bash
 bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --limit 100 --json --jq '
+  def ts: sub("\\.[0-9]+"; "") | sub("\\+00:00"; "Z") | fromdateiso8601;
   [
     .pullRequests[]
     | {
         id,
         title,
-        hours: (
-          (.updated_on  | fromdateiso8601)
-          - (.created_on | fromdateiso8601)
-        ) / 3600
+        hours: ((.updated_on | ts) - (.created_on | ts)) / 3600
       }
   ]
   | sort_by(.hours)
 '
 ```
 
-`updated_on` on a merged PR approximates the merge time; for exact merge time, walk `bb pr activity <id>` and find the merge event.
+The `sub("\\.[0-9]+"; "")` is a no-op on the fraction-less variant Bitbucket also emits, so `ts` handles both.
+
+`updated_on` on a merged PR approximates the merge time. For the exact timestamp, read the merge event:
+
+```bash
+bb pr activity 42 -w "$WORKSPACE" -r "$REPO" --type merge --json --jq '.activities[0].merge.date'
+```
 
 ## Related
 

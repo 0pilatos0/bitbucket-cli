@@ -11,7 +11,13 @@ Status commands operate at **repository** scope. Run them inside a cloned
 Bitbucket repository, or pass `-w, --workspace <workspace>` and
 `-r, --repo <repo>` explicitly.
 
-Global options available on all status commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all status commands: `--json [fields]`,
+`--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`,
+`--locale <locale>`, `-w, --workspace`, `-r, --repo`.
+
+A `<sha>` is a full 40-character hash or any abbreviated prefix (`abc1234`).
+`--json` output is wrapped in an envelope keyed by `workspace` and `repoSlug`;
+the `# →` comments below show each shape.
 
 ---
 
@@ -23,21 +29,12 @@ List the build statuses reported on a commit.
 bb status list <sha> [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `sha` | Commit hash (full or abbreviated, e.g. `abc1234`) |
-
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `--limit <number>` | Maximum number of statuses (default: 25) |
 | `--all` | List all statuses (overrides `--limit`) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -45,7 +42,7 @@ bb status list <sha> [options]
 bb status list abc1234
 bb status list abc1234 --all
 
-# Stable JSON envelope: { workspace, repoSlug, commit, count, statuses }
+# → { workspace, repoSlug, commit, count, statuses }
 bb status list abc1234 --json
 
 # States only, via built-in --jq
@@ -54,41 +51,36 @@ bb status list abc1234 --json --jq '.statuses[].state'
 
 ### Notes
 
-- The table shows the status key, state (colored: green `SUCCESSFUL`, red
-  `FAILED`, yellow `INPROGRESS`, gray `STOPPED`), name, description
-  (truncated to 40 characters; disable with `--no-truncate`), and URL —
-  the same rendering as `bb pr checks`.
-- A `404` returns an actionable "Commit `<sha>` not found" error.
+- Columns: status key, state (colored: green `SUCCESSFUL`, red `FAILED`,
+  yellow `INPROGRESS`, gray `STOPPED`), name, description (truncated to 40
+  characters; disable with `--no-truncate`), and URL.
+- `bb pr checks` colors states the same way but renders a different table:
+  `STATUS / NAME / DESCRIPTION / UPDATED`, with the state shown as
+  `OK passed` / `FAIL failed` / `RUN running` / `STOP stopped` rather than the
+  raw state string.
+- An unknown sha returns `Commit abc1234 not found in acme/api.`
 
 ---
 
 ## `bb status set`
 
-Create or update a build status on a commit.
+Create or update a build status on a commit. `<sha>` is a full or abbreviated
+hash.
 
 ```bash
 bb status set <sha> --key <key> --state <state> [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `sha` | Commit hash (full or abbreviated) |
-
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `--key <key>` | **Required.** Unique status key, e.g. `BB-DEPLOY`. Re-running with the same key updates the existing status. |
-| `--state <state>` | **Required.** One of `SUCCESSFUL`, `FAILED`, `INPROGRESS`, `STOPPED` (case-insensitive) |
+| `--state <state>` | **Required.** One of `FAILED`, `INPROGRESS`, `STOPPED`, `SUCCESSFUL` (case-insensitive) |
 | `--url <url>` | Link back to the build system |
 | `--name <name>` | Build identifier, e.g. `BB-DEPLOY-1` |
 | `--description <description>` | Short build description |
 | `--refname <refname>` | Ref the build ran on, e.g. a branch name |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -97,7 +89,7 @@ bb status set abc1234 --key CI --state INPROGRESS
 bb status set abc1234 --key CI --state SUCCESSFUL --url https://ci.example.com/builds/42
 bb status set abc1234 --key LINT --state FAILED --description "ESLint found 3 errors" --refname main
 
-# Stable JSON envelope: { workspace, repoSlug, commit, status }
+# → { workspace, repoSlug, commit, status }
 bb status set abc1234 --key CI --state SUCCESSFUL --json --jq '.status.state'
 ```
 
@@ -127,13 +119,21 @@ fi
 
 ### Notes
 
-- **Idempotent per key:** the CLI first POSTs a new status; if Bitbucket
-  rejects it because a status with that key already exists on the commit
-  (typical on CI re-runs), it automatically falls back to updating the
-  existing status via PUT. Repeated `bb status set` calls with the same
-  `--key` are therefore always safe.
-- `--state` is validated client-side against the API enum; an invalid value
-  lists the allowed states.
+- **Idempotent per status key:** the CLI first POSTs a new status. If the POST
+  is rejected for anything other than an auth or not-found failure — most
+  commonly because a status with that key already exists on the commit, the
+  normal case on CI re-runs — it retries as a PUT against the existing key.
+  Repeated `bb status set` calls with the same `--key` are therefore always
+  safe.
+- `--state` is upper-cased before validation, so `successful` and `SUCCESSFUL`
+  both work. An invalid value lists the allowed states and, when the input is
+  close to a valid one, suggests it:
+
+  ```text
+  --state must be one of: FAILED, INPROGRESS, STOPPED, SUCCESSFUL
+  (Did you mean SUCCESSFUL?)
+  ```
+
 - On success the CLI prints `✓ Status <key> set to <state> on <short-sha>`;
   with `--json` it returns the resulting status resource wrapped in
   `{ workspace, repoSlug, commit, status }`.

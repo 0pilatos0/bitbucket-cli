@@ -3,79 +3,105 @@ title: Environment Variables
 description: Configure Bitbucket CLI using environment variables
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Environment variables allow you to configure the CLI without storing credentials in files. This is especially useful for CI/CD pipelines and automation scripts.
+Every environment variable the CLI reads. `bb --help` lists the main ones in
+its footer.
 
-## Available Variables
+## Available variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `BB_USERNAME` | Your Bitbucket username (fallback for `bb auth login`) | `myuser` |
 | `BB_API_TOKEN` | Your Bitbucket API token (fallback for `bb auth login`; forces API token auth when set) | `ATBB...` |
-| `BB_WORKSPACE` | Default workspace. Overrides `config.defaultWorkspace`; `--workspace` and git context still win. | `myworkspace` |
+| `BB_WORKSPACE` | Default workspace. Overrides `config.defaultWorkspace`. `--workspace` always wins; the git remote wins too, but only on repository-scoped commands — see [Resolution order](#resolution-order). | `myworkspace` |
 | `BB_LOCALE` | BCP-47 locale tag for date/time formatting. `--locale` takes precedence; falls back to `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. | `de-DE` |
-| `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Equivalent to the global `--no-unicode` flag. | `1` |
-| `NO_COLOR` | Disable color output globally when set to any value | `1` |
+| `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Same effect as the global `--no-unicode` flag, but it cannot be overridden per command: `--unicode` is accepted and does nothing while this is set. Unset the variable instead. | `1` |
+| `NO_COLOR` | Disable color output globally. Triggers on any value, including the empty string. | `1` |
 | `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
 | `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
-| `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds (critical in CI/scripts). Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. | `60000` |
+| `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. | `60000` |
 
 <Aside type="caution" title="BB_HTTP_TIMEOUT is in milliseconds">
-`BB_HTTP_TIMEOUT` is measured in **milliseconds**, not seconds. `BB_HTTP_TIMEOUT=60` means 60 milliseconds (almost every request will fail), not 60 seconds. For a 60-second timeout use `BB_HTTP_TIMEOUT=60000`. Set `BB_HTTP_TIMEOUT=0` to disable the timeout (useful for very large clones/exports), but avoid this in CI where a hung request has no human to Ctrl-C.
+`BB_HTTP_TIMEOUT=60` means 60 milliseconds, so almost every request fails. For
+a 60-second ceiling use `BB_HTTP_TIMEOUT=60000`. In CI, set something short
+like `BB_HTTP_TIMEOUT=15000` so a stalled call fails fast instead of hanging
+the pipeline. `BB_HTTP_TIMEOUT=0` disables the timeout — useful for very large
+clones or exports, but a hung request in CI has no human to Ctrl-C.
 </Aside>
 
-### Internal / System Variables
+### POSIX locale variables
 
-These variables are read by the CLI but are normally set by the runtime, your
-shell, or your operating system rather than by you. They are documented here
-so they aren't surprising during troubleshooting.
+If neither `--locale` nor `BB_LOCALE` is set, the CLI reads the standard POSIX
+locale variables — `LC_TIME`, then `LC_ALL`, then `LANG` — and falls back to
+`en-US` if none is usable. `LC_TIME` is deliberately checked **before**
+`LC_ALL`, which is the reverse of the usual POSIX override order, so setting
+both means `LC_TIME` wins.
 
-| Variable | Set By | Description |
+Values are normalised before use: a `.UTF-8` codeset suffix and an `@euro`-style
+modifier are stripped, `_` becomes `-` (`de_DE.UTF-8` → `de-DE`), and the `C`
+and `POSIX` locales map to `en-US`. Unset them, or pass `--locale`, to pin
+formatting explicitly.
+
+### CI detection
+
+The update check is skipped when any of these is set to any value:
+
+`CI`, `CONTINUOUS_INTEGRATION`, `BUILD_ID`, `BUILD_NUMBER`, `DRONE`,
+`GITHUB_ACTIONS`, `GITLAB_CI`, `CIRCLECI`, `TRAVIS`, `JENKINS_URL`,
+`HUDSON_URL`
+
+Set `CI=1` to get the same behavior locally.
+
+### Internal / system variables
+
+Set by the runtime, your shell, or your operating system rather than by you.
+Documented so they aren't surprising during troubleshooting.
+
+| Variable | Set by | Description |
 |----------|--------|-------------|
 | `NODE_ENV` | Test runners | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
 | `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually. |
 | `APPDATA` | Windows | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set. |
 
-## Configuration Priority
+## Resolution order
 
-Repository context is resolved in this order (highest priority first):
+Workspace and repository, highest priority first:
 
 1. **Command-line flags** (`--workspace`, `--repo`)
-2. **Git repository context** (detected from remote URL)
-3. **`BB_WORKSPACE` environment variable**
-4. **Configuration file** (`defaultWorkspace`)
+2. **Git repository context** (detected from the remote URL)
+3. **`BB_WORKSPACE`** (workspace only)
+4. **Configuration file** (`defaultWorkspace`, workspace only)
 
-Authentication credentials are resolved from:
+Step 2 does not apply to workspace-only commands — `bb workspace view`, every
+`bb project` and `bb snippet` command, `bb repo list`, `bb repo create`,
+`bb repo clone`, and `bb api` filling a `{workspace}` placeholder go straight
+from the flag to `BB_WORKSPACE` to `defaultWorkspace`.
 
-1. **Configuration file** (`~/.config/bb/config.json` on macOS/Linux, `%APPDATA%\bb\config.json` on Windows)
-2. **Environment variables** (`BB_USERNAME`, `BB_API_TOKEN`) when running `bb auth login` — setting `BB_API_TOKEN` automatically uses API token auth instead of OAuth
+Color, highest priority first. The default with none of them set is colors on:
 
-For color output, precedence is:
+1. `--color` — matched by a raw scan of argv, so `bb pr diff 42 --color never`
+   still turns global color on
+2. `FORCE_COLOR` (any value except `0`)
+3. `--no-color`
+4. `NO_COLOR` (any value, including the empty string)
 
-1. `--color` (force color on — only available on `bb pr diff`, not a global flag)
-2. `FORCE_COLOR`
-3. `--no-color` (global flag, available on all commands)
-4. `NO_COLOR`
+Credentials are **not** a chain. `bb pr list` and every other API call read the
+username and token from the config file only; if nothing is stored there the
+command fails with error 1001 even when `BB_USERNAME` and `BB_API_TOKEN` are
+exported. Those two variables are read by `bb auth login` and nowhere else —
+run it once and it writes the config file.
 
----
+Inside `bb auth login`:
 
-## Authentication with Environment Variables
+- `--username` / `-u` beats `BB_USERNAME`.
+- `--with-token` (token on stdin) beats `--password` / `-p`, which beats
+  `BB_API_TOKEN`. Combining `--with-token` with `--password` is an error.
+- Setting `BB_API_TOKEN` at all selects API token auth instead of OAuth.
 
-### Login from Environment Variables
+## Authentication with environment variables
 
-When environment variables are set, `bb auth login` uses them automatically:
-
-```bash
-export BB_USERNAME=myuser
-export BB_API_TOKEN=ATBB_your_token_here
-
-bb auth login  # Uses env vars, no prompts
-```
-
-### Non-Interactive Usage
-
-For scripts and CI/CD, set both variables before running commands:
+`bb auth login` picks up both variables, so it runs without prompts:
 
 ```bash
 export BB_USERNAME=myuser
@@ -85,104 +111,66 @@ bb auth login
 bb pr list -w myworkspace -r myrepo
 ```
 
-<Aside type="caution" title="Security Warning">
-Never commit environment variables containing tokens to version control. Use your CI/CD platform's secrets management instead.
-</Aside>
-
----
-
-## Shell Configuration
-
-### Bash
-
-Add to `~/.bashrc` or `~/.bash_profile`:
+Or inline, without exporting:
 
 ```bash
-export BB_USERNAME="your-username"
-export BB_API_TOKEN="your-api-token"
+BB_USERNAME=myuser BB_API_TOKEN=ATBB_token bb auth login
 ```
 
-Then reload:
-```bash
-source ~/.bashrc
-```
-
-### Zsh
-
-Add to `~/.zshrc`:
-
-```zsh
-export BB_USERNAME="your-username"
-export BB_API_TOKEN="your-api-token"
-```
-
-Then reload:
-```bash
-source ~/.zshrc
-```
-
-### Fish
-
-Add to `~/.config/fish/config.fish`:
-
-```fish
-set -gx BB_USERNAME "your-username"
-set -gx BB_API_TOKEN "your-api-token"
-```
-
-Then reload:
-```bash
-source ~/.config/fish/config.fish
-```
-
-### PowerShell
-
-Add to your PowerShell profile (`$PROFILE`):
-
-```powershell
-$env:BB_USERNAME = "your-username"
-$env:BB_API_TOKEN = "your-api-token"
-```
-
----
-
-## Temporary Session
-
-Set variables for a single terminal session:
+To keep the token out of shell history and `ps` output, pipe it instead:
 
 ```bash
-# Linux/macOS
-export BB_USERNAME=myuser
-export BB_API_TOKEN=ATBB_token
-
-# Windows Command Prompt
-set BB_USERNAME=myuser
-set BB_API_TOKEN=ATBB_token
-
-# Windows PowerShell
-$env:BB_USERNAME = "myuser"
-$env:BB_API_TOKEN = "ATBB_token"
+echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
 ```
 
-Or inline with a single command:
+## Shell configuration
 
-```bash
-BB_USERNAME=myuser BB_API_TOKEN=ATBB_token bb auth login && bb pr list -w workspace -r repo
-```
+Add to your shell's startup file, then reload it or open a new terminal:
 
----
+<Tabs>
+  <TabItem label="Bash">
+    `~/.bashrc` or `~/.bash_profile`:
 
-## Docker Usage
+    ```bash
+    export BB_USERNAME="your-username"
+    export BB_API_TOKEN="your-api-token"
+    ```
+  </TabItem>
+  <TabItem label="Zsh">
+    `~/.zshrc`:
 
-Pass environment variables to containers:
+    ```zsh
+    export BB_USERNAME="your-username"
+    export BB_API_TOKEN="your-api-token"
+    ```
+  </TabItem>
+  <TabItem label="Fish">
+    `~/.config/fish/config.fish`:
+
+    ```fish
+    set -gx BB_USERNAME "your-username"
+    set -gx BB_API_TOKEN "your-api-token"
+    ```
+  </TabItem>
+  <TabItem label="PowerShell">
+    Your profile (`$PROFILE`):
+
+    ```powershell
+    $env:BB_USERNAME = "your-username"
+    $env:BB_API_TOKEN = "your-api-token"
+    ```
+  </TabItem>
+</Tabs>
+
+## Docker
 
 ```bash
 docker run -e BB_USERNAME=myuser \
            -e BB_API_TOKEN=ATBB_token \
-           your-image sh -lc "bb auth login && bb pr list -w workspace -r repo"
+           your-image sh -lc "bb auth login && bb pr list -w workspace -r myrepo"
 ```
 
-Or use an env file:
+Or an env file:
 
 ```bash
 # .env.bb (not committed to git!)
@@ -191,14 +179,13 @@ BB_API_TOKEN=ATBB_token
 ```
 
 ```bash
-docker run --env-file .env.bb your-image sh -lc "bb auth login && bb pr list -w workspace -r repo"
+docker run --env-file .env.bb your-image sh -lc "bb auth login && bb pr list -w workspace -r myrepo"
 ```
 
----
+## CI/CD examples
 
-In CI, set `BB_HTTP_TIMEOUT` (milliseconds) so a stalled API call fails fast instead of hanging the pipeline — e.g. `BB_HTTP_TIMEOUT=15000` for a 15s ceiling.
-
-## CI/CD Examples
+The package is published to npm but runs on Bun — `bb` exits immediately under
+Node — so every runner needs Bun on `PATH`.
 
 ### GitHub Actions
 
@@ -224,6 +211,7 @@ jobs:
         env:
           BB_USERNAME: ${{ secrets.BB_USERNAME }}
           BB_API_TOKEN: ${{ secrets.BB_API_TOKEN }}
+          BB_HTTP_TIMEOUT: 15000
         run: |
           bb auth login
           bb pr list -w myworkspace -r myrepo --json
@@ -237,8 +225,9 @@ check-prs:
   variables:
     BB_USERNAME: $BB_USERNAME
     BB_API_TOKEN: $BB_API_TOKEN
+    BB_HTTP_TIMEOUT: 15000
   script:
-    - npm install -g @pilatos/bitbucket-cli
+    - bun install -g @pilatos/bitbucket-cli
     - bb auth login
     - bb pr list -w myworkspace -r myrepo --json
 ```
@@ -253,36 +242,17 @@ pipelines:
     - step:
         name: Check PRs
         script:
-          - npm install -g @pilatos/bitbucket-cli
+          - bun install -g @pilatos/bitbucket-cli
           - bb auth login
           - bb pr list -w $BITBUCKET_WORKSPACE -r $BITBUCKET_REPO_SLUG --json
 ```
 
-<Aside type="tip">
-In Bitbucket Pipelines, `BITBUCKET_WORKSPACE` and `BITBUCKET_REPO_SLUG` are automatically available.
-</Aside>
+`BITBUCKET_WORKSPACE` and `BITBUCKET_REPO_SLUG` are provided by Bitbucket
+Pipelines automatically.
 
----
+## Keeping tokens safe
 
-## Security Best Practices
-
-1. **Never commit tokens to git**
-   - Add `.env*` to your `.gitignore`
-   - Use CI/CD secrets management
-
-2. **Use minimal token scopes**
-   - Only grant permissions your script needs
-   - Read-only tokens for read-only operations
-
-3. **Rotate tokens regularly**
-   - Especially after team member departures
-   - Use short-lived tokens when possible
-
-4. **Use secrets managers in production**
-   - HashiCorp Vault
-   - AWS Secrets Manager
-   - Azure Key Vault
-
-5. **Audit token usage**
-   - Review which tokens are active
-   - Revoke unused tokens
+- Add `.env*` to `.gitignore` and pass tokens through your CI platform's
+  secrets store. Never commit them.
+- Grant the token only the scopes the script uses. See
+  [Token Scopes](/reference/token-scopes/) for the scope each command needs.

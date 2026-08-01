@@ -15,25 +15,27 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 
 ### How does this compare to GitHub CLI (gh)?
 
-The Bitbucket CLI is inspired by GitHub's excellent `gh` CLI and aims to provide a similar experience for Bitbucket users. It covers authentication, repository management, pull requests, snippets, configuration, and shell completion. Features without a dedicated command yet — issues, pipelines, branch permissions — can still be reached today through `bb api`, the raw API passthrough (the analog of `gh api`).
+`bb` follows `gh`'s command shapes for Bitbucket Cloud. It covers authentication, repositories, pull requests, issues, pipelines, commits and build statuses, snippets, workspaces and projects, browsing, configuration, and shell completion. Anything without a typed command — branch permissions, webhooks — is reachable through `bb api`, the analog of `gh api`.
 
 ---
 
 ### What Bitbucket features are supported?
 
-Currently supported:
-
 - **Authentication** - Login, logout, status, token display
 - **Repositories** - Clone, create, list, view, delete, default reviewers (list/add/remove)
-- **Pull Requests** - Create (with optional default-reviewer attachment), list, view, edit, merge, approve, decline, ready (mark draft ready), checkout, diff, activity log, CI/CD checks, comments (list/add/edit/delete), reviewers (list/add/remove)
+- **Pull requests** - Create (with optional default-reviewer attachment), list, view, edit, merge, approve, decline, ready (mark draft ready), checkout, diff, activity log, CI/CD checks, comments (list/add/edit/delete/view/reply/resolve/unresolve, with `--resolved`/`--unresolved` filters on list), reviewers (list/add/remove)
+- **Issues** - List, view, create, edit, close, comment
+- **Pipelines** - List, view, run (with `--var key=value`), stop, logs (`--step`)
+- **Commits & build statuses** - `bb commit list/view`, `bb status list/set`
+- **Workspaces & projects** - `bb workspace list/view`, `bb project list/view/create`
 - **Snippets** - List, view (with file contents), create, edit (metadata or file upload), delete, watch/unwatch, comments (list/add/edit/delete)
+- **Browse** - Open repository pages, PRs, files, commits, and pipelines in the browser
 - **Configuration** - Get, set, list settings
-- **Shell Completion** - Bash, Zsh, Fish
+- **Shell completion** - Bash, Zsh, Fish
 - **Raw API access** - `bb api` passthrough to any Bitbucket Cloud 2.0 endpoint
 
-Without a dedicated command yet (but reachable today via `bb api`):
-- Issues — e.g. `bb api /repositories/{workspace}/{repo}/issues`
-- Pipelines — e.g. `bb api /repositories/{workspace}/{repo}/pipelines`
+No typed command yet — use `bb api`:
+
 - Branch permissions
 - Webhooks
 
@@ -41,9 +43,9 @@ Without a dedicated command yet (but reachable today via `bb api`):
 
 ### Does this work with Bitbucket Server/Data Center?
 
-No. Currently, the CLI only supports **Bitbucket Cloud**. Bitbucket Server (self-hosted) uses a different API and is not supported.
+No. The CLI supports **Bitbucket Cloud** only. Bitbucket Server (self-hosted) uses a different API.
 
-If you need Bitbucket Server support, please [open an issue](https://github.com/0pilatos0/bitbucket-cli/issues) to let us know.
+If you need Bitbucket Server support, [open an issue](https://github.com/0pilatos0/bitbucket-cli/issues).
 
 ---
 
@@ -84,9 +86,7 @@ bb auth login -u your-username -p your-api-token
 
 ### How do I use multiple Bitbucket accounts?
 
-The CLI currently uses a single shared config file, so true per-session multi-account support is not available yet.
-
-Current workaround: switch accounts by re-running login when needed.
+One config file, one active account. Switch by logging in again:
 
 ```bash
 # Switch to account A
@@ -100,28 +100,37 @@ export BB_API_TOKEN=token-b
 bb auth login
 ```
 
-This updates the stored credentials each time you switch.
+Each login overwrites the credentials in the config file, so parallel shells cannot hold different accounts.
 
 ---
 
 ### What scopes does my token need?
 
-**OAuth users:** Scopes are requested automatically during authorization. No manual selection needed.
+**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, and pull requests, but **not** `bb repo delete`, `bb pipeline *`, `bb issue *`, `bb snippet *`, or `bb project *` — for those, log in with an API token carrying the scopes below.
 
-**API token users:** Minimum required scopes:
+**API token scopes:**
 
-| Scope | Required For |
+| Scope | Required for |
 |-------|-------------|
-| `read:user:bitbucket` | `bb auth status` |
-| `read:repository:bitbucket` | `bb repo list`, `bb repo view` |
-| `write:repository:bitbucket` | `bb repo create` |
-| `admin:repository:bitbucket` | `bb repo delete` |
-| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view` |
-| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge` |
+| `read:user:bitbucket` | `bb auth status`, plus the user lookups in `bb pr list --mine`, `bb pr create --reviewer`, and `bb pr reviewers add/remove` |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb commit list/view`, `bb status list` |
+| `write:repository:bitbucket` | `bb status set` |
+| `admin:repository:bitbucket` | `bb repo create`, `bb repo default-reviewers add/remove` |
+| `delete:repository:bitbucket` | `bb repo delete` |
+| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb repo default-reviewers list`, all `bb pr comments` subcommands |
+| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr edit`, `bb pr merge`, `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr reviewers add/remove` |
+| `read:pipeline:bitbucket` | `bb pipeline list/view/logs` |
+| `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` |
+| `read:issue:bitbucket` | `bb issue list`, `bb issue view` |
+| `write:issue:bitbucket` | `bb issue create/edit/close/comment` |
+| `read:snippet:bitbucket` | `bb snippet list`, `bb snippet view`, all `bb snippet comments` subcommands |
+| `write:snippet:bitbucket` | `bb snippet create/edit/watch/unwatch` |
+| `delete:snippet:bitbucket` | `bb snippet delete` |
+| `read:project:bitbucket` | `bb project list`, `bb project view` |
+| `admin:project:bitbucket` | `bb project create` |
+| `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` |
 
-<Aside type="tip">
-For full functionality, grant all repository and pull request scopes.
-</Aside>
+See [Token Scopes](/reference/token-scopes/) for the per-command breakdown.
 
 ---
 
@@ -129,16 +138,25 @@ For full functionality, grant all repository and pull request scopes.
 
 ### How do I avoid typing workspace/repo every time?
 
-**Option 1:** Set defaults
+Don't know your workspace slug? Run `bb workspace list`.
+
+**Option 1:** Set a default
 ```bash
 bb config set defaultWorkspace myworkspace
 ```
 
-**Option 2:** Work from cloned repositories
+**Option 2:** Work from a cloned repository
 ```bash
 cd /path/to/myrepo
-bb pr list  # Auto-detects from git remote
+bb pr list  # workspace and repo come from the git remote
 ```
+
+**Option 3:** Export `BB_WORKSPACE` for a shell session
+```bash
+export BB_WORKSPACE=myworkspace
+```
+
+Precedence: `-w/--workspace` beats the git remote, which beats `BB_WORKSPACE`, which beats `defaultWorkspace`.
 
 See [Repository Context](/guides/repository-context/) for details.
 
@@ -146,9 +164,17 @@ See [Repository Context](/guides/repository-context/) for details.
 
 ### Does bb support interactive mode?
 
-Not currently. All commands require flags or arguments. There's no interactive prompt mode like some other CLIs offer.
+Only `bb completion install`, which asks which shell you use. Every other command takes flags and arguments.
 
-If you'd like this feature, please [open an issue](https://github.com/0pilatos0/bitbucket-cli/issues).
+`bb auth login` is browser-interactive but never prompts in the terminal — it opens your browser and waits up to 5 minutes for the callback on `http://localhost:19872/callback`.
+
+Destructive commands don't prompt either. Without `-y/--yes` they fail with `Use --yes to confirm.`:
+
+```bash
+bb repo delete myworkspace/old-repo --yes
+```
+
+That gate applies to `bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`, `bb snippet delete`, and `bb snippet comments delete`.
 
 ---
 
@@ -188,50 +214,59 @@ bb pr diff 42 --stat
 
 ### Can I use bb in CI/CD pipelines?
 
-Yes! See the [CI/CD Integration Guide](/guides/cicd/) for complete examples.
+Yes. See the [CI/CD Integration Guide](/guides/cicd/) for complete examples.
 
 Quick setup:
 1. Store credentials as CI/CD secrets
-2. Set environment variables: `BB_USERNAME`, `BB_API_TOKEN`
-3. Install the CLI and run commands
+2. Set `BB_USERNAME` and `BB_API_TOKEN`
+3. Install the CLI and run `bb auth login` — those two variables are read only at login time, so every job needs the login step before any other command
 
 ---
 
 ### How do I pipe output to other commands?
 
-Use the `--json` flag for machine-readable output:
+`--json` emits machine-readable JSON. `--jq <expression>` filters it with an embedded jq, so no external `jq` binary is needed and it behaves the same on Windows.
 
 ```bash
-# List PR titles
-bb pr list --json | jq '.pullRequests[].title'
+# PR titles
+bb pr list --json --jq '.pullRequests[].title'
 
-# Get PR count
-bb pr list --json | jq '.count'
+# PR count
+bb pr list --json --jq '.count'
 
 # Filter by author
-bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
+bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
 ```
 
-For list commands, add `--limit` when you need more than the default result
-count.
+`--jq` requires `--json`. Field projection runs before jq and drops the envelope, so `--json id,title` hands jq a bare array:
+
+```bash
+bb pr list --json id,title --jq '.[] | .title'
+```
+
+List commands return 25 items by default. Pass `--limit <n>` for a different cap, or `--all` to fetch every page (`--all` overrides `--limit`).
 
 ---
 
 ### Can I use bb with git hooks?
 
-Yes! Example pre-push hook to check for open PRs:
+Yes. Example pre-push hook that warns when a PR already exists:
 
 ```bash
 #!/bin/bash
 # .git/hooks/pre-push
 
 branch=$(git branch --show-current)
-prs=$(bb pr list --json 2>/dev/null | jq --arg b "$branch" '[.pullRequests[] | select(.source.branch.name == $b)] | length')
+prs=$(bb pr list --json --jq "[.pullRequests[] | select(.source.branch.name == \"$branch\")] | length" 2>/dev/null)
 
 if [ "$prs" -gt 0 ]; then
   echo "Note: PR already exists for branch $branch"
 fi
 ```
+
+The branch name is interpolated by the shell, not read from the environment:
+the embedded jq runs in a sandbox where `env` and `$ENV` do not see your shell
+variables.
 
 ---
 
@@ -239,7 +274,7 @@ fi
 
 ### How can I contribute?
 
-We welcome contributions! See [CONTRIBUTING.md](https://github.com/0pilatos0/bitbucket-cli/blob/main/CONTRIBUTING.md) for:
+See [CONTRIBUTING.md](https://github.com/0pilatos0/bitbucket-cli/blob/main/CONTRIBUTING.md) for:
 
 - Development setup
 - Code style guidelines
@@ -269,15 +304,15 @@ We welcome contributions! See [CONTRIBUTING.md](https://github.com/0pilatos0/bit
 
 ---
 
-## Update Notifications
+## Update notifications
 
 ### How do I disable update notifications?
-
-The CLI automatically checks for updates when you run `bb` without any subcommands. To disable this:
 
 ```bash
 bb config set skipVersionCheck true
 ```
+
+The CLI checks for a newer published version after every command, then prints a one-time banner to stderr. The banner is suppressed in `--json` mode, when stderr is not a TTY, and in CI.
 
 ### How often does the CLI check for updates?
 
@@ -305,10 +340,11 @@ Both settings are stored as typed JSON values, so JSON output returns:
 ### Will update checks slow down the CLI?
 
 No. The check is:
-- Performed asynchronously after displaying help
+- Performed after the command's own output, on stderr
 - Cached for 24 hours (or your configured interval)
 - Skipped entirely in CI environments
-- Silently fails if npm registry is unreachable
+- Suppressed in `--json` mode and when stderr is not a TTY, so piped output stays clean
+- Swallowed silently when the npm registry is unreachable
 
 ### Does the CLI auto-update?
 

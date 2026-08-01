@@ -5,7 +5,7 @@ description: Complete reference for Bitbucket CLI repository commands. Learn to 
 
 Manage Bitbucket repositories.
 
-Global options available on all repo commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all repo commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo`. See [Global flags](/reference/global-flags/) for the full list. The per-command tables below list only command-specific options. One exception: `bb repo clone` ignores `-w, --workspace`.
 
 ## `bb repo clone`
 
@@ -19,14 +19,15 @@ bb repo clone <repository> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `repository` | Repository to clone (`workspace/repo` or full URL) |
+| `repository` | `workspace/repo`, a bare repository name, or a full clone URL |
+
+For a bare name, the workspace comes from `BB_WORKSPACE`, then the `defaultWorkspace` config key. The global `-w` is **not** honoured by this command.
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
 | `-d, --directory <dir>` | Directory to clone into |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -37,9 +38,18 @@ bb repo clone myworkspace/myrepo
 # Clone into a specific directory
 bb repo clone myworkspace/myrepo -d my-local-dir
 
+# Bare name — workspace comes from the environment
+BB_WORKSPACE=myworkspace bb repo clone myrepo
+
 # Clone using full URL
 bb repo clone git@bitbucket.org:myworkspace/myrepo.git
 ```
+
+### Notes
+
+- For the `workspace/repo` and bare-name forms the CLI clones over SSH (`git@bitbucket.org:<workspace>/<repo>.git`). Pass a full HTTPS URL if you do not have SSH keys set up.
+- A path with more than one `/` fails with `Invalid repository format. Use workspace/repo or a full URL.`
+- `--json` emits `{ success, repository, path, cloneUrl }`.
 
 ---
 
@@ -59,14 +69,12 @@ bb repo create <name> [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace to create repository in |
-| `-d, --description <description>` | Repository description |
-| `--private` | Create a private repository (default) |
-| `--public` | Create a public repository |
-| `-p, --project <project>` | Project key |
-| `--json` | Output as JSON |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-d, --description <description>` | Repository description | |
+| `--private` | Create a private repository | true |
+| `--public` | Create a public repository | |
+| `-p, --project <project>` | Project key | |
 
 ### Examples
 
@@ -81,6 +89,11 @@ bb repo create my-new-repo -w myworkspace --public -d "My awesome project"
 bb repo create my-new-repo -w myworkspace -p PROJ
 ```
 
+### Notes
+
+- Visibility is private unless `--public` is passed. If both `--private` and `--public` are given, `--public` currently wins and no error is raised — unlike `bb snippet create` and `bb project create`, which reject the combination.
+- `--json` emits the raw Bitbucket repository object, with no envelope.
+
 ---
 
 ## `bb repo list`
@@ -93,12 +106,10 @@ bb repo list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace to list repositories from |
-| `--limit <number>` | Maximum number of repositories (default: 25) |
-| `--all` | List all repositories (overrides `--limit`) |
-| `--json` | Output as JSON |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--limit <number>` | Maximum number of repositories | 25 |
+| `--all` | List all repositories (overrides `--limit`) | |
 
 ### Examples
 
@@ -122,10 +133,15 @@ bb repo list -w myworkspace --json full_name,is_private,language
 bb repo list -w myworkspace --json --jq '.repositories[] | select(.is_private == false) | .full_name'
 ```
 
+### JSON output
+
+The `--json` envelope is `{ workspace, count, repositories }`, where `repositories` is the array of repository objects. `--json <fields>` drops the envelope and returns a flat array.
+
 ### Notes
 
-- `--limit` is enforced across paginated repository responses
-- When the result is capped by `--limit`, a hint is printed showing how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
+- `--limit` caps how many repositories come back, not the page size. The CLI walks pages (at most 50 per request) until the cap is reached. A value below 1 fails with `--limit must be a positive integer`.
+- Long descriptions are truncated to 50 characters in the table (disable with the global `--no-truncate`); `--json` always carries the full values.
+- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
 
 ---
 
@@ -141,14 +157,7 @@ bb repo view [repository] [options]
 
 | Argument | Description |
 |----------|-------------|
-| `repository` | Repository to view in `workspace/repo` format (optional if in a repo directory) |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `--json` | Output as JSON |
+| `repository` | `workspace/repo`, or a bare repository name paired with `-w`. Optional inside a repository directory. |
 
 ### Examples
 
@@ -168,14 +177,14 @@ bb repo view --json
 
 ### Notes
 
-- The positional `[repository]` argument is the primary way to specify the repo (e.g., `bb repo view myworkspace/myrepo`). The global `-w` and `-r` flags also work as an alternative.
-- The command will automatically detect the repository from your current directory's git remote if you don't specify one.
+- Resolution order: the positional argument wins, then the global `-w`/`-r` flags, then the git remote of the current directory.
+- `--json` emits the raw Bitbucket repository object, with no envelope.
 
 ---
 
 ## `bb repo delete`
 
-Delete a repository. This action is permanent and cannot be undone.
+Delete a repository.
 
 ```bash
 bb repo delete <repository> [options]
@@ -185,15 +194,13 @@ bb repo delete <repository> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `repository` | Repository to delete in `workspace/repo` format |
+| `repository` | `workspace/repo`, or a bare repository name when the workspace comes from `-w`, `BB_WORKSPACE` or the `defaultWorkspace` config key |
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
 | `-y, --yes` | Confirm deletion (required) |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -205,8 +212,10 @@ bb repo delete myworkspace/myrepo --yes
 bb repo delete myrepo -w myworkspace --yes
 ```
 
+`--json` emits `{ success, workspace, repoSlug }`.
+
 :::danger
-This action is permanent and cannot be undone! All repository data, including code, issues, and pull requests will be deleted.
+Deletion is permanent. All repository data, including code, issues and pull requests, is destroyed. There is no interactive prompt — without `--yes` the command exits with `This will permanently delete <workspace>/<repo>.` followed by `Use --yes to confirm.`
 :::
 
 ---
@@ -215,15 +224,7 @@ This action is permanent and cannot be undone! All repository data, including co
 
 ## `bb repo default-reviewers`
 
-Inspect and manage the default reviewers configured on a repository. Default reviewers in Bitbucket Cloud are automatically suggested when someone opens a pull request through the web UI; this command group lets you see and edit that list from the CLI.
-
-### Subcommands
-
-| Subcommand | Description |
-|------------|-------------|
-| `list` | List the default reviewers for a repository |
-| `add <user>` | Add a default reviewer (accepts account ID or `{uuid}`) |
-| `remove <user>` | Remove a default reviewer (accepts account ID or `{uuid}`, requires `--yes`) |
+Default reviewers are auto-suggested when someone opens a pull request in Bitbucket's web UI. This group reads and edits that list.
 
 ### `bb repo default-reviewers list`
 
@@ -231,12 +232,11 @@ Inspect and manage the default reviewers configured on a repository. Default rev
 bb repo default-reviewers list [options]
 ```
 
-By default the **effective** reviewer list is shown — this includes reviewers configured directly on the repository *and* reviewers inherited from the parent project, matching what Bitbucket's web UI would auto-populate.
+By default the **effective** reviewer list is shown: reviewers configured directly on the repository *and* reviewers inherited from the parent project, matching what Bitbucket's web UI would auto-populate.
 
 | Option | Description |
 |--------|-------------|
 | `--repo-only` | Only show reviewers configured on the repository (exclude project-inherited) |
-| `--json` | Output as JSON |
 
 ```bash
 # Effective list (repo + project-inherited)
@@ -249,6 +249,8 @@ bb repo default-reviewers list --repo-only
 bb repo default-reviewers list --json
 ```
 
+`--json` emits `{ workspace, repoSlug, mode, count, reviewers }`, where `mode` is `effective` or `direct`.
+
 ### `bb repo default-reviewers add`
 
 ```bash
@@ -259,7 +261,7 @@ Adds a user as a default reviewer on the repository. Requires repository admin p
 
 The `<user>` argument accepts either an **account ID** (e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames like `jdoe` are no longer accepted.
 
-You can find a user's account ID from the Bitbucket web UI under their profile, or by running `bb pr reviewers list <pr-id> --json` on a PR they've reviewed.
+You can find a user's account ID from the Bitbucket web UI under their profile, or by running `bb pr reviewers list <pr-id> --json` on a pull request they have reviewed.
 
 ```bash
 bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"

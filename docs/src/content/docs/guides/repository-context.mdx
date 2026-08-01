@@ -5,18 +5,18 @@ description: How the CLI determines which workspace and repository to use
 
 import { FileTree } from '@astrojs/starlight/components';
 
-Many commands in the Bitbucket CLI need to know which workspace and repository you're working with. The CLI uses a sophisticated resolution system to determine this automatically, so you don't always need to specify them explicitly.
+Most commands need a workspace and a repository. If you don't pass `-w`/`-r`, the CLI works them out from your git remote, then `BB_WORKSPACE`, then your config file — in that order.
 
-## Context Resolution Order
+## Context resolution order
 
-The CLI checks multiple sources in this order:
+1. **`-w/--workspace` and `-r/--repo`** on the command line
+2. **The `origin` git remote** of the current repository
+3. **The `BB_WORKSPACE` environment variable**
+4. **`defaultWorkspace`** in the config file
 
-1. **Command-line flags** (`--workspace` and `--repo`)
-2. **Current Git repository** (automatically detected from your git remote URL)
-3. **Config file defaults** (`defaultWorkspace` setting)
-4. **Combinations** of the above sources
+Sources 3 and 4 only supply a workspace. A repository still has to come from `-r` or the git remote.
 
-### Typical Local Layout
+### Typical local layout
 
 <FileTree>
 - projects/
@@ -28,150 +28,179 @@ The CLI checks multiple sources in this order:
     - README.md
 </FileTree>
 
-When you run `bb` from `myworkspace-tools/`, the CLI reads the Bitbucket remote from `.git/` and uses that workspace/repo as context.
+When you run `bb` from `myworkspace-tools/`, the CLI reads the Bitbucket remote from `.git/` and uses that workspace and repository as context.
 
 ### Examples
 
-#### Scenario 1: Inside a Git Repository
+#### Scenario 1: inside a git repository
 
 ```bash
-# You're in /projects/myrepo, which has a Bitbucket remote
+# /projects/myrepo has a Bitbucket origin remote
 cd /projects/myrepo
-bb pr list  # ✅ Uses workspace/repo from git remote
+bb pr list  # workspace and repository come from the remote
 ```
 
 The CLI reads your `.git/config` and extracts the workspace and repository from the remote URL.
 
-#### Scenario 2: Using Command-Line Flags
+#### Scenario 2: using command-line flags
 
 ```bash
-# Explicit specification always takes precedence
-bb pr list -w myworkspace -r myrepo  # ✅ Uses specified values
+bb pr list -w myworkspace -r myrepo
 ```
 
-This works from anywhere, even outside a git repository.
+Flags always win, and they work from anywhere — no git repository required.
 
-#### Scenario 3: Using Config Defaults
+#### Scenario 3: using a default workspace
 
 ```bash
-# Set defaults once
+# Environment variable — useful in CI
+export BB_WORKSPACE=myworkspace
+
+# Or persist it in the config file
 bb config set defaultWorkspace myworkspace
 
-# Then use commands without flags
-bb repo list  # ✅ Uses defaultWorkspace from config
+bb repo list  # workspace-only command, no repository needed
 ```
 
-For PR commands, you still need repository context (from git remote or `-r`).
+`BB_WORKSPACE` wins over `defaultWorkspace`, so a pipeline can override a developer's persisted default without rewriting the config file.
 
-#### Scenario 4: Mixed Sources
+#### Scenario 4: mixed sources
 
 ```bash
-# Inside a git repo with workspace "gitworkspace/gitrepo"
+# Inside a clone of gitworkspace/gitrepo
 cd /projects/myrepo
 
 # Override just the workspace
-bb pr list -w anotherworkspace  # Uses "anotherworkspace/gitrepo"
+bb pr list -w anotherworkspace  # anotherworkspace/gitrepo
 
-# Override just the repo
-bb pr list -r anotherrepo  # Uses "gitworkspace/anotherrepo"
+# Override just the repository
+bb pr list -r anotherrepo  # gitworkspace/anotherrepo
 ```
 
-## Repository Argument Formats
+## Workspace-only vs repository-scoped commands
 
-Commands that accept a repository argument support multiple formats:
+The two classes fail differently when context is missing.
 
-### Full Format: `workspace/repo`
+| Class | Commands | Error when unresolved |
+|-------|----------|-----------------------|
+| Workspace-only | `bb repo list`, `bb repo create`, `bb repo clone`, `bb project *`, `bb snippet *`, `bb workspace view` | `6002 CONTEXT_WORKSPACE_NOT_FOUND` |
+| Repository-scoped | `bb pr *`, `bb pipeline *`, `bb issue *`, `bb commit *`, `bb status *`, `bb browse`, `bb repo view`, `bb repo delete`, `bb repo default-reviewers *` | `6001 CONTEXT_REPO_NOT_FOUND` |
+
+`bb api` falls in either class depending on the endpoint: it resolves a workspace only if the endpoint contains `{workspace}`, and a repository only if it contains `{repo}`.
+
+```bash
+# Placeholders are filled from the same resolution chain
+bb api /repositories/{workspace}/{repo}/pullrequests
+```
+
+If a placeholder can't be resolved you get `Endpoint uses {repo} but no repository could be resolved. Pass --repo or run inside a Bitbucket repo.`
+
+## Repository argument formats
+
+Commands that accept a repository argument support two formats.
+
+### Full format: `workspace/repo`
 
 ```bash
 bb repo view myworkspace/myrepo
 bb repo delete myworkspace/myrepo --yes
 ```
 
-This explicitly specifies both workspace and repository.
-
-### Short Format: `repo` only
+### Short format: `repo` only
 
 ```bash
-# Uses default workspace from config or git context
 bb repo view myrepo
 ```
 
-The CLI will:
-1. Check if you set a default workspace via `bb config set defaultWorkspace`
-2. Check if you're in a git repository and use its workspace
-3. Error if neither is available
+The workspace is resolved in the usual order:
 
-## Supported Remote URL Formats
+1. `-w/--workspace`, if you passed it
+2. Otherwise the workspace from the current git remote
+3. Otherwise `BB_WORKSPACE`
+4. Otherwise `defaultWorkspace` from the config file
+5. Otherwise error
 
-When detecting context from git, the CLI supports these remote URL formats:
+The git remote wins over your config. Running `bb repo view myrepo` inside a clone of `otherws/otherrepo` resolves to `otherws/myrepo`, even if `defaultWorkspace` is set to something else.
 
-### SSH Format
-```
+## Supported remote URL formats
+
+### SSH format
+```text
 git@bitbucket.org:workspace/repo.git
 git@bitbucket.org:workspace/repo
 ```
 
-### HTTPS Format
-```
+### HTTPS format
+```text
 https://bitbucket.org/workspace/repo.git
 https://bitbucket.org/workspace/repo
 https://username@bitbucket.org/workspace/repo.git
 ```
 
-## Error Messages
+### Limitations
 
-### "Could not determine repository"
+- Only the remote named `origin` is inspected. If your Bitbucket remote has another name, pass `-w`/`-r`.
+- Repository names containing a dot (`docs.example.com`, `my.repo`) are not parsed.
+- `ssh://git@bitbucket.org/workspace/repo.git` is not recognised — use the `git@bitbucket.org:workspace/repo` form.
 
-This error appears when the CLI can't figure out which workspace/repo to use.
+A dotted repository name or an `ssh://` URL fails with `Remote '<url>' is not a Bitbucket URL.` A differently-named remote fails with `Git repository has no remote configured.`
 
-**Solutions:**
-1. Use explicit flags: `-w myworkspace -r myrepo`
-2. Run from within a Bitbucket repository
-3. Set defaults: `bb config set defaultWorkspace myworkspace`
+## Error messages
+
+### Repository could not be resolved
+
+Three distinct messages, all error code `6001 CONTEXT_REPO_NOT_FOUND`. Under `--json` each sets a different `context.reason`.
+
+The working directory is not a git repository — `reason: not_a_git_repo`:
+
+```text
+✗ Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+```
+
+There is no `origin` remote — `reason: no_remote`:
+
+```text
+✗ Git repository has no remote configured. Add a Bitbucket remote with `git remote add origin <url>`, or use --workspace and --repo options, or run this command from within a Bitbucket repository.
+```
+
+`origin` points somewhere other than Bitbucket, or the repository name contains a dot — `reason: remote_not_bitbucket`:
+
+```text
+✗ Remote 'git@github.com:acme/tool.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+```
+
+Fix any of them with explicit flags: `bb pr list -w myworkspace -r myrepo`.
+
+### No workspace specified
+
+```text
+✗ No workspace specified. Use --workspace option or set a default workspace with `bb config set defaultWorkspace <name>`.
+```
+
+Error code `6002 CONTEXT_WORKSPACE_NOT_FOUND`, thrown by workspace-only commands. Pass `-w`, export `BB_WORKSPACE`, or set `defaultWorkspace`.
 
 ### "Repository not found"
 
-The workspace/repo combination was determined but doesn't exist.
+The workspace and repository resolved, but the pair doesn't exist or your token can't see it. Check the spelling, your access, and that the repository lives in that workspace.
 
-**Check:**
-1. Spelling of workspace and repository names
-2. That you have access to the repository
-3. That the repository exists in that workspace
+See [Error Codes](/reference/error-codes/) for the full list.
 
-## Best Practices
+## Which approach to use
 
-### For Daily Work
+| Situation | Use |
+|-----------|-----|
+| Interactive work in a clone | Nothing — the git remote resolves it |
+| Scripts and automation | Explicit `-w`/`-r` on every command |
+| CI pipelines | `BB_WORKSPACE` plus `-r`, or explicit flags |
+| You live in one workspace | `bb config set defaultWorkspace <name>` |
 
-Set your default workspace if you primarily work with one:
+Don't set `defaultWorkspace` if you work across several workspaces — a stale default silently sends commands to the wrong place when you're outside a clone.
+
+## Checking what got resolved
+
 ```bash
-bb config set defaultWorkspace myworkspace
+bb repo view       # the resolved workspace/repository
+bb workspace view  # the resolved workspace
 ```
 
-Then work from within your git repositories - context will be automatic.
-
-### For Scripts
-
-Always use explicit flags for reliability:
-```bash
-#!/bin/bash
-WORKSPACE="myworkspace"
-REPO="myrepo"
-
-bb pr list -w "$WORKSPACE" -r "$REPO" --json
-```
-
-### For Multi-Workspace Teams
-
-Don't set a default workspace. Instead, use explicit flags or work from within cloned repositories:
-```bash
-# Each repository is self-contained
-cd project-a && bb pr list  # Uses project-a's workspace
-cd ../project-b && bb pr list  # Uses project-b's workspace
-```
-
-## Tips
-
-- Use `bb repo view` with no arguments to see what context the CLI detected
-- The `--json` flag works with most commands for scripting
-- Global flags (`--workspace`, `--repo`, `--json`, `--no-color`) are available across commands
-- The `-w` short flag always maps to `--workspace` globally
+Both accept `--json`, which every command in the CLI supports — see [JSON Output](/reference/json-output/). For the full list of global flags including `-w`/`-r`, see [Global Flags](/reference/global-flags/).

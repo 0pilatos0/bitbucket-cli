@@ -7,7 +7,7 @@ sidebar:
 
 Inspect pull request activity and build checks.
 
-Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
 
 ## `bb pr activity`
 
@@ -25,14 +25,15 @@ bb pr activity <id> [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--limit <number>` | Maximum number of activity entries (default: 25) |
-| `--all` | Show all activity entries (overrides `--limit`) |
-| `--type <types>` | Filter by activity type (comma-separated): `comment`, `approval`, `changes_requested`, `merge`, `decline`, `commit`, `update` |
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--limit <number>` | Maximum number of activity entries | `25` |
+| `--all` | Show all activity entries (overrides `--limit`) | |
+| `--type <types>` | Filter by activity type (comma-separated): `comment`, `approval`, `changes_requested`, `merge`, `decline`, `commit`, `update` | |
+| `--no-truncate` | Global flag. Show full details without truncation | |
+| `-w, --workspace <workspace>` | Workspace | |
+| `-r, --repo <repo>` | Repository | |
+| `--json` | Output as JSON | |
 
 ### Examples
 
@@ -53,12 +54,23 @@ bb pr activity 42 --all
 bb pr activity 42 --json
 ```
 
+Output:
+
+```text
+TYPE      ACTOR     DATE                      DETAILS
+--------  --------  ------------------------  --------------------------------
+UPDATE    Sam Ali   Jul 29, 2026 at 01:20 PM  state: OPEN
+COMMENT   Jane Doe  Jul 29, 2026 at 10:41 AM  #486513002 Why was this removed?
+APPROVAL  Lee Park  Jul 28, 2026 at 06:05 PM  approved
+COMMIT    Sam Ali   Jul 28, 2026 at 05:58 PM  commit a1b2c3d
+```
+
 ### Notes
 
+- Comment snippets and change-request reasons are truncated to 80 characters, and `title:` change details to 60. Use `--no-truncate` for the full text
+- An unrecognized `--type` token fails with `--type must be one of: comment, approval, changes_requested, merge, decline, commit, update`. Each bad token that is close to a valid one adds a `(Did you mean ...?)` line; tokens with no close match add nothing
 - `--limit` is enforced across paginated activity responses
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
-- Valid `--type` values: `comment`, `approval`, `changes_requested`, `merge`, `decline`, `commit`, `update`
-- Multiple types can be combined: `--type comment,approval`
 
 ---
 
@@ -80,6 +92,7 @@ bb pr checks <id> [options]
 
 | Option | Description |
 |--------|-------------|
+| `--no-truncate` | Global flag. Show full check descriptions without truncation |
 | `-w, --workspace <workspace>` | Workspace |
 | `-r, --repo <repo>` | Repository |
 | `--json` | Output as JSON |
@@ -96,3 +109,26 @@ bb pr checks 42 -w myworkspace -r myrepo
 # Get checks as JSON
 bb pr checks 42 --json
 ```
+
+Output:
+
+```text
+Pull Request #42 - 3 checks
+────────────────────────────────────────────────────────────
+STATUS       NAME            DESCRIPTION                    UPDATED
+-----------  --------------  -----------------------------  ------------------------
+OK passed    build           Build succeeded in 2m 11s      Jul 29, 2026 at 01:31 PM
+FAIL failed  unit-tests      3 of 412 tests failed          Jul 29, 2026 at 01:34 PM
+RUN running  deploy-preview  Deploying preview environment  Jul 29, 2026 at 01:36 PM
+
+OK 1 successful, FAIL 1 failed, RUN 1 pending
+```
+
+### Notes
+
+- The `STATUS` cell is an icon plus a label: `OK passed`, `FAIL failed`, `RUN running`, `STOP stopped`, or `?` plus the raw state for anything else
+- The summary line counts only successful, failed, and running checks, so it can total fewer than the header count
+- Check descriptions are truncated to 40 characters in the table view. Use `--no-truncate` for the full text
+- `bb pr checks` is not paginated — it makes a single request and has no `--limit` or `--all`
+- `--json` returns `{ pullRequestId, workspace, repoSlug, summary, statuses }`. Unlike list commands, there is no `count` key — use the length of `statuses`
+- With no checks, the command prints `No CI/CD checks found for this pull request`; with `--json` it returns an empty `statuses` array
