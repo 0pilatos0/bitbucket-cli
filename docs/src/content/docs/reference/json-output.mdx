@@ -8,9 +8,11 @@ import { Aside } from '@astrojs/starlight/components';
 All commands support the global `--json` flag, with optional field selection
 and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting).
 
-Use JSON mode for automation, scripts, and CI/CD pipelines.
+In `--json` mode stdout carries the JSON document and nothing else. The
+update-available banner and automatic-retry notices are suppressed, and errors
+go to stderr — so `bb … --json > out.json` is safe.
 
-## Quick Usage
+## Quick usage
 
 ```bash
 # Full JSON output
@@ -33,7 +35,7 @@ bb <command> --json 2>/dev/null | jq .
 ```
 </Aside>
 
-## Field Selection (`--json fields`)
+## Field selection (`--json fields`)
 
 Pass a comma-separated field list to project the output to just those fields,
 matching the way `gh` CLI handles `--json`:
@@ -50,9 +52,19 @@ bb pr list --json id,title,author.display_name
   including dotted paths (`author.display_name` becomes the literal key
   `"author.display_name"`).
 - Dotted paths traverse nested objects; missing intermediates yield `null`.
-- For collection commands (`pr list`, `repo list`, etc.), the wrapper envelope
-  is dropped and the field list is projected per-item — the result is a flat
-  array. This matches `gh` CLI semantics.
+- If the output is already an array, each item is projected.
+- If the output is an envelope object, the CLI looks for the first of these
+  keys holding an **array** and projects that array instead, dropping the
+  envelope — the result is a flat array. This matches `gh` CLI semantics.
+
+  ```text
+  pullRequests  repositories  snippets  comments  reviewers  activities
+  statuses      files         pipelines commits   issues     workspaces
+  projects      values
+  ```
+
+- If no key in that list holds an array, the envelope object itself is
+  projected.
 
 #### Example: `bb pr list --json id,title,author.display_name`
 
@@ -72,6 +84,7 @@ bb pr list --json id,title,author.display_name
   "workspace": "myworkspace",
   "repoSlug": "myrepo",
   "state": "OPEN",
+  "filters": { "mine": false },
   "count": 2,
   "pullRequests": [
     {
@@ -97,6 +110,48 @@ The same command with `--json id,title,state` drops the envelope and projects ea
 
 This is why `--jq` filters use `.[]` after projection (`.[] | select(...)`) but `.pullRequests[]` against the full envelope.
 
+#### Trap: envelopes whose array key is not in the list
+
+`bb pipeline view` returns `{ workspace, repoSlug, pipeline, steps }`. `steps`
+is not a wrapper key, so nothing is unwrapped and the field list is applied to
+the envelope — where `build_number` does not exist:
+
+```bash
+bb pipeline view 7 --json build_number
+```
+
+```json
+{
+  "build_number": null
+}
+```
+
+Use `--jq` to reach into the envelope instead:
+
+```bash
+bb pipeline view 7 --json --jq '.pipeline.build_number'
+```
+
+`bb pipeline logs` (without `--step`) puts its array under `steps` too. `bb
+snippet view --files` returns `files` as an **object**, not an array, so it is
+not unwrapped either.
+
+The reverse trap also exists. `bb pr view` returns a bare pull request, and that
+payload carries a `reviewers` array — a wrapper key — so `bb pr view 42 --json
+links.html.href` projects the reviewers instead of the pull request. Use `--jq`
+against the full output:
+
+```bash
+bb pr view 42 --json --jq '.links.html.href'
+```
+
+`bb api --paginate` merges every page into `{"values": [...]}`, and `values`
+**is** a wrapper key, so projection does unwrap it:
+
+```bash
+bb api /repositories/my-ws --paginate --json name,full_name
+```
+
 ## Built-in jq (`--jq`)
 
 The `--jq <expression>` flag pipes the JSON output through an embedded jq
@@ -104,7 +159,7 @@ engine ([jq-wasm](https://www.npmjs.com/package/jq-wasm)) — no external `jq`
 binary required, no `bash` pipe to fail on Windows.
 
 ```bash
-# Strings, one per line
+# One value per line (strings come out quoted — see the raw-output note below)
 bb pr list --json --jq '.pullRequests[].title'
 
 # Combine with field selection (jq runs after projection)
@@ -113,12 +168,24 @@ bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
 # Aggregate
 bb pr list --json --jq '.count'
 
-# Project + format with jq string interpolation
+# Repository names
+bb repo list --json --jq '.repositories[].full_name'
+
+# Diff file paths
+bb pr diff 42 --stat --json --jq '.files[].path'
+
+# Auth status as a bare boolean
+bb auth status --json --jq '.authenticated'
+
+# Project + format with jq string interpolation (external jq -r for raw TSV)
 bb pr list --json id,title,author.display_name \
-  --jq '.[] | "\(.id)\t\(.["author.display_name"])\t\(.title)"'
+  | jq -r '.[] | "\(.id)\t\(.["author.display_name"])\t\(.title)"'
+
+# Pull request URLs
+bb pr list --json --jq '.pullRequests[].links.html.href'
 
 # Project a nested URL out of a single resource
-bb pr view 42 --json links.html.href --jq '.["links.html.href"]'
+bb repo view --json links.html.href --jq '.["links.html.href"]'
 
 # Top open PRs by author with built-in jq (no projection — full shape)
 bb pr list --json --jq '.pullRequests | group_by(.author.display_name)
@@ -126,10 +193,33 @@ bb pr list --json --jq '.pullRequests | group_by(.author.display_name)
   | sort_by(-.count)'
 ```
 
+Every expression above also works with an external `jq` binary — pipe the full
+output instead: `bb pr list --json | jq '.pullRequests[].title'`.
+
 **Rules:**
 
-- `--jq` requires `--json`. Using `--jq` alone exits non-zero with a clear
-  error (`✗ --jq requires --json`).
+- There is no raw-output switch. `--jq` behaves like `jq` **without** `-r`, so
+  string results keep their quotes:
+
+  ```bash
+  bb pr list --json --jq '.pullRequests[].title'
+  # "Add feature"
+  # "Fix bug"
+  ```
+
+  When a script needs unquoted text, pipe the full JSON to an external `jq -r`:
+
+  ```bash
+  bb pr list --json | jq -r '.pullRequests[].title'
+  # Add feature
+  # Fix bug
+  ```
+
+- `--jq` requires `--json`. Using `--jq` alone exits non-zero with `✗ --jq
+  requires --json`. That message prints as plain text on stderr, not as a JSON
+  envelope, because JSON mode was never enabled.
+- `bb api` is the exception: its output is already JSON, so `bb api
+  /repositories/my-ws --jq '.values[].name'` works without `--json`.
 - jq runs *after* field projection, so `.` refers to the projected shape — a
   flat array when both `--json fields` and a wrapper-style command are
   involved.
@@ -141,22 +231,22 @@ The embedded jq is jq 1.8.x. Module imports (`include`, `import`) and
 filesystem-dependent features are not supported.
 </Aside>
 
-## Output Patterns
+## Output patterns
 
-The CLI uses a small number of consistent output patterns. Understanding these patterns lets you predict the JSON shape of any command.
+### Pattern 1: collection (list commands)
 
-### Pattern 1: Collection (List Commands)
+Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`,
+`snippet list`, `snippet comments list`, `pipeline list`, `commit list`,
+`status list`, `issue list`, `workspace list`, `project list`
 
-Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`, `pr reviewers list`, `pr checks`, `pipeline list`, `commit list`, `status list`, `issue list`, `workspace list`, `project list`, `snippet list`
-
-Returns an envelope with metadata and a named array:
+Returns an envelope with metadata, a `count`, and a named array:
 
 ```json
 {
   "workspace": "myworkspace",
   "repoSlug": "myrepo",
   "state": "OPEN",
-  "filters": {},
+  "filters": { "mine": false },
   "count": 2,
   "pullRequests": [...]
 }
@@ -166,11 +256,11 @@ Returns an envelope with metadata and a named array:
 
 | Field | Type | Present in |
 |-------|------|-----------|
-| `workspace` | string | Repository- and workspace-scoped collections (PR, repo, pipeline, commit, status, issue, project) |
-| `repoSlug` | string | Repository-scoped collections (PR, pipeline, commit, status, issue) |
+| `workspace` | string | All collections except `workspace list` (whose slugs live in the items) |
+| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `issue list` |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
-| `filters` | object | `pr list` (when `--mine` is used), `pr activity`, `pr comments list`, `issue list`, `workspace list` |
+| `filters` | object | `pr list`, `pr activity`, `pr comments list`, `issue list`, `workspace list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
 | `commit` | string | `status list` |
 | `sort` | string | `pipeline list` |
 
@@ -182,8 +272,6 @@ Returns an envelope with metadata and a named array:
 | `repo list` | `repositories` |
 | `pr comments list` | `comments` |
 | `pr activity` | `activities` |
-| `pr reviewers list` | `reviewers` |
-| `pr checks` | `statuses` (inside a `summary` + `statuses` structure) |
 | `pipeline list` | `pipelines` |
 | `commit list` | `commits` |
 | `status list` | `statuses` |
@@ -191,6 +279,16 @@ Returns an envelope with metadata and a named array:
 | `workspace list` | `workspaces` |
 | `project list` | `projects` |
 | `snippet list` | `snippets` |
+| `snippet comments list` | `comments` |
+
+Three commands return collections without going through the shared list
+plumbing. They are not paginated and have no `--limit`/`--all`:
+
+| Command | Shape |
+|---------|-------|
+| `pr reviewers list` | `{ workspace, repoSlug, pullRequestId, count, reviewers }` |
+| `repo default-reviewers list` | `{ workspace, repoSlug, mode, count, reviewers }` |
+| `pr checks` | `{ pullRequestId, workspace, repoSlug, summary, statuses }` — **no `count`** |
 
 #### Example: `bb pr list --json`
 
@@ -199,6 +297,7 @@ Returns an envelope with metadata and a named array:
   "workspace": "myworkspace",
   "repoSlug": "myrepo",
   "state": "OPEN",
+  "filters": { "mine": false },
   "count": 2,
   "pullRequests": [
     {
@@ -244,9 +343,11 @@ Returns an envelope with metadata and a named array:
 
 ---
 
-### Pattern 2: Resource (View/Create Commands)
+### Pattern 2a: bare resource
 
-Used by: `pr view`, `repo view`, `pr create`, `pr edit`, `pr comments view`
+Used by: `pr view`, `pr create`, `pr edit`, `pr comments view`, `repo view`,
+`repo create`, `snippet view` (no `--file`/`--files`), `snippet create`,
+`snippet edit`
 
 Returns the raw Bitbucket API resource object directly, with no envelope:
 
@@ -271,11 +372,33 @@ bb pr view 42 --json | jq 'keys'
 ```
 </Aside>
 
+### Pattern 2b: enveloped resource
+
+The rest of the single-resource commands wrap the payload in a context
+envelope. Read the resource from the named key, not from the root:
+
+| Command | Shape |
+|---------|-------|
+| `commit view` | `{ workspace, repoSlug, commit }` |
+| `issue view`, `issue create`, `issue edit`, `issue close` | `{ workspace, repoSlug, issue }` |
+| `project view`, `project create` | `{ workspace, project }` |
+| `workspace view` | `{ workspace }` (the workspace object) |
+| `status set` | `{ workspace, repoSlug, commit, status }` |
+| `pipeline view` | `{ workspace, repoSlug, pipeline, steps }` |
+| `pipeline run` | `{ workspace, repoSlug, pipeline }` |
+| `pipeline logs --step <uuid>` | `{ workspace, repoSlug, pipelineId, stepUuid, log }` |
+| `pipeline logs` (no `--step`) | `{ workspace, repoSlug, pipelineId, count, steps }` |
+| `snippet view --file <name>` | `{ file, content }` |
+| `snippet view --files` | `{ snippet, files }` (`files` is an object keyed by filename) |
+
+`pipeline view` and `pipeline logs` put their array under `steps`, which is not
+a projection wrapper key — see the trap above.
+
 ---
 
-### Pattern 3: Action (Approve/Merge/Decline Commands)
+### Pattern 3: action (approve/merge/decline commands)
 
-Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `auth login`, `auth logout`
+Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `auth logout`
 
 Returns a success indicator plus resource identifiers:
 
@@ -296,9 +419,18 @@ Some action commands include the full resource in the response:
 }
 ```
 
+Two action-style commands do **not** emit `success` — branch on their own key
+instead:
+
+- `auth login` → `{ "authenticated": true, "method": "oauth" | "api_token", "user": {...} }`
+- `pipeline stop` → `{ "workspace": "...", "repoSlug": "...", "pipelineId": "...", "stopped": true }`
+
+(`auth logout` does emit `success`: `{ "authenticated": false, "success": true }`,
+plus `"revokeFailed": true` when the OAuth token could not be revoked.)
+
 ---
 
-### Pattern 4: Mode-Based (Diff Command)
+### Pattern 4: mode-based (diff command)
 
 Used by: `pr diff` (with `--stat`, `--web`, `--name-only`, or default diff mode)
 
@@ -329,10 +461,11 @@ writing to a `.patch` file.
 }
 ```
 
-Extract just the diff text in scripts:
+Extract just the diff text in scripts. Use an external `jq -r` here — the
+built-in `--jq` would emit the value as a quoted, escaped JSON string:
 
 ```bash
-bb pr diff 42 --json --jq '.diff' > pr-42.patch
+bb pr diff 42 --json | jq -r '.diff' > pr-42.patch
 ```
 
 #### `bb pr diff 42 --stat --json`
@@ -378,7 +511,7 @@ bb pr diff 42 --json --jq '.diff' > pr-42.patch
 
 ---
 
-### Pattern 5: Auth & Config (Custom)
+### Pattern 5: auth & config (custom)
 
 These commands have unique output shapes:
 
@@ -387,20 +520,41 @@ These commands have unique output shapes:
 ```json
 {
   "authenticated": true,
+  "method": "oauth",
   "user": {
     "username": "myuser",
     "displayName": "My Name",
     "accountId": "70121:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  }
+  },
+  "defaultWorkspace": "myworkspace",
+  "tokenExpiresAt": 1767225600
 }
 ```
 
-#### `bb auth token --json`
+`tokenExpiresAt` (a Unix timestamp in seconds) is present only for OAuth
+credentials. When no credentials are stored the whole payload is:
 
 ```json
-{
-  "token": "base64-encoded-username:apiToken"
-}
+{ "authenticated": false }
+```
+
+`method` is spelled differently by the two commands. `auth status` reports the
+stored value, `"basic"` or `"oauth"`; `auth login` reports `"api_token"` or
+`"oauth"` for the same credentials. Match on `"oauth"` versus everything else
+rather than on the literal `"api_token"`.
+
+#### `bb auth token --json`
+
+OAuth credentials return the access token:
+
+```json
+{ "token": "<access token>", "type": "bearer" }
+```
+
+API-token credentials return the base64 of `username:apiToken`:
+
+```json
+{ "token": "<base64 of username:apiToken>", "type": "basic" }
 ```
 
 #### `bb config list --json`
@@ -410,8 +564,8 @@ These commands have unique output shapes:
   "configPath": "/Users/you/.config/bb/config.json",
   "config": {
     "username": "myuser",
-    "apiToken": "********",
     "defaultWorkspace": "myworkspace",
+    "apiToken": "********",
     "skipVersionCheck": false
   }
 }
@@ -428,42 +582,15 @@ These commands have unique output shapes:
 
 ---
 
-## jq Examples
-
-The same expressions work with the built-in `--jq` flag or with an external
-`jq` binary. The built-in form avoids the dependency and works identically on
-Windows, macOS, and Linux.
-
-```bash
-# Print PR titles (built-in)
-bb pr list --json --jq '.pullRequests[].title'
-
-# Print PR titles (external jq, equivalent)
-bb pr list --json | jq -r '.pullRequests[].title'
-
-# Count PRs
-bb pr list --json --jq '.count'
-
-# Repository names
-bb repo list --json --jq '.repositories[].full_name'
-
-# Diff file paths
-bb pr diff 42 --stat --json --jq '.files[].path'
-
-# PR URLs
-bb pr list --json --jq '.pullRequests[].links.html.href'
-
-# Auth status
-bb auth status --json --jq '.authenticated'
-```
-
-## Scripting Notes
+## Scripting notes
 
 - Prefer `--json` in scripts rather than parsing text output.
 - Do not rely on text formatting symbols (`✓`, table separators, colors).
 - Prefer the built-in `--jq` and `--json fields` over external pipes — they
   avoid an extra binary dependency and behave identically across platforms.
-- If you need stable fields, prefer command-specific documented keys (`pullRequests`, `repositories`, `files`, `success`).
+- Envelope keys (`count`, `pullRequests`, `repositories`, `success`) are owned
+  by the CLI and stable. Item fields come straight from the Bitbucket API, so
+  read `.pullRequests[].id` rather than assuming a shape for the whole item.
 - `pr list` returns lightweight PR objects. Use `pr view <id>` for full details including `participants` and `reviewers`.
 
 ## Errors
@@ -517,7 +644,7 @@ present, the shape is:
 | `1002` AUTH_INVALID | `status` (HTTP status, OAuth verification failures only) |
 | `1003` AUTH_EXPIRED | `status` (HTTP status from the token endpoint) |
 | `2001`–`2005` API_* | `status`, `method`, `url` — plus the top-level `statusCode` and `response` fields described above. `url` is the request path only; pagination and filter parameters the CLI sends are not part of it, though a query string you write yourself (`bb api '/repositories/acme?role=owner'`) is |
-| `3001` GIT_NOT_REPOSITORY | _(none)_ |
+| `3001` GIT_NOT_REPOSITORY | _(none — never thrown)_ |
 | `3002` GIT_COMMAND_FAILED | `command`, `exitCode` |
 | `3003` GIT_REMOTE_NOT_FOUND | `remote` |
 | `4001` CONFIG_READ_FAILED | _(none)_ |
@@ -525,11 +652,14 @@ present, the shape is:
 | `4003` CONFIG_INVALID_KEY | `key` |
 | `5001` VALIDATION_REQUIRED | `field` (when thrown by `ValidationError`) |
 | `5002` VALIDATION_INVALID | varies — usually `{ key, value }`, the offending option name, or the rejected ID |
+| `5003` FILE_NOT_FOUND | `file` (`snippet create/edit/view`, `issue create --body-file`), `bodyFile` (`pr edit --body-file`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet |
 | `6001` CONTEXT_REPO_NOT_FOUND | _(none)_ |
 | `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_ |
 | `7001` NETWORK_ERROR | _(usually none; OAuth revoke failures include `status`, `body`)_ |
 | `8001` JQ_FAILED | `expression`, optional `exitCode` |
 | `8002` JSON_FORMAT_INVALID | _(none)_ |
+| `9001` COMPLETION_INSTALL_FAILED | _(none)_ |
+| `9002` COMPLETION_UNINSTALL_FAILED | _(none)_ |
 | `9999` UNKNOWN | _(none)_ |
 
 In automation, always check the process exit code before parsing stdout JSON.

@@ -10,7 +10,19 @@ sidebar:
 
 Manage pull request comments.
 
-Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+
+Every `bb pr comments` subcommand accepts those globals. They work the same everywhere, so the per-command examples below leave them out:
+
+```bash
+# Target a repository other than the one you are standing in
+bb pr comments list 42 -w myworkspace -r myrepo
+
+# Machine-readable output
+bb pr comments list 42 --json
+```
+
+`view`, `edit`, `reply`, `resolve`, and `unresolve` have no options of their own — only the globals.
 
 ## `bb pr comments`
 
@@ -34,7 +46,7 @@ Global options available on all PR commands: `--json`, `--no-color`, `-w, --work
 List comments on a pull request.
 
 ```bash
-bb pr comments list <id>
+bb pr comments list <id> [options]
 ```
 
 ### Arguments
@@ -45,16 +57,13 @@ bb pr comments list <id>
 
 ### Options
 
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--limit <number>` | Maximum number of comments (default: 25) |
-| `--all` | List all comments (overrides `--limit`) |
-| `--resolved` | Only show resolved comments |
-| `--unresolved` | Only show unresolved comments |
-| `--no-truncate` | Show full comment content without truncation |
-| `--json` | Output as JSON |
+| Option | Description | Default |
+|---------|-------------|---------|
+| `--limit <number>` | Maximum number of comments | `25` |
+| `--all` | List all comments (overrides `--limit`) | |
+| `--resolved` | Only show resolved comments | |
+| `--unresolved` | Only show unresolved comments | |
+| `--no-truncate` | Global flag. Show full comment content without truncation | |
 
 ### Examples
 
@@ -73,28 +82,31 @@ bb pr comments list 42 --all
 
 # Show full comment content (not truncated)
 bb pr comments list 42 --no-truncate
+```
 
-# List comments in specific repository
-bb pr comments list 42 -w myworkspace -r myrepo
+Output:
 
-# Get comments as JSON
-bb pr comments list 42 --json
+```text
+ID         Author    Content                          Status    Date
+---------  --------  -------------------------------  --------  ------------------------
+486512301  Jane Doe  Consider renaming this variable  resolved  Jul 28, 2026 at 11:14 AM
+486512477  Sam Ali   Good catch, fixed.               open      Jul 28, 2026 at 12:02 PM
+486513002  Jane Doe  Why was this removed?            open      Jul 29, 2026 at 10:41 AM
 ```
 
 ### Notes
 
-- By default, comment content is truncated to 60 characters in the table view
-- Use `--no-truncate` to display the full comment text
-- The `Status` column shows `resolved`, `pending`, or `open`; Bitbucket records resolution on the thread root, so replies always show `open`
+- Comment content is truncated to 60 characters in the table view. Use `--no-truncate` for the full text
+- The `Status` column shows `resolved`, `pending`, or `open`. Bitbucket records resolution on the comment that was resolved, so a reply inside a resolved thread shows `open` (or `pending` if it is an unpublished draft)
 - `--resolved` and `--unresolved` filter on the same resolution state and cannot be combined
-- `--limit` is enforced across paginated comment responses
+- With `--resolved`/`--unresolved` the filter is applied client-side after each page is fetched, so `--limit` counts comments that survive the filter — `--unresolved --limit 25` keeps fetching pages until 25 unresolved comments are found or the list is exhausted
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
 
 ---
 
 ## `bb pr comments add`
 
-Add a comment to a pull request. Supports both general comments and inline comments on specific file lines.
+Add a general comment, or an inline comment anchored to a file line.
 
 ```bash
 bb pr comments add <id> <message> [options]
@@ -114,9 +126,6 @@ bb pr comments add <id> <message> [options]
 | `--file <path>` | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
 | `--line-to <number>` | Line number in the new version of the file (requires `--file`) |
 | `--line-from <number>` | Line number in the old version of the file (requires `--file`) |
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -124,20 +133,14 @@ bb pr comments add <id> <message> [options]
 # Add a general comment to PR #42
 bb pr comments add 42 "LGTM! This looks great."
 
-# Add an inline comment on a specific line in the new file
+# Inline comment on a line in the new file
 bb pr comments add 42 "Consider renaming this variable" --file src/index.ts --line-to 15
 
-# Add an inline comment on a line in the old (removed) version of the file
+# Inline comment on a line in the old (removed) version of the file
 bb pr comments add 42 "Why was this removed?" --file src/utils.ts --line-from 10
 
-# Add an inline comment spanning old and new lines
+# Inline comment spanning old and new lines
 bb pr comments add 42 "This logic changed" --file src/app.ts --line-from 5 --line-to 8
-
-# Add a comment to PR in specific repository
-bb pr comments add 42 "Please review this." -w myworkspace -r myrepo
-
-# Get comment as JSON
-bb pr comments add 42 "Good job!" --json
 ```
 
 ### Notes
@@ -150,7 +153,7 @@ bb pr comments add 42 "Good job!" --json
 
 ## `bb pr comments view`
 
-View a single comment on a pull request, including whether its thread is resolved.
+View a single comment, including whether it is resolved.
 
 ```bash
 bb pr comments view <pr-id> <comment-id>
@@ -163,25 +166,11 @@ bb pr comments view <pr-id> <comment-id>
 | `pr-id` | Pull request ID |
 | `comment-id` | Comment ID |
 
-### Options
-
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
-# View comment #123 on PR #42
-bb pr comments view 42 123
-
-# View a comment in a specific repository
-bb pr comments view 42 123 -w myworkspace -r myrepo
-
-# Get the raw comment object as JSON
-bb pr comments view 42 123 --json
+# View comment #486512301 on PR #42
+bb pr comments view 42 486512301
 ```
 
 ### Notes
@@ -209,32 +198,18 @@ bb pr comments edit <pr-id> <comment-id> <message>
 | `comment-id` | Comment ID |
 | `message` | New comment message |
 
-### Options
-
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
-# Edit comment #123 on PR #42
-bb pr comments edit 42 123 "Updated: I noticed something else..."
-
-# Edit comment in specific repository
-bb pr comments edit 42 123 "Revised feedback" -w myworkspace -r myrepo
-
-# Get updated comment as JSON
-bb pr comments edit 42 123 "Final comment" --json
+# Replace the body of comment #486512301 on PR #42
+bb pr comments edit 42 486512301 "Updated: I noticed something else..."
 ```
 
 ---
 
 ## `bb pr comments reply`
 
-Reply to an existing comment. The new comment is attached to the parent comment, so it shows up in the same thread.
+Reply to an existing comment. The reply is attached to the parent comment, so it lands in the same thread.
 
 ```bash
 bb pr comments reply <pr-id> <comment-id> <message>
@@ -248,31 +223,17 @@ bb pr comments reply <pr-id> <comment-id> <message>
 | `comment-id` | ID of the comment to reply to |
 | `message` | Reply message |
 
-### Options
-
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
-# Reply to comment #123 on PR #42
-bb pr comments reply 42 123 "Good catch, fixed."
-
-# Reply in a specific repository
-bb pr comments reply 42 123 "Fixed in the latest push" -w myworkspace -r myrepo
-
-# Get the created reply as JSON
-bb pr comments reply 42 123 "Done" --json
+# Reply to comment #486512301 on PR #42
+bb pr comments reply 42 486512301 "Good catch, fixed."
 ```
 
 ### Notes
 
 - Use `bb pr comments list <id>` to find the comment ID to reply to
-- The reply is attached to the parent comment; how Bitbucket anchors a reply to an inline comment is decided server-side
+- How Bitbucket anchors a reply to an inline comment is decided server-side
 
 ---
 
@@ -291,25 +252,11 @@ bb pr comments resolve <pr-id> <comment-id>
 | `pr-id` | Pull request ID |
 | `comment-id` | Comment ID |
 
-### Options
-
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
-# Resolve comment thread #123 on PR #42
-bb pr comments resolve 42 123
-
-# Resolve in a specific repository
-bb pr comments resolve 42 123 -w myworkspace -r myrepo
-
-# Get the resolution as JSON
-bb pr comments resolve 42 123 --json
+# Resolve comment thread #486512301 on PR #42
+bb pr comments resolve 42 486512301
 ```
 
 ### Notes
@@ -334,25 +281,11 @@ bb pr comments unresolve <pr-id> <comment-id>
 | `pr-id` | Pull request ID |
 | `comment-id` | Comment ID |
 
-### Options
-
-| Option | Description |
-|---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
-# Reopen comment thread #123 on PR #42
-bb pr comments unresolve 42 123
-
-# Reopen in a specific repository
-bb pr comments unresolve 42 123 -w myworkspace -r myrepo
-
-# Get the result as JSON
-bb pr comments unresolve 42 123 --json
+# Reopen comment thread #486512301 on PR #42
+bb pr comments unresolve 42 486512301
 ```
 
 ### Notes
@@ -363,10 +296,10 @@ bb pr comments unresolve 42 123 --json
 
 ## `bb pr comments delete`
 
-Delete a comment from a pull request.
+Delete a comment from a pull request. `--yes` is required.
 
 ```bash
-bb pr comments delete <pr-id> <comment-id>
+bb pr comments delete <pr-id> <comment-id> [options]
 ```
 
 ### Arguments
@@ -380,23 +313,16 @@ bb pr comments delete <pr-id> <comment-id>
 
 | Option | Description |
 |---------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
+| `-y, --yes` | Confirm deletion (required) |
 
 ### Examples
 
 ```bash
-# Delete comment #123 from PR #42
-bb pr comments delete 42 123
-
-# Delete comment in specific repository
-bb pr comments delete 42 456 -w myworkspace -r myrepo
-
-# Delete comment with JSON output
-bb pr comments delete 42 456 --json
+# Delete comment #486512301 from PR #42
+bb pr comments delete 42 486512301 --yes
 ```
 
 ### Notes
 
+- `bb pr comments delete` never prompts. Without `--yes` it exits with a validation error ending in `Use --yes to confirm.`
 - Deleting a comment is permanent and cannot be undone

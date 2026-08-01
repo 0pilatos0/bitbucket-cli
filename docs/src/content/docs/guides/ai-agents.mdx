@@ -5,9 +5,9 @@ description: Set up the Bitbucket CLI with Claude Code, opencode, Cursor, Windsu
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Manage pull requests, repositories, and code reviews through natural conversation. Tell your AI assistant "Create a PR for this branch" and it handles the commands, flags, and context automatically.
+Drop a skill or rules file into your project and your coding assistant drives Bitbucket through `bb`. The templates below cover Claude Code, opencode, Cursor, and Windsurf.
 
-## Quick Start
+## Quick start
 
 Pick your editor and paste the command:
 
@@ -42,12 +42,15 @@ Pick your editor and paste the command:
     **Review:** `bb pr checkout <id>` → `bb pr diff <id>` → `bb pr approve <id>`
     **Merge:** `bb pr merge <id> --strategy squash --close-source-branch`
     **Draft:** `bb pr create -t "WIP" --draft` → later `bb pr ready <id>`
-    **Comments:** `bb pr comments list <id>` / `bb pr comments add <id> "text"`
+    **Comments:** `bb pr comments list <id>` (add `--unresolved` to see open threads), `bb pr comments add <id> "text"`, `bb pr comments view <pr-id> <comment-id>`
+    **Review threads:** `bb pr comments reply <pr-id> <comment-id> "text"` → `bb pr comments resolve <pr-id> <comment-id>` (`unresolve` reopens); `bb pr comments edit <pr-id> <comment-id> "text"`, `bb pr comments delete <pr-id> <comment-id>`
     **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`
     **CI/CD:** `bb pipeline list`, `bb pipeline run --branch main`, `bb pipeline view/logs/stop <id>`
     **Commits:** `bb commit list`, `bb commit view <sha>`; build statuses: `bb status list <sha>`, `bb status set <sha> --key CI --state SUCCESSFUL`
     **Issues:** `bb issue list`, `bb issue view <id>`, `bb issue create -t "title"`, `bb issue edit/comment/close <id>`
+    **Snippets:** `bb snippet list/view/create/edit/delete/watch/unwatch`, plus `bb snippet comments`
     **Workspaces & projects:** `bb workspace list/view`, `bb project list/view/create`
+    **Browser URLs:** `bb browse --pr <id> -n` prints the URL instead of opening it (`--json` does the same and returns `{"url": …}`)
     **Raw API:** `bb api <endpoint>` — any Bitbucket 2.0 endpoint not covered above (e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
 
     ## Tips
@@ -60,7 +63,7 @@ Pick your editor and paste the command:
     echo "✓ Skill installed. Restart Claude Code to activate."
     ```
 
-    Restart Claude Code and try: **"List my open PRs"**
+    Restart Claude Code and try: **"List my open pull requests"**
 
     <Aside type="tip">
       This also registers `/bb-cli` as a slash command. For personal use across all projects, install to `~/.claude/skills/bb-cli/SKILL.md` instead. Commit the project-level file to git so your team gets it automatically.
@@ -88,8 +91,15 @@ Pick your editor and paste the command:
     - `bb pr approve <id>` / `bb pr decline <id>` - Review
     - `bb pr merge <id> --strategy squash --close-source-branch` - Merge
     - `bb pr ready <id>` - Mark draft as ready
-    - `bb pr comments add <id> "text"` - Add comment
     - `bb pr reviewers add <id> <uuid>` - Add reviewer to an existing PR
+
+    **PR comments and review threads:**
+    - `bb pr comments list <id>` - List comments (`--resolved` / `--unresolved` to filter)
+    - `bb pr comments add <id> "text"` - Add a top-level comment
+    - `bb pr comments view <pr-id> <comment-id>` - Read one comment
+    - `bb pr comments reply <pr-id> <comment-id> "text"` - Reply in a thread
+    - `bb pr comments resolve <pr-id> <comment-id>` / `unresolve <pr-id> <comment-id>` - Close or reopen a thread
+    - `bb pr comments edit <pr-id> <comment-id> "text"` / `delete <pr-id> <comment-id>` - Edit or remove
 
     **Repositories:**
     - `bb repo list` / `bb repo view` / `bb repo clone workspace/repo`
@@ -110,6 +120,13 @@ Pick your editor and paste the command:
     **Workspaces & projects:**
     - `bb workspace list` / `bb workspace view [slug]`
     - `bb project list` / `bb project view <key>` / `bb project create`
+
+    **Snippets:**
+    - `bb snippet list` / `view` / `create` / `edit` / `delete` / `watch` / `unwatch`
+    - `bb snippet comments list <id>` / `add <id> "text"`
+
+    **Browser URLs:**
+    - `bb browse --pr <id> -n` - Print the PR URL instead of opening a browser (`--json` returns `{"url": …}`)
 
     **Raw API access:**
     - `bb api <endpoint>` - Authenticated call to any Bitbucket 2.0 endpoint (escape hatch for anything without a typed command; e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
@@ -155,12 +172,17 @@ Pick your editor and paste the command:
     - `bb pr approve/decline/merge <id>` - Review and merge
     - `bb pr merge <id> --strategy squash --close-source-branch`
     - `bb pr ready <id>` - Mark draft as ready
+    - `bb pr comments list <id>` - List comments (`--resolved`/`--unresolved` to filter)
     - `bb pr comments add <id> "text"` - Comment on PR
+    - `bb pr comments reply/resolve/unresolve <pr-id> <comment-id>` - Work a review thread
+    - `bb pr comments view/edit/delete <pr-id> <comment-id>` - Read, edit, remove a comment
     - `bb repo list/view/clone` - Repository operations
     - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
     - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
     - `bb issue list/view/create/edit/comment/close` - Issue tracker
+    - `bb snippet list/view/create/edit/delete/watch/unwatch` + `bb snippet comments` - Snippets
     - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
+    - `bb browse --pr <id> -n` - Print a Bitbucket URL instead of opening a browser
     - `bb api <endpoint>` - Raw call to any Bitbucket 2.0 endpoint (escape hatch; `--paginate`, `--jq`)
     - `bb config set defaultWorkspace <ws>` - Set defaults
 
@@ -189,12 +211,17 @@ Pick your editor and paste the command:
     - `bb pr approve/decline/merge <id>` - Review and merge
     - `bb pr merge <id> --strategy squash --close-source-branch`
     - `bb pr ready <id>` - Mark draft as ready
+    - `bb pr comments list <id>` - List comments (`--resolved`/`--unresolved` to filter)
     - `bb pr comments add <id> "text"` - Comment on PR
+    - `bb pr comments reply/resolve/unresolve <pr-id> <comment-id>` - Work a review thread
+    - `bb pr comments view/edit/delete <pr-id> <comment-id>` - Read, edit, remove a comment
     - `bb repo list/view/clone` - Repository operations
     - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
     - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
     - `bb issue list/view/create/edit/comment/close` - Issue tracker
+    - `bb snippet list/view/create/edit/delete/watch/unwatch` + `bb snippet comments` - Snippets
     - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
+    - `bb browse --pr <id> -n` - Print a Bitbucket URL instead of opening a browser
     - `bb api <endpoint>` - Raw call to any Bitbucket 2.0 endpoint (escape hatch; `--paginate`, `--jq`)
     - `bb config set defaultWorkspace <ws>` - Set defaults
 
@@ -206,20 +233,18 @@ Pick your editor and paste the command:
 </Tabs>
 
 <Aside type="tip">
-  **No setup at all?** Just tell your AI assistant:
-  *"Run `bb --help` to learn the bb CLI, then use it to list my open PRs."*
+  **No setup at all?** Tell your AI assistant:
+  *"Run `bb --help` to learn the Bitbucket CLI, then use it to list my open PRs."*
   Most AI coding assistants can learn any CLI from its `--help` output on the fly.
 </Aside>
 
 ---
 
-## Example Workflows
-
-These show what's possible once your AI assistant knows about `bb`. Natural language works — exact phrasing doesn't matter.
+## Example workflows
 
 ### Create and submit a PR
 
-```
+```text
 You: Push my changes and create a PR titled "Add input validation"
       with a description of what changed
 
@@ -234,7 +259,7 @@ AI:   [Runs: git push -u origin feat/input-validation]
 
 ### Review multiple PRs at once
 
-```
+```text
 You: Show me all open PRs and summarize which ones are ready to merge
 
 AI:   [Runs: bb pr list --json]
@@ -251,7 +276,7 @@ AI:   [Runs: bb pr list --json]
 
 ### Full review-and-merge cycle
 
-```
+```text
 You: Check out PR 42, review the diff, and if it looks good,
      approve and squash-merge it
 
@@ -269,9 +294,30 @@ AI:   [Runs: bb pr checkout 42]
       ✅ Merged PR #42 with squash strategy. Source branch deleted.
 ```
 
+### Work an open review thread
+
+```text
+You: What review comments are still open on PR 45?
+
+AI:   [Runs: bb pr comments list 45 --unresolved]
+
+      2 unresolved:
+      • #109820 bob — "This retry loop has no upper bound."
+      • #109834 bob — "Missing test for the 429 path."
+
+You: Fix both, then reply and resolve them
+
+AI:   [Edits src/client.ts, adds tests]
+      [Runs: bb pr comments reply 45 109820 "Capped at 3 attempts in a1b2c3d."]
+      [Runs: bb pr comments resolve 45 109820]
+      [Runs: bb pr comments reply 45 109834 "Added a 429 retry test in a1b2c3d."]
+      [Runs: bb pr comments resolve 45 109834]
+      ✅ Both threads replied to and resolved.
+```
+
 ### Draft PR workflow
 
-```
+```text
 You: Create a draft PR for my work-in-progress
 
 AI:   [Runs: bb pr create -t "WIP: New dashboard" --draft]
@@ -304,24 +350,43 @@ bb auth login   # Reads from env vars automatically
 
 ### Required API token scopes
 
+These cover the command families the templates above teach. For the full
+command-to-scope map, see [Token Scopes](/reference/token-scopes/).
+
 | Scope | Required for |
 |-------|-------------|
-| `read:user:bitbucket` | `bb auth status` — verify identity |
-| `read:repository:bitbucket` | `bb repo list`, `bb repo view` — browse repos |
-| `write:repository:bitbucket` | `bb repo create` — create repos |
-| `admin:repository:bitbucket` | `bb repo delete` — delete repos (optional) |
-| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb pr diff` — browse PRs |
-| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge`, `bb pr approve` — manage PRs |
+| `read:user:bitbucket` | Identity checks — `bb auth status`, plus resolving your own UUID for `bb pr create` and `bb pr list --mine` |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb commit list/view`, `bb status list` — browse repos and commits |
+| `write:repository:bitbucket` | `bb status set` — set commit build statuses |
+| `admin:repository:bitbucket` | `bb repo create`, `bb repo default-reviewers add/remove` |
+| `delete:repository:bitbucket` | `bb repo delete` — delete repos (optional) |
+| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb pr diff`, `bb pr comments list` — browse PRs |
+| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge`, `bb pr approve`, `bb pr comments add/reply/resolve` — manage PRs |
 | `read:pipeline:bitbucket` | `bb pipeline list`, `bb pipeline view`, `bb pipeline logs` — inspect CI/CD |
 | `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` — control CI/CD |
 | `read:issue:bitbucket` | `bb issue list`, `bb issue view` — browse issues |
 | `write:issue:bitbucket` | `bb issue create`, `bb issue edit`, `bb issue close` — manage issues |
 | `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` — discover workspaces |
 | `read:project:bitbucket` | `bb project list`, `bb project view` — browse projects |
+| `admin:project:bitbucket` | `bb project create` — create projects |
+| `read:snippet:bitbucket` | `bb snippet list`, `bb snippet view` — browse snippets |
+| `write:snippet:bitbucket` | `bb snippet create/edit/delete/watch/unwatch` — manage snippets |
 
-<Aside type="tip">
-  For read-only workflows (listing and viewing PRs), you only need the `read` scopes. OAuth users don't need to select scopes manually — they are requested automatically.
-</Aside>
+For read-only agents (listing and viewing), the `read` scopes are enough.
+
+### OAuth agents
+
+`bb auth login` defaults to OAuth, which requests a fixed scope set and never
+prompts you to choose:
+
+```text
+account repository repository:admin pullrequest pullrequest:write
+```
+
+That covers repository and pull request work, including `bb repo create` and
+`bb repo default-reviewers`. It does **not** cover `bb pipeline`, `bb issue`,
+`bb project`, `bb snippet`, or `bb repo delete` — those return 403 under OAuth.
+Use an API token with the scopes above if your agent needs them.
 
 ---
 
@@ -355,17 +420,16 @@ of scraping HTML:
 | [`/llms-small.txt`](https://bitbucket-cli.paulvanderlei.com/llms-small.txt) | Abridged subset (excludes Help / FAQ / Changelog) for tight context windows |
 
 All three are generated at build time, so they always match the live docs.
-You don't need to do anything to consume them — tools that support
-`llms.txt` will discover them automatically. If your tool doesn't, paste
-the URL into the chat (`@https://bitbucket-cli.paulvanderlei.com/llms-full.txt`
-in Cursor, for example).
+Tools that support `llms.txt` find them on their own. For everything else,
+paste the URL into the chat — in Cursor,
+`@https://bitbucket-cli.paulvanderlei.com/llms-full.txt`.
 
 ---
 
-## Related Guides
+## Related guides
 
 - [Scripting & Automation](/guides/scripting/) — JSON output, exit codes, and shell scripting patterns
 - [CI/CD Integration](/guides/cicd/) — Use `bb` in GitHub Actions, GitLab CI, Jenkins, and more
 - [JSON Output Reference](/reference/json-output/) — Detailed JSON schemas for all commands
-- [Error Codes](/reference/error-codes/) — Full list of exit codes and their meanings
+- [Error Codes](/reference/error-codes/) — the numeric `code` values in `--json` error output (the process exit code is always 0 or 1)
 - [Command Reference](/commands/pr/) — Complete PR command documentation

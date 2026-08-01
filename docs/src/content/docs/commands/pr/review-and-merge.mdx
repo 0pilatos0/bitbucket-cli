@@ -5,160 +5,102 @@ sidebar:
   order: 5
 ---
 
-Complete review and merge pull request workflows.
+The four commands that change a pull request's state: `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr merge`.
 
-Global options available on all PR commands: `--json`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+
+`--json` accepts an optional comma-separated field list and `--jq` filters the JSON in-process — see [JSON Output](/reference/json-output/) for the full reference. On these four commands the field list is matched against the result envelope shown under [JSON output](#json-output), not against the PR, so `--json title` returns `{"title": null}`. Use a dotted path (`--json pullRequest.state`) or `--jq` instead.
 
 ## `bb pr merge`
-
-Merge a pull request.
 
 ```bash
 bb pr merge <id> [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
+`<id>` is the pull request ID.
 
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-m, --message <message>` | Merge commit message |
-| `--close-source-branch` | Delete source branch after merge |
-| `--strategy <strategy>` | Merge strategy (see table below) |
-| `--json` | Output as JSON |
+| `--close-source-branch` | Delete the source branch after merging |
+| `--strategy <strategy>` | Merge strategy (see below) |
 
-### Merge Strategies
+### Merge strategies
 
 | Strategy | Description |
 |----------|-------------|
-| `merge_commit` | Create a merge commit (default) |
+| `merge_commit` | Create a merge commit |
 | `squash` | Squash all commits into a single commit |
 | `fast_forward` | Fast-forward if possible, fail otherwise |
 | `squash_fast_forward` | Squash commits and fast-forward |
 | `rebase_fast_forward` | Rebase source commits onto destination and fast-forward |
 | `rebase_merge` | Rebase source commits onto destination and create a merge commit |
 
+Omitting `--strategy` uses the repository's configured merge strategy (typically `merge_commit`), not a CLI default. The CLI sends no strategy at all unless you pass one.
+
+Strategy names are checked when the command runs, not by the argument parser. An unknown value fails with [`5002` VALIDATION_INVALID](/reference/error-codes/#5002---validation_invalid) and the message `--strategy must be one of: merge_commit, squash, …`. A wrong-case value such as `SQUASH` gets a case-sensitivity note; a typo such as `sqush` gets a "did you mean" suggestion. Under `--json` that failure comes back as a JSON error envelope.
+
 ### Examples
 
 ```bash
-# Merge PR #42
+# Merge PR #42 using the repository's configured strategy
 bb pr merge 42
 
-# Merge with squash strategy and delete source branch
+# Squash and delete the source branch
 bb pr merge 42 --strategy squash --close-source-branch
 
-# Merge with custom commit message
+# Merge with a custom commit message
 bb pr merge 42 -m "Merge feature: Add user authentication"
 
 # Rebase and fast-forward
 bb pr merge 42 --strategy rebase_fast_forward
+
+# Capture the merge commit hash (--jq prints JSON-quoted strings, so strip them)
+bb pr merge 42 --json --jq '.pullRequest.merge_commit.hash' | tr -d '"'
 ```
 
 ---
 
-## `bb pr approve`
+## `bb pr approve`, `bb pr decline`, `bb pr ready`
 
-Approve a pull request.
-
-```bash
-bb pr approve <id> [options]
-```
-
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
+Each takes a pull request ID and nothing else — no command-specific options, only the global ones.
 
 ```bash
-# Approve PR in current repository
-bb pr approve 42
+bb pr approve 42   # Approve
+bb pr decline 42   # Decline
+bb pr ready 42     # Clear the draft flag, marking the PR ready for review
 
-# Approve PR in specific repository
+# Any of them against an explicit repository
 bb pr approve 42 -w myworkspace -r myrepo
 ```
 
----
+`bb pr ready` is a pull request update that sets `draft: false`. It sends no other fields.
 
-## `bb pr decline`
+## JSON output
 
-Decline a pull request.
+The four commands on this page do not return the same shape. `bb pr approve` returns only the identifiers:
 
-```bash
-bb pr decline <id> [options]
+```json
+{
+  "success": true,
+  "pullRequestId": 42
+}
 ```
 
-### Arguments
+`bb pr decline`, `bb pr ready`, and `bb pr merge` add the pull request exactly as the API returned it, so `state` reflects the command you ran — `DECLINED`, `OPEN`, and `MERGED` respectively. Abridged, for `bb pr merge`:
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
-
-```bash
-# Decline PR in current repository
-bb pr decline 42
-
-# Decline PR in specific repository
-bb pr decline 42 -w myworkspace -r myrepo
+```json
+{
+  "success": true,
+  "pullRequestId": 42,
+  "pullRequest": {
+    "id": 42,
+    "title": "Add user authentication",
+    "state": "MERGED"
+  }
+}
 ```
 
----
-
-## `bb pr ready`
-
-Mark a draft pull request as ready for review.
-
-```bash
-bb pr ready <id> [options]
-```
-
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
-
-### Examples
-
-```bash
-# Mark draft PR as ready
-bb pr ready 42
-
-# Mark draft PR in specific repository
-bb pr ready 42 -w myworkspace -r myrepo
-```
+A script that reads `.pullRequest` after `bb pr approve --json` gets `null`. Fetch the PR separately with `bb pr view 42 --json` if you need its fields after approving.

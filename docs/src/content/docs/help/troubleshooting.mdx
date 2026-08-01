@@ -5,43 +5,37 @@ banner:
   content: 'Bitbucket app passwords are deprecated and cannot be created. Use API tokens instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
-import { Steps } from '@astrojs/starlight/components';
+Find your error message below. Errors go to stderr and exit 1, with a `✗`
+prefix (`ERR` under `--no-unicode` or `BB_NO_UNICODE`). Under `--json` a
+failure becomes a single-line JSON object on stderr instead. Errors raised
+before the command runs — unknown command, unknown option — stay plain text
+with an `error:` prefix either way.
 
-This guide covers the most common issues users encounter and how to resolve them.
+## Authentication
 
-## Authentication Issues
+### Authentication required
 
-### "Authentication required" Error
-
-**Symptoms:**
+```text
+✗ Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.
 ```
-Error: Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.
-```
 
-**Causes:**
-- You haven't logged in yet
-- Your credentials were cleared
-- OAuth tokens expired and could not be refreshed
+No credentials are stored — you have not logged in, or `bb auth logout` cleared
+them.
 
-**Solution:**
 ```bash
 bb auth login
 ```
 
 ---
 
-### "OAuth token expired" Error
+### OAuth token expired
 
-**Symptoms:**
+```text
+✗ OAuth token expired. Run 'bb auth login' to re-authenticate.
 ```
-Error: OAuth token expired. Run 'bb auth login' to re-authenticate.
-```
 
-**Causes:**
-- The refresh token was revoked or expired
-- The OAuth consumer was deleted or modified
+The refresh token was revoked or expired, or the OAuth consumer was deleted.
 
-**Solution:**
 ```bash
 bb auth logout
 bb auth login
@@ -49,378 +43,342 @@ bb auth login
 
 ---
 
-### "Invalid credentials" Error
+### Invalid username or token
 
-**Symptoms:**
+`bb auth login` reports a rejected API token like this:
+
+```text
+✗ Invalid username or token: Unauthorized. Verify your Bitbucket username and that the API token is current and has the required scopes.
 ```
-Error: Invalid credentials
+
+On any other command a 401 shows Bitbucket's own message plus a dimmed
+remediation line:
+
+```text
+✗ Unauthorized
+Your Bitbucket credentials were rejected. Run `bb auth login` to re-authenticate.
 ```
 
-**Causes:**
-- Incorrect username (API token auth)
-- Invalid or expired API token
-- Using a password instead of API token
+If you authenticated with OAuth, re-authenticate:
 
-**Solution:**
+```bash
+bb auth logout
+bb auth login
+```
 
-<Steps>
+If you use an API token, mint a fresh one at
+[Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/) —
+scopes cannot be added to an existing token — then log in again, keeping the
+token out of shell history:
 
-1. If using OAuth, simply re-authenticate:
-   ```bash
-   bb auth logout
-   bb auth login
-   ```
-
-2. If using API tokens, verify your username and generate a fresh token:
-   - Go to [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-   - Create a new token with required scopes
-   - Re-authenticate:
-   ```bash
-   bb auth login -u myuser -p your-new-token
-   ```
-
-</Steps>
+```bash
+echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+```
 
 ---
 
-### OAuth Browser Doesn't Open
+### `bb auth login` never opens a browser
 
-**Symptoms:** Running `bb auth login` shows a URL but doesn't open a browser.
+The most common cause is environmental, not network:
 
-**Causes:**
-- SSH session or headless environment
-- No default browser configured
-- WSL without browser integration
+- **`BB_API_TOKEN` is exported in your shell.** Its mere presence — even set to
+  an empty string — selects API-token auth and skips OAuth entirely. Run
+  `unset BB_API_TOKEN` and retry. (`-u`, `-p`, `--app-password`, and
+  `--with-token` select the same path, deliberately.)
+- SSH session, headless machine, or WSL without browser integration.
+- No default browser configured.
 
-**Solution:**
+When the browser cannot be opened, `bb` prints the authorization URL to stderr —
+copy it into any browser and the flow completes normally. Or skip OAuth:
 
-1. Copy the URL shown in the terminal and open it manually in any browser
-2. Or use API token auth instead:
-   ```bash
-   bb auth login -u myuser -p your-api-token
-   ```
-
----
-
-### "Port 19872 is already in use" Error
-
-**Causes:**
-- Another instance of `bb auth login` is running
-- Another application is using port 19872
-
-**Solution:**
-1. Close any other `bb auth login` processes
-2. Check what's using the port: `lsof -i :19872` (macOS/Linux)
-3. Close the conflicting application and retry
+```bash
+bb auth login -u myuser -p your-api-token
+```
 
 ---
 
-### Token Works in Browser but Not CLI
+### Port 19872 is already in use
 
-**Causes:**
-- Token might have wrong scopes
-- Token might be an app password (deprecated)
-- Encoding issues when pasting
+```text
+✗ Port 19872 is already in use. Close the application using it and try again.
+```
 
-**Solution:**
+The OAuth callback server binds `127.0.0.1:19872` and waits up to 5 minutes.
 
-1. Verify you're using an **API token** (not app password):
-   - API tokens are managed at [API Tokens page](https://bitbucket.org/account/settings/api-tokens/)
-   - App passwords are at a different URL (deprecated)
+```bash
+lsof -i :19872   # macOS/Linux
+```
 
-2. Check token scopes include:
-   - `read:user:bitbucket`
-   - `read:repository:bitbucket` and `write:repository:bitbucket`
-   - `read:pullrequest:bitbucket` and `write:pullrequest:bitbucket`
+Close the other `bb auth login` (or whatever holds the port) and retry.
 
-3. When pasting the token, ensure no extra whitespace:
+---
+
+### Token works in the browser but not in the CLI
+
+1. Confirm it is an **API token**, minted at
+   [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/).
+   App passwords live at a different URL and are deprecated.
+
+2. Check the scopes cover what you are running — see
+   [Token Scopes](/reference/token-scopes/). A missing scope surfaces as a 403
+   with the hint `Your token may be missing a required scope.`
+
+3. Strip whitespace when pasting:
+
    ```bash
    # Good - token only
    bb auth login -u myuser -p ATBB_xxxxx
 
-   # Bad - extra space
+   # Bad - leading space inside the quotes
    bb auth login -u myuser -p " ATBB_xxxxx"
    ```
 
-4. Or switch to OAuth to avoid token management entirely:
-   ```bash
-   bb auth login
-   ```
+---
+
+### Config file has insecure permissions
+
+```text
+✗ Config file has insecure permissions (644); expected 600. Run: chmod 600 /home/me/.config/bb/config.json
+```
+
+On macOS and Linux, `bb` refuses to read a config file or directory that is
+readable by group or other. This usually follows copying a config between
+machines or restoring a dotfiles repository. Windows skips the check.
+
+```bash
+chmod 700 ~/.config/bb
+chmod 600 ~/.config/bb/config.json
+```
+
+A hand-edited file that no longer parses gives:
+
+```text
+✗ Config file is not valid JSON: /home/me/.config/bb/config.json. Fix the file by hand or remove it and run `bb auth login` again.
+```
+
+Both are error code 4001 (`CONFIG_READ_FAILED`).
 
 ---
 
-## Repository Context Issues
+## Repository context
 
-### "Could not determine repository" Error
+### Could not determine repository
 
-**Symptoms:**
+```text
+✗ Could not determine repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
-Error: Could not determine repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+
+Three sibling messages name the specific reason:
+
+```text
+✗ Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+✗ Git repository has no remote configured. Add a Bitbucket remote with `git remote add origin <url>`, or use --workspace and --repo options, or run this command from within a Bitbucket repository.
+✗ Remote 'git@github.com:me/thing.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-**Causes:**
-- Not in a git repository
-- Git remote doesn't point to Bitbucket
-- No default workspace configured
+All four are code 6001 (`CONTEXT_REPO_NOT_FOUND`). Pick whichever fix suits:
 
-**Solutions:**
-
-**Option 1:** Use explicit flags
 ```bash
-bb pr list -w myworkspace -r myrepo
-```
-
-**Option 2:** Set defaults
-```bash
+bb pr list -w myworkspace -r myrepo     # explicit flags
 bb config set defaultWorkspace myworkspace
+cd /path/to/cloned-bitbucket-repo && bb pr list
 ```
 
-**Option 3:** Work from a cloned repository
+See [Repository Context](/guides/repository-context/) for the full precedence
+rules.
+
+---
+
+### Repository or resource not found
+
+Commands that know what they were looking for name it, and stop there:
+
+```text
+✗ Repository my-ws/typo not found.
+✗ Pull request #999 not found in my-ws/my-repo.
+```
+
+Everywhere else a 404 surfaces Bitbucket's own message with a dimmed
+remediation line appended — see
+[Failures that tell you the next step](#failures-that-tell-you-the-next-step).
+In `--json` mode that line arrives as a top-level `hint` string on the error
+envelope.
+
+Usual causes: a typo in the workspace or repository slug, a repository you have
+no access to, or one that was renamed. To check what you can actually see:
+
 ```bash
-cd /path/to/cloned-bitbucket-repo
-bb pr list  # Auto-detects from git remote
+bb workspace list
+bb repo list -w myworkspace
 ```
-
-See [Repository Context](/guides/repository-context/) for details.
 
 ---
 
-### "Repository not found" Error
+## Network
 
-**Symptoms:**
+### Cannot reach Bitbucket
+
+```text
+✗ Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.
 ```
-Error: Repository not found
+
+```bash
+curl -I https://api.bitbucket.org          # connectivity
+export HTTPS_PROXY=http://proxy.example.com:8080
+DEBUG=true bb repo list                    # [HTTP] tracing on stdout, secrets redacted
 ```
 
-**Causes:**
-- Typo in workspace or repository name
-- You don't have access to the repository
-- Repository was deleted or renamed
-
-**Solution:**
-
-1. Verify spelling:
-   ```bash
-   # Check what the CLI detected
-   bb repo view
-   ```
-
-2. List repositories you have access to:
-   ```bash
-   bb repo list -w myworkspace
-   ```
-
-3. Check Bitbucket web UI to confirm repository exists
+Bitbucket's own availability is at
+[status.bitbucket.org](https://status.bitbucket.org).
 
 ---
 
-## Network Issues
+### Request timed out
 
-### "API request failed" Error
-
-**Symptoms:**
-```
-Error: API request failed
+```text
+✗ Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.
 ```
 
-**Causes:**
-- No internet connection
-- Bitbucket is down
-- Firewall blocking requests
-- Proxy not configured
+The per-request timeout defaults to 30000 ms.
 
-**Solutions:**
-
-1. Check internet connection:
-   ```bash
-   curl -I https://api.bitbucket.org
-   ```
-
-2. Check Bitbucket status: [status.bitbucket.org](https://status.bitbucket.org)
-
-3. If behind a proxy, configure it:
-   ```bash
-   export HTTPS_PROXY=http://proxy.example.com:8080
-   ```
+```bash
+BB_HTTP_TIMEOUT=60000 bb pr list   # 60 seconds
+BB_HTTP_TIMEOUT=0 bb pr list       # no timeout
+```
 
 ---
 
-### Rate Limiting
+### Rate limiting
 
-**Symptoms:**
+A 429 is retried automatically. In human mode you see the attempts on stderr:
+
+```text
+⚠ Rate limited, retrying in 1.0s (attempt 1/3)...
 ```
-Error: Rate limit exceeded
-```
 
-**Causes:**
-- Too many API requests in a short period
-- Scripts making rapid sequential calls
+Retries cover HTTP 429, 502, 503, and 504, up to 3 attempts. On a 429 the
+`Retry-After` header sets the delay when Bitbucket sends one; otherwise the
+delay is exponential backoff from 1s. Transient network failures on GET, HEAD,
+and OPTIONS share the same 3-attempt budget. Once it is exhausted, the command
+fails with Bitbucket's own 429 message.
 
-**Solutions:**
+The retry warning is suppressed in `--json` mode, so scripts see only the final
+failure.
 
-1. The CLI automatically retries rate-limited requests (HTTP 429) up to 3 times with exponential backoff. If you still see this error, the rate limit is sustained.
+If the limit is sustained:
 
-2. Wait a few minutes and retry
+1. Wait a few minutes and retry.
+2. Add a delay between calls in loops:
 
-3. For scripts, add delays between calls:
    ```bash
    for pr_id in 1 2 3 4 5; do
      bb pr view $pr_id
-     sleep 1  # Add delay between requests
+     sleep 1
    done
    ```
 
-3. Use `--json` and process locally to reduce API calls:
+3. Fetch once and filter locally instead of calling per item:
+
    ```bash
-   # One API call, process locally
-   bb pr list --json | jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "me")'
+   bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
    ```
 
 ---
 
-## Git Integration Issues
+## Git integration
 
-### "Not a git repository" Error
+### Clone fails
 
-**Symptoms:**
+`bb repo clone` shells out to `git clone git@bitbucket.org:<workspace>/<repo>.git`,
+so the error text is git's own, verbatim:
+
+```text
+✗ git@bitbucket.org: Permission denied (publickey).
 ```
-Error: Not a git repository
+
+That is an SSH problem, not a `bb auth` problem — the CLI does not pass its
+token to git.
+
+```bash
+ssh -T git@bitbucket.org                                  # verify your key
+git clone https://bitbucket.org/myworkspace/myrepo.git    # HTTPS fallback
 ```
-
-**Causes:**
-- Running command outside a git repository
-- Git not initialized
-
-**Solutions:**
-
-1. Navigate to a git repository:
-   ```bash
-   cd /path/to/your/repo
-   ```
-
-2. Or use explicit flags:
-   ```bash
-   bb pr list -w workspace -r repo
-   ```
 
 ---
 
-### Clone Fails
+## Command-specific issues
 
-**Symptoms:**
+### Destructive commands do not prompt
+
+```text
+✗ This will permanently delete myworkspace/old-repo.
+Use --yes to confirm.
 ```
-Error: Failed to clone repository
+
+The `-y, --yes` help text says "Skip confirmation prompt", but there is no
+prompt — the command fails until you pass the flag. This affects
+`bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`,
+`bb snippet delete`, and `bb snippet comments delete`.
+
+```bash
+bb repo delete myworkspace/old-repo --yes
 ```
-
-**Causes:**
-- SSH keys not configured
-- Repository access denied
-- Invalid repository URL
-
-**Solutions:**
-
-1. Try HTTPS instead of SSH:
-   ```bash
-   # The CLI uses SSH by default
-   # Clone manually with HTTPS if SSH fails
-   git clone https://bitbucket.org/workspace/repo.git
-   ```
-
-2. Check SSH configuration:
-   ```bash
-   ssh -T git@bitbucket.org
-   ```
-
-3. Verify repository access in Bitbucket web UI
 
 ---
 
-## Command-Specific Issues
+### Pull request creation is rejected
 
-### PR Creation Fails
+A missing title is caught locally, before any request:
 
-**Symptoms:**
+```text
+✗ Pull request title is required. Use --title option.
 ```
-Error: Failed to create pull request
+
+Everything else is Bitbucket's own message, with any `error.fields` detail
+flattened in — for example:
+
+```text
+✗ Bad request (type: extra keys not allowed)
 ```
 
-**Common causes and solutions:**
-
-| Cause | Solution |
-|-------|----------|
+| Cause | Fix |
+|-------|-----|
 | Branch doesn't exist on remote | `git push -u origin your-branch` |
 | PR already exists for branch | Check `bb pr list` |
-| Branch protection rules | Check repository settings |
+| Branch restrictions block the destination | Check repository settings |
 | No changes between branches | Ensure commits exist |
 
 ---
 
-### PR Merge Fails
+### Merge is rejected
 
-**Symptoms:**
+Bitbucket returns the reason in the error message. Diagnose the rest without
+leaving the terminal:
+
+```bash
+bb pr checks 42     # failing builds
+bb pr view 42       # reviewer approvals and merge state
+bb pr activity 42   # who requested changes
 ```
-Error: Cannot merge pull request
-```
 
-**Common causes:**
-
-- Merge conflicts exist
-- Required approvals not met
-- Build checks failing
-- Branch protection rules
-
-**Solution:**
-Check PR status in Bitbucket web UI for specific blockers.
+Common blockers are merge conflicts, unmet required approvals, and failing
+build checks. Fall back to the web UI only for branch-restriction rules, which
+the API does not expose.
 
 ---
 
-### Diff Shows Nothing
+### Diff shows nothing
 
-**Symptoms:**
 ```bash
 bb pr diff 42
 # (empty output)
 ```
 
-**Causes:**
-- PR has no file changes
-- PR is already merged
-- API returned empty diff
-
-**Solutions:**
-
-1. Check PR status:
-   ```bash
-   bb pr view 42
-   ```
-
-2. View in browser:
-   ```bash
-   bb pr diff 42 --web
-   ```
-
----
-
-## Getting Debug Information
-
-When reporting issues, gather this information:
+The PR has no file changes, or the API returned an empty diff.
 
 ```bash
-# CLI version
-bb --version
-
-# OS information
-uname -a  # Linux/macOS
-systeminfo | findstr /B /C:"OS"  # Windows
-
-# Bun version (required runtime)
-bun --version
-
-# Auth status (masks token)
-bb auth status
-
-# Config (masks token)
-bb config list
+bb pr view 42        # check state and branches
+bb pr diff 42 --web  # compare against the web UI
 ```
 
 ---
@@ -464,9 +422,46 @@ it first:
 
 ```bash
 bb --json pr list
-# ✗ --json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.
-# Put --json after the subcommand: bb pr list --json
 ```
+
+`--json` did parse, so the failure comes back as a JSON envelope on stderr:
+
+```text
+{"name":"BBError","code":5002,"message":"--json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.\nPut --json after the subcommand: bb pr list --json"}
+```
+
+`bb --json=id,title pr list` works, because the `--flag=value` form does not eat
+the next token.
+
+### `--jq` needs `--json`
+
+```bash
+bb pr list --jq '.pullRequests[].title'
+# ✗ --jq requires --json
+```
+
+Because `--json` was never set, this failure renders as **plain text on stderr**,
+not as a JSON envelope — surprising in a script that only parses stdout.
+`bb api` is the one exception: it accepts `--jq` on its own.
+
+```bash
+bb pr list --json --jq '.pullRequests[].title'   # correct
+bb api /repositories/my-ws --jq '.values[].name' # allowed without --json
+```
+
+### Empty `--json` field list
+
+```bash
+bb pr list --json ""
+```
+
+```text
+{"name":"BBError","code":8002,"message":"--json field list cannot be empty"}
+```
+
+`--json ,,` fails the same way. Use bare `--json` for the full envelope.
+
+---
 
 ## Failures that tell you the next step
 
@@ -485,12 +480,38 @@ In `--json` mode the same text arrives as a `hint` field. See
 
 ---
 
-## Still Need Help?
+## Getting debug information
 
-If you've tried the solutions above and still have issues:
+When reporting an issue, gather this:
 
-1. Search [existing issues](https://github.com/0pilatos0/bitbucket-cli/issues)
-2. Open a [new issue](https://github.com/0pilatos0/bitbucket-cli/issues/new) with:
+```bash
+# CLI version
+bb --version
+
+# OS information
+uname -a  # Linux/macOS
+systeminfo | findstr /B /C:"OS"  # Windows
+
+# Bun version (required runtime)
+bun --version
+
+# Auth status (never prints the token; use bb auth token for that)
+bb auth status
+
+# Config (masks secrets)
+bb config list
+```
+
+`bb auth status` makes a live `GET /user` call, so it also fails when the
+network or proxy is the real problem.
+
+---
+
+## Still need help?
+
+1. Check the [FAQ](/help/faq/) for questions that come up often
+2. Search [existing issues](https://github.com/0pilatos0/bitbucket-cli/issues)
+3. Open a [new issue](https://github.com/0pilatos0/bitbucket-cli/issues/new) with:
    - CLI version (`bb --version`)
    - Operating system
    - Complete error message

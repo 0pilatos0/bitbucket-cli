@@ -5,11 +5,11 @@ description: Poll bb pr checks until all CI checks have passed, then merge the p
 
 import { Aside } from '@astrojs/starlight/components';
 
-The "merge approved PRs" pattern in the [CI/CD guide](/guides/cicd/#merge-approved-prs-automatically) only checks `participants[].approved` — it ignores the actual CI status. This recipe adds the missing piece: poll [`bb pr checks`](/commands/pr/activity-and-checks/#bb-pr-checks) until every status is `SUCCESSFUL`, then merge.
+The "merge approved PRs" pattern in the [CI/CD guide](/guides/cicd/#merge-approved-prs-automatically) only checks whether a pull request (PR) has `participants[].approved` set — it ignores the actual CI status. This recipe adds the missing piece: poll [`bb pr checks`](/commands/pr/activity-and-checks/#bb-pr-checks) until every status is `SUCCESSFUL`, then merge.
 
 ## What "all-green" means
 
-`bb pr checks <id> --json` returns a stable envelope. The relevant shape:
+`bb pr checks <id> --json` returns this envelope — each entry in `statuses` also carries `refname`, `createdOn` and `uuid`, trimmed here:
 
 ```json
 {
@@ -36,7 +36,18 @@ The "merge approved PRs" pattern in the [CI/CD guide](/guides/cicd/#merge-approv
 
 Possible `state` values: `SUCCESSFUL`, `FAILED`, `INPROGRESS`, `STOPPED`.
 
-A PR is considered all-green when **at least one check exists** *and* every status is `SUCCESSFUL`. Treat zero checks as "not ready" — most teams want at least one passing build before auto-merge fires.
+A PR is all-green when **at least one check exists** *and* every status is `SUCCESSFUL`. Treat zero checks as "not ready".
+
+`summary` counts only three of those states: `successful` for `SUCCESSFUL`, `failed` for `FAILED`, `pending` for `INPROGRESS`. Anything else — `STOPPED`, or any state Bitbucket adds later — is counted in none of them, so `summary.successful + failed + pending` can be less than `statuses | length`. Gate on `successful == total`, never on `failed == 0 and pending == 0`.
+
+<Aside type="caution">
+`bb pr checks` is not paginated. It issues one request and returns whatever Bitbucket puts on the first page — there is no `--limit` or `--all`. On a PR with more build statuses than fit one page, both `summary` and `statuses` are computed over a partial set, and an auto-merge gate can fire while a check you never saw is still failing. If a repository routinely posts more than a handful of statuses per PR, read them through `bb api` instead:
+
+```bash
+bb api "/repositories/$WORKSPACE/$REPO/pullrequests/42/statuses" --paginate --json \
+  | jq -r '(.values | length) > 0 and all(.values[]; .state == "SUCCESSFUL")'
+```
+</Aside>
 
 ### jq filter for all-green
 
@@ -82,6 +93,7 @@ while true; do
   checks_json=$(bb pr checks "$PR_ID" -w "$WORKSPACE" -r "$REPO" --json)
 
   failed=$(echo "$checks_json" | jq '.summary.failed')
+  successful=$(echo "$checks_json" | jq '.summary.successful')
   pending=$(echo "$checks_json" | jq '.summary.pending')
   total=$(echo "$checks_json" | jq '.statuses | length')
 
@@ -90,12 +102,16 @@ while true; do
     exit 1
   fi
 
-  if [ "$total" -gt 0 ] && [ "$pending" -eq 0 ]; then
+  # successful == total, not "no failures and nothing pending": a STOPPED
+  # check lands in none of the summary buckets, so the looser test would
+  # merge a PR whose only build was cancelled. A STOPPED check keeps this
+  # loop polling until TIMEOUT_SECONDS, which then exits 1.
+  if [ "$total" -gt 0 ] && [ "$successful" -eq "$total" ]; then
     echo "All $total checks passed for PR #$PR_ID — merging."
     break
   fi
 
-  echo "PR #$PR_ID: $pending pending / $total total — sleeping ${POLL_INTERVAL}s"
+  echo "PR #$PR_ID: $successful/$total passed, $pending pending — sleeping ${POLL_INTERVAL}s"
   sleep "$POLL_INTERVAL"
 done
 
@@ -114,6 +130,8 @@ WORKSPACE=myworkspace REPO=myrepo ./auto-merge-on-green.sh 42
 
 Run this on a schedule (cron, GitHub Actions cron trigger, Bitbucket Pipelines schedule). It merges every approved PR whose checks are all green and skips the rest silently.
 
+`--all` is load-bearing. `bb pr list` defaults to `--limit 25`, and the `Use --limit <n> or --all to see more.` hint is printed with table output only — under `--json` you get 25 rows and no warning, so older approved PRs would never be merged.
+
 ```bash
 #!/bin/bash
 # auto-merge-scan.sh - Merge every approved, all-green PR.
@@ -122,7 +140,7 @@ set -euo pipefail
 WORKSPACE="${WORKSPACE:-myworkspace}"
 REPO="${REPO:-myrepo}"
 
-open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --json --jq '.pullRequests[].id')
+open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --all --json --jq '.pullRequests[].id')
 
 for pr_id in $open_prs; do
   approved=$(bb pr view "$pr_id" -w "$WORKSPACE" -r "$REPO" --json --jq '

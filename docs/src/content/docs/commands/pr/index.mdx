@@ -5,41 +5,34 @@ sidebar:
   order: 1
 ---
 
-import {
-  Badge,
-  CardGrid,
-  LinkButton,
-  LinkCard,
-} from '@astrojs/starlight/components';
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Manage pull requests in Bitbucket repositories.
+Manage pull requests (PRs) in Bitbucket repositories. New here? Start with [Create, edit, and view](/commands/pr/create-and-edit/).
 
-Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
 
-`--json` accepts an optional comma-separated field list to project the output, and `--jq` filters the JSON in-process — see [JSON Output](/reference/json-output/) for the full reference.
-
-## Choose a Workflow <Badge text="Task-based" variant="note" />
+## Command groups
 
 <CardGrid>
   <LinkCard
     title="Create, edit, and view"
     href="/commands/pr/create-and-edit/"
-    description="Open pull requests, update metadata, and inspect details with JSON output support."
+    description="Open a PR, change its title or description, list PRs, inspect one."
   />
   <LinkCard
     title="Activity and checks"
     href="/commands/pr/activity-and-checks/"
-    description="Inspect activity history and CI/build status before approving or merging."
+    description="Read the activity timeline and CI build statuses before approving or merging."
   />
   <LinkCard
     title="Diff and checkout"
     href="/commands/pr/diff-and-checkout/"
-    description="Review patch output, fetch PR branches locally, and open browser diffs."
+    description="Print the patch or diffstat, fetch the PR branch locally, open the diff in a browser."
   />
   <LinkCard
     title="Review and merge"
     href="/commands/pr/review-and-merge/"
-    description="Approve, decline, mark drafts ready, and merge with explicit strategy control."
+    description="Approve, decline, mark a draft ready, and merge with an explicit strategy."
   />
   <LinkCard
     title="Comments"
@@ -49,18 +42,16 @@ Global options available on all PR commands: `--json [fields]`, `--jq <expressio
   <LinkCard
     title="Reviewers"
     href="/commands/pr/reviewers/"
-    description="Assign and remove reviewers with clear behavior in idempotent cases."
+    description="Add and remove reviewers. Adding someone already assigned is a no-op, as is removing someone who is not."
   />
 </CardGrid>
 
-<LinkButton href="/commands/pr/create-and-edit/" icon="right-arrow" variant="primary">Start with PR creation</LinkButton>
-
-## Most-Used Commands
+## Most-used commands
 
 | Task | Command |
 |------|---------|
 | Create a PR | `bb pr create -t "Add feature"` |
-| Create a PR with the repo's default reviewers | `bb pr create -t "Add feature" --default-reviewers` |
+| Create a PR with the repository's default reviewers | `bb pr create -t "Add feature" --default-reviewers` |
 | List open PRs | `bb pr list` |
 | List all PRs (ignore the default limit) | `bb pr list --all` |
 | List PRs where you are a reviewer | `bb pr list --mine` |
@@ -71,9 +62,9 @@ Global options available on all PR commands: `--json [fields]`, `--jq <expressio
 | Approve PR | `bb pr approve 42` |
 | Merge PR | `bb pr merge 42 --strategy squash` |
 
-## JSON for Automation
+## JSON for automation
 
-Use `--json` when scripting. The optional field list (`--json id,title,state`) projects to just those fields, and `--jq` filters in-process — no external `jq` binary required:
+List commands wrap their results in an envelope. Bare `bb pr list --json` returns `{workspace, repoSlug, state, filters, count, pullRequests}`, so a `--jq` filter starts at `.pullRequests[]`. Adding a field list (`--json id,title`) drops the envelope and returns a flat array, so the filter starts at `.[]` instead. Single-PR commands like `bb pr view` return the PR object itself, with no envelope.
 
 ```bash
 # Project to specific fields (returns a flat array)
@@ -91,3 +82,5 @@ bb pr view 42 --json --jq '.links.html.href'
 # Capture diffstat totals
 bb pr diff 42 --stat --json --jq '{filesChanged, totalAdditions, totalDeletions}'
 ```
+
+`--json <fields>` misfires on `bb pr create`, `bb pr edit` and `bb pr view` — see [Create, Edit, and View PRs](/commands/pr/create-and-edit/) for why, and [JSON Output](/reference/json-output/) for the full reference.

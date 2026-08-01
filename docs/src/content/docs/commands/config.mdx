@@ -5,37 +5,38 @@ description: Configuration commands reference
 
 Manage CLI configuration settings.
 
-Global options available on all config commands: `--json`, `--no-color`.
+Global options available on all config commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--locale <locale>`. See [Global flags](/reference/global-flags/) for the full list.
 
-## Configuration File
+## Configuration file
 
 Configuration is stored in a JSON file at:
 
-- **Linux/macOS**: `~/.config/bb/config.json`
-- **Windows**: `%APPDATA%\bb\config.json`
+- **Linux/macOS**: `~/.config/bb/config.json` (fixed path — `XDG_CONFIG_HOME` is not read)
+- **Windows**: `%APPDATA%\bb\config.json`, falling back to `%USERPROFILE%\AppData\Roaming\bb\config.json`
 
-## Available Settings
+On Linux and macOS the CLI creates the directory `0700` and the file `0600`, and refuses to run if either grants group or other access. See [Configuration file](/reference/configuration/) for the permission rules and how to fix them.
 
-The configuration file stores your CLI settings and authentication credentials.
+## Available settings
 
-| Key | Description |
-|-----|-------------|
-| `username` | Bitbucket username (set during `auth login`) |
-| `apiToken` | Bitbucket API token (set during `auth login`, masked in output) |
-| `defaultWorkspace` | Default workspace for commands |
-| `skipVersionCheck` | Disable update notifications (default: false) |
-| `versionCheckInterval` | Days between update checks (default: 1) |
-| `prCreateIncludeDefaultReviewers` | Auto-add the repo's default reviewers on `bb pr create` (default: false) |
-| `lastVersionCheck` | Timestamp of the last update check. Auto-managed by the CLI; read-only from a user's perspective (do not set manually) |
+| Key | `bb config get` | `bb config set` | Description |
+|-----|-----------------|-----------------|-------------|
+| `defaultWorkspace` | yes | yes | Default workspace for commands |
+| `skipVersionCheck` | yes | yes | Disable update notifications (default: false) |
+| `versionCheckInterval` | yes | yes | Days between update checks (default: 1) |
+| `prCreateIncludeDefaultReviewers` | yes | yes | Auto-add the repository's default reviewers on `bb pr create` (default: false) |
+| `username` | yes | no — use `bb auth login` | Bitbucket username |
+| `apiToken` | no — use `bb auth token` | no — use `bb auth login` | Bitbucket API token (masked in `bb config list`) |
+| `lastVersionCheck` | no | no | Timestamp of the last update check. Auto-managed; `bb config get lastVersionCheck` fails with `Unknown config key` |
 
-### Configuration File Format
+`bb auth login` also writes `authMethod` — `basic` for API tokens, `oauth` for OAuth — and, after an OAuth login, the `oauth*` keys (`oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, and custom consumer credentials). Only `bb auth login` and `bb auth logout` touch those keys; see [Configuration file](/reference/configuration/) for the full schema.
 
-The config file is stored as JSON:
+### Configuration file format
 
 ```json
 {
+  "authMethod": "basic",
   "username": "myuser",
-  "apiToken": "***",
+  "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx",
   "defaultWorkspace": "myworkspace",
   "skipVersionCheck": false,
   "versionCheckInterval": 1,
@@ -43,23 +44,17 @@ The config file is stored as JSON:
 }
 ```
 
-:::tip
-You typically won't edit this file manually. Use `bb config set` to change settings and `bb auth login` to set credentials.
-:::
+Don't edit this file by hand. Use `bb config set` for settings and `bb auth login` for credentials.
 
 ## `bb config get`
 
-Get a configuration value.
+Print a configuration value.
 
 ```bash
 bb config get <key>
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `key` | Configuration key to retrieve |
+Readable keys: `username`, `defaultWorkspace`, `skipVersionCheck`, `versionCheckInterval`, `prCreateIncludeDefaultReviewers`. Any other key exits `1` with `Unknown config key '<key>'`, except `apiToken`, which points you at `bb auth token`.
 
 ### Examples
 
@@ -74,12 +69,6 @@ bb config get username
 bb config get defaultWorkspace --json
 ```
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
 ---
 
 ## `bb config set`
@@ -90,22 +79,13 @@ Set a configuration value.
 bb config set <key> <value>
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `key` | Configuration key to set |
-| `value` | Value to set (parsed by key type) |
-
-### Typed Value Parsing
-
-`bb config set` validates and stores typed values for known typed keys:
+Settable keys, and the values each accepts:
 
 | Key | Accepted values | Stored type |
 |-----|-----------------|-------------|
 | `defaultWorkspace` | Any string | string |
 | `skipVersionCheck` | `true` or `false` | boolean |
-| `versionCheckInterval` | Positive integer (`>= 1`) | number |
+| `versionCheckInterval` | Positive integer (`>= 1`), in days | number |
 | `prCreateIncludeDefaultReviewers` | `true` or `false` | boolean |
 
 ### Examples
@@ -120,27 +100,34 @@ bb config set skipVersionCheck true
 # Check for updates weekly instead of daily
 bb config set versionCheckInterval 7
 
-# Invalid values are rejected
-bb config set skipVersionCheck maybe
-
 # Get output as JSON
 bb config set defaultWorkspace myworkspace --json
 ```
 
-Example JSON output for typed keys:
+Values that don't match the key's type are rejected and exit `1`:
+
+```bash
+bb config set skipVersionCheck maybe
+```
+
+```
+✗ Invalid value for 'skipVersionCheck'. Expected 'true' or 'false'.
+```
+
+JSON output for typed keys:
 
 ```json
 { "success": true, "key": "skipVersionCheck", "value": true }
 ```
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
 :::caution
-Use `bb auth login` to set credentials instead of manually setting `username` and `apiToken`.
+`bb config set username …` and `bb config set apiToken …` are rejected outright:
+
+```
+✗ Cannot set 'username' directly. Use 'bb auth login' to configure authentication.
+```
+
+Use `bb auth login` for credentials.
 :::
 
 ---
@@ -153,12 +140,6 @@ List all configuration values.
 bb config list [options]
 ```
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
-
 ### Examples
 
 ```bash
@@ -167,6 +148,9 @@ bb config list
 
 # List as JSON for scripting
 bb config list --json
+
+# Read one value out of the JSON
+bb config list --json --jq '.config.defaultWorkspace'
 ```
 
 ### Output
@@ -175,13 +159,15 @@ bb config list --json
 Config file: /Users/you/.config/bb/config.json
 
 KEY               VALUE
-----------------  ------------------------
+----------------  -----------
 username          myuser
-apiToken          ********
 defaultWorkspace  myworkspace
+apiToken          ********
 skipVersionCheck  false
+
+Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
 ```
 
-:::note
-The `apiToken` value is always masked for security.
-:::
+With an empty config file the table is replaced by `ℹ No configuration set`; the `Config file:` line and the `Settable keys:` footer still print.
+
+`apiToken` is always masked. OAuth credentials are omitted from `bb config list` entirely — after an OAuth login the listing shows no auth rows at all.

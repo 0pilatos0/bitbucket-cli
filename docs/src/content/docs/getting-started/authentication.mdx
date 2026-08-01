@@ -3,29 +3,25 @@ title: Authentication
 description: How to authenticate with Bitbucket
 ---
 
-import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Steps } from '@astrojs/starlight/components';
 
-The Bitbucket CLI supports two authentication methods: **OAuth** (recommended) and **API Tokens**.
+The Bitbucket CLI supports two authentication methods: **OAuth** (recommended) and **API tokens**.
 
-## OAuth (Recommended)
-
-The simplest way to authenticate. Just run:
+## OAuth (recommended)
 
 ```bash
 bb auth login
 ```
 
-This opens your browser where you authorize the CLI with your Bitbucket account. No tokens to copy, no scopes to select manually.
+This opens your browser where you authorize the CLI with your Bitbucket account. No tokens to copy, no scopes to select manually. Tokens expire after 2 hours and are refreshed automatically.
 
-<Aside type="tip">
-OAuth tokens expire after 2 hours but are refreshed automatically — you won't be interrupted.
-</Aside>
+If `BB_API_TOKEN` is exported in your shell, `bb auth login` uses API-token auth instead of opening a browser. It is the variable being *set* that switches the flow, not its value — even `export BB_API_TOKEN=` does it. Run `unset BB_API_TOKEN` first if you want OAuth.
 
 <Aside type="caution">
 OAuth needs a browser that can reach a loopback callback server on `http://localhost:19872/callback`. There is **no device-code flow**, so if you're on a headless host (SSH session, container, CI runner) where no browser is available, use an [API token](#api-token-for-cicd-and-headless-environments) instead.
 </Aside>
 
-### Using a Custom OAuth Consumer
+### Using a custom OAuth consumer
 
 Organizations can use their own OAuth consumer instead of the built-in default:
 
@@ -42,15 +38,19 @@ To set up a custom OAuth consumer:
 
 Custom credentials are stored in your config file for subsequent logins.
 
+<Aside type="caution" title="OAuth cannot reach every command">
+The CLI requests a hardcoded OAuth scope set: `account repository repository:admin pullrequest pullrequest:write`. A custom consumer cannot widen it. `bb pipeline`, `bb issue`, `bb snippet`, `bb project` and `bb repo delete` are not covered — use an API token for those. See [Token Scopes](/reference/token-scopes/).
+</Aside>
+
 ---
 
-## API Token (for CI/CD and headless environments)
+## API token (for CI/CD and headless environments)
 
 Use API tokens when a browser is not available (SSH sessions, Docker containers, CI/CD pipelines).
 
 <Steps>
 
-1. **Create an API Token**
+1. **Create an API token**
 
    1. Log in to [Bitbucket](https://bitbucket.org)
    2. Go to **Personal settings** (click your avatar in the bottom left)
@@ -59,16 +59,17 @@ Use API tokens when a browser is not available (SSH sessions, Docker containers,
    5. Give it a descriptive name (e.g., "Bitbucket CLI")
    6. Select the required scopes:
       - `read:user:bitbucket` — verify your identity
-      - `read:repository:bitbucket` — list and view repositories
-      - `write:repository:bitbucket` — create repositories
-      - `admin:repository:bitbucket` — delete repositories (optional)
+      - `read:repository:bitbucket` — list and view repositories, commits, build statuses
+      - `write:repository:bitbucket` — set commit build statuses
+      - `admin:repository:bitbucket` — create repositories, manage default reviewers
+      - `delete:repository:bitbucket` — delete repositories (optional)
       - `read:pullrequest:bitbucket` — list and view pull requests
       - `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
 
       See [Token Scopes](/reference/token-scopes/) for a per-command breakdown
       if you want to mint a token with the minimum scope set for your workflow.
    7. Click **Create**
-   8. **Copy the generated token** - you won't be able to see it again!
+   8. **Copy the generated token** — Bitbucket will not show it again.
 
 2. **Authenticate**
 
@@ -77,11 +78,16 @@ Use API tokens when a browser is not available (SSH sessions, Docker containers,
    ```
 
    Or pipe the token via stdin so it never lands in your shell history or
-   `ps` output (recommended, and great with secret managers):
+   `ps` output (recommended):
 
    ```bash
    echo "$BB_API_TOKEN" | bb auth login -u your-username --with-token
    ```
+
+   `--with-token` reads all of stdin and trims it, so a trailing newline is
+   fine. It cannot be combined with `-p` — that fails with error `5002`
+   ("Cannot combine --password with --with-token"). If nothing is piped in,
+   the login fails with `5001` ("No API token found on stdin").
 
    Or using environment variables:
 
@@ -101,13 +107,23 @@ See [Environment Variables Reference](/reference/environment-variables/) for mor
 
 ---
 
-## Check Auth Status
+## Check auth status
 
 ```bash
 bb auth status
 ```
 
-This shows your current authentication method, account information, and token expiry (for OAuth).
+```text
+✓ Logged in to Bitbucket
+  Authentication: OAuth
+  Username: jdoe
+  Display name: Jane Doe
+  Account ID: 5f1a2b3c4d5e6f7a8b9c0d1e
+  Token expires: in 1h 42m
+  Default workspace: acme
+```
+
+`Token expires` only appears for OAuth logins. `Default workspace` only appears once one is configured. Add `--json` for a machine-readable version.
 
 ## Logout
 
@@ -117,7 +133,7 @@ bb auth logout
 
 This removes stored credentials and revokes your OAuth token (if using OAuth). Non-auth settings are preserved.
 
-## Configuration Storage
+## Configuration storage
 
 Credentials are stored in:
 
@@ -127,10 +143,10 @@ Credentials are stored in:
 See [Configuration File Reference](/reference/configuration/) for details on the config file format.
 
 <Aside type="caution">
-Never share your credentials or config file. Keep them secure!
+Tokens are stored in plaintext JSON. On Linux and macOS the CLI writes the file with mode `600` and the directory with mode `700`, and refuses to read either if any group or other permission bit is set — you get error `4001` with the exact `chmod` to run. Windows skips the check.
 </Aside>
 
-## Next Steps
+## Next steps
 
 - [Quick Start Guide](/getting-started/quickstart/) - Get up and running in 60 seconds
 - [Repository Context](/guides/repository-context/) - How the CLI detects your workspace/repo

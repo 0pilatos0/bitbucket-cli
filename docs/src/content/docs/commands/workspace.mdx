@@ -3,17 +3,16 @@ title: Workspace Commands - Discover Bitbucket Workspaces
 description: Reference for Bitbucket CLI workspace commands. List the workspaces you have access to and view workspace details from the command line.
 ---
 
-Discover and inspect Bitbucket Cloud workspaces. Use these commands to find
-the workspace slugs you need for `-w, --workspace`, for
-[`bb config set defaultWorkspace`](/reference/configuration/), and for
+Find the workspace slugs you pass to `-w, --workspace`, to
+[`bb config set defaultWorkspace`](/reference/configuration/), and to
 `bb repo create`.
 
-Workspace commands operate at **account** scope: `bb workspace list` needs no
-workspace context at all (it lists your own workspaces), while
-`bb workspace view` falls back to the resolved workspace context when no slug
-is passed.
+Workspace commands run at **account** scope. `bb workspace list` needs no
+context at all — it lists your own workspaces. `bb workspace view` falls back
+to the resolved workspace context when you pass no slug.
 
-Global options available on all workspace commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
+Both accept the [global flags](/reference/global-flags/), including
+`--json [fields]`, `--jq <expression>`, and `-w, --workspace`.
 
 ---
 
@@ -41,28 +40,41 @@ bb workspace list
 bb workspace list --role owner
 bb workspace list --all
 
-# Project to specific fields (returns a flat array)
+# Only the columns you need — a flat array, not the envelope
 bb workspace list --json slug,name
 
-# Grab slugs for scripting with built-in --jq
+# Slugs, one per line (JSON-quoted — the embedded jq has no -r)
 bb workspace list --json --jq '.workspaces[].slug'
+
+# Bare slugs for a shell loop, via the jq binary
+bb workspace list --json | jq -r '.workspaces[].slug'
 ```
+
+### Output
+
+```text
+SLUG           NAME           PRIVACY  UUID
+-------------  -------------  -------  --------------------------------------
+acme-corp      Acme Corp      private  {6f1e8a2c-9d34-4b7e-8f21-0c5a7d3e1b90}
+side-projects  Side Projects  public   {b2c9e740-15af-4d63-9a08-3e6f2c81d475}
+Use a slug with -w <slug> or set a default: bb config set defaultWorkspace <slug>
+```
+
+That last line prints after every non-JSON `bb workspace list`.
 
 ### JSON output
 
-The `--json` envelope is `{ filters, count, workspaces }`, where `workspaces`
-is the array of workspace objects and `filters` echoes the active `--role`
-filter (empty object when unfiltered).
+The envelope is `{ filters, count, workspaces }`. `workspaces` holds the
+workspace objects; `filters` echoes the active `--role` filter, and is an empty
+object when unfiltered.
 
 ### Notes
 
-- Requires no workspace context — this is the discovery entry point when you
-  do not know your slugs yet.
-- After listing, use a slug with `-w <slug>` on any command, or set a default
-  once: `bb config set defaultWorkspace <slug>`.
 - Role semantics: `owner` = admin access, `collaborator` = write access to at
   least one repository, `member` = member of at least one group or repository.
-- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
+- When more results exist than `--limit` returned, the table is followed by
+  `Showing 25 workspaces. Use --limit <n> or --all to see more.` This footer is
+  never printed under `--json`.
 
 ---
 
@@ -90,21 +102,30 @@ bb workspace view [slug] [options]
 ### Examples
 
 ```bash
-# View the current workspace (from -w, the current repo's remote,
-# BB_WORKSPACE, or defaultWorkspace)
+# Resolved workspace: -w, the current repository's remote,
+# BB_WORKSPACE, then defaultWorkspace
 bb workspace view
 
 bb workspace view my-workspace
 
-# Stable JSON envelope: { workspace: { ... } }
+# JSON is wrapped: { workspace: { ... } }
 bb workspace view my-workspace --json --jq '.workspace.uuid'
 ```
 
 ### Notes
 
-- Without a `slug`, the workspace is resolved like any other command: `-w`
-  flag, then the current repository's Bitbucket remote, then the
-  `BB_WORKSPACE` environment variable, then the configured
-  `defaultWorkspace`.
-- A missing or inaccessible workspace returns a clear not-found error
-  (exit code 1, `--json` gives a structured error envelope).
+- Without a `slug`, the workspace resolves in this order: the `-w` flag, the
+  current repository's Bitbucket remote, the `BB_WORKSPACE` environment
+  variable, then the configured `defaultWorkspace`.
+- An unknown or inaccessible slug fails with
+  `Workspace <slug> not found (or you do not have access to it).` — exit code 1,
+  and `--json` writes a structured error envelope to stderr. Because that
+  message already names the missing workspace, the generic 404 "check the
+  slug" hint is suppressed.
+
+### Related
+
+- [Project Commands](/commands/project/) — list the projects inside a workspace.
+- [Repository Context](/guides/repository-context/) — how the CLI resolves
+  workspace and repository.
+- [Configuration](/reference/configuration/) — set `defaultWorkspace` once.

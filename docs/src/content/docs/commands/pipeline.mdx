@@ -3,25 +3,26 @@ title: Pipeline Commands - Run and Inspect Bitbucket Pipelines
 description: Reference for Bitbucket CLI pipeline commands. List, view, trigger, stop, and read logs of Bitbucket Pipelines builds from the command line.
 ---
 
-Manage Bitbucket Pipelines (CI/CD) — list runs, inspect builds and steps,
-trigger pipelines, stop them, and stream step logs.
+Manage Bitbucket Pipelines (CI/CD) — list runs, inspect a run and its steps,
+trigger and stop runs, and read step logs.
 
 Pipeline commands operate at **repository** scope. Run them inside a cloned
 Bitbucket repository, or pass `-w, --workspace <workspace>` and
 `-r, --repo <repo>` explicitly.
 
-Global options available on all pipeline commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+Global options available on all pipeline commands: `--json [fields]`,
+`--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`,
+`--locale <locale>`, `-w, --workspace`, `-r, --repo`.
 
-Pipeline IDs are accepted in two forms everywhere an `<id>` is expected: the
-**build number** you see in the UI (e.g. `42`) or the **pipeline UUID**
-including curly braces (e.g. `{a1b2c3d4-...}`). Both pass through to the API
-unchanged, so humans and scripts can use whichever they have.
+An `<id>` is either the build number from the UI (`42`) or the pipeline UUID
+with braces (`{a1b2c3d4-...}`). `--json` output is wrapped in an envelope keyed
+by `workspace` and `repoSlug`; the `# →` comments below show each shape.
 
 ---
 
 ## `bb pipeline list`
 
-List pipelines for a repository, newest first.
+List pipeline runs, newest first.
 
 ```bash
 bb pipeline list [options]
@@ -31,14 +32,11 @@ bb pipeline list [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `--status <status>` | Filter by status: `PARSING`, `PENDING`, `PAUSED`, `HALTED`, `BUILDING`, `ERROR`, `PASSED`, `FAILED`, `STOPPED`, `UNKNOWN` (case-insensitive) |
 | `--branch <branch>` | Filter by target branch |
 | `--sort <attribute>` | Sort attribute: `created_on`, `run_creation_date`, `creator.uuid`; prefix with `-` for descending (default: `-created_on`) |
-| `--limit <number>` | Maximum number of pipelines (default: 25) |
-| `--all` | List all pipelines (overrides `--limit`) |
-| `--json` | Output as JSON |
+| `--limit <number>` | Maximum number of runs (default: 25) |
+| `--all` | List all runs (overrides `--limit`) |
 
 ### Examples
 
@@ -47,7 +45,7 @@ bb pipeline list
 bb pipeline list --status FAILED
 bb pipeline list --branch main --limit 50
 
-# Stable JSON envelope: { workspace, repoSlug, [status], [branch], sort, count, pipelines }
+# → { workspace, repoSlug, [status], [branch], sort, count, pipelines }
 bb pipeline list --json
 
 # Build numbers of recent failures, via built-in --jq
@@ -56,24 +54,34 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
 
 ### Notes
 
-- The table shows build number, status (colored), ref, trigger, created date, and duration for completed runs.
-- `--limit` is enforced across paginated responses; a hint appears when results were capped (suppressed with `--json`).
+- Columns: build number, status (colored), ref (truncated to 40 characters;
+  disable with `--no-truncate`), trigger, created date, and duration for
+  completed runs.
+- `--limit` is enforced across paginated responses. When results are capped the
+  CLI prints `Showing 25 pipelines. Use --limit <n> or --all to see more.`
+  (suppressed with `--json`).
+- `--status` is upper-cased before validation, so `failed` and `FAILED` both
+  work. `--sort` is matched case-sensitively.
+- An invalid value lists the allowed ones and, when the input is close to a
+  valid one, suggests it:
+
+  ```text
+  --status must be one of: PARSING, PENDING, PAUSED, HALTED, BUILDING, ERROR, PASSED, FAILED, STOPPED, UNKNOWN
+  (Did you mean FAILED?)
+  ```
+
+  A `--sort` value that differs only in case gets
+  `(Values are case-sensitive — use created_on.)` instead of a suggestion.
 
 ---
 
 ## `bb pipeline view`
 
-View pipeline details and a per-step summary.
+View run details and a per-step summary. `<id>` is a build number or UUID.
 
 ```bash
 bb pipeline view <id> [options]
 ```
-
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pipeline build number (e.g. `42`) or UUID (e.g. `{a1b2c3d4-...}`) |
 
 ### Examples
 
@@ -81,7 +89,7 @@ bb pipeline view <id> [options]
 bb pipeline view 42
 bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}
 
-# Stable JSON envelope: { workspace, repoSlug, pipeline, steps }
+# → { workspace, repoSlug, pipeline, steps }
 bb pipeline view 42 --json
 
 # Status name of the run
@@ -90,9 +98,13 @@ bb pipeline view 42 --json --jq '.pipeline.state.result.name // .pipeline.state.
 
 ### Notes
 
-- The human view shows number, UUID, status, ref, trigger, creator, created/completed timestamps, duration, and a step table (name, status, duration).
-- The step table and the JSON `steps` array are complete even on large pipelines — the CLI follows the steps endpoint's pagination.
-- A `404` returns an actionable "Pipeline `<id>` not found" error.
+- The human view shows number, UUID, status, ref, the custom pipeline selector
+  when the run used one (`Pipeline:`), trigger, creator, created/completed
+  timestamps, duration, and a step table (index, name, status, duration).
+- The step index is the value you pass to `bb pipeline logs --step`.
+- The step table and the JSON `steps` array are complete even on large runs —
+  the CLI follows the steps endpoint's pagination.
+- An unknown id returns `Pipeline 42 not found in acme/api.`
 
 ---
 
@@ -108,13 +120,10 @@ bb pipeline run [options]
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-b, --branch <branch>` | Branch to run on (default: current git branch) |
 | `--commit <hash>` | Run against a specific commit on the branch |
 | `-p, --pipeline <name>` | Custom pipeline definition from `bitbucket-pipelines.yml` |
 | `--var <key=value...>` | Pipeline variable; repeatable, value may contain `=` |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -126,90 +135,96 @@ bb pipeline run --branch main
 bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
 bb pipeline run --branch main --commit abc123def456
 
-# Stable JSON envelope: { workspace, repoSlug, pipeline }; grab the build number
+# → { workspace, repoSlug, pipeline }; grab the build number
 bb pipeline run --branch main --json --jq '.pipeline.build_number'
 ```
 
 ### Notes
 
 - Outside a git repository, `--branch` is required (the error tells you so).
-- `--pipeline <name>` selects a `custom:` pipeline defined in `bitbucket-pipelines.yml`.
-- Variables are sent unsecured; secured variables must be configured in repository settings.
-- On success the CLI prints the build number plus ready-to-paste `bb pipeline view` / `bb pipeline logs` commands.
+- `--pipeline <name>` selects a `custom:` pipeline defined in
+  `bitbucket-pipelines.yml`.
+- Variables are sent unsecured; secured variables must be configured in
+  repository settings.
+- On success the CLI prints the build number plus ready-to-paste
+  `bb pipeline view` / `bb pipeline logs` commands.
 
 ---
 
 ## `bb pipeline stop`
 
-Stop a running pipeline.
+Stop a running pipeline. `<id>` is a build number or UUID.
 
 ```bash
 bb pipeline stop <id> [options]
 ```
-
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pipeline build number or UUID |
 
 ### Examples
 
 ```bash
 bb pipeline stop 42
 
-# Stable JSON envelope: { workspace, repoSlug, pipelineId, stopped }
+# → { workspace, repoSlug, pipelineId, stopped }
 bb pipeline stop 42 --json --jq '.stopped'
 ```
 
 ### Notes
 
-- No `--yes` confirmation is required: stopping CI is reversible — rerun with `bb pipeline run`.
+- No `--yes` confirmation is required: stopping CI is reversible — rerun with
+  `bb pipeline run`.
 
 ---
 
 ## `bb pipeline logs`
 
-Print the raw log of a pipeline step.
+Print the raw log of a pipeline step. `<id>` is a build number or UUID.
 
 ```bash
 bb pipeline logs <id> [options]
 ```
 
-### Arguments
-
-| Argument | Description |
-|----------|-------------|
-| `id` | Pipeline build number or UUID |
-
 ### Options
 
 | Option | Description |
 |--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
 | `-s, --step <uuid-or-index>` | Step to fetch: a step UUID (braces optional) or a 1-based index |
-| `--json` | Output as JSON |
 
 ### Examples
 
 ```bash
-# Single-step pipelines need no --step
+# Single-step runs need no --step
 bb pipeline logs 42
 
 bb pipeline logs 42 --step 2
-bb pipeline logs 42 --step {step-uuid}
+bb pipeline logs 42 --step {a1b2c3d4-0000-0000-0000-000000000000}
+bb pipeline logs 42 --step a1b2c3d4-0000-0000-0000-000000000000
 
-# Stable JSON envelope: { workspace, repoSlug, pipelineId, stepUuid, log }
+# → { workspace, repoSlug, pipelineId, stepUuid, log }
 bb pipeline logs 42 --json --jq '.log'
 ```
 
 ### Notes
 
 - With exactly one step, it is selected automatically.
-- With several steps and no `--step`, the CLI lists the steps (with indexes and UUIDs) instead of guessing; in `--json` mode it returns `{ workspace, repoSlug, pipelineId, count, steps }` so scripts and agents can pick a step UUID and call again.
-- Every step is selectable even on large pipelines — the CLI follows the steps endpoint's pagination, so indexes and UUIDs beyond the API's default page size of 10 work.
-- The log is printed verbatim to stdout, so it pipes cleanly into `grep`, `less`, or a file.
+- With several steps and no `--step`, the CLI lists the steps (index, name,
+  status, UUID) instead of guessing. With `--json` it returns
+  `{ workspace, repoSlug, pipelineId, count, steps }` so scripts and agents can
+  pick a step UUID and call again.
+- Every step is selectable even on large runs — the CLI follows the steps
+  endpoint's pagination, so indexes and UUIDs beyond the API's default page
+  size of 10 work.
+- The log is printed verbatim to stdout, so it pipes cleanly into `grep`,
+  `less`, or a file.
+- Four failure modes — a queued run with no steps yet, an out-of-range `--step`
+  index, a `--step` UUID that matches nothing, and a step that has produced no
+  log yet — each get their own message, in that order:
+
+  ```text
+  Pipeline 42 has no steps yet. It may still be queued — check with `bb pipeline view 42`.
+  --step index 9 is out of range; the pipeline has 3 steps.
+  No step matching 'abc' found. Available steps: 1 ({uuid-1}), 2 ({uuid-2}).
+  No log found for step {uuid-2} of pipeline 42. The step may not have started yet.
+  ```
 
 ---
 

@@ -1,9 +1,9 @@
 ---
 title: Bitbucket CLI
-description: A powerful command-line interface for Bitbucket Cloud
+description: Manage Bitbucket Cloud pull requests, repos, pipelines, and issues from the terminal. JSON output on every command.
 template: splash
 hero:
-  tagline: Clone repos, manage PRs, and automate workflows — all from your terminal. If you know GitHub's gh, you'll feel right at home.
+  tagline: Clone repositories, manage pull requests, and automate workflows from your terminal. If you know GitHub's gh, you'll feel right at home.
   actions:
     - text: Get Started
       link: /getting-started/quickstart/
@@ -47,7 +47,7 @@ Requires [Bun](https://bun.sh) 1.0+ runtime.
 
 ```bash
 bb auth login                          # authenticate
-bb repo clone myworkspace/myrepo       # clone a repo
+bb repo clone myworkspace/myrepo       # clone a repository
 bb pr create -t "My awesome feature"   # create a PR
 bb pr list                             # list open PRs
 ```
@@ -57,7 +57,7 @@ bb pr list                             # list open PRs
 ## What can you do?
 
 <CardGrid>
-  <Card title="Repository Management" icon="folder">
+  <Card title="Repository management" icon="folder">
     Clone, create, list, view, and delete repositories.
 
     ```bash
@@ -67,7 +67,7 @@ bb pr list                             # list open PRs
     ```
   </Card>
 
-  <Card title="Pull Request Workflows" icon="document">
+  <Card title="Pull requests" icon="document">
     Full PR lifecycle — create, review, approve, merge.
 
     ```bash
@@ -77,7 +77,7 @@ bb pr list                             # list open PRs
     ```
   </Card>
 
-  <Card title="Code Review" icon="open-book">
+  <Card title="Code review" icon="open-book">
     View diffs, checkout PR branches, inspect checks.
 
     ```bash
@@ -87,8 +87,8 @@ bb pr list                             # list open PRs
     ```
   </Card>
 
-  <Card title="CI/CD from the Terminal" icon="approve-check">
-    Trigger, inspect, and stop Bitbucket Pipelines without leaving your shell.
+  <Card title="CI/CD pipelines" icon="approve-check">
+    Trigger, inspect, and stop Bitbucket Pipelines.
 
     ```bash
     bb pipeline run --branch main
@@ -97,7 +97,30 @@ bb pr list                             # list open PRs
     ```
   </Card>
 
-  <Card title="Jump to the Web UI" icon="external">
+  <Card title="Workspaces and projects" icon="database">
+    Find the workspaces you belong to and the projects inside them.
+
+    ```bash
+    bb workspace list
+    bb project list
+    bb project view PROJ
+    ```
+  </Card>
+
+  <Card title="Issues, snippets, and commits" icon="notes">
+    Track issues, share snippets, read history, and publish build statuses.
+
+    ```bash
+    bb issue list --state open
+    bb snippet create -t notes -f a.txt
+    bb commit list --limit 10
+    bb status set abc1234 --key BB-DEPLOY --state SUCCESSFUL
+    ```
+
+    See [Issue commands](/commands/issue/) and [Snippet commands](/commands/snippet/).
+  </Card>
+
+  <Card title="Jump to the web UI" icon="external">
     Open Bitbucket pages — PRs, files, commits, settings — in your browser.
 
     ```bash
@@ -107,15 +130,19 @@ bb pr list                             # list open PRs
     ```
   </Card>
 
-  <Card title="Scripting & Automation" icon="setting">
-    JSON output on every command. Built for CI/CD.
+  <Card title="Scripting and automation" icon="setting">
+    Every command speaks JSON. `--json` projects to a field list, `--jq` filters in-process — no external `jq` binary, no shell pipe.
 
     ```bash
-    bb pr list --json | jq '.pullRequests[].title'
+    bb pr list --json id,title,author.display_name
+    bb pipeline run --branch main --json --jq '.build_number'
     ```
+
+    A field list returns a flat array of objects; dotted paths keep their full
+    name as the key. See the [Scripting guide](/guides/scripting/).
   </Card>
 
-  <Card title="Raw API Access" icon="rocket">
+  <Card title="Raw API access" icon="rocket">
     Reach any Bitbucket 2.0 endpoint not yet wrapped by a typed command.
 
     ```bash
@@ -128,30 +155,38 @@ bb pr list                             # list open PRs
 
 ---
 
-## PR Workflows
-
-Task-focused guides for the shortest path to a result.
+## PR workflows
 
 <CardGrid>
   <LinkCard
-    title="Create and update PRs"
+    title="Create, edit, and view"
     href="/commands/pr/create-and-edit/"
-    description="Open pull requests, edit titles and descriptions."
+    description="Open a PR, change its title or description, list PRs, inspect one."
   />
   <LinkCard
     title="Review and merge"
     href="/commands/pr/review-and-merge/"
-    description="Approve, decline, mark ready, merge with strategy controls."
+    description="Approve, decline, mark drafts ready, and merge with explicit strategy control."
   />
   <LinkCard
-    title="Diffs and checkout"
+    title="Diff and checkout"
     href="/commands/pr/diff-and-checkout/"
-    description="View patches, open browser diffs, checkout branches locally."
+    description="Review patch output, fetch PR branches locally, and open browser diffs."
   />
   <LinkCard
-    title="Comments and reviewers"
+    title="Activity and checks"
+    href="/commands/pr/activity-and-checks/"
+    description="Inspect activity history and CI/build status before approving or merging."
+  />
+  <LinkCard
+    title="Review comments"
     href="/commands/pr/comments/"
-    description="Script-friendly review comments and reviewer management."
+    description="List, add, view, edit, reply to, resolve, unresolve, and delete general or inline review comments."
+  />
+  <LinkCard
+    title="Reviewers"
+    href="/commands/pr/reviewers/"
+    description="Add and remove reviewers. Adding someone already assigned is a no-op, as is removing someone who is not."
   />
 </CardGrid>
 
@@ -163,19 +198,24 @@ Task-focused guides for the shortest path to a result.
 
 <CardGrid>
   <LinkCard
-    title="Command Reference"
-    href="/commands/pr/"
-    description="All commands and options."
-  />
-  <LinkCard
-    title="Scripting Guide"
+    title="Scripting guide"
     href="/guides/scripting/"
     description="JSON output, exit codes, shell patterns."
   />
   <LinkCard
-    title="CI/CD Integration"
+    title="CI/CD integration"
     href="/guides/cicd/"
     description="GitHub Actions, GitLab CI, Jenkins, and more."
+  />
+  <LinkCard
+    title="Recipes"
+    href="/recipes/"
+    description="Auto-merge on green CI, bulk reviewer assignment, fork sync, reporting, retry wrappers."
+  />
+  <LinkCard
+    title="AI agent integration"
+    href="/guides/ai-agents/"
+    description="Wire the CLI into coding agents and tool-calling loops."
   />
   <LinkCard
     title="Troubleshooting"

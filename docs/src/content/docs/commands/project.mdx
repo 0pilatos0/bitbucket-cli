@@ -3,16 +3,19 @@ title: Project Commands - Manage Bitbucket Projects
 description: Reference for Bitbucket CLI project commands. List, view, and create Bitbucket Cloud projects to organize repositories from the command line.
 ---
 
-Manage Bitbucket Cloud projects — the grouping layer for repositories inside a
-workspace. Use these commands to discover the project keys you pass to
-`bb repo create -p <KEY>`.
+Projects are the grouping layer for repositories inside a workspace. Use these
+commands to discover the project keys you pass to `bb repo create -p <KEY>`.
 
-Project commands operate at **workspace** scope (no repo context required).
-Use `-w, --workspace <workspace>` or set a default with
-`bb config set defaultWorkspace <workspace>` — see
-[`bb workspace list`](/commands/workspace/) to discover your slugs.
+Project commands run at **workspace** scope; no repository context is required.
+Unlike `bb workspace view` and the repo-scoped commands, they never infer the
+workspace from your git remote. Resolution is `-w/--workspace` → `BB_WORKSPACE`
+→ `defaultWorkspace`. With none of those set, `bb project list` fails with
+`No workspace specified.` even inside a Bitbucket checkout — see
+[Repository Context](/guides/repository-context/).
 
-Global options available on all project commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`.
+All three subcommands are non-interactive and accept the
+[global flags](/reference/global-flags/), including `--json [fields]` and
+`--jq <expression>`.
 
 ---
 
@@ -40,23 +43,39 @@ bb project list
 bb project list -w my-workspace
 bb project list --all
 
-# Project to specific fields (returns a flat array)
+# Just key and name — a flat array, not the envelope
 bb project list --json key,name
 
-# Grab keys for scripting with built-in --jq
+# Keys, one per line (JSON-quoted — the embedded jq has no -r)
 bb project list --json --jq '.projects[].key'
+
+# Unquoted keys for a shell loop — needs the jq binary
+bb project list --json | jq -r '.projects[].key'
 ```
+
+### Output
+
+```text
+KEY       NAME               PRIVACY  DESCRIPTION                        UPDATED
+--------  -----------------  -------  ---------------------------------  ------------------------
+PLATFORM  Platform Services  private  Shared infrastructure and tooling  Jul 30, 2026 at 09:12 AM
+WEB       Web Apps           private  Customer-facing web frontends      Jul 24, 2026 at 04:38 PM
+```
+
+An empty workspace prints `No projects found in workspace <workspace>`.
 
 ### JSON output
 
-The `--json` envelope is `{ workspace, count, projects }`, where `projects` is
-the array of project objects.
+The envelope is `{ workspace, count, projects }`, where `projects` is the array
+of project objects.
 
 ### Notes
 
-- Long descriptions are truncated to 50 characters in the table (disable with
-  the global `--no-truncate`); `--json` always carries the full values.
-- When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
+- The `DESCRIPTION` column is truncated to 50 characters. Pass the global
+  `--no-truncate` for the full text; `--json` always carries the full values.
+- When more results exist than `--limit` returned, the table is followed by
+  `Showing 25 projects. Use --limit <n> or --all to see more.` This footer is
+  never printed under `--json`.
 
 ---
 
@@ -72,7 +91,7 @@ bb project view <key> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `key` | Project key (e.g. `PROJ`; lowercase input is uppercased automatically) |
+| `key` | Project key (e.g. `PROJ`; lowercase input is uppercased automatically, so `proj` and `PROJ` resolve the same project) |
 
 ### Options
 
@@ -87,16 +106,14 @@ bb project view <key> [options]
 bb project view PROJ
 bb project view PROJ -w my-workspace
 
-# Stable JSON envelope: { workspace, project }
+# JSON is wrapped: { workspace, project }
 bb project view PROJ --json --jq '.project.name'
 ```
 
 ### Notes
 
-- Bitbucket stores project keys uppercased, so `bb project view proj` resolves
-  the same project as `bb project view PROJ`.
-- An unknown key returns `Project <KEY> not found in workspace <workspace>.`
-  (exit code 1, `--json` gives a structured error envelope).
+- An unknown key fails with `Project <KEY> not found in workspace <workspace>.`
+  — exit code 1, and `--json` writes a structured error envelope to stderr.
 
 ---
 
@@ -129,16 +146,22 @@ bb project create -k PROJ -n "My Project" -d "Team things" --public
 # Then create repositories inside it
 bb repo create my-repo -p PROJ
 
-# Stable JSON envelope: { workspace, project }
+# The response is wrapped: { workspace, project }
 bb project create -k PROJ -n "My Project" --json --jq '.project.key'
 ```
 
 ### Notes
 
-- Projects are private by default; `--private` and `--public` cannot both be
-  set. Note that private projects cannot contain public repositories.
+- Projects are private by default. `--private` and `--public` cannot both be
+  set. A private project cannot contain public repositories.
 - Keys must start with a letter and contain only letters, digits, and
   underscores. Bitbucket requires uppercase keys, so lowercase input is
-  uppercased automatically (the CLI prints a note when it does).
-- The command is fully non-interactive: all inputs are flags, so it is safe
-  for scripts and automation.
+  uppercased automatically; the CLI prints a note when it does, except under
+  `--json`.
+
+### Related
+
+- [Workspace Commands](/commands/workspace/) — find the workspace slug these
+  commands need.
+- [Repository Context](/guides/repository-context/) — how the CLI resolves
+  workspace and repository.

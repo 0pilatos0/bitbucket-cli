@@ -1,112 +1,118 @@
 ---
 title: Completion Commands
-description: Shell completion utilities reference
+description: Install or remove bb tab completion for bash, zsh, and fish, and see exactly what the completer suggests.
 ---
 
-Enable tab completion for bash, zsh, or fish shells.
+Tab completion for bash, zsh, and fish.
 
-Global options available on completion commands: `--json`, `--no-color`.
-
-## Supported Shells
-
-| Shell | Config File |
-|-------|-------------|
-| bash | `~/.bashrc` |
-| zsh | `~/.zshrc` |
-| fish | `~/.config/fish/config.fish` |
+Global options: every global flag is accepted here (see
+[Global Flags](/reference/global-flags/)). Only `--json`, `--no-color` and
+`--no-unicode` change anything — `--jq` needs `--json`, and
+`--no-truncate`/`--locale`/`-w`/`-r` have no output to affect.
 
 ## `bb completion install`
-
-Install shell completions for your current shell.
 
 ```bash
 bb completion install [options]
 ```
 
-### Options
+This command is interactive. It asks two questions:
 
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
+1. **"Which Shell do you use ?"** — pick `bash`, `zsh`, or `fish`. The default
+   is `bash`; the prompt does **not** preselect your current shell.
+2. **"We will install completion to `<file>`, is it ok ?"** — confirm, or
+   decline and supply an absolute path of your own.
 
-The installer auto-detects your shell and adds the necessary configuration.
+It then appends a source line to that file and writes the completion script
+under `~/.config/tabtab/`.
 
-### Post-Installation
+| Shell | Config file offered |
+|-------|---------------------|
+| bash | `~/.bashrc` |
+| zsh | `~/.zshrc` |
+| fish | `~/.config/fish/config.fish` |
 
-After installing, restart your shell or source your config:
+Because it prompts, `bb completion install` is not scriptable. It blocks on the
+shell question in CI, `--json` included.
+
+A failure throws error code `9001`
+([`COMPLETION_INSTALL_FAILED`](/reference/error-codes/)) with the message
+`Failed to install completions: <error>`, and the command exits `1`.
+
+### After installing
+
+Restart your shell, or source the file you chose:
 
 ```bash
-# Bash
-source ~/.bashrc
-
-# Zsh
-source ~/.zshrc
-
-# Fish
-source ~/.config/fish/config.fish
+source ~/.bashrc                    # bash
+source ~/.zshrc                     # zsh
+source ~/.config/fish/config.fish   # fish
 ```
 
-### Examples
+Then check it works:
 
 ```bash
-# Install completions
-bb completion install
-
-# Install with JSON output
-bb completion install --json
-
-# Test it works
-bb <Tab>        # Shows: auth, repo, pr, snippet, browse, api, config, completion
-bb repo <Tab>   # Shows: clone, create, list, view, delete, default-reviewers
+bb <Tab>        # every top-level command (the root flags are offered too)
+bb repo <Tab>   # clone, create, list, view, delete, default-reviewers
 ```
 
----
+### JSON output
+
+`--json` replaces both the success line and the "Restart your shell…" follow-up
+with a single object:
+
+```json
+{
+  "success": true,
+  "shellCompletion": {
+    "command": "bb",
+    "installed": true
+  }
+}
+```
 
 ## `bb completion uninstall`
-
-Remove shell completions.
 
 ```bash
 bb completion uninstall [options]
 ```
 
-### Options
+No prompt. It deletes `~/.config/tabtab/bb.<shell>`, removes the `bb` lines from
+`~/.config/tabtab/__tabtab.<shell>`, and drops the source line from your shell
+config once no other package is left in that file. Both `<shell>` and that
+config file come from `$SHELL` — your login shell, not the shell you happen to
+be typing in, and not the shell you picked at the install prompt. If they
+disagree, the source line is left behind and you have to delete it by hand.
+On success it prints `✓ Shell completions uninstalled successfully!`; with
+`--json` you get the same envelope as install, with `"installed": false`.
 
-| Option | Description |
-|--------|-------------|
-| `--json` | Output as JSON |
+Most uninstall failures are swallowed by tabtab: it prints
+`ERROR while uninstalling <error>` and resolves anyway, so the command still
+reports success and exits `0`. Error code `9002`
+([`COMPLETION_UNINSTALL_FAILED`](/reference/error-codes/)) only fires for
+failures thrown outside that handler.
 
-### Examples
+## What gets completed
 
-```bash
-# Remove completions
-bb completion uninstall
+Completions are generated from the live command tree, so they always match the
+commands and flags the CLI actually ships.
 
-# Remove completions with JSON output
-bb completion uninstall --json
-```
+- **Commands and subcommands** — every command in the tree, at every depth.
+- **Options** — every flag on the command plus the inherited globals (`--json`,
+  `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale`,
+  `--workspace`, `--repo`, `--help`), plus `--version` on the bare `bb`. Only
+  long forms are suggested; short aliases like `-w` still work but are never
+  offered.
+- **Flag values** for options with a fixed set of choices.
 
----
-
-## What Gets Completed
-
-Completions are derived from the live command tree, so they always reflect the
-commands and flags the CLI actually ships — there is no separate list to fall
-out of date.
-
-Tab completion works for:
-
-- **Commands**: `auth`, `repo`, `pr`, `snippet`, `browse`, `api`, `config`, `completion`
-- **Subcommands**: `login`, `clone`, `create`, `list`, etc.
-- **Options**: `--json`, `--no-color`, `--workspace`, `--repo`, `--help`
-- **Flag values** for enum options (see below)
-
-`-w` is reserved as the global shorthand for `--workspace`.
+Commands and flags carry their help text as a completion description. zsh and
+fish display it alongside the name; bash shows bare names. Enum **values** never
+carry a description, so they are bare in every shell.
 
 ### Flag-value completion
 
-When a flag accepts a fixed set of values, completing right after it suggests
-the valid values:
+Completing right after a flag that takes a fixed set of values suggests those
+values, and nothing else:
 
 ```bash
 $ bb pr merge 42 --strategy <Tab>
@@ -127,10 +133,7 @@ GET   POST     PUT  PATCH
 HEAD  OPTIONS  DELETE
 ```
 
-In zsh and fish, each completion is shown with its description; bash shows the
-bare names.
-
-### Example Session
+### Example session
 
 ```bash
 $ bb pr<Tab>
@@ -142,8 +145,17 @@ diff      edit      list      merge     ready     reviewers view
 
 $ bb pr create --<Tab>
 # the command's own flags, plus inherited global flags:
---title       --body                  --source       --destination
---draft       --close-source-branch   --reviewer     --default-reviewers
---json        --jq                    --workspace    --repo
---no-color    --no-unicode            --no-truncate  --locale  --help
+--title                 --body          --source       --destination
+--close-source-branch   --draft         --reviewer     --default-reviewers
+--no-default-reviewers
+--json                  --jq            --no-color     --no-unicode
+--no-truncate           --locale        --workspace    --repo         --help
 ```
+
+### Related
+
+- [Global Flags](/reference/global-flags/) — the flags the completer offers on
+  every command.
+- [Error Codes](/reference/error-codes/) — `9001` and `9002` in context.
+- [Scripting & Automation](/guides/scripting/) — `--json` envelopes and exit
+  codes for the non-interactive commands.

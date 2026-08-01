@@ -6,29 +6,35 @@ description: Required Bitbucket API token scopes for each bb command
 import { Aside } from '@astrojs/starlight/components';
 
 When you authenticate with an [API token](/getting-started/authentication/#api-token-for-cicd-and-headless-environments),
-you choose which scopes the token grants. This page maps every `bb` command to
-the minimum scope required to run it, so you can mint a token with exactly the
-permissions a workflow needs and nothing more.
+you pick the scopes it grants. This page maps every `bb` command to the minimum
+scope it needs, so you can mint a token for one workflow and nothing more.
+Generate tokens at [Bitbucket API tokens](https://bitbucket.org/account/settings/api-tokens/).
 
-<Aside type="tip">
-OAuth logins (`bb auth login` without `-u`/`-p`) request a fixed scope set up
-front and don't need this table. Use this reference when generating an API
-token at [Bitbucket API tokens](https://bitbucket.org/account/settings/api-tokens/).
+<Aside type="caution" title="OAuth grants a fixed, narrower set">
+`bb auth login` uses OAuth only when none of `--app-password`, `--with-token`,
+`-u` or `-p` are passed **and** `BB_API_TOKEN` is unset. The OAuth flow requests
+a hardcoded scope set — `account repository repository:admin pullrequest
+pullrequest:write` (legacy scope names, not the `<action>:<resource>:bitbucket`
+names used below) — and you cannot widen it, not even with a custom consumer.
+That covers repository, pull request, commit, build-status and workspace
+commands. It does **not** cover `bb pipeline`, `bb issue`, `bb snippet`,
+`bb project`, or `bb repo delete`. Use an API token for those.
 </Aside>
 
-## Scope Reference
+## Scope reference
 
 Bitbucket Cloud API token scopes follow the format `<action>:<resource>:bitbucket`.
 The CLI uses these scopes:
 
 | Scope | Grants |
 |-------|--------|
-| `read:user:bitbucket` | Read your own user profile (required by `bb auth status`, used to verify any login) |
-| `read:repository:bitbucket` | List and view repositories, commits, and commit build statuses; list default reviewers |
-| `write:repository:bitbucket` | Create repositories, manage default reviewers, set commit build statuses |
-| `admin:repository:bitbucket` | Delete repositories |
-| `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, and reviewers |
-| `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark PRs ready; add/edit/delete comments; add/remove reviewers |
+| `read:user:bitbucket` | Read user profiles — verifies any login, resolves your UUID for `bb pr list --mine`, and covers `bb workspace list` |
+| `read:repository:bitbucket` | List and view repositories, commits, and commit build statuses |
+| `write:repository:bitbucket` | Set commit build statuses |
+| `admin:repository:bitbucket` | Create repositories; add and remove default reviewers |
+| `delete:repository:bitbucket` | Delete repositories |
+| `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, reviewers, and default reviewers |
+| `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark pull requests ready; add/remove reviewers; add, edit, and delete comments |
 | `read:pipeline:bitbucket` | List and view pipelines and their steps, read step logs |
 | `write:pipeline:bitbucket` | Trigger and stop pipelines |
 | `read:issue:bitbucket` | List and view issues |
@@ -36,10 +42,10 @@ The CLI uses these scopes:
 | `read:workspace:bitbucket` | List and view workspaces |
 | `read:project:bitbucket` | List and view projects |
 | `admin:project:bitbucket` | Create projects |
-| `read:snippet:bitbucket` | List and view snippets |
-| `write:snippet:bitbucket` | Create, edit, and delete snippets |
+| `read:snippet:bitbucket` | List and view snippets, read snippet comments |
+| `write:snippet:bitbucket` | Create, edit, and delete snippets; watch and unwatch; add, edit, and delete snippet comments |
 
-## Command → Scope Map
+## Command → scope map
 
 ### Auth (`bb auth …`)
 
@@ -56,45 +62,46 @@ The CLI uses these scopes:
 |---------|-----------------|
 | `bb repo list` | `read:repository:bitbucket` |
 | `bb repo view` | `read:repository:bitbucket` |
-| `bb repo clone` | `read:repository:bitbucket` (plus your normal git auth) |
-| `bb repo create` | `write:repository:bitbucket` |
-| `bb repo delete` | `admin:repository:bitbucket` |
-| `bb repo default-reviewers list` | `read:repository:bitbucket` |
-| `bb repo default-reviewers add` | `write:repository:bitbucket` |
-| `bb repo default-reviewers remove` | `write:repository:bitbucket` |
+| `bb repo create` | `admin:repository:bitbucket` |
+| `bb repo delete` | `delete:repository:bitbucket` |
+| `bb repo default-reviewers list` | `read:pullrequest:bitbucket` |
+| `bb repo default-reviewers add` | `admin:repository:bitbucket` |
+| `bb repo default-reviewers remove` | `admin:repository:bitbucket` |
 
-### Pull Requests (`bb pr …`)
+`admin:` and `delete:` are separate scopes. A token with
+`admin:repository:bitbucket` can create repositories but cannot delete them.
 
-Read-only PR commands — `list`, `view`, `diff`, `checkout`, `activity`,
-`checks`, `comments list`, `reviewers list` — only need
-`read:pullrequest:bitbucket` (plus `read:repository:bitbucket` for repository
-context).
+Default reviewers live under the pull request resource in Bitbucket's API,
+which is why reading them needs a pull request scope while changing them needs
+the repository admin scope. `add` and `remove` also resolve the target account
+via `GET /users/{user}` first — that endpoint carries no scope of its own, but a
+token that cannot see the account will fail there.
 
-| Command | Required scopes |
-|---------|-----------------|
-| `bb pr list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr view` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr diff` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr checkout` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr activity` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr checks` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments view` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr reviewers list` | `read:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr create` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr edit` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr ready` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr approve` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr decline` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr merge` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments add` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments edit` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments reply` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments resolve` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments unresolve` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr comments delete` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr reviewers add` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
-| `bb pr reviewers remove` | `write:pullrequest:bitbucket`, `read:repository:bitbucket` |
+### Pull requests (`bb pr …`)
+
+`read:pullrequest:bitbucket` covers `list`, `view`, `diff`, `checkout`,
+`activity`, `checks`, `comments list`, `comments view` and `reviewers list`.
+
+`write:pullrequest:bitbucket` covers `create`, `edit`, `ready`, `approve`,
+`decline`, `merge`, `reviewers add|remove`, and the comment mutations
+(`comments add|edit|reply|resolve|unresolve|delete`). Bitbucket's API spec still
+maps the comment endpoints to the read scope, so a read-only token may be enough
+for `bb pr comments add` — grant the write scope anyway, that is the one to rely
+on.
+
+`bb pr list --mine` also needs `read:user:bitbucket` — it calls `GET /user` to
+resolve your UUID before filtering. So do the commands that take a `<user>`
+argument: `bb pr create --reviewer`, `bb pr reviewers add|remove`, and
+`bb repo default-reviewers add|remove` all resolve the handle you pass through
+`GET /users/{selected_user}` before making the change. Add `read:user:bitbucket`
+to any token that runs those.
+
+`bb pr checkout` runs `git fetch` and `git checkout` locally after reading the
+pull request, so it uses your normal git credentials too.
+
+No `bb pr` command needs `read:repository:bitbucket`. The CLI resolves the
+workspace and repository from your git remote (or `--workspace`/`--repo`), not
+from the API.
 
 ### Pipelines (`bb pipeline …`)
 
@@ -106,22 +113,12 @@ context).
 | `bb pipeline run` | `write:pipeline:bitbucket` |
 | `bb pipeline stop` | `write:pipeline:bitbucket` |
 
-### Commits (`bb commit …`)
-
-Commits are part of the repository resource, so commit commands reuse the
-repository scopes:
+### Commits and build statuses (`bb commit …`, `bb status …`)
 
 | Command | Required scopes |
 |---------|-----------------|
 | `bb commit list` | `read:repository:bitbucket` |
 | `bb commit view` | `read:repository:bitbucket` |
-
-### Build Statuses (`bb status …`)
-
-Commit build statuses also live under the repository resource:
-
-| Command | Required scopes |
-|---------|-----------------|
 | `bb status list` | `read:repository:bitbucket` |
 | `bb status set` | `write:repository:bitbucket` |
 
@@ -140,8 +137,14 @@ Commit build statuses also live under the repository resource:
 
 | Command | Required scopes |
 |---------|-----------------|
-| `bb workspace list` | `read:workspace:bitbucket` |
-| `bb workspace view` | `read:workspace:bitbucket` |
+| `bb workspace list` | `read:workspace:bitbucket`, `read:user:bitbucket` |
+| `bb workspace view` | _(none — the endpoint is unscoped)_ |
+
+`bb workspace list` calls `GET /workspaces`, which Bitbucket's API spec scopes
+to `account` — the legacy name for `read:user:bitbucket`. Grant it alongside
+`read:workspace:bitbucket`. `GET /workspaces/{workspace}` carries no scope at
+all, so `bb workspace view` works with whatever grant already makes the
+workspace visible to you.
 
 ### Projects (`bb project …`)
 
@@ -160,50 +163,70 @@ Commit build statuses also live under the repository resource:
 | `bb snippet create` | `write:snippet:bitbucket` |
 | `bb snippet edit` | `write:snippet:bitbucket` |
 | `bb snippet delete` | `write:snippet:bitbucket` |
+| `bb snippet watch` | `write:snippet:bitbucket` |
+| `bb snippet unwatch` | `write:snippet:bitbucket` |
+| `bb snippet comments list` | `read:snippet:bitbucket` |
+| `bb snippet comments add` | `write:snippet:bitbucket` |
+| `bb snippet comments edit` | `write:snippet:bitbucket` |
+| `bb snippet comments delete` | `write:snippet:bitbucket` |
+
+As with pull request comments, Bitbucket's API spec maps snippet comment writes
+to the read scope. Grant `write:snippet:bitbucket` anyway — that is the scope to
+rely on.
+
+### Raw API (`bb api`)
+
+`bb api` needs whatever scope the endpoint you call requires — look the endpoint
+up in Atlassian's Bitbucket Cloud API reference. A `403` from `bb api` means the
+token is missing that endpoint's scope, not that the path is wrong.
 
 ### Local-only commands
 
 These don't hit the API and don't need any scope:
 
+- `bb repo clone` (builds the clone URL from workspace and repository names, then shells out to git — uses your normal git credentials)
+- `bb browse` (builds the URL from local git context)
 - `bb config` (all subcommands)
 - `bb completion`
 - `bb` (root, including the version-check)
 
-## Common Profiles
-
-Pick the profile that matches your workflow and grant only those scopes when
-creating the token.
+## Common profiles
 
 ### Read-only automation (status checks, dashboards)
 
-```
+```text
 read:user:bitbucket
 read:repository:bitbucket
 read:pullrequest:bitbucket
 read:pipeline:bitbucket
 ```
 
-### Bot account that creates and merges PRs
+### Bot account that creates and merges pull requests
 
-```
+```text
 read:user:bitbucket
-read:repository:bitbucket
 read:pullrequest:bitbucket
 write:pullrequest:bitbucket
 ```
 
+Add `read:repository:bitbucket` only if the bot also runs `bb repo`,
+`bb commit` or `bb status` commands.
+
 ### Repo provisioning automation
 
-```
+```text
 read:user:bitbucket
 read:repository:bitbucket
-write:repository:bitbucket
 admin:repository:bitbucket
+delete:repository:bitbucket
 ```
+
+Drop `delete:repository:bitbucket` unless the automation actually tears
+repositories down.
 
 ### CI/CD automation (trigger pipelines, report build statuses)
 
-```
+```text
 read:user:bitbucket
 read:repository:bitbucket
 write:repository:bitbucket
@@ -213,27 +236,24 @@ write:pipeline:bitbucket
 
 ### Issue triage bot
 
-```
+```text
 read:user:bitbucket
 read:repository:bitbucket
 read:issue:bitbucket
 write:issue:bitbucket
 ```
 
-<Aside type="caution" title="Principle of least privilege">
-Don't grant `write:` or `admin:` scopes to a token unless the script that uses
-it actually needs them. A leaked read-only token is far less damaging than a
-leaked admin token.
-</Aside>
-
 ## Troubleshooting
 
 If a command exits with [`2003` API_FORBIDDEN](/reference/error-codes/#2003---api_forbidden),
-your token is missing the scope listed in the table above. Mint a new token
-with the required scope (you can't add scopes to an existing token) and
-re-authenticate:
+your token is missing the scope listed above. You can't add scopes to an
+existing token — mint a new one and re-authenticate:
 
 ```bash
 bb auth logout
-bb auth login -u your-username -p new-token
+echo "$NEW_TOKEN" | bb auth login -u your-username --with-token
 ```
+
+`--with-token` reads the token from stdin, keeping it out of your shell history
+and out of `ps` output. `-p new-token` works too, but writes the secret into
+both.
