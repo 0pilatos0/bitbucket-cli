@@ -10,6 +10,7 @@ import {
   GitError,
   ValidationError,
   ErrorCode,
+  ContextualizedAPIError,
   rethrowWithNotFoundContext,
 } from '../../src/types/errors.js';
 
@@ -299,29 +300,28 @@ describe('APIError.statusToErrorCode mapping', () => {
     expect(json.response).toEqual(payload);
   });
 
-  describe('contextualized flag', () => {
-    it('defaults to false', () => {
-      expect(new APIError('boom', 404).contextualized).toBe(false);
-    });
-
-    it('is set by rethrowWithNotFoundContext', () => {
-      expect(() =>
-        rethrowWithNotFoundContext(new APIError('boom', 404), 'PR not found')
-      ).toThrow('PR not found');
+  describe('ContextualizedAPIError', () => {
+    it('is only produced by rethrowWithNotFoundContext', () => {
+      expect(new APIError('boom', 404)).not.toBeInstanceOf(
+        ContextualizedAPIError
+      );
 
       try {
         rethrowWithNotFoundContext(new APIError('boom', 404), 'PR not found');
+        throw new Error('expected a rethrow');
       } catch (error) {
-        expect((error as APIError).contextualized).toBe(true);
+        expect(error).toBeInstanceOf(ContextualizedAPIError);
+        expect((error as APIError).message).toBe('PR not found');
       }
     });
 
-    it('is NOT serialized — it is internal rendering state', () => {
-      const json = new APIError('boom', 404, null, undefined, {
-        contextualized: true,
+    it('is indistinguishable from an APIError over the wire', () => {
+      // The marker is a type, not a field — so it cannot leak into `--json`.
+      const json = new ContextualizedAPIError('boom', 404, null, {
+        url: '/x',
       }).toJSON();
 
-      expect(json).not.toHaveProperty('contextualized');
+      expect(json.name).toBe('APIError');
       expect(Object.keys(json).sort()).toEqual([
         'code',
         'context',
@@ -329,6 +329,34 @@ describe('APIError.statusToErrorCode mapping', () => {
         'name',
         'statusCode',
       ]);
+    });
+
+    it('preserves status, response and context from the original', () => {
+      const payload = { error: { message: 'nope' } };
+      try {
+        rethrowWithNotFoundContext(
+          new APIError('boom', 404, payload, { url: '/x' }),
+          'PR not found'
+        );
+      } catch (error) {
+        const rethrown = error as APIError;
+        expect(rethrown.statusCode).toBe(404);
+        expect(rethrown.response).toEqual(payload);
+        expect(rethrown.context).toEqual({ url: '/x' });
+        expect(rethrown.code).toBe(ErrorCode.API_NOT_FOUND);
+      }
+    });
+
+    it('leaves non-404 and non-APIError inputs untouched', () => {
+      const notFourOhFour = new APIError('boom', 500);
+      expect(() =>
+        rethrowWithNotFoundContext(notFourOhFour, 'PR not found')
+      ).toThrow(notFourOhFour);
+
+      const plain = new Error('plain');
+      expect(() => rethrowWithNotFoundContext(plain, 'PR not found')).toThrow(
+        plain
+      );
     });
   });
 });

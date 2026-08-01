@@ -386,14 +386,38 @@ describe('BaseCommand', () => {
         );
       });
 
-      it('adds nothing for a 404 raised by bb api', async () => {
-        const logs = await runWith(
-          new APIError('Repository acme/nope not found', 404),
-          {},
-          { commandPath: 'api' }
+      it('adds nothing when the command opts out of the 404 hint', async () => {
+        // `bb api` overrides `suppressNotFoundHint`: the caller supplied the
+        // endpoint, so --workspace/--repo advice would be misleading.
+        class OptedOutCommand extends TestCommandThrowing {
+          protected override readonly suppressNotFoundHint = true;
+        }
+        const command = new OptedOutCommand(
+          output,
+          new APIError('Repository acme/nope not found', 404)
         );
 
-        expect(logs).toContain('error:Repository acme/nope not found');
+        await expect(
+          command.run({}, { globalOptions: {} })
+        ).rejects.toBeDefined();
+
+        expect(output.logs).toContain('error:Repository acme/nope not found');
+      });
+
+      it('still hints on a 403 for an opted-out command', async () => {
+        class OptedOutCommand extends TestCommandThrowing {
+          protected override readonly suppressNotFoundHint = true;
+        }
+        const command = new OptedOutCommand(
+          output,
+          new APIError('Access denied', 403)
+        );
+
+        await expect(
+          command.run({}, { globalOptions: {} })
+        ).rejects.toBeDefined();
+
+        expect(output.logs.join('\n')).toContain('missing a required scope');
       });
 
       it('adds exactly one hint key in json mode, leaving the envelope intact', async () => {

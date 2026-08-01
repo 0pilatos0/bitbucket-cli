@@ -14,7 +14,7 @@ import {
   IssueStateEnum,
 } from '../../generated/api.js';
 import { getUserDisplayName } from '../../services/response-parsers.js';
-import { APIError } from '../../types/errors.js';
+import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
 /**
  * CLI-facing state names. The API spells the on-hold state with a space
@@ -63,16 +63,7 @@ const TRACKER_DISABLED_MESSAGE =
  * that an individual resource is missing.
  */
 export function rethrowTrackerDisabled(error: unknown): never {
-  if (error instanceof APIError && error.statusCode === 404) {
-    throw new APIError(
-      TRACKER_DISABLED_MESSAGE,
-      404,
-      error.response,
-      error.context,
-      { contextualized: true }
-    );
-  }
-  throw error;
+  rethrowWithNotFoundContext(error, TRACKER_DISABLED_MESSAGE);
 }
 
 /**
@@ -86,18 +77,12 @@ export function rethrowIssueNotFound(
   workspace: string,
   repoSlug: string
 ): never {
-  if (error instanceof APIError && error.statusCode === 404) {
-    throw new APIError(
-      `Issue #${issueId} not found in ${workspace}/${repoSlug}. ` +
-        "If no issues exist at all, the repository's issue tracker may be " +
-        'disabled (Repository settings → Issue tracker).',
-      404,
-      error.response,
-      error.context,
-      { contextualized: true }
-    );
-  }
-  throw error;
+  rethrowWithNotFoundContext(
+    error,
+    `Issue #${issueId} not found in ${workspace}/${repoSlug}. ` +
+      "If no issues exist at all, the repository's issue tracker may be " +
+      'disabled (Repository settings → Issue tracker).'
+  );
 }
 
 /** Display name for an issue's assignee/reporter, `-` when unset. */

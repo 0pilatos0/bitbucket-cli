@@ -94,28 +94,18 @@ export class AuthError extends BBError {
 export class APIError extends BBError {
   public readonly statusCode: number;
   public readonly response?: unknown;
-  /**
-   * Whether `message` was already rewritten to name the missing resource by
-   * one of the `rethrow*` helpers below. Read by `remediationHintLines()` to
-   * suppress the generic 404 next-step advice when the message is already
-   * specific. Deliberately NOT serialized by `toJSON()` — it is internal
-   * rendering state, not part of the `--json` error contract.
-   */
-  public readonly contextualized: boolean;
 
   constructor(
     message: string,
     statusCode: number,
     response?: unknown,
-    context?: Record<string, unknown>,
-    opts: { contextualized?: boolean } = {}
+    context?: Record<string, unknown>
   ) {
     const code = APIError.statusToErrorCode(statusCode);
     super({ code, message, context });
     this.name = 'APIError';
     this.statusCode = statusCode;
     this.response = response;
-    this.contextualized = opts.contextualized ?? false;
   }
 
   public toJSON(): Record<string, unknown> {
@@ -147,17 +137,35 @@ export class APIError extends BBError {
 }
 
 /**
+ * A 404 whose message already names the missing resource.
+ *
+ * Exists purely so the error itself carries that fact: `remediationHintLines()`
+ * suppresses the generic "check the id / --workspace / --repo" advice for these,
+ * because repeating it under a message like "Pull request 999 not found in
+ * acme/demo." is noise. A marker subclass rather than a flag keeps it off the
+ * `--json` contract by construction — `name` stays `'APIError'` (set by the
+ * parent constructor) and `toJSON()` is inherited unchanged.
+ */
+export class ContextualizedAPIError extends APIError {}
+
+/**
  * If `error` is a 404 APIError, replace its message with a contextual one
  * that names the missing resource. Other errors are rethrown unchanged.
+ *
+ * This is the ONLY place a `ContextualizedAPIError` is constructed; the
+ * command-specific helpers all delegate here.
  */
 export function rethrowWithNotFoundContext(
   error: unknown,
   notFoundMessage: string
 ): never {
   if (error instanceof APIError && error.statusCode === 404) {
-    throw new APIError(notFoundMessage, 404, error.response, error.context, {
-      contextualized: true,
-    });
+    throw new ContextualizedAPIError(
+      notFoundMessage,
+      404,
+      error.response,
+      error.context
+    );
   }
   throw error;
 }

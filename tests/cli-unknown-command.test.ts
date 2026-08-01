@@ -16,9 +16,11 @@ import {
   beforeAll,
   afterAll,
   beforeEach,
+  afterEach,
 } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 import type { Command } from 'commander';
-import { cli, resolveCommandPath } from '../src/cli.js';
+import { cli } from '../src/cli.js';
 import { ErrorCode } from '../src/types/errors.js';
 
 const originalCI = process.env.CI;
@@ -41,6 +43,13 @@ afterAll(() => {
     process.env.CI = originalCI;
   }
   console.error = originalConsoleError;
+});
+
+// Cases here deliberately set process.exitCode = 1 in-process. Reset after each
+// one, or appending an error-path case at the end of this file would make the
+// whole `bun test` run exit non-zero.
+afterEach(() => {
+  process.exitCode = 0;
 });
 
 beforeEach(() => {
@@ -75,11 +84,13 @@ function captureTree(command: Command): void {
 }
 
 /** Run the real root parser over `argv` and collect what the user would see. */
-async function run(
-  argv: string[]
-): Promise<{ stderr: string; stdout: string; exitCode: number | undefined }> {
+async function run(argv: string[]): Promise<{
+  stderr: string;
+  stdout: string;
+  exitCode: typeof process.exitCode;
+}> {
   await cli.parseAsync(argv, { from: 'user' });
-  // Read before tests/setup.ts's global afterEach resets it to 0.
+  // Read before this file's own afterEach resets it.
   return {
     stderr: stderr.join('\n'),
     stdout: stdout.join(''),
@@ -130,24 +141,33 @@ describe('unknown top-level command', () => {
 describe('--json before the subcommand', () => {
   it('explains that --json swallowed the group name', async () => {
     // `--json [fields]` takes an optional value, so it consumes `pr` and
-    // leaves `lst` looking like a top-level command.
-    const result = await run(['--json', 'pr', 'lst']);
+    // leaves `list` looking like a top-level command.
+    const result = await run(['--json', 'pr', 'list']);
 
     const payload = JSON.parse(result.stderr) as Record<string, string>;
     expect(payload.message).toContain("--json consumed 'pr' as its field list");
     expect(payload.message).toContain(
-      'Put --json after the subcommand: bb pr lst --json'
+      'Put --json after the subcommand: bb pr list --json'
     );
     expect(result.exitCode).toBe(1);
   });
 
-  it('handles a group name with no trailing tokens', async () => {
-    const result = await run(['--json', 'config', 'list']);
+  it('handles a lone group name with nothing left over', async () => {
+    const result = await run(['--json', 'pr']);
 
     const payload = JSON.parse(result.stderr) as Record<string, string>;
     expect(payload.message).toContain(
-      'Put --json after the subcommand: bb config list --json'
+      'Put --json after the subcommand: bb pr --json'
     );
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('blames the misspelled token, not the correct one', async () => {
+    const result = await run(['--json', 'prr', 'list']);
+
+    const payload = JSON.parse(result.stderr) as Record<string, string>;
+    expect(payload.message).toContain("unknown command 'prr'");
+    expect(payload.message).toContain('(Did you mean pr?)');
     expect(result.exitCode).toBe(1);
   });
 
@@ -237,8 +257,10 @@ describe('allowExcessArguments placement', () => {
     // Must run out-of-process: Commander's own error path calls
     // `process.exit()` (we never install `exitOverride()`), which would kill
     // the test runner if driven through `cli.parseAsync` here.
+    // `fileURLToPath`, not `URL.pathname`: on Windows the latter yields
+    // `/C:/...`, which is not a valid cwd.
     const proc = Bun.spawn(['bun', 'run', 'src/index.ts', 'browse', 'x', 'y'], {
-      cwd: new URL('..', import.meta.url).pathname,
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
       env: { ...process.env, CI: 'true' },
       stdout: 'pipe',
       stderr: 'pipe',
@@ -250,32 +272,5 @@ describe('allowExcessArguments placement', () => {
 
     expect(errorOutput).toContain('too many arguments');
     expect(exitCode).toBe(1);
-  });
-});
-
-describe('resolveCommandPath', () => {
-  it('resolves an empty path to the root', () => {
-    const { command, unresolved } = resolveCommandPath(cli, []);
-
-    expect(command).toBe(cli);
-    expect(unresolved).toBeUndefined();
-  });
-
-  it('walks nested groups', () => {
-    const { command, unresolved } = resolveCommandPath(cli, ['pr', 'comments']);
-
-    expect(command.name()).toBe('comments');
-    expect(unresolved).toBeUndefined();
-  });
-
-  it('returns the deepest match plus the first bad token', () => {
-    const { command, unresolved } = resolveCommandPath(cli, [
-      'pr',
-      'nope',
-      'x',
-    ]);
-
-    expect(command.name()).toBe('pr');
-    expect(unresolved).toBe('nope');
   });
 });

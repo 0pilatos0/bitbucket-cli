@@ -35,7 +35,11 @@ import type { VersionCheckResult } from './types/version.js';
 import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
-import { didYouMeanSuffix } from './core/suggest.js';
+import { buildCommandPath } from './core/command-tree.js';
+import { resolveRootInvocation } from './root-dispatch.js';
+
+// Re-exported so `buildCommandPath` keeps its historical import path.
+export { buildCommandPath } from './core/command-tree.js';
 import { resolveLocale } from './services/locale.js';
 
 const require = createRequire(import.meta.url);
@@ -155,66 +159,6 @@ const container = bootstrap({ noColor, noUnicode, locale });
 // read by `createContext`. A module-level value is safe because the CLI runs
 // exactly one command per process invocation.
 let activeCommandPath = '';
-
-// Walk up Commander's command tree to build the space-joined path, excluding
-// the root program (`bb`, whose `.parent` is null). Yields `browse` for a
-// top-level command and `pr comments add` for a nested one.
-export function buildCommandPath(command: Command): string {
-  const parts: string[] = [];
-  let current: Command | null = command;
-  while (current && current.parent) {
-    parts.unshift(current.name());
-    current = current.parent;
-  }
-  return parts.join(' ');
-}
-
-/**
- * Walk `path` down the command tree from `root`, returning the deepest command
- * that resolved plus the first token that didn't. Used by the root action for
- * `bb help <command>` and to pick the right candidate set when suggesting a
- * correction for an unknown command name.
- */
-export function resolveCommandPath(
-  root: Command,
-  path: readonly string[]
-): { command: Command; unresolved?: string } {
-  let current = root;
-  for (const token of path) {
-    const next = current
-      .createHelp()
-      .visibleCommands(current)
-      .find((candidate) => candidate.name() === token);
-    if (!next) {
-      return { command: current, unresolved: token };
-    }
-    current = next;
-  }
-  return { command: current };
-}
-
-/**
- * Build the "unknown command" error for `token`, suggesting a close match from
- * `parent`'s visible subcommands — the same candidate set Commander's own
- * `unknownCommand()` uses — and otherwise pointing at the relevant `--help`.
- */
-function unknownCommandError(token: string, parent: Command): BBError {
-  const candidates = parent
-    .createHelp()
-    .visibleCommands(parent)
-    .map((candidate) => candidate.name());
-  const suggestion = didYouMeanSuffix(token, candidates);
-  const parentPath = buildCommandPath(parent);
-  const helpCommand = `bb ${parentPath ? `${parentPath} ` : ''}--help`;
-
-  return new BBError({
-    code: ErrorCode.VALIDATION_INVALID,
-    message:
-      `unknown command '${token}'` +
-      (suggestion || `\nRun \`${helpCommand}\` to see available commands.`),
-    context: { command: token },
-  });
-}
 
 // Helper to create command context. Validation errors from --json/--jq
 // parsing are deferred onto `context.validationError` so they can be raised
@@ -445,75 +389,26 @@ cli
       ServiceTokens.OutputService
     );
 
-    const jsonOpt = cli.opts().json;
-    const emitError = (error: BBError): void => {
-      if (jsonOpt !== undefined && jsonOpt !== false) {
-        output.jsonError(error.toJSON());
+    const jsonOption = cli.opts().json;
+    const invocation = resolveRootInvocation(cli, {
+      args: cli.args,
+      jsonOption,
+    });
+
+    if (invocation.kind === 'error') {
+      if (jsonOption !== undefined && jsonOption !== false) {
+        output.jsonError(invocation.error.toJSON());
       } else {
-        output.error(error.message);
+        output.error(invocation.error.message);
       }
-      // Unconditional, matching runCommand() — unlike BaseCommand.handleError()
-      // there is no test-mode guard to worry about here, and tests/setup.ts
-      // resets process.exitCode between cases.
+      // Unconditional, matching runCommand(). BaseCommand.handleError() guards
+      // on NODE_ENV; this path is driven directly by tests that assert on it.
       process.exitCode = 1;
-    };
-
-    // `--json [fields]` takes an OPTIONAL value, so it greedily consumes the
-    // next token: `bb --json pr list` parses as `--json=pr` plus a stray
-    // `list`. Catch the unambiguous case where the swallowed value is a real
-    // group name and say what actually went wrong.
-    if (typeof jsonOpt === 'string') {
-      const swallowed = cli
-        .createHelp()
-        .visibleCommands(cli)
-        .some((candidate) => candidate.name() === jsonOpt);
-      if (swallowed) {
-        const rest = cli.args.join(' ');
-        emitError(
-          new BBError({
-            code: ErrorCode.VALIDATION_INVALID,
-            message:
-              `--json consumed '${jsonOpt}' as its field list` +
-              (rest
-                ? `, so '${rest}' was parsed as a top-level command.`
-                : '.') +
-              `\nPut --json after the subcommand: bb ${jsonOpt}${rest ? ` ${rest}` : ''} --json`,
-            context: { command: jsonOpt, args: cli.args },
-          })
-        );
-        return;
-      }
-    }
-
-    // `bb help <command>`. Commander suppresses its own help command whenever
-    // the root has an action handler, so `bb pr help` works today while
-    // `bb help pr` fails — resolve it by hand for consistency.
-    if (cli.args[0] === 'help') {
-      const { command, unresolved } = resolveCommandPath(
-        cli,
-        cli.args.slice(1)
-      );
-      if (unresolved === undefined) {
-        command.outputHelp();
-        return;
-      }
-      emitError(unknownCommandError(unresolved, command));
       return;
     }
 
-    // An unknown top-level command. Commander reaches its own suggestion path
-    // only from `unknownCommand()`, which the root never hits: it has an action
-    // handler, so `_parseCommand()` takes the action branch and
-    // `_excessArguments()` fires first. `cli.allowExcessArguments()` (called
-    // once the tree is built) hands the leftovers to us instead.
-    const unknown = cli.args[0];
-    if (unknown !== undefined) {
-      emitError(unknownCommandError(unknown, cli));
-      return;
-    }
-
-    // Bare `bb` — show help.
-    cli.outputHelp();
+    invocation.command.outputHelp();
+    if (!invocation.welcome) return;
 
     // Nudge unauthenticated users toward `bb auth login`. First-run users hit
     // this path immediately after install, so it's the right moment to point

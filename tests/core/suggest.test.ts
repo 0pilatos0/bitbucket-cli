@@ -10,11 +10,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import {
-  suggestSimilar,
-  formatDidYouMean,
-  didYouMeanSuffix,
-} from '../../src/core/suggest.js';
+import { suggestSimilar, didYouMeanSuffix } from '../../src/core/suggest.js';
 import { PR_STATES } from '../../src/types/pr.js';
 import { ISSUE_STATES } from '../../src/commands/issue/shared.js';
 
@@ -183,30 +179,29 @@ describe('suggestSimilar', () => {
   });
 });
 
-describe('formatDidYouMean', () => {
-  it('renders a single match', () => {
-    // Wording parity with Commander's suggestSimilar (minus its leading
-    // newline, which callers add). Keep these two assertions byte-exact:
-    // they are what stops root/nested/enum suggestions from drifting apart.
-    expect(formatDidYouMean(['list'])).toBe('(Did you mean list?)');
-  });
-
-  it('renders multiple matches', () => {
-    expect(formatDidYouMean(['a', 'b'])).toBe('(Did you mean one of a, b?)');
-  });
-
-  it('renders nothing for no matches', () => {
-    expect(formatDidYouMean([])).toBe('');
-  });
-});
-
 describe('didYouMeanSuffix', () => {
-  it('prefixes a newline when there is a suggestion', () => {
+  it('renders a single match on its own line', () => {
+    // Wording parity with Commander's own suggestSimilar. Keep these
+    // assertions byte-exact: they are what stops root/nested/enum suggestions
+    // from drifting apart in phrasing.
+    expect(didYouMeanSuffix('lst', ['list', 'create'])).toBe(
+      '\n(Did you mean list?)'
+    );
+  });
+
+  it('renders a tie as "one of"', () => {
+    expect(didYouMeanSuffix('bar', ['bare', 'barn'])).toBe(
+      '\n(Did you mean one of bare, barn?)'
+    );
+  });
+
+  it('folds case, returning the canonical spelling', () => {
     expect(didYouMeanSuffix('opne', PR_STATES)).toBe('\n(Did you mean OPEN?)');
   });
 
   it('returns an empty string when there is nothing to suggest', () => {
-    // Callers append unconditionally, so this must never be '\n'.
+    // Callers append unconditionally, so this must never be a bare '\n'.
     expect(didYouMeanSuffix('xyz', PR_STATES)).toBe('');
+    expect(didYouMeanSuffix('anything', [])).toBe('');
   });
 });
