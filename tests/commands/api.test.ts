@@ -75,6 +75,34 @@ describe('ApiCommand', () => {
     expect(axios.calls[0]!.url).toBe('/user');
   });
 
+  it('suggests a near-miss positional verb', async () => {
+    // The positional verb is validated here, separately from `-X/--method` in
+    // resolveMethod(). Both paths must suggest, or `bb api GTE /user` and
+    // `bb api -X GTE /user` answer the same mistake differently.
+    const { command } = makeCommand(() => ({ data: {} }));
+
+    await expect(
+      command.execute({ methodOrEndpoint: 'GTE', endpoint: '/user' }, ctx)
+    ).rejects.toThrow('(Did you mean GET?)');
+  });
+
+  it('adds no suggestion for a positional that is nowhere near a verb', async () => {
+    const { command } = makeCommand(() => ({ data: {} }));
+
+    let message = '';
+    try {
+      await command.execute(
+        { methodOrEndpoint: 'frobnicate', endpoint: '/user' },
+        ctx
+      );
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    expect(message).toContain('is not a valid HTTP method');
+    expect(message).not.toContain('(Did you mean');
+  });
+
   it('infers POST and sends a JSON body when fields are present', async () => {
     const { command, axios } = makeCommand(() => ({ data: { id: 1 } }));
 

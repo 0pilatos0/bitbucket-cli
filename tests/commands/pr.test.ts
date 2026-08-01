@@ -1491,6 +1491,34 @@ describe('ActivityPRCommand', () => {
     expect(message).toContain('(Did you mean merge?)');
   });
 
+  it('should report a repeated bad token only once', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+    const command = new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      output
+    );
+
+    let error: unknown;
+    try {
+      await command.execute(
+        { id: '1', type: 'coment,coment' },
+        { globalOptions: {} }
+      );
+    } catch (caught) {
+      error = caught;
+    }
+
+    const message = (error as Error).message;
+    expect(message.match(/\(Did you mean comment\?\)/g)).toHaveLength(1);
+    expect((error as BBError).context).toEqual({ invalid: ['coment'] });
+  });
+
   it('should use changes_requested actor when both changes_requested and update are set', async () => {
     const pullrequestsApi = createMockPullrequestsApi({
       activityPages: [
