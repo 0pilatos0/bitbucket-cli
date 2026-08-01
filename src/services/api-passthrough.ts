@@ -6,6 +6,7 @@
  * `src/commands/api.command.ts` wires these to the authenticated axios stack.
  */
 
+import { didYouMeanSuffix } from '../core/suggest.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 
 export const API_HOST = 'api.bitbucket.org';
@@ -58,7 +59,9 @@ export function resolveMethod(opts: {
     if (!method) {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: `--method must be one of: ${HTTP_METHODS.join(', ')}`,
+        message:
+          `--method must be one of: ${HTTP_METHODS.join(', ')}` +
+          didYouMeanSuffix(opts.explicit, HTTP_METHODS),
         context: { method: opts.explicit },
       });
     }

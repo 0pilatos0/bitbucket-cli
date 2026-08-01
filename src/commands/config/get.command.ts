@@ -3,6 +3,7 @@
  */
 
 import { BaseCommand } from '../../core/base-command.js';
+import { didYouMeanSuffix } from '../../core/suggest.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IConfigService,
@@ -49,7 +50,9 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
     if (!isReadableConfigKey(key)) {
       throw new BBError({
         code: ErrorCode.CONFIG_INVALID_KEY,
-        message: `Unknown config key '${key}'. Valid keys: ${READABLE_CONFIG_KEYS.join(', ')}`,
+        message:
+          `Unknown config key '${key}'. Valid keys: ${READABLE_CONFIG_KEYS.join(', ')}` +
+          didYouMeanSuffix(key, READABLE_CONFIG_KEYS),
         context: { key },
       });
     }

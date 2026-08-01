@@ -473,12 +473,20 @@ When a command fails, the CLI exits non-zero.
 - In normal mode, errors are plain text on stderr.
 - In `--json` mode, errors are compact JSON objects on stderr.
 
+:::caution[Argument-parsing errors are still plain text]
+Failures raised while parsing the command line — an unknown subcommand
+(`bb pr lst`) or an unknown option (`bb pr list --stat`) — are reported by the
+argument parser as plain text even under `--json`. An unknown **top-level**
+command (`bb prr --json`) does emit a JSON envelope. Scripts should treat a
+non-zero exit with unparseable stderr as a usage error.
+:::
+
 Example:
 
 ```bash
 bb config get invalidKey --json 2>error.json
 cat error.json
-# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval","context":{"key":"invalidKey"}}
+# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}
 ```
 
 Error JSON fields:
@@ -489,12 +497,14 @@ Error JSON fields:
 | `code` | number | Numeric [error code](/reference/error-codes/) |
 | `message` | string | Human-readable message |
 | `context` | object | Optional structured metadata. Shape depends on `code` — see the table below |
+| `hint` | string | Optional. A single actionable next step, present only for `401`, `403`, and `404` failures where the CLI has advice to give. In human-readable mode the same text prints as a dimmed continuation line beneath the message. |
+| `statusCode` | number | `APIError` only. The upstream HTTP status. |
+| `response` | object | `APIError` only, and only when the upstream response had a body. The raw Bitbucket error payload. |
 
-The Bitbucket API response body is **not** nested inside the error JSON.
-`APIError` keeps the upstream HTTP status and response body as instance
-properties for the in-process error path, but only `name`, `code`, `message`,
-and `context` are serialized to stderr. Likewise, `cause` (the underlying
-`Error`) and stack traces are never exposed in `--json` mode.
+`cause` (the underlying `Error`) and stack traces are never exposed in `--json`
+mode. Do not treat the field list above as closed: new optional keys such as
+`hint` may be added, so parse defensively rather than asserting an exact key
+set.
 
 #### `context` fields by error code
 
@@ -506,7 +516,7 @@ present, the shape is:
 | `1001` AUTH_REQUIRED | _(none)_ |
 | `1002` AUTH_INVALID | `status` (HTTP status, OAuth verification failures only) |
 | `1003` AUTH_EXPIRED | `status` (HTTP status from the token endpoint) |
-| `2001`–`2005` API_* | _(none — the upstream HTTP status code is in `APIError.statusCode` in-process but is not serialized)_ |
+| `2001`–`2005` API_* | `status`, `method`, `url` (the request path, including its query string) — plus the top-level `statusCode` and `response` fields described above |
 | `3001` GIT_NOT_REPOSITORY | _(none)_ |
 | `3002` GIT_COMMAND_FAILED | `command`, `exitCode` |
 | `3003` GIT_REMOTE_NOT_FOUND | `remote` |

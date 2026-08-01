@@ -113,6 +113,16 @@ describe('GetConfigCommand', () => {
       'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}'
     );
   });
+
+  it('should suggest a near-miss config key', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+    const command = new GetConfigCommand(configService, output);
+
+    await expect(
+      command.execute({ key: 'defaultWorkspce' }, { globalOptions: {} })
+    ).rejects.toThrow('(Did you mean defaultWorkspace?)');
+  });
 });
 
 describe('SetConfigCommand', () => {

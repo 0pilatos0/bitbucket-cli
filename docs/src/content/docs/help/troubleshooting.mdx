@@ -15,7 +15,7 @@ This guide covers the most common issues users encounter and how to resolve them
 
 **Symptoms:**
 ```
-Error: Authentication required. Please run 'bb auth login' first.
+Error: Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.
 ```
 
 **Causes:**
@@ -155,7 +155,7 @@ Error: Invalid credentials
 
 **Symptoms:**
 ```
-Error: Could not determine repository. Use -w and -r flags or run from within a repository.
+Error: Could not determine repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
 **Causes:**
@@ -422,6 +422,66 @@ bb auth status
 # Config (masks token)
 bb config list
 ```
+
+---
+
+## Typos and "Did you mean?"
+
+`bb` suggests a correction when a command name or an option value is close to a
+valid one:
+
+```bash
+bb prr
+# ✗ unknown command 'prr'
+# (Did you mean pr?)
+
+bb pr lst
+# error: unknown command 'lst'
+# (Did you mean list?)
+
+bb pr list --state opne
+# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
+# (Did you mean OPEN?)
+```
+
+Option values are matched case-sensitively, so `--state open` (lowercase against
+an uppercase set) tells you to fix the case rather than suggesting the same word
+back:
+
+```bash
+bb pr list --state open
+# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
+# (Values are case-sensitive — use OPEN.)
+```
+
+Use `bb help <command>` (or `bb <command> --help`) to see a command's valid
+values.
+
+### `--json` must come after the subcommand
+
+`--json` takes an optional field list, so it swallows the next word if you put
+it first:
+
+```bash
+bb --json pr list
+# ✗ --json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.
+# Put --json after the subcommand: bb pr list --json
+```
+
+## Failures that tell you the next step
+
+`401`, `403`, and `404` failures append an actionable line beneath the error:
+
+```bash
+bb repo list -w does-not-exist
+# ✗ No workspace with identifier 'does-not-exist'.
+# Verify the id or slug you passed, and that --workspace/--repo point at the right repository your token can see.
+```
+
+A `401` points you at `bb auth login`; a `403` explains that scopes can't be
+added to an existing token and links [Token Scopes](/reference/token-scopes/).
+In `--json` mode the same text arrives as a `hint` field. See
+[Error codes](/reference/error-codes/) for the full list.
 
 ---
 

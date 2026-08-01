@@ -22,6 +22,7 @@ import {
   ISSUE_STATES,
 } from './commands/issue/shared.js';
 import { WORKSPACE_ROLES } from './commands/workspace/list.command.js';
+import { COLOR_WHENS } from './commands/pr/diff.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
@@ -34,6 +35,7 @@ import type { VersionCheckResult } from './types/version.js';
 import type { IConfigService } from './core/interfaces/services.js';
 import { PR_STATES } from './types/pr.js';
 import { BBError, ErrorCode } from './types/errors.js';
+import { didYouMeanSuffix } from './core/suggest.js';
 import { resolveLocale } from './services/locale.js';
 
 const require = createRequire(import.meta.url);
@@ -49,7 +51,6 @@ const MERGE_STRATEGIES = Object.values(
   PullrequestMergeParametersMergeStrategyEnum
 );
 const SNIPPET_ROLES = Object.values(SnippetsWorkspaceGetRoleEnum);
-const COLOR_WHENS = ['auto', 'always', 'never'] as const;
 
 /**
  * Advertise an option's allowed values for shell completion (and `--help`)
@@ -166,6 +167,53 @@ export function buildCommandPath(command: Command): string {
     current = current.parent;
   }
   return parts.join(' ');
+}
+
+/**
+ * Walk `path` down the command tree from `root`, returning the deepest command
+ * that resolved plus the first token that didn't. Used by the root action for
+ * `bb help <command>` and to pick the right candidate set when suggesting a
+ * correction for an unknown command name.
+ */
+export function resolveCommandPath(
+  root: Command,
+  path: readonly string[]
+): { command: Command; unresolved?: string } {
+  let current = root;
+  for (const token of path) {
+    const next = current
+      .createHelp()
+      .visibleCommands(current)
+      .find((candidate) => candidate.name() === token);
+    if (!next) {
+      return { command: current, unresolved: token };
+    }
+    current = next;
+  }
+  return { command: current };
+}
+
+/**
+ * Build the "unknown command" error for `token`, suggesting a close match from
+ * `parent`'s visible subcommands — the same candidate set Commander's own
+ * `unknownCommand()` uses — and otherwise pointing at the relevant `--help`.
+ */
+function unknownCommandError(token: string, parent: Command): BBError {
+  const candidates = parent
+    .createHelp()
+    .visibleCommands(parent)
+    .map((candidate) => candidate.name());
+  const suggestion = didYouMeanSuffix(token, candidates);
+  const parentPath = buildCommandPath(parent);
+  const helpCommand = `bb ${parentPath ? `${parentPath} ` : ''}--help`;
+
+  return new BBError({
+    code: ErrorCode.VALIDATION_INVALID,
+    message:
+      `unknown command '${token}'` +
+      (suggestion || `\nRun \`${helpCommand}\` to see available commands.`),
+    context: { command: token },
+  });
 }
 
 // Helper to create command context. Validation errors from --json/--jq
@@ -357,6 +405,10 @@ cli
   .addHelpText(
     'after',
     buildHelpText({
+      // `bb help <command>` can't appear under `Commands:` — Commander omits
+      // its help command whenever the root has an action handler — so advertise
+      // it here instead.
+      examples: ['bb help pr', 'bb pr list --json'],
       envVars: {
         BB_USERNAME: 'Bitbucket username (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
@@ -387,14 +439,81 @@ cli
     })
   )
   .action(async () => {
-    // Show help when no subcommand is provided
-    cli.outputHelp();
-
     // The update-available check runs in the root `postAction` hook so it fires
     // after every command, not just the bare `bb` invocation handled here.
     const output = container.resolve<IOutputService>(
       ServiceTokens.OutputService
     );
+
+    const jsonOpt = cli.opts().json;
+    const emitError = (error: BBError): void => {
+      if (jsonOpt !== undefined && jsonOpt !== false) {
+        output.jsonError(error.toJSON());
+      } else {
+        output.error(error.message);
+      }
+      // Unconditional, matching runCommand() — unlike BaseCommand.handleError()
+      // there is no test-mode guard to worry about here, and tests/setup.ts
+      // resets process.exitCode between cases.
+      process.exitCode = 1;
+    };
+
+    // `--json [fields]` takes an OPTIONAL value, so it greedily consumes the
+    // next token: `bb --json pr list` parses as `--json=pr` plus a stray
+    // `list`. Catch the unambiguous case where the swallowed value is a real
+    // group name and say what actually went wrong.
+    if (typeof jsonOpt === 'string') {
+      const swallowed = cli
+        .createHelp()
+        .visibleCommands(cli)
+        .some((candidate) => candidate.name() === jsonOpt);
+      if (swallowed) {
+        const rest = cli.args.join(' ');
+        emitError(
+          new BBError({
+            code: ErrorCode.VALIDATION_INVALID,
+            message:
+              `--json consumed '${jsonOpt}' as its field list` +
+              (rest
+                ? `, so '${rest}' was parsed as a top-level command.`
+                : '.') +
+              `\nPut --json after the subcommand: bb ${jsonOpt}${rest ? ` ${rest}` : ''} --json`,
+            context: { command: jsonOpt, args: cli.args },
+          })
+        );
+        return;
+      }
+    }
+
+    // `bb help <command>`. Commander suppresses its own help command whenever
+    // the root has an action handler, so `bb pr help` works today while
+    // `bb help pr` fails — resolve it by hand for consistency.
+    if (cli.args[0] === 'help') {
+      const { command, unresolved } = resolveCommandPath(
+        cli,
+        cli.args.slice(1)
+      );
+      if (unresolved === undefined) {
+        command.outputHelp();
+        return;
+      }
+      emitError(unknownCommandError(unresolved, command));
+      return;
+    }
+
+    // An unknown top-level command. Commander reaches its own suggestion path
+    // only from `unknownCommand()`, which the root never hits: it has an action
+    // handler, so `_parseCommand()` takes the action branch and
+    // `_excessArguments()` fires first. `cli.allowExcessArguments()` (called
+    // once the tree is built) hands the leftovers to us instead.
+    const unknown = cli.args[0];
+    if (unknown !== undefined) {
+      emitError(unknownCommandError(unknown, cli));
+      return;
+    }
+
+    // Bare `bb` — show help.
+    cli.outputHelp();
 
     // Nudge unauthenticated users toward `bb auth login`. First-run users hit
     // this path immediately after install, so it's the right moment to point
@@ -2642,6 +2761,17 @@ completionCmd
   });
 
 cli.addCommand(completionCmd);
+
+// Let unknown top-level tokens reach the root action (which turns them into a
+// "did you mean" error) instead of Commander's bare "too many arguments".
+//
+// PLACEMENT IS LOAD-BEARING: `copyInheritedSettings()` copies
+// `_allowExcessArguments` to each subcommand created via `.command()`, and it
+// runs at creation time. Calling this before the tree is built would silently
+// disable arity checking on `browse` and `api` (so `bb browse x y` would stop
+// erroring) while still missing every group attached with `addCommand()`.
+// tests/cli-unknown-command.test.ts pins that only the root is affected.
+cli.allowExcessArguments();
 
 // Handle tabtab shell completion. This runs at module load (the entrypoint
 // imports `cli` before calling parseAsync), and must come AFTER the command

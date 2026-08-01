@@ -6,7 +6,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { createMockOutputService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
-import { BBError, ErrorCode } from '../../src/types/errors.js';
+import type { IOutputService } from '../../src/core/interfaces/services.js';
+import {
+  APIError,
+  BBError,
+  ErrorCode,
+  rethrowWithNotFoundContext,
+} from '../../src/types/errors.js';
 
 class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
   public readonly name = 'test';
@@ -53,6 +59,26 @@ class TestCommandWithBBError extends BaseCommand<{ option?: string }, void> {
       message: 'Unknown config key',
       context: { key: 'invalidKey' },
     });
+  }
+}
+
+/** Throws whichever error it is constructed with, to exercise handleError. */
+class TestCommandThrowing extends BaseCommand<{ option?: string }, void> {
+  public readonly name = 'test-throwing';
+  public readonly description = 'Test command throwing a supplied error';
+
+  constructor(
+    output: IOutputService,
+    private readonly toThrow: unknown
+  ) {
+    super(output);
+  }
+
+  async execute(
+    _options: { option?: string },
+    _context: CommandContext
+  ): Promise<void> {
+    throw this.toThrow;
   }
 }
 
@@ -282,6 +308,147 @@ describe('BaseCommand', () => {
       expect(output.logs).toContain(
         'jsonError:{"name":"Error","code":9999,"message":"Test error"}'
       );
+    });
+
+    describe('remediation hints', () => {
+      const runWith = async (
+        error: unknown,
+        globalOptions: CommandContext['globalOptions'] = {},
+        context: Partial<CommandContext> = {}
+      ) => {
+        const command = new TestCommandThrowing(output, error);
+        await expect(
+          command.run({}, { globalOptions, ...context })
+        ).rejects.toBeDefined();
+        return output.logs;
+      };
+
+      it('appends a bb auth login next step for a 401', async () => {
+        const logs = await runWith(new APIError('Unauthorized', 401));
+
+        expect(logs.join('\n')).toContain('bb auth login');
+      });
+
+      it('appends the scope explanation and docs link for a 403', async () => {
+        const logs = await runWith(new APIError('Access denied', 403));
+
+        const rendered = logs.join('\n');
+        expect(rendered).toContain('missing a required scope');
+        expect(rendered).toContain('/reference/token-scopes/');
+      });
+
+      it('appends resource advice for a raw 404', async () => {
+        const logs = await runWith(new APIError('Not found', 404));
+
+        expect(logs.join('\n')).toContain('--workspace/--repo');
+      });
+
+      it('keeps the original message as the first line', async () => {
+        const logs = await runWith(new APIError('Access denied', 403));
+
+        const entry = logs.find((log) => log.startsWith('error:'));
+        expect(entry).toBeDefined();
+        expect(entry?.split('\n')[0]).toBe('error:Access denied');
+      });
+
+      it('leaves an unhinted status untouched', async () => {
+        const logs = await runWith(new APIError('Server exploded', 500));
+
+        expect(logs).toContain('error:Server exploded');
+      });
+
+      it('adds nothing for a plain BBError carrying API_NOT_FOUND', async () => {
+        const logs = await runWith(
+          new BBError({
+            code: ErrorCode.API_NOT_FOUND,
+            message: 'Pull request source branch not found',
+          })
+        );
+
+        expect(logs).toContain('error:Pull request source branch not found');
+      });
+
+      it('adds nothing once a rethrow helper named the resource', async () => {
+        let contextualized: unknown;
+        try {
+          rethrowWithNotFoundContext(
+            new APIError('Request failed with status code 404', 404),
+            'Pull request 999 not found in acme/demo.'
+          );
+        } catch (error) {
+          contextualized = error;
+        }
+
+        const logs = await runWith(contextualized);
+
+        expect(logs).toContain(
+          'error:Pull request 999 not found in acme/demo.'
+        );
+      });
+
+      it('adds nothing for a 404 raised by bb api', async () => {
+        const logs = await runWith(
+          new APIError('Repository acme/nope not found', 404),
+          {},
+          { commandPath: 'api' }
+        );
+
+        expect(logs).toContain('error:Repository acme/nope not found');
+      });
+
+      it('adds exactly one hint key in json mode, leaving the envelope intact', async () => {
+        // Shaped like the interceptor builds it (status/method/url context),
+        // so the asserted key set is the one users actually receive.
+        const logs = await runWith(
+          new APIError('Not found', 404, undefined, {
+            status: 404,
+            method: 'GET',
+            url: '/repositories/acme/nope',
+          }),
+          { json: true }
+        );
+
+        const entry = logs.find((log) => log.startsWith('jsonError:'));
+        expect(entry).toBeDefined();
+        const payload = JSON.parse(entry!.slice('jsonError:'.length)) as Record<
+          string,
+          unknown
+        >;
+
+        expect(Object.keys(payload).sort()).toEqual([
+          'code',
+          'context',
+          'hint',
+          'message',
+          'name',
+          'statusCode',
+        ]);
+        expect(payload.message).toBe('Not found');
+        expect(payload.hint).toContain('--workspace/--repo');
+      });
+
+      it('omits the hint key entirely when there is no advice', async () => {
+        const logs = await runWith(new APIError('Server exploded', 500), {
+          json: true,
+        });
+
+        const entry = logs.find((log) => log.startsWith('jsonError:'));
+        const payload = JSON.parse(entry!.slice('jsonError:'.length)) as Record<
+          string,
+          unknown
+        >;
+
+        expect(payload).not.toHaveProperty('hint');
+      });
+
+      it('does not serialize the internal contextualized flag', async () => {
+        const logs = await runWith(new APIError('Not found', 404), {
+          json: true,
+        });
+
+        const entry = logs.find((log) => log.startsWith('jsonError:'));
+        expect(entry).not.toContain('contextualized');
+      });
     });
 
     it('should preserve BBError code and context in json mode', async () => {
@@ -711,6 +878,71 @@ describe('BaseCommand', () => {
           'closed',
         ] as const)
       ).toThrow('--state must be one of: open, closed');
+    });
+
+    it('should suggest a near-miss value, folding case', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(() =>
+        command.callParseEnumOption('opne', 'state', [
+          'OPEN',
+          'MERGED',
+          'DECLINED',
+        ] as const)
+      ).toThrow('(Did you mean OPEN?)');
+
+      expect(() =>
+        command.callParseEnumOption('opne', 'state', [
+          'open',
+          'closed',
+        ] as const)
+      ).toThrow('(Did you mean open?)');
+    });
+
+    it('should call out a case-only mismatch instead of echoing the input', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      let message = '';
+      try {
+        command.callParseEnumOption('open', 'state', [
+          'OPEN',
+          'MERGED',
+        ] as const);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toContain('(Values are case-sensitive — use OPEN.)');
+      expect(message).not.toContain('(Did you mean');
+    });
+
+    it('should add no second line when nothing is close enough', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      let message = '';
+      try {
+        command.callParseEnumOption('xyz', 'state', [
+          'open',
+          'closed',
+        ] as const);
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toBe('--state must be one of: open, closed');
+    });
+
+    it('should keep the error code and context shape unchanged', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      try {
+        command.callParseEnumOption('opne', 'state', ['OPEN'] as const);
+        throw new Error('expected parseEnumOption to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+        expect((error as BBError).context).toEqual({ state: 'opne' });
+      }
     });
   });
 });

@@ -49,6 +49,27 @@ describe('method helpers', () => {
       BBError
     );
   });
+
+  it('suggests a near-miss verb, folding case', () => {
+    expect(() => resolveMethod({ explicit: 'GTE', hasParams: false })).toThrow(
+      '(Did you mean GET?)'
+    );
+    expect(() =>
+      resolveMethod({ explicit: 'ptach', hasParams: false })
+    ).toThrow('(Did you mean PATCH?)');
+  });
+
+  it('adds no suggestion line when nothing is close enough', () => {
+    let message = '';
+    try {
+      resolveMethod({ explicit: 'nope', hasParams: false });
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toBe(
+      '--method must be one of: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS'
+    );
+  });
 });
 
 describe('field parsing', () => {

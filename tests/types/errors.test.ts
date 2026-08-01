@@ -10,6 +10,7 @@ import {
   GitError,
   ValidationError,
   ErrorCode,
+  rethrowWithNotFoundContext,
 } from '../../src/types/errors.js';
 
 describe('BBError', () => {
@@ -296,6 +297,39 @@ describe('APIError.statusToErrorCode mapping', () => {
     const json = new APIError('Not found', 404, payload).toJSON();
     expect(json.statusCode).toBe(404);
     expect(json.response).toEqual(payload);
+  });
+
+  describe('contextualized flag', () => {
+    it('defaults to false', () => {
+      expect(new APIError('boom', 404).contextualized).toBe(false);
+    });
+
+    it('is set by rethrowWithNotFoundContext', () => {
+      expect(() =>
+        rethrowWithNotFoundContext(new APIError('boom', 404), 'PR not found')
+      ).toThrow('PR not found');
+
+      try {
+        rethrowWithNotFoundContext(new APIError('boom', 404), 'PR not found');
+      } catch (error) {
+        expect((error as APIError).contextualized).toBe(true);
+      }
+    });
+
+    it('is NOT serialized — it is internal rendering state', () => {
+      const json = new APIError('boom', 404, null, undefined, {
+        contextualized: true,
+      }).toJSON();
+
+      expect(json).not.toHaveProperty('contextualized');
+      expect(Object.keys(json).sort()).toEqual([
+        'code',
+        'context',
+        'message',
+        'name',
+        'statusCode',
+      ]);
+    });
   });
 });
 

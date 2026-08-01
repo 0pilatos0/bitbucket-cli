@@ -11,6 +11,8 @@ import {
   type PaginatedCollection,
 } from '../services/pagination.js';
 import { BBError, ErrorCode } from '../types/errors.js';
+import { didYouMeanSuffix } from './suggest.js';
+import { remediationHintLines } from './error-hints.js';
 
 /**
  * Declarative spec for {@link BaseCommand.runList}. Captures everything that
@@ -110,10 +112,23 @@ export abstract class BaseCommand<
    * Handle command error - output error and set exit code
    */
   protected handleError(error: unknown, context: CommandContext): void {
+    // Computed at render time rather than baked into the message at throw
+    // time, so `APIError.message` and the `BBError.toJSON()` key set stay
+    // exactly as they are and the hint can be shaped per output mode.
+    const hints = remediationHintLines(error, {
+      commandPath: context.commandPath,
+    });
+
     if (context.globalOptions.json) {
-      this.output.jsonError(this.normalizeErrorForJson(error));
+      this.output.jsonError({
+        ...this.normalizeErrorForJson(error),
+        ...(hints.length > 0 ? { hint: hints.join(' ') } : {}),
+      });
     } else if (error instanceof Error) {
-      this.output.error(error.message);
+      this.output.error(
+        error.message +
+          hints.map((hint) => `\n${this.output.dim(hint)}`).join('')
+      );
     } else {
       this.output.error(String(error));
     }
@@ -318,7 +333,12 @@ export abstract class BaseCommand<
   }
 
   /**
-   * Validate a string option against a set of allowed values
+   * Validate a string option against a set of allowed values.
+   *
+   * Matching stays case-SENSITIVE (some callers upper-case ahead of this,
+   * others don't), so a value that differs only in case gets its own
+   * message rather than a "did you mean" line — echoing the user's own word
+   * back at them reads as a bug.
    */
   protected parseEnumOption<T extends string>(
     value: string,
@@ -326,9 +346,15 @@ export abstract class BaseCommand<
     allowed: readonly T[]
   ): T {
     if (!allowed.includes(value as T)) {
+      const caseOnlyMatch = allowed.find(
+        (candidate) => candidate.toLowerCase() === value.toLowerCase()
+      );
+      const suffix = caseOnlyMatch
+        ? `\n(Values are case-sensitive — use ${caseOnlyMatch}.)`
+        : didYouMeanSuffix(value, allowed);
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: `--${name} must be one of: ${allowed.join(', ')}`,
+        message: `--${name} must be one of: ${allowed.join(', ')}${suffix}`,
         context: { [name]: value },
       });
     }

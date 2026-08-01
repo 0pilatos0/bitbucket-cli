@@ -3,6 +3,7 @@
  */
 
 import { BaseCommand } from '../../core/base-command.js';
+import { formatDidYouMean, suggestSimilar } from '../../core/suggest.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
@@ -139,9 +140,19 @@ export class ActivityPRCommand extends BaseCommand<
     );
 
     if (invalid.length > 0) {
+      // `--type` takes a comma list, so suggest per bad token rather than
+      // once for the whole option.
+      const suggestions = invalid
+        .map((type) =>
+          formatDidYouMean(suggestSimilar(type, VALID_ACTIVITY_TYPES))
+        )
+        .filter((suggestion) => suggestion.length > 0);
+
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: `--type must be one of: ${VALID_ACTIVITY_TYPES.join(', ')}`,
+        message:
+          `--type must be one of: ${VALID_ACTIVITY_TYPES.join(', ')}` +
+          suggestions.map((suggestion) => `\n${suggestion}`).join(''),
         context: { invalid },
       });
     }
