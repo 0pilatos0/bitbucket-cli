@@ -60,6 +60,10 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
   public readonly description =
     'Make an authenticated request to the Bitbucket API';
 
+  /** The caller supplied the endpoint, so `--workspace`/`--repo` advice on a
+   * 404 would be misleading. */
+  protected override readonly suppressNotFoundHint = true;
+
   constructor(
     private readonly axios: AxiosInstance,
     private readonly contextService: IContextService,

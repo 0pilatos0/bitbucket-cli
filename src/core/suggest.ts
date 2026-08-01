@@ -140,7 +140,7 @@ export function suggestSimilar(
  * `bb pr lst` and `bb pr list --state opne` read the same. Returns `''` when
  * there is nothing to suggest, so callers can append unconditionally.
  */
-export function formatDidYouMean(matches: readonly string[]): string {
+function formatDidYouMean(matches: readonly string[]): string {
   if (matches.length > 1) {
     return `(Did you mean one of ${matches.join(', ')}?)`;
   }

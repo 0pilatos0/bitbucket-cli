@@ -14,17 +14,18 @@
  * `bb auth login` / `bb auth status` errors).
  */
 
-import { APIError } from '../types/errors.js';
-
-export const DOCS_BASE_URL = 'https://bitbucket-cli.paulvanderlei.com';
+import { APIError, ContextualizedAPIError } from '../types/errors.js';
+import { DOCS_BASE_URL } from '../constants.js';
 
 /**
  * Wording is lifted from `docs/src/content/docs/reference/error-codes.mdx`
- * (codes 1002 / 2002 / 2003) so the CLI and the docs cannot drift. Exported
- * so a future drift-check script can assert each line appears verbatim in the
- * docs, following the existing `scripts/check-*-docs.ts` pattern.
+ * (codes 1002 / 2002 / 2003) so the CLI and the docs cannot drift.
+ *
+ * `number` keys rather than a `401 | 403 | 404` union: the lookup is by
+ * `error.statusCode`, which is a plain `number`. `noUncheckedIndexedAccess`
+ * makes the miss explicit at the call site.
  */
-export const REMEDIATION_HINTS: Readonly<Record<number, readonly string[]>> = {
+const REMEDIATION_HINTS: Record<number, readonly string[]> = {
   401: [
     'Your Bitbucket credentials were rejected. Run `bb auth login` to re-authenticate.',
   ],
@@ -43,23 +44,20 @@ export const REMEDIATION_HINTS: Readonly<Record<number, readonly string[]>> = {
  * The remediation lines for `error`, or an empty array when there is nothing
  * useful to add. Callers append unconditionally.
  *
- * 404 is suppressed in two cases, or the hint would be noise on the paths
- * users hit most:
- *
- * - the message was already rewritten to name the missing resource by one of
- *   the `rethrow*` helpers (`error.contextualized`), and
- * - `bb api`, where the user typed the URL themselves so `--workspace`/`--repo`
- *   were never involved.
+ * The generic 404 advice is skipped in two cases, or it would be noise on the
+ * paths users hit most: when the message already names the missing resource
+ * (a {@link ContextualizedAPIError}), and when the command opts out via
+ * `suppressNotFoundHint` because the user supplied the URL themselves.
  */
 export function remediationHintLines(
   error: unknown,
-  opts: { commandPath?: string } = {}
+  opts: { suppressNotFoundHint?: boolean } = {}
 ): string[] {
   if (!(error instanceof APIError)) return [];
 
   if (error.statusCode === 404) {
-    if (error.contextualized) return [];
-    if (opts.commandPath === 'api') return [];
+    if (error instanceof ContextualizedAPIError) return [];
+    if (opts.suppressNotFoundHint) return [];
   }
 
   return [...(REMEDIATION_HINTS[error.statusCode] ?? [])];

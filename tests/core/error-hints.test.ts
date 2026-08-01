@@ -7,14 +7,12 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import {
-  remediationHintLines,
-  REMEDIATION_HINTS,
-  DOCS_BASE_URL,
-} from '../../src/core/error-hints.js';
+import { remediationHintLines } from '../../src/core/error-hints.js';
+import { DOCS_BASE_URL } from '../../src/constants.js';
 import {
   APIError,
   BBError,
+  ContextualizedAPIError,
   ErrorCode,
   rethrowWithNotFoundContext,
 } from '../../src/types/errors.js';
@@ -98,36 +96,40 @@ describe('remediationHintLines', () => {
         contextualized = error;
       }
 
-      expect((contextualized as APIError).contextualized).toBe(true);
+      expect(contextualized).toBeInstanceOf(ContextualizedAPIError);
       expect(remediationHintLines(contextualized)).toEqual([]);
     });
 
     it('keeps the hint for a raw 404 that no helper touched', () => {
       const error = new APIError('Request failed with status code 404', 404);
 
-      expect(error.contextualized).toBe(false);
+      expect(error).not.toBeInstanceOf(ContextualizedAPIError);
       expect(remediationHintLines(error)).toHaveLength(1);
     });
 
-    it('suppresses the hint for bb api, where the user typed the URL', () => {
+    it('suppresses the hint when the command opts out', () => {
+      // `bb api` is the opt-out: the user typed the URL, so --workspace/--repo
+      // advice would be misleading.
       const error = new APIError('Repository acme/nope not found', 404);
 
-      expect(remediationHintLines(error, { commandPath: 'api' })).toEqual([]);
+      expect(
+        remediationHintLines(error, { suppressNotFoundHint: true })
+      ).toEqual([]);
     });
 
-    it('still hints on a 403 from bb api, where scopes do apply', () => {
+    it('still hints on a 403 for an opted-out command, where scopes apply', () => {
       const error = new APIError('Access denied', 403);
 
-      expect(remediationHintLines(error, { commandPath: 'api' })).toHaveLength(
-        2
-      );
+      expect(
+        remediationHintLines(error, { suppressNotFoundHint: true })
+      ).toHaveLength(2);
     });
 
-    it('does not suppress for other command paths', () => {
+    it('hints by default when the command does not opt out', () => {
       const error = new APIError('nope', 404);
 
       expect(
-        remediationHintLines(error, { commandPath: 'pr view' })
+        remediationHintLines(error, { suppressNotFoundHint: false })
       ).toHaveLength(1);
     });
   });
@@ -136,7 +138,6 @@ describe('remediationHintLines', () => {
     const lines = remediationHintLines(new APIError('nope', 403));
     lines.push('injected');
 
-    expect(REMEDIATION_HINTS[403]).toHaveLength(2);
     expect(remediationHintLines(new APIError('nope', 403))).toHaveLength(2);
   });
 });

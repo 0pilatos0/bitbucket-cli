@@ -74,6 +74,13 @@ export abstract class BaseCommand<
    */
   private commandPath?: string;
 
+  /**
+   * Opt out of the generic 404 remediation hint ("check the id / slug /
+   * `--workspace` / `--repo`"). Override in commands where the user supplies
+   * the resource path directly, so that advice would be wrong.
+   */
+  protected readonly suppressNotFoundHint: boolean = false;
+
   constructor(protected readonly output: IOutputService) {}
 
   public abstract execute(
@@ -116,7 +123,7 @@ export abstract class BaseCommand<
     // time, so `APIError.message` and the `BBError.toJSON()` key set stay
     // exactly as they are and the hint can be shaped per output mode.
     const hints = remediationHintLines(error, {
-      commandPath: context.commandPath,
+      suppressNotFoundHint: this.suppressNotFoundHint,
     });
 
     if (context.globalOptions.json) {
