@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.23.1
+
+### Patch Changes
+
+- [#307](https://github.com/0pilatos0/bitbucket-cli/pull/307) [`2ab8abb`](https://github.com/0pilatos0/bitbucket-cli/commit/2ab8abb9feff3d4e570fa2483438966fb0c30e48) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the Bitbucket Cloud API client from the latest upstream spec and add spec update automation
+
+  - Regenerate `src/generated/` against the current Bitbucket Cloud OpenAPI spec (removes the deprecated `addon/linkers` endpoints, adds `file-conflicts`/PR `conflicts` endpoints)
+  - Normalize upstream spec warts before generation (`scripts/normalize-spec.ts`) so content/inline models and `PipelineSelector.type` stay typed
+  - Add `check:api-updates` / `update:api` scripts plus a weekly CI check that opens an issue when the spec drifts
+
 ## 1.23.0
 
 ### Minor Changes
