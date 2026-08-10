@@ -48,13 +48,16 @@ function createMockService(
     addResult?: DefaultReviewerEntry;
     removeCalls?: string[];
     addCalls?: string[];
+    listCalls?: Array<{ mode: string | undefined }>;
   } = {}
 ): DefaultReviewerService {
   const addCalls = overrides.addCalls ?? [];
   const removeCalls = overrides.removeCalls ?? [];
+  const listCalls = overrides.listCalls ?? [];
 
   const svc = {
-    async list() {
+    async list(_repo: unknown, mode?: string) {
+      listCalls.push({ mode });
       return overrides.entries ?? [];
     },
     async add(_repo: unknown, username: string) {
@@ -111,6 +114,34 @@ describe('ListDefaultReviewersCommand', () => {
     expect(output.logs.some((l) => l.startsWith('info:'))).toBe(true);
   });
 
+  it('requests the effective mode by default (project-inherited included)', async () => {
+    const listCalls: Array<{ mode: string | undefined }> = [];
+    const output = createMockOutputService();
+    const cmd = new ListDefaultReviewersCommand(
+      createMockService({ entries: [], listCalls }),
+      createContextService(),
+      output
+    );
+
+    await cmd.execute({}, { globalOptions: {} });
+
+    expect(listCalls).toEqual([{ mode: 'effective' }]);
+  });
+
+  it('requests the direct mode with --repo-only (excludes project-inherited)', async () => {
+    const listCalls: Array<{ mode: string | undefined }> = [];
+    const output = createMockOutputService();
+    const cmd = new ListDefaultReviewersCommand(
+      createMockService({ entries: [], listCalls }),
+      createContextService(),
+      output
+    );
+
+    await cmd.execute({ repoOnly: true }, { globalOptions: {} });
+
+    expect(listCalls).toEqual([{ mode: 'direct' }]);
+  });
+
   it('renders a table with a Source column for effective mode', async () => {
     const output = createMockOutputService();
     const cmd = new ListDefaultReviewersCommand(
@@ -156,7 +187,14 @@ describe('ListDefaultReviewersCommand', () => {
     const output = createMockOutputService();
     const cmd = new ListDefaultReviewersCommand(
       createMockService({
-        entries: [{ uuid: '{a}', displayName: 'Alice' }],
+        entries: [
+          {
+            uuid: '{a}',
+            displayName: 'Alice',
+            nickname: 'alice',
+            reviewerType: 'project',
+          },
+        ],
       }),
       createContextService(),
       output
@@ -164,7 +202,42 @@ describe('ListDefaultReviewersCommand', () => {
 
     await cmd.execute({}, { globalOptions: { json: true } });
 
-    expect(output.logs.some((l) => l.startsWith('json:'))).toBe(true);
+    const jsonLog = output.logs.find((l) => l.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.slice('json:'.length));
+    expect(parsed).toEqual({
+      workspace: 'ws',
+      repoSlug: 'repo',
+      mode: 'effective',
+      count: 1,
+      reviewers: [
+        {
+          uuid: '{a}',
+          displayName: 'Alice',
+          nickname: 'alice',
+          reviewerType: 'project',
+        },
+      ],
+    });
+  });
+
+  it('emits mode=direct and reviewer entries in JSON for --repo-only', async () => {
+    const output = createMockOutputService();
+    const cmd = new ListDefaultReviewersCommand(
+      createMockService({
+        entries: [{ uuid: '{b}', displayName: 'Bob' }],
+      }),
+      createContextService(),
+      output
+    );
+
+    await cmd.execute({ repoOnly: true }, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((l) => l.startsWith('json:'));
+    expect(jsonLog).toBeDefined();
+    const parsed = JSON.parse(jsonLog!.slice('json:'.length));
+    expect(parsed.mode).toBe('direct');
+    expect(parsed.reviewers).toEqual([{ uuid: '{b}', displayName: 'Bob' }]);
   });
 });
 

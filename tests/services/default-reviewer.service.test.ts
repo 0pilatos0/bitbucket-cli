@@ -30,14 +30,24 @@ interface MockOptions {
   throwOnDelete?: boolean;
   onPut?: (username: string) => void;
   onDelete?: (username: string) => void;
+  onEffectiveRequest?: (axiosOpts?: {
+    params?: { page?: number; pagelen?: number };
+  }) => void;
+  onDirectRequest?: (axiosOpts?: {
+    params?: { page?: number; pagelen?: number };
+  }) => void;
+  onPutRequest?: (axiosOpts?: { data?: unknown }) => void;
+  valuesAsArrays?: boolean;
 }
 
 function createMockApi(options: MockOptions = {}): PullrequestsApi {
   const paginate = <T>(
     pages: T[][] | undefined,
-    page: number
-  ): { values: Set<T>; next?: string; page: number } => {
-    const values = new Set<T>(pages?.[page - 1] ?? []);
+    page: number,
+    valuesAsArrays: boolean
+  ): { values: Set<T> | T[]; next?: string; page: number } => {
+    const pageValues = pages?.[page - 1] ?? [];
+    const values = valuesAsArrays ? [...pageValues] : new Set<T>(pageValues);
     const hasNext = !!pages && page < pages.length;
     return {
       values,
@@ -52,7 +62,12 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
       axiosOpts?: { params?: { page?: number; pagelen?: number } }
     ) {
       const page = axiosOpts?.params?.page ?? 1;
-      const paginated = paginate(options.effectivePages, page);
+      const paginated = paginate(
+        options.effectivePages,
+        page,
+        options.valuesAsArrays ?? false
+      );
+      options.onEffectiveRequest?.(axiosOpts);
       return axiosOk({
         size: (options.effectivePages ?? []).flat().length,
         page: paginated.page,
@@ -66,7 +81,12 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
       axiosOpts?: { params?: { page?: number; pagelen?: number } }
     ) {
       const page = axiosOpts?.params?.page ?? 1;
-      const paginated = paginate(options.directPages, page);
+      const paginated = paginate(
+        options.directPages,
+        page,
+        options.valuesAsArrays ?? false
+      );
+      options.onDirectRequest?.(axiosOpts);
       return axiosOk({
         size: (options.directPages ?? []).flat().length,
         page: paginated.page,
@@ -75,15 +95,19 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
         values: paginated.values,
       } as PaginatedAccounts);
     },
-    async repositoriesWorkspaceRepoSlugDefaultReviewersTargetUsernamePut(params: {
-      workspace: string;
-      repoSlug: string;
-      targetUsername: string;
-    }) {
+    async repositoriesWorkspaceRepoSlugDefaultReviewersTargetUsernamePut(
+      params: {
+        workspace: string;
+        repoSlug: string;
+        targetUsername: string;
+      },
+      axiosOpts?: { data?: unknown }
+    ) {
       if (options.throwOnPut) {
         throw new Error('forbidden');
       }
       options.onPut?.(params.targetUsername);
+      options.onPutRequest?.(axiosOpts);
       return axiosOk<Account>({
         type: 'user',
         uuid: `{${params.targetUsername}-uuid}`,
@@ -109,6 +133,28 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
 const repo = { workspace: 'ws', repoSlug: 'repo' };
 
 describe('DefaultReviewerService', () => {
+  it('defaults to the effective mode when no mode is passed', async () => {
+    const api = createMockApi({
+      effectivePages: [
+        [
+          {
+            type: 'default_reviewer_and_type',
+            reviewer_type: 'repository',
+            user: {
+              type: 'user',
+              uuid: '{a-uuid}',
+            } as DefaultReviewerAndType['user'],
+          },
+        ],
+      ],
+    });
+    const service = new DefaultReviewerService(api);
+
+    const result = await service.list(repo);
+
+    expect(result).toHaveLength(1);
+  });
+
   describe('list (effective)', () => {
     it('returns entries with reviewer_type and walks pagination', async () => {
       const api = createMockApi({
@@ -152,6 +198,101 @@ describe('DefaultReviewerService', () => {
         reviewerType: 'repository',
       });
       expect(result[1]?.reviewerType).toBe('project');
+    });
+
+    it('surfaces both repository and project reviewer types from a single page', async () => {
+      const api = createMockApi({
+        effectivePages: [
+          [
+            {
+              type: 'default_reviewer_and_type',
+              reviewer_type: 'repository',
+              user: {
+                type: 'user',
+                uuid: '{a-uuid}',
+              } as DefaultReviewerAndType['user'],
+            },
+            {
+              type: 'default_reviewer_and_type',
+              reviewer_type: 'project',
+              user: {
+                type: 'user',
+                uuid: '{b-uuid}',
+              } as DefaultReviewerAndType['user'],
+            },
+          ],
+        ],
+      });
+      const service = new DefaultReviewerService(api);
+
+      const result = await service.list(repo, 'effective');
+
+      expect(result.map((entry) => entry.reviewerType)).toEqual([
+        'repository',
+        'project',
+      ]);
+    });
+
+    it('normalizes Array-shaped values from the API', async () => {
+      const api = createMockApi({
+        effectivePages: [
+          [
+            {
+              type: 'default_reviewer_and_type',
+              reviewer_type: 'project',
+              user: {
+                type: 'user',
+                uuid: '{a-uuid}',
+              } as DefaultReviewerAndType['user'],
+            },
+          ],
+        ],
+        valuesAsArrays: true,
+      });
+      const service = new DefaultReviewerService(api);
+
+      const result = await service.list(repo, 'effective');
+
+      expect(result.map((entry) => entry.uuid)).toEqual(['{a-uuid}']);
+    });
+
+    it('walks pagination with the API-max pagelen (clamped from LIST_LIMIT)', async () => {
+      const requestedPagelens: Array<number | undefined> = [];
+      const api = createMockApi({
+        effectivePages: [
+          [
+            {
+              type: 'default_reviewer_and_type',
+              reviewer_type: 'repository',
+              user: {
+                type: 'user',
+                uuid: '{a-uuid}',
+              } as DefaultReviewerAndType['user'],
+            },
+          ],
+          [
+            {
+              type: 'default_reviewer_and_type',
+              reviewer_type: 'repository',
+              user: {
+                type: 'user',
+                uuid: '{b-uuid}',
+              } as DefaultReviewerAndType['user'],
+            },
+          ],
+        ],
+        onEffectiveRequest: (axiosOpts) => {
+          requestedPagelens.push(axiosOpts?.params?.pagelen);
+        },
+      });
+      const service = new DefaultReviewerService(api);
+
+      await service.list(repo, 'effective');
+
+      expect(requestedPagelens.length).toBeGreaterThan(1);
+      for (const pagelen of requestedPagelens) {
+        expect(pagelen).toBe(50);
+      }
     });
 
     it('returns an empty array when the list is empty', async () => {
@@ -219,6 +360,27 @@ describe('DefaultReviewerService', () => {
       expect(entry.uuid).toBe('{alice-uuid}');
       expect(entry.displayName).toBe('Display alice');
     });
+
+    it('sends an empty JSON body ({}) so Bitbucket does not 400', async () => {
+      let putBody: unknown = 'not-called';
+      const api = createMockApi({
+        onPutRequest: (axiosOpts) => {
+          putBody = axiosOpts?.data;
+        },
+      });
+      const service = new DefaultReviewerService(api);
+
+      await service.add(repo, 'alice');
+
+      expect(putBody).toEqual({});
+    });
+
+    it('propagates API errors from PUT', async () => {
+      const api = createMockApi({ throwOnPut: true });
+      const service = new DefaultReviewerService(api);
+
+      await expect(service.add(repo, 'alice')).rejects.toThrow('forbidden');
+    });
   });
 
   describe('remove', () => {
@@ -229,6 +391,13 @@ describe('DefaultReviewerService', () => {
 
       await service.remove(repo, 'alice');
       expect(seen).toBe('alice');
+    });
+
+    it('propagates API errors from DELETE', async () => {
+      const api = createMockApi({ throwOnDelete: true });
+      const service = new DefaultReviewerService(api);
+
+      await expect(service.remove(repo, 'alice')).rejects.toThrow('forbidden');
     });
   });
 });

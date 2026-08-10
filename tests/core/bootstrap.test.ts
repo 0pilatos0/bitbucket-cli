@@ -120,6 +120,92 @@ describe('bootstrap()', () => {
     expect((createPR as unknown as { output: unknown }).output).toBe(output);
   });
 
+  it('wires every command dependency to a container singleton', () => {
+    const container = bootstrap();
+    const commandTokens = Object.entries(ServiceTokens)
+      .filter(([key]) => key.endsWith('Command'))
+      .map(([, token]) => token);
+    const singletonValues = Object.values(ServiceTokens).map((token) =>
+      container.resolve(token)
+    );
+
+    for (const token of commandTokens) {
+      const command = container.resolve<Record<string, unknown>>(token);
+      for (const value of Object.values(command)) {
+        // Internal base-class state (commandPath, suppressNotFoundHint) is
+        // undefined/primitive; skip those. Every object-valued field must be
+        // one of the container's singletons — a missing or re-instantiated
+        // dependency would otherwise pass the resolve-not-throw check above.
+        if (
+          value === undefined ||
+          (typeof value !== 'object' && typeof value !== 'function')
+        ) {
+          continue;
+        }
+        expect(singletonValues.some((sv) => sv === value)).toBe(true);
+      }
+    }
+  });
+
+  it('matches constructor arity to the wired dependency count for every command', () => {
+    const container = bootstrap();
+    const commandTokens = Object.entries(ServiceTokens)
+      .filter(([key]) => key.endsWith('Command'))
+      .map(([, token]) => token);
+
+    for (const token of commandTokens) {
+      const command = container.resolve<Record<string, unknown>>(token);
+      const paramCount = (command.constructor as { length: number }).length;
+      const depCount = Object.values(command).filter(
+        (value) =>
+          (typeof value === 'object' || typeof value === 'function') &&
+          value !== null &&
+          value !== undefined
+      ).length;
+      expect(paramCount, `${token} ctor arity`).toBe(depCount);
+    }
+  });
+
+  it('wires the registerCommand-wired services in constructor order', () => {
+    const container = bootstrap();
+
+    const oauth = container.resolve<{
+      configService: unknown;
+      credentialStore: unknown;
+    }>(ServiceTokens.OAuthService);
+    expect(oauth.configService).toBe(
+      container.resolve(ServiceTokens.ConfigService)
+    );
+    expect(oauth.credentialStore).toBe(
+      container.resolve(ServiceTokens.CredentialStore)
+    );
+
+    const context = container.resolve<{
+      gitService: unknown;
+      configService: unknown;
+    }>(ServiceTokens.ContextService);
+    expect(context.gitService).toBe(
+      container.resolve(ServiceTokens.GitService)
+    );
+    expect(context.configService).toBe(
+      container.resolve(ServiceTokens.ConfigService)
+    );
+
+    const snippetFiles = container.resolve<{ axios: unknown }>(
+      ServiceTokens.SnippetFilesService
+    );
+    expect(snippetFiles.axios).toBe(
+      container.resolve(ServiceTokens.SharedApiAxios)
+    );
+
+    const defaultReviewer = container.resolve<{ pullrequestsApi: unknown }>(
+      ServiceTokens.DefaultReviewerService
+    );
+    expect(defaultReviewer.pullrequestsApi).toBe(
+      container.resolve(ServiceTokens.PullrequestsApi)
+    );
+  });
+
   it('constructs every generated API client on the single shared axios instance', () => {
     Container.reset();
     const container = bootstrap();
@@ -138,6 +224,11 @@ describe('bootstrap()', () => {
       ServiceTokens.UsersApi,
       ServiceTokens.CommitStatusesApi,
       ServiceTokens.SnippetsApi,
+      ServiceTokens.CommitsApi,
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.IssueTrackerApi,
+      ServiceTokens.WorkspacesApi,
+      ServiceTokens.ProjectsApi,
     ];
     for (const token of generatedClientTokens) {
       const client = container.resolve<{ axios: AxiosInstance }>(token);
