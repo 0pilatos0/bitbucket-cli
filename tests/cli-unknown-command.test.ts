@@ -7,13 +7,16 @@
  * tests/cli.test.ts already reconfigures that same instance via
  * `configureOutput()` without restoring it — so keeping parse-driven cases
  * apart limits the bleed.
+ *
+ * The postAction hook polls npm for update notices on a TTY stderr; the
+ * tests/preload.ts fetch guard blocks that call from reaching the network
+ * (see issue #269), so this file does not need the CI=true dodge.
  */
 
 import {
   describe,
   it,
   expect,
-  beforeAll,
   afterAll,
   beforeEach,
   afterEach,
@@ -23,25 +26,11 @@ import type { Command } from 'commander';
 import { cli } from '../src/cli.js';
 import { ErrorCode } from '../src/types/errors.js';
 
-const originalCI = process.env.CI;
-
 let stderr: string[] = [];
 let stdout: string[] = [];
 const originalConsoleError = console.error;
 
-beforeAll(() => {
-  // `maybePrintUpdateNotice` only short-circuits on a NON-TTY stderr, which is
-  // false under an interactive `bun test` — without this the postAction hook
-  // would reach `checkForUpdate()` and hit the npm registry.
-  process.env.CI = 'true';
-});
-
 afterAll(() => {
-  if (originalCI === undefined) {
-    delete process.env.CI;
-  } else {
-    process.env.CI = originalCI;
-  }
   console.error = originalConsoleError;
 });
 

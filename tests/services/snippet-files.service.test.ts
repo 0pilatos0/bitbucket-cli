@@ -22,6 +22,12 @@ afterEach(() => {
   }
 });
 
+interface StubResponse {
+  status?: number;
+  statusText?: string;
+  data?: unknown;
+}
+
 interface CapturedRequest {
   url?: string;
   method?: string;
@@ -44,9 +50,27 @@ function createStubAxios(
       headers: (config.headers ?? {}) as Record<string, string>,
       responseType: config.responseType,
     });
-    const data = responses.shift() ?? { ok: true };
+    const entry = responses.shift();
+    const status = errorStatus(entry);
+    if (status !== undefined) {
+      throw new axios.AxiosError(
+        errorStatusText(entry) ?? `Request failed with status code ${status}`,
+        undefined,
+        config,
+        undefined,
+        {
+          data: (entry as StubResponse).data ?? {},
+          status,
+          statusText: errorStatusText(entry) ?? '',
+          headers: {},
+          config,
+        }
+      );
+    }
     return {
-      data,
+      data: isDataEntry(entry)
+        ? (entry as StubResponse).data
+        : (entry ?? { ok: true }),
       status: 200,
       statusText: 'OK',
       headers: {},
@@ -54,6 +78,32 @@ function createStubAxios(
     };
   };
   return instance;
+}
+
+function isErrorEntry(entry: unknown): entry is StubResponse {
+  return (
+    typeof entry === 'object' &&
+    entry !== null &&
+    typeof (entry as StubResponse).status === 'number' &&
+    (entry as StubResponse).status >= 400
+  );
+}
+
+function errorStatus(entry: unknown): number | undefined {
+  return isErrorEntry(entry) ? (entry as StubResponse).status : undefined;
+}
+
+function errorStatusText(entry: unknown): string | undefined {
+  return isErrorEntry(entry) ? (entry as StubResponse).statusText : undefined;
+}
+
+function isDataEntry(entry: unknown): boolean {
+  return (
+    typeof entry === 'object' &&
+    entry !== null &&
+    !isErrorEntry(entry) &&
+    'data' in (entry as Record<string, unknown>)
+  );
 }
 
 function writeTempFile(name: string, contents: string): string {
@@ -163,6 +213,95 @@ describe('SnippetFilesService', () => {
       const contents = await Promise.all(files.map((v) => (v as Blob).text()));
       expect(contents.sort()).toEqual(['AAA', 'BBB']);
     });
+
+    it('uses the filename override as the multipart part name', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured);
+      const svc = new SnippetFilesService(instance);
+      const filePath = writeTempFile('a.txt', 'contents');
+
+      await svc.createWithFiles({
+        workspace: 'ws',
+        title: 't',
+        isPrivate: true,
+        files: [{ path: filePath, filename: 'renamed.txt' }],
+      });
+
+      const form = captured[0].data as FormData;
+      const parts = form.getAll('file');
+      expect(parts).toHaveLength(1);
+      expect((parts[0] as File).name).toBe('renamed.txt');
+    });
+
+    it('defaults the part name to the file basename', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured);
+      const svc = new SnippetFilesService(instance);
+      const filePath = writeTempFile('base-name.txt', 'contents');
+
+      await svc.createWithFiles({
+        workspace: 'ws',
+        title: 't',
+        isPrivate: true,
+        files: [{ path: filePath }],
+      });
+
+      const form = captured[0].data as FormData;
+      const parts = form.getAll('file');
+      expect((parts[0] as File).name).toBe('base-name.txt');
+    });
+
+    it('sends a form without file parts when files is empty', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured);
+      const svc = new SnippetFilesService(instance);
+
+      await svc.createWithFiles({
+        workspace: 'ws',
+        title: 't',
+        isPrivate: true,
+        files: [],
+      });
+
+      const flat = await formDataToString(captured[0].data);
+      expect(flat).toContain('title:t');
+      expect(flat).not.toContain('file:');
+    });
+
+    it('propagates API errors from the multipart POST', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured, [
+        { status: 500, statusText: 'Server Error' },
+      ]);
+      const svc = new SnippetFilesService(instance);
+      const filePath = writeTempFile('a.txt', 'a');
+
+      await expect(
+        svc.createWithFiles({
+          workspace: 'ws',
+          title: 't',
+          isPrivate: true,
+          files: [{ path: filePath }],
+        })
+      ).rejects.toMatchObject({ response: { status: 500 } });
+    });
+
+    it('propagates a missing-file error from readFileSync', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured);
+      const svc = new SnippetFilesService(instance);
+      const missingPath = path.join(os.tmpdir(), 'bb-missing', 'nope.txt');
+
+      await expect(
+        svc.createWithFiles({
+          workspace: 'ws',
+          title: 't',
+          isPrivate: true,
+          files: [{ path: missingPath }],
+        })
+      ).rejects.toMatchObject({ code: 'ENOENT' });
+      expect(captured).toHaveLength(0);
+    });
   });
 
   describe('editMetadata', () => {
@@ -231,6 +370,41 @@ describe('SnippetFilesService', () => {
       expect(flat).toContain('title:T');
       expect(flat).toContain('file:blob(updated)');
     });
+
+    it('omits title and is_private parts when not provided', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured);
+      const svc = new SnippetFilesService(instance);
+      const filePath = writeTempFile('up.txt', 'updated');
+
+      await svc.editWithFiles({
+        workspace: 'ws',
+        encodedId: 'kypj',
+        files: [{ path: filePath }],
+      });
+
+      const flat = await formDataToString(captured[0].data);
+      expect(flat).toContain('file:blob(updated)');
+      expect(flat).not.toContain('title:');
+      expect(flat).not.toContain('is_private:');
+    });
+
+    it('propagates API errors from the multipart PUT', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured, [
+        { status: 403, statusText: 'Forbidden' },
+      ]);
+      const svc = new SnippetFilesService(instance);
+      const filePath = writeTempFile('up.txt', 'updated');
+
+      await expect(
+        svc.editWithFiles({
+          workspace: 'ws',
+          encodedId: 'kypj',
+          files: [{ path: filePath }],
+        })
+      ).rejects.toMatchObject({ response: { status: 403 } });
+    });
   });
 
   describe('getFileContent', () => {
@@ -255,6 +429,28 @@ describe('SnippetFilesService', () => {
       expect(captured[0].url).toBe(
         '/snippets/ws/kypj/files/dir%20name/sub/f%20oo.txt'
       );
+    });
+
+    it('coerces non-string raw responses to strings', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured, [{ data: 12345 }]);
+      const svc = new SnippetFilesService(instance);
+
+      const result = await svc.getFileContent('ws', 'kypj', 'a.txt');
+
+      expect(result).toBe('12345');
+    });
+
+    it('propagates 404 errors from the raw-file fetch', async () => {
+      const captured: CapturedRequest[] = [];
+      const instance = createStubAxios(captured, [
+        { status: 404, statusText: 'Not Found' },
+      ]);
+      const svc = new SnippetFilesService(instance);
+
+      await expect(
+        svc.getFileContent('ws', 'kypj', 'missing.txt')
+      ).rejects.toMatchObject({ response: { status: 404 } });
     });
   });
 });

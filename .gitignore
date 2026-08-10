@@ -37,3 +37,5 @@ coverage/
 .cache/
 
 specs
+
+.opencode/

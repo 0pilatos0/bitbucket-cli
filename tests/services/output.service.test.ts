@@ -137,6 +137,11 @@ describe('OutputService', () => {
       ['activities', 'pr activity'],
       ['statuses', 'pr checks'],
       ['files', 'pr diff --stat / --name-only'],
+      ['pipelines', 'pipeline list'],
+      ['commits', 'commit list'],
+      ['issues', 'issue list'],
+      ['workspaces', 'workspace list'],
+      ['projects', 'project list'],
       ['values', 'generic paginated payloads'],
     ])('drops the wrapper for the %s key (used by %s)', async (key) => {
       output.setJsonFormatOptions({ fields: ['id'] });
@@ -148,6 +153,26 @@ describe('OutputService', () => {
 
       const parsed = JSON.parse(consoleLogs[0]!);
       expect(parsed).toEqual([{ id: 99 }]);
+    });
+
+    it('returns an empty array for a known wrapper key holding an empty array', async () => {
+      output.setJsonFormatOptions({ fields: ['id'] });
+      await output.json({ workspace: 'ws', count: 0, pullRequests: [] });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual([]);
+    });
+
+    it('skips a known wrapper key that holds a non-array', async () => {
+      output.setJsonFormatOptions({ fields: ['workspace', 'count'] });
+      await output.json({
+        workspace: 'ws',
+        count: 1,
+        comments: { nested: 'object' },
+      });
+
+      const parsed = JSON.parse(consoleLogs[0]!);
+      expect(parsed).toEqual({ workspace: 'ws', count: 1 });
     });
   });
 

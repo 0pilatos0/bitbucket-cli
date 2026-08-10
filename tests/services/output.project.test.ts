@@ -50,4 +50,45 @@ describe('projectFields', () => {
     );
     expect(result).toEqual({ tags: ['x', 'y'], meta: { ok: true } });
   });
+
+  it('traverses into arrays via numeric segments', () => {
+    const result = projectFields({ tags: ['x', 'y'] }, [
+      'tags.0',
+      'tags.length',
+    ]);
+    expect(result).toEqual({ 'tags.0': 'x', 'tags.length': 2 });
+  });
+
+  it('returns null when a numeric segment misses', () => {
+    const result = projectFields({ tags: ['x'] }, ['tags.1']);
+    expect(result).toEqual({ 'tags.1': null });
+  });
+
+  it('returns null for empty or duplicated dotted segments', () => {
+    const result = projectFields({ a: { b: 1 } }, ['a..b', '.a', 'a.', '']);
+    expect(result).toEqual({ 'a..b': null, '.a': null, 'a.': null, '': null });
+  });
+
+  it('maps an undefined leaf to null', () => {
+    const result = projectFields({ a: { b: undefined } }, ['a.b']);
+    expect(result).toEqual({ 'a.b': null });
+  });
+
+  it('keeps the last occurrence of a duplicated field', () => {
+    const result = projectFields({ a: 1 }, ['a', 'a']) as Record<
+      string,
+      unknown
+    >;
+    expect(result).toEqual({ a: 1 });
+  });
+
+  it('treats a top-level array as a record of indexed segments', () => {
+    const result = projectFields(['x', 'y'], ['0', '1', '2']);
+    expect(result).toEqual({ 0: 'x', 1: 'y', 2: null });
+  });
+
+  it('returns booleans and undefined unchanged as non-object inputs', () => {
+    expect(projectFields(true, ['x'])).toBe(true);
+    expect(projectFields(undefined, ['x'])).toBeUndefined();
+  });
 });

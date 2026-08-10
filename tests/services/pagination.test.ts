@@ -96,6 +96,31 @@ describe('collectPages', () => {
     expect(result).toEqual([]);
   });
 
+  it('normalizes Set-valued pages (Bitbucket may return a Set)', async () => {
+    const result = await collectPages<number>({
+      limit: 10,
+      fetchPage: async () => ({ values: new Set([1, 2, 3]) }),
+    });
+
+    expect(result).toEqual([1, 2, 3]);
+  });
+
+  it('walks pagination across mixed Set/Array pages', async () => {
+    const pages: Array<PaginatedCollection<number>> = [
+      { values: new Set([1, 2]), next: 'page2' },
+      { values: [3, 4], next: 'page3' },
+      { values: new Set([5]) },
+    ];
+
+    const result = await collectPages<number>({
+      limit: 10,
+      pageSize: 2,
+      fetchPage: async (page) => pages[page - 1] ?? { values: [] },
+    });
+
+    expect(result).toEqual([1, 2, 3, 4, 5]);
+  });
+
   it('stops when next is a malformed URL without crashing', async () => {
     const pages: Array<PaginatedCollection<number>> = [
       { values: [1, 2], next: 'not-a-valid-url://???' },
