@@ -125,12 +125,12 @@ describe('updatePullRequestReviewers', () => {
         return createAxiosResponse(pr);
       },
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(params: {
-        pullrequest?: Pullrequest;
+        body?: Pullrequest;
       }) {
-        capturedBody = params.pullrequest;
+        capturedBody = params.body;
         return createAxiosResponse({
           ...pr,
-          reviewers: params.pullrequest?.reviewers ?? pr.reviewers,
+          reviewers: params.body?.reviewers ?? pr.reviewers,
         });
       },
     } as unknown as PullrequestsApi;

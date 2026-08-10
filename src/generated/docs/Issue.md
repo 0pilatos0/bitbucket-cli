@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | [**IssueLinks**](IssueLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **id** | **number** |  | [optional] [default to undefined]
 **repository** | [**Repository**](Repository.md) |  | [optional] [default to undefined]
 **title** | **string** |  | [optional] [default to undefined]

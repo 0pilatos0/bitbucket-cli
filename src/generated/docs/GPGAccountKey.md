@@ -16,7 +16,7 @@ Name | Type | Description | Notes
 **added_on** | **string** |  | [optional] [default to undefined]
 **last_used** | **string** |  | [optional] [default to undefined]
 **subkeys** | [**Set&lt;GPGAccountKey&gt;**](GPGAccountKey.md) |  | [optional] [default to undefined]
-**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | [**GroupLinks**](GroupLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **owner** | [**Account**](Account.md) |  | [optional] [default to undefined]
 **workspace** | [**Workspace**](Workspace.md) |  | [optional] [default to undefined]
 **name** | **string** |  | [optional] [default to undefined]

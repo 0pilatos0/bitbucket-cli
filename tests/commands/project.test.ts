@@ -99,7 +99,7 @@ function createMockProjectsApi(
     },
     workspacesWorkspaceProjectsPost: async (request: unknown) => {
       options.onCreateCall?.(request);
-      const project = (request as { project: Project }).project;
+      const project = (request as { body: Project }).body;
       return { data: { ...mockProject, ...project } };
     },
   } as unknown as ProjectsApi;
@@ -295,14 +295,14 @@ describe('ViewProjectCommand', () => {
 describe('CreateProjectCommand', () => {
   it('should POST a typed project body (private by default)', async () => {
     let captured:
-      { workspace?: string; project?: Record<string, unknown> } | undefined;
+      { workspace?: string; body?: Record<string, unknown> } | undefined;
     const output = createMockOutputService();
     const command = new CreateProjectCommand(
       createMockProjectsApi({
         onCreateCall: (request) => {
           captured = request as {
             workspace?: string;
-            project?: Record<string, unknown>;
+            body?: Record<string, unknown>;
           };
         },
       }),
@@ -316,7 +316,7 @@ describe('CreateProjectCommand', () => {
     );
 
     expect(captured?.workspace).toBe('acme');
-    expect(captured?.project).toEqual({
+    expect(captured?.body).toEqual({
       type: 'project',
       key: 'PROJ',
       name: 'My Project',
@@ -330,12 +330,12 @@ describe('CreateProjectCommand', () => {
   });
 
   it('should omit description when not given and honor --public', async () => {
-    let captured: { project?: Record<string, unknown> } | undefined;
+    let captured: { body?: Record<string, unknown> } | undefined;
     const output = createMockOutputService();
     const command = new CreateProjectCommand(
       createMockProjectsApi({
         onCreateCall: (request) => {
-          captured = request as { project?: Record<string, unknown> };
+          captured = request as { body?: Record<string, unknown> };
         },
       }),
       workspaceContextService(),
@@ -347,7 +347,7 @@ describe('CreateProjectCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(captured?.project).toEqual({
+    expect(captured?.body).toEqual({
       type: 'project',
       key: 'PROJ',
       name: 'My Project',
@@ -356,12 +356,12 @@ describe('CreateProjectCommand', () => {
   });
 
   it('should uppercase a lowercase key and mention the normalization', async () => {
-    let captured: { project?: { key?: string } } | undefined;
+    let captured: { body?: { key?: string } } | undefined;
     const output = createMockOutputService();
     const command = new CreateProjectCommand(
       createMockProjectsApi({
         onCreateCall: (request) => {
-          captured = request as { project?: { key?: string } };
+          captured = request as { body?: { key?: string } };
         },
       }),
       workspaceContextService(),
@@ -373,7 +373,7 @@ describe('CreateProjectCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(captured?.project?.key).toBe('PROJ');
+    expect(captured?.body?.key).toBe('PROJ');
     expect(output.logs).toContain(
       'info:Project keys are uppercase on Bitbucket; using PROJ.'
     );

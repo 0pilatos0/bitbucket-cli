@@ -55,7 +55,7 @@ export class EditCommentPRCommand extends BaseCommand<
           pullRequestId: prId,
           commentId: commentId,
           // Bitbucket rejects `type` here with 400 "extra keys not allowed".
-          pullrequestComment: {
+          body: {
             content: {
               raw: options.message,
             },

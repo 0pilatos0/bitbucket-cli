@@ -7,7 +7,7 @@
       "bitbucket": {
         "generatorName": "typescript-axios",
         "output": "src/generated",
-        "inputSpec": "specs/bitbucket-cloud.json",
+        "inputSpec": "specs/bitbucket-cloud.normalized.json",
         "additionalProperties": {
           "supportsES6": true,
           "typescriptThreePlus": true,

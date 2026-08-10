@@ -99,15 +99,15 @@ function createMockCommitStatusesApi(
         throw options.postError;
       }
       options.onPost?.(request);
-      const { commitstatus } = request as { commitstatus: Commitstatus };
-      return { data: { ...mockStatus, ...commitstatus } };
+      const { body } = request as { body: Commitstatus };
+      return { data: { ...mockStatus, ...body } };
     },
     repositoriesWorkspaceRepoSlugCommitCommitStatusesBuildKeyPut: async (
       request: unknown
     ) => {
       options.onPut?.(request);
-      const { commitstatus } = request as { commitstatus: Commitstatus };
-      return { data: { ...mockStatus, ...commitstatus } };
+      const { body } = request as { body: Commitstatus };
+      return { data: { ...mockStatus, ...body } };
     },
   } as unknown as CommitStatusesApi;
 }
@@ -251,7 +251,7 @@ describe('SetCommitStatusCommand', () => {
       commit: 'abc1234def567890',
       repoSlug: 'repo',
       workspace: 'workspace',
-      commitstatus: {
+      body: {
         type: 'build',
         key: 'CI',
         state: 'SUCCESSFUL',
@@ -293,7 +293,7 @@ describe('SetCommitStatusCommand', () => {
       key: 'CI',
       repoSlug: 'repo',
       workspace: 'workspace',
-      commitstatus: { type: 'build', key: 'CI', state: 'FAILED' },
+      body: { type: 'build', key: 'CI', state: 'FAILED' },
     });
     expect(output.logs).toContain('success:Status CI set to FAILED on abc1234');
   });

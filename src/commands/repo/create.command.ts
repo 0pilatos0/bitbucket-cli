@@ -72,7 +72,7 @@ export class CreateRepoCommand extends BaseCommand<
       await this.repositoriesApi.repositoriesWorkspaceRepoSlugPost({
         workspace,
         repoSlug: name,
-        repository: request,
+        body: request,
       });
 
     const repo = response.data;

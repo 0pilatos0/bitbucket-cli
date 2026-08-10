@@ -8,7 +8,8 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { SnippetComment, SnippetsApi } from '../../generated/api.js';
+import type { SnippetsApi } from '../../generated/api.js';
+import { buildSnippetComment } from './shared.js';
 
 export interface EditSnippetCommentOptions {
   workspace?: string;
@@ -47,19 +48,12 @@ export class EditSnippetCommentCommand extends BaseCommand<
 
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    const body: SnippetComment = {
-      type: 'snippet_comment',
-      content: {
-        raw: options.message,
-      },
-    };
-
     const response =
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdPut({
         workspace,
         encodedId: options.snippetId,
         commentId,
-        snippetComment: body,
+        body: buildSnippetComment(options.message),
       });
 
     if (context.globalOptions.json) {

@@ -10,6 +10,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type {
+  CommentInline,
   PullrequestsApi,
   PullrequestComment,
 } from '../../generated/api.js';
@@ -83,7 +84,7 @@ export class CommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.id, 'id');
 
     // Build inline object when --file is provided
-    const inline = options.file
+    const inline: CommentInline | undefined = options.file
       ? {
           path: options.file,
           ...(lineTo !== undefined ? { to: lineTo } : {}),
@@ -91,11 +92,13 @@ export class CommentPRCommand extends BaseCommand<
         }
       : undefined;
 
-    const body: PullrequestComment = {
+    // Bitbucket rejects `type` here with 400 "extra keys not allowed", so the
+    // required ModelObject.type is intentionally omitted.
+    const body = {
       content: {
         raw: options.message,
       },
-      ...(inline ? { inline: inline as object } : {}),
+      ...(inline ? { inline } : {}),
     } as PullrequestComment;
 
     const response =
@@ -104,7 +107,7 @@ export class CommentPRCommand extends BaseCommand<
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
           pullRequestId: prId,
-          pullrequestComment: body,
+          body,
         }
       );
 

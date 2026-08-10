@@ -11,7 +11,7 @@ Name | Type | Description | Notes
 **label** | **string** | The user-defined label for the SSH key | [optional] [default to undefined]
 **created_on** | **string** |  | [optional] [default to undefined]
 **last_used** | **string** |  | [optional] [default to undefined]
-**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

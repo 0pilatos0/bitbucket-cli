@@ -78,7 +78,7 @@ export class CreateIssueCommand extends BaseCommand<CreateIssueOptions, void> {
       .repositoriesWorkspaceRepoSlugIssuesPost({
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
-        issue: issueBody,
+        body: issueBody,
       })
       .catch((error: unknown) => rethrowTrackerDisabled(error));
 

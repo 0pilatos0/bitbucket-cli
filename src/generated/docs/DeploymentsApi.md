@@ -22,7 +22,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**workspacesWorkspaceProjectsProjectKeyDeployKeysPost**](#workspacesworkspaceprojectsprojectkeydeploykeyspost) | **POST** /workspaces/{workspace}/projects/{project_key}/deploy-keys | Create a project deploy key|
 
 # **createEnvironment**
-> DeploymentEnvironment createEnvironment(deploymentEnvironment)
+> DeploymentEnvironment createEnvironment(body)
 
 Create an environment.
 
@@ -40,12 +40,12 @@ const apiInstance = new DeploymentsApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example `{workspace UUID}`. (default to undefined)
 let repoSlug: string; //The repository. (default to undefined)
-let deploymentEnvironment: DeploymentEnvironment; //The environment to create.
+let body: DeploymentEnvironment; //The environment to create.
 
 const { status, data } = await apiInstance.createEnvironment(
     workspace,
     repoSlug,
-    deploymentEnvironment
+    body
 );
 ```
 
@@ -53,7 +53,7 @@ const { status, data } = await apiInstance.createEnvironment(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **deploymentEnvironment** | **DeploymentEnvironment**| The environment to create. | |
+| **body** | **DeploymentEnvironment**| The environment to create. | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 
@@ -540,7 +540,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugDeployKe
 # **repositoriesWorkspaceRepoSlugDeployKeysKeyIdPut**
 > DeployKey repositoriesWorkspaceRepoSlugDeployKeysKeyIdPut()
 
-Create a new deploy key in a repository.  The same key needs to be passed in but the comment and label can change.  Example: ``` $ curl -X PUT \\ -H \"Authorization <auth header>\" \\ -H \"Content-type: application/json\" \\ https://api.bitbucket.org/2.0/repositories/mleu/test/deploy-keys/1234 -d \\ \'{     \"label\": \"newlabel\",     \"key\": \"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAK/b1cHHDr/TEV1JGQl+WjCwStKG6Bhrv0rFpEsYlyTBm1fzN0VOJJYn4ZOPCPJwqse6fGbXntEs+BbXiptR+++HycVgl65TMR0b5ul5AgwrVdZdT7qjCOCgaSV74/9xlHDK8oqgGnfA7ZoBBU+qpVyaloSjBdJfLtPY/xqj4yHnXKYzrtn/uFc4Kp9Tb7PUg9Io3qohSTGJGVHnsVblq/rToJG7L5xIo0OxK0SJSQ5vuId93ZuFZrCNMXj8JDHZeSEtjJzpRCBEXHxpOPhAcbm4MzULgkFHhAVgp4JbkrT99/wpvZ7r9AdkTg7HGqL3rlaDrEcWfL7Lu6TnhBdq5 newcomment\", }\' ```
+Update an existing deploy key in a repository.  The same key needs to be passed in but the comment and label can change.  Example: ``` $ curl -X PUT \\ -H \"Authorization <auth header>\" \\ -H \"Content-type: application/json\" \\ https://api.bitbucket.org/2.0/repositories/mleu/test/deploy-keys/1234 -d \\ \'{     \"label\": \"newlabel\",     \"key\": \"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDAK/b1cHHDr/TEV1JGQl+WjCwStKG6Bhrv0rFpEsYlyTBm1fzN0VOJJYn4ZOPCPJwqse6fGbXntEs+BbXiptR+++HycVgl65TMR0b5ul5AgwrVdZdT7qjCOCgaSV74/9xlHDK8oqgGnfA7ZoBBU+qpVyaloSjBdJfLtPY/xqj4yHnXKYzrtn/uFc4Kp9Tb7PUg9Io3qohSTGJGVHnsVblq/rToJG7L5xIo0OxK0SJSQ5vuId93ZuFZrCNMXj8JDHZeSEtjJzpRCBEXHxpOPhAcbm4MzULgkFHhAVgp4JbkrT99/wpvZ7r9AdkTg7HGqL3rlaDrEcWfL7Lu6TnhBdq5 newcomment\", }\' ```
 
 ### Example
 

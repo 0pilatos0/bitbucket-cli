@@ -160,6 +160,8 @@ function createMockPullrequestsApi(
   lastResolveOptions?: Record<string, unknown>;
   lastUnresolveRequest?: Record<string, unknown>;
   lastCommentGetRequest?: Record<string, unknown>;
+  lastMergeBody?: Record<string, unknown>;
+  lastPutBody?: Record<string, unknown>;
 } {
   const prs = options.pullRequests ?? [mockPullRequest];
   const allPullRequests = options.pullRequestPages
@@ -241,12 +243,12 @@ function createMockPullrequestsApi(
     },
 
     async repositoriesWorkspaceRepoSlugPullrequestsPost(params: {
-      pullrequest: Pullrequest;
+      body: Pullrequest;
     }) {
       if (options.throwOnCreate) {
         throw new Error('API Error');
       }
-      const body = params.pullrequest;
+      const body = params.body;
       const newPr: Pullrequest = {
         ...mockPullRequest,
         id: 2,
@@ -262,10 +264,12 @@ function createMockPullrequestsApi(
 
     async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(params: {
       pullRequestId: number;
+      body?: Record<string, unknown>;
     }) {
       if (options.throwOnMerge) {
         throw new Error('API Error');
       }
+      mockApi.lastMergeBody = params.body;
       const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
@@ -309,16 +313,17 @@ function createMockPullrequestsApi(
 
     async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(params: {
       pullRequestId: number;
-      pullrequest: Pullrequest;
+      body: Pullrequest;
     }) {
       if (options.throwOnUpdate) {
         throw new Error('API Error');
       }
+      mockApi.lastPutBody = params.body;
       const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
-      const body = params.pullrequest;
+      const body = params.body;
       return createAxiosResponse({
         ...pr,
         title: body.title ?? pr.title,
@@ -451,7 +456,7 @@ function createMockPullrequestsApi(
       workspace: string;
       repoSlug: string;
       pullRequestId: number;
-      pullrequestComment: Record<string, unknown>;
+      body: Record<string, unknown>;
     }) {
       if (options.commentPostError !== undefined) {
         throw options.commentPostError;
@@ -459,7 +464,7 @@ function createMockPullrequestsApi(
       if (options.throwOnComment) {
         throw new Error('API Error');
       }
-      const body = params.pullrequestComment;
+      const body = params.body;
       mockApi.lastCommentBody = body;
       mockApi.lastCommentRequest = params;
       return createAxiosResponse({
@@ -487,16 +492,16 @@ function createMockPullrequestsApi(
       repoSlug: string;
       pullRequestId: number;
       commentId: number;
-      pullrequestComment: Record<string, unknown>;
+      body: Record<string, unknown>;
     }) {
-      mockApi.lastCommentEditBody = params.pullrequestComment;
+      mockApi.lastCommentEditBody = params.body;
       if (options.throwOnCommentEdit) {
         throw new Error('API Error');
       }
       return createAxiosResponse({
         id: params.commentId,
         type: 'pullrequest_comment',
-        content: params.pullrequestComment.content,
+        content: params.body.content,
       });
     },
 
@@ -2112,7 +2117,7 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     repositoriesWorkspaceRepoSlugPullrequestsPost: (params: {
       workspace: string;
       repoSlug: string;
-      pullrequest: import('../../src/generated/api.js').Pullrequest;
+      body: import('../../src/generated/api.js').Pullrequest;
     }) => Promise<
       AxiosResponse<import('../../src/generated/api.js').Pullrequest>
     >;
@@ -2120,7 +2125,7 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
   pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost = async (
     params
   ) => {
-    captured.body = params.pullrequest;
+    captured.body = params.body;
     if (options.createPRThrows) {
       throw new Error('PR creation failed');
     }
@@ -2408,6 +2413,9 @@ describe('MergePRCommand', () => {
     const command = new MergePRCommand(pullrequestsApi, contextService, output);
     await command.execute({ id: '1' }, { globalOptions: {} });
 
+    expect(pullrequestsApi.lastMergeBody).toEqual({
+      type: 'pullrequest_merge_parameters',
+    });
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
     expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
   });
@@ -2452,10 +2460,21 @@ describe('MergePRCommand', () => {
 
     const command = new MergePRCommand(pullrequestsApi, contextService, output);
     await command.execute(
-      { id: '1', strategy: 'squash' },
+      {
+        id: '1',
+        strategy: 'squash',
+        message: 'Merging now',
+        closeSourceBranch: true,
+      },
       { globalOptions: {} }
     );
 
+    expect(pullrequestsApi.lastMergeBody).toEqual({
+      type: 'pullrequest_merge_parameters',
+      message: 'Merging now',
+      close_source_branch: true,
+      merge_strategy: 'squash',
+    });
     expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
   });
 
@@ -2568,6 +2587,10 @@ describe('ReadyPRCommand', () => {
     const command = new ReadyPRCommand(pullrequestsApi, contextService, output);
     await command.execute({ id: '1' }, { globalOptions: {} });
 
+    expect(pullrequestsApi.lastPutBody).toEqual({
+      type: 'pullrequest',
+      draft: false,
+    });
     expect(output.logs.some((log) => log.includes('ready for review'))).toBe(
       true
     );
@@ -3133,6 +3156,10 @@ describe('EditPRCommand', () => {
       { globalOptions: {} }
     );
 
+    expect(pullrequestsApi.lastPutBody).toEqual({
+      type: 'pullrequest',
+      title: 'New Title',
+    });
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
     expect(output.logs.some((log) => log.includes('Updated'))).toBe(true);
   });

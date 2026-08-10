@@ -70,7 +70,7 @@ export class CreateProjectCommand extends BaseCommand<
 
     const response = await this.projectsApi.workspacesWorkspaceProjectsPost({
       workspace,
-      project: {
+      body: {
         type: 'project',
         key,
         name,

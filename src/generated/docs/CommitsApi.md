@@ -27,11 +27,12 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**repositoriesWorkspaceRepoSlugCommitsRevisionPost**](#repositoriesworkspacereposlugcommitsrevisionpost) | **POST** /repositories/{workspace}/{repo_slug}/commits/{revision} | List commits for revision using include/exclude|
 |[**repositoriesWorkspaceRepoSlugDiffSpecGet**](#repositoriesworkspacereposlugdiffspecget) | **GET** /repositories/{workspace}/{repo_slug}/diff/{spec} | Compare two commits|
 |[**repositoriesWorkspaceRepoSlugDiffstatSpecGet**](#repositoriesworkspacereposlugdiffstatspecget) | **GET** /repositories/{workspace}/{repo_slug}/diffstat/{spec} | Compare two commit diff stats|
+|[**repositoriesWorkspaceRepoSlugFileConflictsSpecGet**](#repositoriesworkspacereposlugfileconflictsspecget) | **GET** /repositories/{workspace}/{repo_slug}/file-conflicts/{spec} | Get file conflicts for a commit spec|
 |[**repositoriesWorkspaceRepoSlugMergeBaseRevspecGet**](#repositoriesworkspacereposlugmergebaserevspecget) | **GET** /repositories/{workspace}/{repo_slug}/merge-base/{revspec} | Get the common ancestor between two commits|
 |[**repositoriesWorkspaceRepoSlugPatchSpecGet**](#repositoriesworkspacereposlugpatchspecget) | **GET** /repositories/{workspace}/{repo_slug}/patch/{spec} | Get a patch for two commits|
 
 # **bulkCreateOrUpdateAnnotations**
-> Array<ReportAnnotation> bulkCreateOrUpdateAnnotations(reportAnnotation)
+> Array<ReportAnnotation> bulkCreateOrUpdateAnnotations(body)
 
 Bulk upload of annotations. Annotations are individual findings that have been identified as part of a report, for example, a line of code that represents a vulnerability. These annotations can be attached to a specific file and even a specific line in that file, however, that is optional. Annotations are not mandatory and a report can contain up to 1000 annotations.  Add the annotations you want to upload as objects in a JSON array and make sure each annotation has the external_id field set to a unique value. If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-annotation001. The external id can later be used to identify the report as an alternative to the generated [UUID](https://developer.atlassian.com/bitbucket/api/2/reference/meta/uri-uuid#uuid). You can upload up to 100 annotations per POST request.  ### Sample cURL request: ``` curl --location \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mysystem-001/annotations\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'[   {         \"external_id\": \"mysystem-annotation001\",         \"title\": \"Security scan report\",         \"annotation_type\": \"VULNERABILITY\",         \"summary\": \"This line represents a security threat.\",         \"severity\": \"HIGH\",       \"path\": \"my-service/src/main/java/com/myCompany/mysystem/logic/Main.java\",         \"line\": 42   },   {         \"external_id\": \"mySystem-annotation002\",         \"title\": \"Bug report\",         \"annotation_type\": \"BUG\",         \"result\": \"FAILED\",         \"summary\": \"This line might introduce a bug.\",         \"severity\": \"MEDIUM\",       \"path\": \"my-service/src/main/java/com/myCompany/mysystem/logic/Helper.java\",         \"line\": 13   } ]\' ```  ### Possible field values: annotation_type: VULNERABILITY, CODE_SMELL, BUG result: PASSED, FAILED, IGNORED, SKIPPED severity: HIGH, MEDIUM, LOW, CRITICAL  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
 
@@ -50,14 +51,14 @@ let workspace: string; //This can either be the workspace ID (slug) or the works
 let repoSlug: string; //The repository. (default to undefined)
 let commit: string; //The commit for which to retrieve reports. (default to undefined)
 let reportId: string; //Uuid or external-if of the report for which to get annotations for. (default to undefined)
-let reportAnnotation: Array<ReportAnnotation>; //The annotations to create or update
+let body: Array<ReportAnnotation>; //The annotations to create or update
 
 const { status, data } = await apiInstance.bulkCreateOrUpdateAnnotations(
     workspace,
     repoSlug,
     commit,
     reportId,
-    reportAnnotation
+    body
 );
 ```
 
@@ -65,7 +66,7 @@ const { status, data } = await apiInstance.bulkCreateOrUpdateAnnotations(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **reportAnnotation** | **Array<ReportAnnotation>**| The annotations to create or update | |
+| **body** | **Array<ReportAnnotation>**| The annotations to create or update | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **commit** | [**string**] | The commit for which to retrieve reports. | defaults to undefined|
@@ -94,7 +95,7 @@ const { status, data } = await apiInstance.bulkCreateOrUpdateAnnotations(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createOrUpdateAnnotation**
-> ReportAnnotation createOrUpdateAnnotation(reportAnnotation)
+> ReportAnnotation createOrUpdateAnnotation(body)
 
 Creates or updates an individual annotation for the specified report. Annotations are individual findings that have been identified as part of a report, for example, a line of code that represents a vulnerability. These annotations can be attached to a specific file and even a specific line in that file, however, that is optional. Annotations are not mandatory and a report can contain up to 1000 annotations.  Just as reports, annotation needs to be uploaded with a unique ID that can later be used to identify the report as an alternative to the generated [UUID](https://developer.atlassian.com/bitbucket/api/2/reference/meta/uri-uuid#uuid). If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-annotation001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mySystem-001/annotations/mysystem-annotation001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"annotation_type\": \"VULNERABILITY\",     \"summary\": \"This line represents a security thread.\",     \"severity\": \"HIGH\",     \"path\": \"my-service/src/main/java/com/myCompany/mysystem/logic/Main.java\",     \"line\": 42 }\' ```  ### Possible field values: annotation_type: VULNERABILITY, CODE_SMELL, BUG result: PASSED, FAILED, IGNORED, SKIPPED severity: HIGH, MEDIUM, LOW, CRITICAL  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
 
@@ -115,7 +116,7 @@ let repoSlug: string; //The repository. (default to undefined)
 let commit: string; //The commit the report belongs to. (default to undefined)
 let reportId: string; //Either the uuid or external-id of the report. (default to undefined)
 let annotationId: string; //Either the uuid or external-id of the annotation. (default to undefined)
-let reportAnnotation: ReportAnnotation; //The annotation to create or update
+let body: ReportAnnotation; //The annotation to create or update
 
 const { status, data } = await apiInstance.createOrUpdateAnnotation(
     workspace,
@@ -123,7 +124,7 @@ const { status, data } = await apiInstance.createOrUpdateAnnotation(
     commit,
     reportId,
     annotationId,
-    reportAnnotation
+    body
 );
 ```
 
@@ -131,7 +132,7 @@ const { status, data } = await apiInstance.createOrUpdateAnnotation(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **reportAnnotation** | **ReportAnnotation**| The annotation to create or update | |
+| **body** | **ReportAnnotation**| The annotation to create or update | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **commit** | [**string**] | The commit the report belongs to. | defaults to undefined|
@@ -162,7 +163,7 @@ const { status, data } = await apiInstance.createOrUpdateAnnotation(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **createOrUpdateReport**
-> Report createOrUpdateReport(report)
+> Report createOrUpdateReport(body)
 
 Creates or updates a report for the specified commit. To upload a report, make sure to generate an ID that is unique across all reports for that commit. If you want to use an existing id from your own system, we recommend prefixing it with your system\'s name to avoid collisions, for example, mySystem-001.  ### Sample cURL request: ``` curl --request PUT \'https://api.bitbucket.org/2.0/repositories/<username>/<reposity-name>/commit/<commit-hash>/reports/mysystem-001\' \\ --header \'Content-Type: application/json\' \\ --data-raw \'{     \"title\": \"Security scan report\",     \"details\": \"This pull request introduces 10 new dependency vulnerabilities.\",     \"report_type\": \"SECURITY\",     \"reporter\": \"mySystem\",     \"link\": \"http://www.mysystem.com/reports/001\",     \"result\": \"FAILED\",     \"data\": [         {             \"title\": \"Duration (seconds)\",             \"type\": \"DURATION\",             \"value\": 14         },         {             \"title\": \"Safe to merge?\",             \"type\": \"BOOLEAN\",             \"value\": false         }     ] }\' ```  ### Possible field values: report_type: SECURITY, COVERAGE, TEST, BUG result: PASSED, FAILED, PENDING data.type: BOOLEAN, DATE, DURATION, LINK, NUMBER, PERCENTAGE, TEXT  #### Data field formats | Type  Field   | Value Field Type  | Value Field Display | |:--------------|:------------------|:--------------------| | None/ Omitted | Number, String or Boolean (not an array or object) | Plain text | | BOOLEAN | Boolean | The value will be read as a JSON boolean and displayed as \'Yes\' or \'No\'. | | DATE  | Number | The value will be read as a JSON number in the form of a Unix timestamp (milliseconds) and will be displayed as a relative date if the date is less than one week ago, otherwise  it will be displayed as an absolute date. | | DURATION | Number | The value will be read as a JSON number in milliseconds and will be displayed in a human readable duration format. | | LINK | Object: `{\"text\": \"Link text here\", \"href\": \"https://link.to.annotation/in/external/tool\"}` | The value will be read as a JSON object containing the fields \"text\" and \"href\" and will be displayed as a clickable link on the report. | | NUMBER | Number | The value will be read as a JSON number and large numbers will be  displayed in a human readable format (e.g. 14.3k). | | PERCENTAGE | Number (between 0 and 100) | The value will be read as a JSON number between 0 and 100 and will be displayed with a percentage sign. | | TEXT | String | The value will be read as a JSON string and will be displayed as-is |  Please refer to the [Code Insights documentation](https://confluence.atlassian.com/bitbucket/code-insights-994316785.html) for more information. 
 
@@ -182,14 +183,14 @@ let workspace: string; //This can either be the workspace ID (slug) or the works
 let repoSlug: string; //The repository. (default to undefined)
 let commit: string; //The commit the report belongs to. (default to undefined)
 let reportId: string; //Either the uuid or external-id of the report. (default to undefined)
-let report: Report; //The report to create or update
+let body: Report; //The report to create or update
 
 const { status, data } = await apiInstance.createOrUpdateReport(
     workspace,
     repoSlug,
     commit,
     reportId,
-    report
+    body
 );
 ```
 
@@ -197,7 +198,7 @@ const { status, data } = await apiInstance.createOrUpdateReport(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **report** | **Report**| The report to create or update | |
+| **body** | **Report**| The report to create or update | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;. | defaults to undefined|
 | **repoSlug** | [**string**] | The repository. | defaults to undefined|
 | **commit** | [**string**] | The commit the report belongs to. | defaults to undefined|
@@ -829,7 +830,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut**
-> repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(commitComment)
+> repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(body)
 
 Used to update the contents of a comment. Only the content of the comment can be updated.  ``` $ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/commit/7f71b5/comments/5728901 \\   -X PUT -u evzijst \\   -H \'Content-Type: application/json\' \\   -d \'{\"content\": {\"raw\": \"One more thing!\"}\' ```
 
@@ -849,14 +850,14 @@ let commentId: number; //The id of the comment. (default to undefined)
 let commit: string; //The commit\'s SHA1. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let commitComment: CommitComment; //The updated comment.
+let body: CommitComment; //The updated comment.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCommitCommentsCommentIdPut(
     commentId,
     commit,
     repoSlug,
     workspace,
-    commitComment
+    body
 );
 ```
 
@@ -864,7 +865,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **commitComment** | **CommitComment**| The updated comment. | |
+| **body** | **CommitComment**| The updated comment. | |
 | **commentId** | [**number**] | The id of the comment. | defaults to undefined|
 | **commit** | [**string**] | The commit\&#39;s SHA1. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
@@ -957,7 +958,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugCommitCommitCommentsPost**
-> repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(commitComment)
+> repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(body)
 
 Creates new comment on the specified commit.  To post a reply to an existing comment, include the `parent.id` field:  ``` $ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/commit/db9ba1e031d07a02603eae0e559a7adc010257fc/comments/ \\   -X POST -u evzijst \\   -H \'Content-Type: application/json\' \\   -d \'{\"content\": {\"raw\": \"One more thing!\"},        \"parent\": {\"id\": 5728901}}\' ```
 
@@ -976,13 +977,13 @@ const apiInstance = new CommitsApi(configuration);
 let commit: string; //The commit\'s SHA1. (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let commitComment: CommitComment; //The specified comment.
+let body: CommitComment; //The specified comment.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCommitCommentsPost(
     commit,
     repoSlug,
     workspace,
-    commitComment
+    body
 );
 ```
 
@@ -990,7 +991,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugCommitCo
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **commitComment** | **CommitComment**| The specified comment. | |
+| **body** | **CommitComment**| The specified comment. | |
 | **commit** | [**string**] | The commit\&#39;s SHA1. | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1452,6 +1453,64 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugDiffstat
 |-------------|-------------|------------------|
 |**200** | The diff stats |  -  |
 |**555** | If generating the diffstat timed out. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **repositoriesWorkspaceRepoSlugFileConflictsSpecGet**
+> PaginatedFileConflicts repositoriesWorkspaceRepoSlugFileConflictsSpecGet()
+
+Get file conflicts for a commit spec
+
+### Example
+
+```typescript
+import {
+    CommitsApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new CommitsApi(configuration);
+
+let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
+let spec: string; //A commit SHA (e.g. `3a8b42`) or a commit range using double dot notation (e.g. `3a8b42..9ff173`).  (default to undefined)
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+
+const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugFileConflictsSpecGet(
+    repoSlug,
+    spec,
+    workspace
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
+| **spec** | [**string**] | A commit SHA (e.g. &#x60;3a8b42&#x60;) or a commit range using double dot notation (e.g. &#x60;3a8b42..9ff173&#x60;).  | defaults to undefined|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
+
+
+### Return type
+
+**PaginatedFileConflicts**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | A paginated list of file conflicts |  -  |
+|**404** | If the spec cannot be resolved, which may be due to an invalid spec, or commits/refs not present in the repository |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

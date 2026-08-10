@@ -1,22 +1,26 @@
-# ModelError
+# FileConflict
 
-Base type for most resource objects. It defines the common `type` element that identifies an object\'s type. It also identifies the element as Swagger\'s `discriminator`.
+A file conflict object.
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**error** | **object** |  | [optional] [default to undefined]
+**path** | **string** |  | [optional] [default to undefined]
+**scenario** | **string** |  | [optional] [default to undefined]
+**message** | **string** |  | [optional] [default to undefined]
 
 ## Example
 
 ```typescript
-import { ModelError } from './api';
+import { FileConflict } from './api';
 
-const instance: ModelError = {
+const instance: FileConflict = {
     type,
-    error,
+    path,
+    scenario,
+    message,
 };
 ```
 
