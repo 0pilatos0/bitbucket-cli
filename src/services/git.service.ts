@@ -22,15 +22,21 @@ const DEFAULT_GIT_TIMEOUT_MS = 60_000;
 export class GitService implements IGitService {
   private readonly cwd: string;
   private readonly timeoutMs: number;
+  private readonly env?: Record<string, string>;
 
-  constructor(cwd?: string, options: { timeoutMs?: number } = {}) {
+  constructor(
+    cwd?: string,
+    options: { timeoutMs?: number; env?: Record<string, string> } = {}
+  ) {
     this.cwd = cwd ?? process.cwd();
     this.timeoutMs = options.timeoutMs ?? DEFAULT_GIT_TIMEOUT_MS;
+    this.env = options.env;
   }
 
   private async exec(args: string[], cwd?: string): Promise<GitExecResult> {
     const proc = Bun.spawn(['git', ...args], {
       cwd: cwd ?? this.cwd,
+      env: this.env,
       stdout: 'pipe',
       stderr: 'pipe',
     });
@@ -142,6 +148,9 @@ export class GitService implements IGitService {
    * Create a new instance with a different working directory
    */
   public withCwd(cwd: string): GitService {
-    return new GitService(cwd, { timeoutMs: this.timeoutMs });
+    return new GitService(cwd, {
+      timeoutMs: this.timeoutMs,
+      env: this.env,
+    });
   }
 }
