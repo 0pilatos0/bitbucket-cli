@@ -3,8 +3,13 @@
  */
 
 import { beforeEach, afterEach } from 'bun:test';
+import axios, {
+  type AxiosAdapter,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { Container } from '../src/core/container.js';
 import { ContextService } from '../src/services/context.service.js';
+import type { OAuthService } from '../src/services/oauth.service.js';
 import type {
   IConfigService,
   ICredentialStore,
@@ -24,6 +29,7 @@ import type {
 } from '../src/types/config.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
+const originalSetTimeout = globalThis.setTimeout;
 
 // Reset container before each test
 beforeEach(() => {
@@ -509,6 +515,52 @@ export const mockDiffStat = {
  * api-client.test.ts and api-client.interceptors.test.ts).
  */
 
+type MockResponse = {
+  status: number;
+  data?: unknown;
+  headers?: Record<string, string>;
+};
+
+/** Shared success/error shaping for the queue-based adapters below. */
+function resolveMockResponse(
+  config: InternalAxiosRequestConfig,
+  resp: MockResponse
+) {
+  const response = {
+    data: resp.data ?? {},
+    status: resp.status,
+    statusText:
+      resp.status >= 200 && resp.status < 300 ? 'OK' : resp.status.toString(),
+    headers: resp.headers ?? {},
+    config,
+  };
+  if (resp.status >= 200 && resp.status < 300) {
+    return Promise.resolve(response);
+  }
+  // Simulate an axios error for non-2xx (isAxiosError is set by the ctor)
+  return Promise.reject(
+    new axios.AxiosError(
+      `Request failed with status code ${resp.status}`,
+      undefined,
+      config,
+      undefined,
+      response
+    )
+  );
+}
+
+/** Make the interceptor's setTimeout-based backoff run synchronously. */
+export function stubSetTimeout(): void {
+  globalThis.setTimeout = ((fn: Function, _ms?: number) => {
+    fn();
+    return 0 as never;
+  }) as never;
+}
+
+export function restoreSetTimeout(): void {
+  globalThis.setTimeout = originalSetTimeout;
+}
+
 export function mockConfigService() {
   return createMockConfigService({
     username: 'testuser',
@@ -527,43 +579,22 @@ export function mockOAuthConfigService() {
 
 /**
  * Creates an axios adapter that returns responses from a queue. Each entry
- * is either a successful response or an error response. Tracks the number
- * of calls made.
+ * is either a successful response or an error response; the last entry
+ * repeats indefinitely. Tracks the number of calls made.
  */
 export function createMockAdapter(
-  responses: Array<{
-    status: number;
-    data?: unknown;
-    headers?: Record<string, string>;
-  }>
-) {
+  responses: MockResponse[],
+  options: {
+    onRequest?: (config: InternalAxiosRequestConfig) => void;
+  } = {}
+): { adapter: AxiosAdapter; getCallCount: () => number } {
   let callCount = 0;
-  const adapter = (config: unknown) => {
+  const adapter: AxiosAdapter = (config) => {
     const idx = callCount;
     callCount++;
+    options.onRequest?.(config);
     const resp = responses[idx] ?? responses[responses.length - 1];
-    if (resp.status >= 200 && resp.status < 300) {
-      return Promise.resolve({
-        data: resp.data ?? {},
-        status: resp.status,
-        statusText: 'OK',
-        headers: resp.headers ?? {},
-        config,
-      });
-    }
-    // Simulate an axios error for non-2xx
-    const error = new Error(`Request failed with status code ${resp.status}`);
-    (error as any).response = {
-      data: resp.data ?? {},
-      status: resp.status,
-      statusText: resp.status.toString(),
-      headers: resp.headers ?? {},
-      config,
-    };
-    (error as any).config = config;
-    (error as any).isAxiosError = true;
-    // For network errors we handle separately; here we always have a response
-    return Promise.reject(error);
+    return resolveMockResponse(config, resp);
   };
 
   return {
@@ -583,10 +614,14 @@ export function createMockAdapter(
 export function createTimeoutErrorAdapter(
   code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED',
   options: { succeedAfter?: number } = {}
-) {
+): {
+  adapter: AxiosAdapter;
+  getCallCount: () => number;
+  getLastError: () => unknown;
+} {
   let callCount = 0;
   let lastError: unknown;
-  const adapter = (_config: unknown) => {
+  const adapter: AxiosAdapter = (config) => {
     callCount++;
     if (
       options.succeedAfter !== undefined &&
@@ -597,15 +632,16 @@ export function createTimeoutErrorAdapter(
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: _config,
+        config,
       });
     }
-    const error = new Error(`timeout of 30000ms exceeded`);
-    (error as any).code = code;
-    (error as any).request = {}; // request was sent...
-    // ...but no `response` was ever received.
-    (error as any).config = _config;
-    (error as any).isAxiosError = true;
+    // request was sent ({}), but no response was ever received
+    const error = new axios.AxiosError(
+      `timeout of 30000ms exceeded`,
+      code,
+      config,
+      {}
+    );
     lastError = error;
     return Promise.reject(error);
   };
@@ -623,9 +659,9 @@ export function createTimeoutErrorAdapter(
  */
 export function createNetworkErrorAdapter(
   options: { code?: string; succeedAfter?: number } = {}
-) {
+): { adapter: AxiosAdapter; getCallCount: () => number } {
   let callCount = 0;
-  const adapter = (_config: unknown) => {
+  const adapter: AxiosAdapter = (config) => {
     callCount++;
     if (
       options.succeedAfter !== undefined &&
@@ -636,21 +672,45 @@ export function createNetworkErrorAdapter(
         status: 200,
         statusText: 'OK',
         headers: {},
-        config: _config,
+        config,
       });
     }
-    const error = new Error('Network Error');
-    if (options.code !== undefined) {
-      (error as any).code = options.code;
-    }
-    (error as any).request = {}; // has request but no response
-    (error as any).config = _config;
-    (error as any).isAxiosError = true;
+    // has request but no response
+    const error = new axios.AxiosError(
+      'Network Error',
+      options.code,
+      config,
+      {}
+    );
     return Promise.reject(error);
   };
   return {
     adapter,
     getCallCount: () => callCount,
+  };
+}
+
+/**
+ * Creates an adapter with a per-URL response queue, so concurrent requests
+ * to different paths each consume their own sequence. Used to prove
+ * interceptor state is per-request, not per-instance.
+ */
+export function createUrlKeyedAdapter(routes: Record<string, MockResponse[]>): {
+  adapter: AxiosAdapter;
+  getCallCount: (url: string) => number;
+} {
+  const callCounts: Record<string, number> = {};
+  const adapter: AxiosAdapter = (config) => {
+    const url = config.url ?? '';
+    const idx = callCounts[url] ?? 0;
+    callCounts[url] = idx + 1;
+    const queue = routes[url] ?? [];
+    const resp = queue[idx] ?? queue[queue.length - 1];
+    return resolveMockResponse(config, resp);
+  };
+  return {
+    adapter,
+    getCallCount: (url: string) => callCounts[url] ?? 0,
   };
 }
 
@@ -681,7 +741,7 @@ export function createMockOAuthService(
         return { username: 'user', displayName: 'User', accountId: '123' };
       },
       async revokeToken() {},
-    } as any,
+    } as unknown as OAuthService,
     getRefreshCallCount: () => refreshCallCount,
   };
 }

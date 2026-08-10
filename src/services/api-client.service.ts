@@ -141,10 +141,11 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 }
 
 /**
- * Backoff delay for one retry attempt (1-based). A numeric `Retry-After`
- * header on a 429 wins; anything else — missing/garbage header, HTTP-date
- * format, or a non-429 status — falls back to exponential backoff
- * `1000 * 2^(attempt-1)`. Exported for direct unit tests.
+ * Backoff delay for one retry attempt (1-based). A `Retry-After` header with
+ * an integer-prefixed value (e.g. `5`, `5abc` parses as 5) on a 429 wins;
+ * anything else — missing header, non-numeric start, HTTP-date format, or a
+ * non-429 status — falls back to exponential backoff `1000 * 2^(attempt-1)`.
+ * Exported for direct unit tests.
  */
 export function getRetryDelay(error: AxiosError, attempt: number): number {
   if (error.response?.status === 429) {
@@ -166,8 +167,10 @@ function sleep(ms: number): Promise<void> {
 /**
  * Strip a request URL down to `origin + pathname`, replacing any query
  * string with `?[redacted]` so tokens in query params never reach DEBUG
- * output. Falls back to a manual query split when URL parsing fails.
- * Exported for direct unit tests.
+ * output. Root-relative URLs (a leading `/`) are resolved against the base
+ * so the base path survives and the log matches the actual wire URL. Falls
+ * back to a manual query split when URL parsing fails. Exported for direct
+ * unit tests.
  */
 export function redactRequestUrl(
   requestUrl: string | undefined,
@@ -175,7 +178,14 @@ export function redactRequestUrl(
 ): string {
   const raw = requestUrl ?? '';
   try {
-    const parsed = new URL(raw, baseUrl);
+    // axios concatenates baseURL + url for relative paths; mirror that so
+    // the logged URL matches the actual wire request (base path preserved).
+    // Absolute and protocol-relative URLs are used as-is.
+    const full =
+      raw.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw)
+        ? raw
+        : `${(baseUrl ?? '').replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
+    const parsed = new URL(full);
     const query = parsed.search ? '?[redacted]' : '';
     return `${parsed.origin}${parsed.pathname}${query}`;
   } catch {
