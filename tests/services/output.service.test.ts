@@ -163,16 +163,19 @@ describe('OutputService', () => {
       expect(parsed).toEqual([]);
     });
 
-    it('skips a known wrapper key that holds a non-array', async () => {
-      output.setJsonFormatOptions({ fields: ['workspace', 'count'] });
+    it('skips a known wrapper key that holds a non-array and keeps scanning', async () => {
+      output.setJsonFormatOptions({ fields: ['id'] });
       await output.json({
         workspace: 'ws',
         count: 1,
         comments: { nested: 'object' },
+        pullRequests: [{ id: 1, other: 'x' }],
       });
 
+      // A buggy implementation that stopped at the first non-array wrapper
+      // key would project the envelope instead; the later array key wins.
       const parsed = JSON.parse(consoleLogs[0]!);
-      expect(parsed).toEqual({ workspace: 'ws', count: 1 });
+      expect(parsed).toEqual([{ id: 1 }]);
     });
   });
 

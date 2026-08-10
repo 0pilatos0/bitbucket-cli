@@ -8,6 +8,11 @@
  * - GIT_CONFIG_NOSYSTEM + system/global config pointed at an isolated file
  *   that pins `init.defaultBranch = main`,
  * - an isolated HOME, and fixed author/committer identities.
+ *
+ * The environment is injected explicitly everywhere: Bun.spawn does not
+ * inherit `process.env` mutations made at runtime on this Bun version, so
+ * the production GitService gets it via its constructor options and the
+ * setup spawns pass it directly. Setting process.env would be inert.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
@@ -17,23 +22,6 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const GIT_ENV_KEYS = [
-  'HOME',
-  'GIT_CONFIG_NOSYSTEM',
-  'GIT_CONFIG_GLOBAL',
-  'GIT_CONFIG_SYSTEM',
-  'GIT_AUTHOR_NAME',
-  'GIT_AUTHOR_EMAIL',
-  'GIT_COMMITTER_NAME',
-  'GIT_COMMITTER_EMAIL',
-  'GIT_TERMINAL_PROMPT',
-] as const;
-
-const originalEnv: Record<string, string | undefined> = {};
-for (const key of GIT_ENV_KEYS) {
-  originalEnv[key] = process.env[key];
-}
-
 const HERMETIC_GLOBAL_CONFIG = `[init]
     defaultBranch = main
 [user]
@@ -41,79 +29,85 @@ const HERMETIC_GLOBAL_CONFIG = `[init]
     email = test@test.com
 `;
 
-/**
- * Spawn git with the hermetic environment, asserting a clean exit. `env` is
- * passed explicitly because Bun.spawn does not inherit `process.env`
- * mutations made at runtime on this Bun version.
- */
+function hermeticEnv(home: string): Record<string, string> {
+  return {
+    PATH: process.env.PATH ?? '',
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_CONFIG_GLOBAL: join(home, '.gitconfig'),
+    GIT_CONFIG_SYSTEM: join(home, 'system-gitconfig'),
+    HOME: home,
+    GIT_AUTHOR_NAME: 'Test Author',
+    GIT_AUTHOR_EMAIL: 'test@test.com',
+    GIT_COMMITTER_NAME: 'Test Committer',
+    GIT_COMMITTER_EMAIL: 'test@test.com',
+    GIT_TERMINAL_PROMPT: '0',
+  };
+}
+
+/** Spawn git with the hermetic environment, asserting a clean exit. */
+async function git(
+  args: string[],
+  cwd: string,
+  env: Record<string, string>
+): Promise<void> {
+  const proc = Bun.spawn(['git', ...args], {
+    cwd,
+    env,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const exited = await proc.exited;
+  if (exited !== 0) {
+    const stderr = await new Response(proc.stderr).text();
+    throw new Error(`git ${args.join(' ')} failed (${exited}): ${stderr}`);
+  }
+}
+
+/** Spawn git and return its trimmed stdout, asserting a clean exit. */
+async function gitOut(
+  args: string[],
+  cwd: string,
+  env: Record<string, string>
+): Promise<string> {
+  const proc = Bun.spawn(['git', ...args], {
+    cwd,
+    env,
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const stdout = await new Response(proc.stdout).text();
+  const exited = await proc.exited;
+  if (exited !== 0) {
+    const stderr = await new Response(proc.stderr).text();
+    throw new Error(`git ${args.join(' ')} failed (${exited}): ${stderr}`);
+  }
+  return stdout.trim();
+}
+
 describe('GitService', () => {
   let testDir: string;
   let hermeticHome: string;
+  let env: Record<string, string>;
   let gitService: GitService;
-
-  function hermeticEnv(): Record<string, string> {
-    return {
-      GIT_CONFIG_NOSYSTEM: '1',
-      GIT_CONFIG_GLOBAL: join(hermeticHome, '.gitconfig'),
-      GIT_CONFIG_SYSTEM: join(hermeticHome, 'system-gitconfig'),
-      HOME: hermeticHome,
-      GIT_AUTHOR_NAME: 'Test Author',
-      GIT_AUTHOR_EMAIL: 'test@test.com',
-      GIT_COMMITTER_NAME: 'Test Committer',
-      GIT_COMMITTER_EMAIL: 'test@test.com',
-      GIT_TERMINAL_PROMPT: '0',
-    };
-  }
-
-  async function git(args: string[], cwd: string): Promise<void> {
-    const proc = Bun.spawn(['git', ...args], {
-      cwd,
-      env: hermeticEnv(),
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-    const exited = await proc.exited;
-    if (exited !== 0) {
-      const stderr = await new Response(proc.stderr).text();
-      throw new Error(`git ${args.join(' ')} failed (${exited}): ${stderr}`);
-    }
-  }
 
   /** Init a repo in `cwd` with a first commit, using the hermetic identity. */
   async function initRepoWithCommit(cwd: string): Promise<void> {
-    await git(['init'], cwd);
+    await git(['init'], cwd, env);
     await writeFile(join(cwd, 'test.txt'), 'test');
-    await git(['add', '.'], cwd);
-    await git(['commit', '-m', 'Initial'], cwd);
+    await git(['add', '.'], cwd, env);
+    await git(['commit', '-m', 'Initial'], cwd, env);
   }
 
   beforeEach(async () => {
     testDir = await mkdtemp(join(tmpdir(), 'bb-git-test-'));
     hermeticHome = await mkdtemp(join(tmpdir(), 'bb-git-home-'));
+    env = hermeticEnv(hermeticHome);
+    await writeFile(env.GIT_CONFIG_GLOBAL, HERMETIC_GLOBAL_CONFIG);
 
-    process.env.GIT_CONFIG_NOSYSTEM = '1';
-    process.env.GIT_CONFIG_GLOBAL = join(hermeticHome, '.gitconfig');
-    process.env.GIT_CONFIG_SYSTEM = join(hermeticHome, 'system-gitconfig');
-    process.env.HOME = hermeticHome;
-    process.env.GIT_AUTHOR_NAME = 'Test Author';
-    process.env.GIT_AUTHOR_EMAIL = 'test@test.com';
-    process.env.GIT_COMMITTER_NAME = 'Test Committer';
-    process.env.GIT_COMMITTER_EMAIL = 'test@test.com';
-    process.env.GIT_TERMINAL_PROMPT = '0';
-    await writeFile(process.env.GIT_CONFIG_GLOBAL, HERMETIC_GLOBAL_CONFIG);
-
-    gitService = new GitService(testDir);
+    gitService = new GitService(testDir, { env });
   });
 
   afterEach(async () => {
-    for (const key of GIT_ENV_KEYS) {
-      const original = originalEnv[key];
-      if (original === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = original;
-      }
-    }
     try {
       await rm(testDir, { recursive: true, force: true });
       await rm(hermeticHome, { recursive: true, force: true });
@@ -130,7 +124,7 @@ describe('GitService', () => {
     });
 
     it('should return true for git directory', async () => {
-      await git(['init'], testDir);
+      await git(['init'], testDir, env);
 
       const result = await gitService.isRepository();
 
@@ -173,7 +167,7 @@ describe('GitService', () => {
 
   describe('getRemoteUrl', () => {
     it('should throw error when no remote exists', async () => {
-      await git(['init'], testDir);
+      await git(['init'], testDir, env);
 
       await expect(gitService.getRemoteUrl('origin')).rejects.toMatchObject({
         code: ErrorCode.GIT_REMOTE_NOT_FOUND,
@@ -181,10 +175,11 @@ describe('GitService', () => {
     });
 
     it('should return remote URL when exists', async () => {
-      await git(['init'], testDir);
+      await git(['init'], testDir, env);
       await git(
         ['remote', 'add', 'origin', 'git@bitbucket.org:workspace/repo.git'],
-        testDir
+        testDir,
+        env
       );
 
       const url = await gitService.getRemoteUrl('origin');
@@ -193,10 +188,11 @@ describe('GitService', () => {
     });
 
     it('should support different remote names', async () => {
-      await git(['init'], testDir);
+      await git(['init'], testDir, env);
       await git(
         ['remote', 'add', 'upstream', 'https://bitbucket.org/other/repo.git'],
-        testDir
+        testDir,
+        env
       );
 
       const url = await gitService.getRemoteUrl('upstream');
@@ -208,7 +204,7 @@ describe('GitService', () => {
   describe('checkout', () => {
     it('should checkout existing branch', async () => {
       await initRepoWithCommit(testDir);
-      await git(['branch', 'feature'], testDir);
+      await git(['branch', 'feature'], testDir, env);
 
       await gitService.checkout('feature');
 
@@ -236,13 +232,7 @@ describe('GitService', () => {
     it('should create branch from specific start point', async () => {
       await initRepoWithCommit(testDir);
 
-      // Get current commit hash
-      const proc = Bun.spawn(['git', 'rev-parse', 'HEAD'], {
-        cwd: testDir,
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const commitHash = (await new Response(proc.stdout).text()).trim();
+      const commitHash = await gitOut(['rev-parse', 'HEAD'], testDir, env);
 
       await gitService.checkoutNewBranch('from-commit', commitHash);
 
@@ -252,7 +242,7 @@ describe('GitService', () => {
 
     it('should fail if branch already exists', async () => {
       await initRepoWithCommit(testDir);
-      await git(['branch', 'existing'], testDir);
+      await git(['branch', 'existing'], testDir, env);
 
       await expect(
         gitService.checkoutNewBranch('existing')
@@ -262,7 +252,7 @@ describe('GitService', () => {
 
   describe('fetch', () => {
     it('should throw error when no remote exists', async () => {
-      await git(['init'], testDir);
+      await git(['init'], testDir, env);
 
       await expect(gitService.fetch('origin')).rejects.toBeDefined();
     });
@@ -272,26 +262,26 @@ describe('GitService', () => {
     it('should clone repository', async () => {
       // Create a bare repo to clone from
       const bareDir = join(testDir, 'bare.git');
-      await git(['init', '--bare', bareDir], testDir);
+      await git(['init', '--bare', bareDir], testDir, env);
 
       const cloneDir = join(testDir, 'cloned');
       await gitService.clone(bareDir, cloneDir);
 
       // Verify the clone worked by checking if it's a git repo
-      const clonedGitService = new GitService(cloneDir);
+      const clonedGitService = new GitService(cloneDir, { env });
       const isRepo = await clonedGitService.isRepository();
       expect(isRepo).toBe(true);
     });
 
     it('should handle clone with destination directory', async () => {
       const bareDir = join(testDir, 'bare2.git');
-      await git(['init', '--bare', bareDir], testDir);
+      await git(['init', '--bare', bareDir], testDir, env);
 
       const cloneDir = join(testDir, 'cloned-with-dest');
       await gitService.clone(bareDir, cloneDir);
 
       // Verify the clone worked
-      const clonedGitService = new GitService(cloneDir);
+      const clonedGitService = new GitService(cloneDir, { env });
       const isRepo = await clonedGitService.isRepository();
       expect(isRepo).toBe(true);
     });
@@ -301,7 +291,7 @@ describe('GitService', () => {
     it('should create new instance with different cwd', async () => {
       const otherDir = join(testDir, 'other');
       await mkdir(otherDir, { recursive: true });
-      await git(['init'], otherDir);
+      await git(['init'], otherDir, env);
 
       const otherService = gitService.withCwd(otherDir);
       const result = await otherService.isRepository();
@@ -312,7 +302,7 @@ describe('GitService', () => {
     it('should not affect original instance', async () => {
       const otherDir = join(testDir, 'other');
       await mkdir(otherDir, { recursive: true });
-      await git(['init'], otherDir);
+      await git(['init'], otherDir, env);
 
       gitService.withCwd(otherDir);
 

@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'bun:test';
 import type { AxiosResponse } from 'axios';
 import { DefaultReviewerService } from '../../src/services/default-reviewer.service.js';
+import { MAX_PAGE_LENGTH } from '../../src/services/pagination.js';
 import type {
   Account,
   DefaultReviewerAndType,
@@ -23,6 +24,19 @@ function axiosOk<T>(data: T): AxiosResponse<T> {
   };
 }
 
+/** One effective-default-reviewer entry with a full-typed user. */
+function makeEntry(
+  uuid: string | undefined,
+  reviewerType: 'repository' | 'project',
+  user: Partial<DefaultReviewerAndType['user']> = {}
+): DefaultReviewerAndType {
+  return {
+    type: 'default_reviewer_and_type',
+    reviewer_type: reviewerType,
+    user: { type: 'user', uuid, ...user },
+  };
+}
+
 interface MockOptions {
   effectivePages?: DefaultReviewerAndType[][];
   directPages?: Account[][];
@@ -37,17 +51,14 @@ interface MockOptions {
     params?: { page?: number; pagelen?: number };
   }) => void;
   onPutRequest?: (axiosOpts?: { data?: unknown }) => void;
-  valuesAsArrays?: boolean;
 }
 
 function createMockApi(options: MockOptions = {}): PullrequestsApi {
   const paginate = <T>(
     pages: T[][] | undefined,
-    page: number,
-    valuesAsArrays: boolean
-  ): { values: Set<T> | T[]; next?: string; page: number } => {
-    const pageValues = pages?.[page - 1] ?? [];
-    const values = valuesAsArrays ? [...pageValues] : new Set<T>(pageValues);
+    page: number
+  ): { values: Set<T>; next?: string; page: number } => {
+    const values = new Set<T>(pages?.[page - 1] ?? []);
     const hasNext = !!pages && page < pages.length;
     return {
       values,
@@ -62,11 +73,7 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
       axiosOpts?: { params?: { page?: number; pagelen?: number } }
     ) {
       const page = axiosOpts?.params?.page ?? 1;
-      const paginated = paginate(
-        options.effectivePages,
-        page,
-        options.valuesAsArrays ?? false
-      );
+      const paginated = paginate(options.effectivePages, page);
       options.onEffectiveRequest?.(axiosOpts);
       return axiosOk({
         size: (options.effectivePages ?? []).flat().length,
@@ -81,11 +88,7 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
       axiosOpts?: { params?: { page?: number; pagelen?: number } }
     ) {
       const page = axiosOpts?.params?.page ?? 1;
-      const paginated = paginate(
-        options.directPages,
-        page,
-        options.valuesAsArrays ?? false
-      );
+      const paginated = paginate(options.directPages, page);
       options.onDirectRequest?.(axiosOpts);
       return axiosOk({
         size: (options.directPages ?? []).flat().length,
@@ -135,18 +138,7 @@ const repo = { workspace: 'ws', repoSlug: 'repo' };
 describe('DefaultReviewerService', () => {
   it('defaults to the effective mode when no mode is passed', async () => {
     const api = createMockApi({
-      effectivePages: [
-        [
-          {
-            type: 'default_reviewer_and_type',
-            reviewer_type: 'repository',
-            user: {
-              type: 'user',
-              uuid: '{a-uuid}',
-            } as DefaultReviewerAndType['user'],
-          },
-        ],
-      ],
+      effectivePages: [[makeEntry('{a-uuid}', 'repository')]],
     });
     const service = new DefaultReviewerService(api);
 
@@ -160,29 +152,13 @@ describe('DefaultReviewerService', () => {
       const api = createMockApi({
         effectivePages: [
           [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'repository',
-              user: {
-                type: 'user',
-                uuid: '{a-uuid}',
-                display_name: 'Alice',
-                account_id: 'alice-id',
-                nickname: 'alice',
-              } as DefaultReviewerAndType['user'],
-            },
+            makeEntry('{a-uuid}', 'repository', {
+              display_name: 'Alice',
+              account_id: 'alice-id',
+              nickname: 'alice',
+            }),
           ],
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'project',
-              user: {
-                type: 'user',
-                uuid: '{b-uuid}',
-                display_name: 'Bob',
-              } as DefaultReviewerAndType['user'],
-            },
-          ],
+          [makeEntry('{b-uuid}', 'project', { display_name: 'Bob' })],
         ],
       });
 
@@ -200,86 +176,12 @@ describe('DefaultReviewerService', () => {
       expect(result[1]?.reviewerType).toBe('project');
     });
 
-    it('surfaces both repository and project reviewer types from a single page', async () => {
-      const api = createMockApi({
-        effectivePages: [
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'repository',
-              user: {
-                type: 'user',
-                uuid: '{a-uuid}',
-              } as DefaultReviewerAndType['user'],
-            },
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'project',
-              user: {
-                type: 'user',
-                uuid: '{b-uuid}',
-              } as DefaultReviewerAndType['user'],
-            },
-          ],
-        ],
-      });
-      const service = new DefaultReviewerService(api);
-
-      const result = await service.list(repo, 'effective');
-
-      expect(result.map((entry) => entry.reviewerType)).toEqual([
-        'repository',
-        'project',
-      ]);
-    });
-
-    it('normalizes Array-shaped values from the API', async () => {
-      const api = createMockApi({
-        effectivePages: [
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'project',
-              user: {
-                type: 'user',
-                uuid: '{a-uuid}',
-              } as DefaultReviewerAndType['user'],
-            },
-          ],
-        ],
-        valuesAsArrays: true,
-      });
-      const service = new DefaultReviewerService(api);
-
-      const result = await service.list(repo, 'effective');
-
-      expect(result.map((entry) => entry.uuid)).toEqual(['{a-uuid}']);
-    });
-
-    it('walks pagination with the API-max pagelen (clamped from LIST_LIMIT)', async () => {
+    it('uses the API-max pagelen on every page', async () => {
       const requestedPagelens: Array<number | undefined> = [];
       const api = createMockApi({
         effectivePages: [
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'repository',
-              user: {
-                type: 'user',
-                uuid: '{a-uuid}',
-              } as DefaultReviewerAndType['user'],
-            },
-          ],
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'repository',
-              user: {
-                type: 'user',
-                uuid: '{b-uuid}',
-              } as DefaultReviewerAndType['user'],
-            },
-          ],
+          [makeEntry('{a-uuid}', 'repository')],
+          [makeEntry('{b-uuid}', 'repository')],
         ],
         onEffectiveRequest: (axiosOpts) => {
           requestedPagelens.push(axiosOpts?.params?.pagelen);
@@ -289,10 +191,7 @@ describe('DefaultReviewerService', () => {
 
       await service.list(repo, 'effective');
 
-      expect(requestedPagelens.length).toBeGreaterThan(1);
-      for (const pagelen of requestedPagelens) {
-        expect(pagelen).toBe(50);
-      }
+      expect(requestedPagelens).toEqual([MAX_PAGE_LENGTH, MAX_PAGE_LENGTH]);
     });
 
     it('returns an empty array when the list is empty', async () => {
@@ -304,15 +203,7 @@ describe('DefaultReviewerService', () => {
 
     it('skips entries without a user uuid', async () => {
       const api = createMockApi({
-        effectivePages: [
-          [
-            {
-              type: 'default_reviewer_and_type',
-              reviewer_type: 'repository',
-              user: { type: 'user' } as DefaultReviewerAndType['user'],
-            },
-          ],
-        ],
+        effectivePages: [[makeEntry(undefined, 'repository')]],
       });
       const service = new DefaultReviewerService(api);
       const result = await service.list(repo, 'effective');
@@ -345,6 +236,21 @@ describe('DefaultReviewerService', () => {
           nickname: undefined,
         },
       ]);
+    });
+
+    it('uses the API-max pagelen on every page', async () => {
+      const requestedPagelens: Array<number | undefined> = [];
+      const api = createMockApi({
+        directPages: [[{ type: 'user', uuid: '{c-uuid}' } as Account]],
+        onDirectRequest: (axiosOpts) => {
+          requestedPagelens.push(axiosOpts?.params?.pagelen);
+        },
+      });
+      const service = new DefaultReviewerService(api);
+
+      await service.list(repo, 'direct');
+
+      expect(requestedPagelens).toEqual([MAX_PAGE_LENGTH]);
     });
   });
 

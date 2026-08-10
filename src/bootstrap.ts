@@ -149,6 +149,21 @@ type ApiClientCtor<T> = new (
 ) => T;
 
 /**
+ * One `registerCommand` row, exported for the bootstrap tests to assert the
+ * positional `deps` array matches the constructor's parameter count exactly.
+ * `as never[]` (see {@link registerCommand}) makes a wrong-length or
+ * wrong-order wiring compile fine, so the tests pin the real contract here
+ * rather than reflecting over resolved instances.
+ */
+export interface CommandRegistration {
+  token: string;
+  ctor: Ctor<unknown>;
+  deps: readonly string[];
+}
+
+export const commandRegistrations: CommandRegistration[] = [];
+
+/**
  * Register a generated OpenAPI client. Each client resolves the shared axios
  * instance lazily and is constructed with `new Ctor(undefined, undefined, axios)`.
  */
@@ -175,6 +190,11 @@ function registerCommand<T>(
   ctor: Ctor<T>,
   deps: readonly string[]
 ): void {
+  commandRegistrations.push({
+    token,
+    ctor: ctor as Ctor<unknown>,
+    deps,
+  });
   container.register(token, () => {
     const resolved = deps.map((dep) => container.resolve(dep)) as never[];
     return new ctor(...resolved);

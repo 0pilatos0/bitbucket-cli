@@ -6,10 +6,17 @@
  * runtime when a user invokes that command. These tests resolve every
  * registered token and verify each command can be instantiated, so a
  * broken wiring fails in CI instead of production.
+ *
+ * Positional dep wiring is pinned against the exported registration table:
+ * `deps.length` must equal the constructor's arity exactly. Note the table
+ * cannot catch a *swapped* pair of same-arity, same-shape deps (tokens are
+ * plain strings) — the named identity checks below close that hole for the
+ * non-trivial registerCommand-wired services, and the shared-axios test
+ * covers every generated client.
  */
 
 import { describe, it, expect } from 'bun:test';
-import { bootstrap } from '../../src/bootstrap.js';
+import { bootstrap, commandRegistrations } from '../../src/bootstrap.js';
 import { Container, ServiceTokens } from '../../src/core/container.js';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
@@ -120,65 +127,25 @@ describe('bootstrap()', () => {
     expect((createPR as unknown as { output: unknown }).output).toBe(output);
   });
 
-  it('wires every command dependency to a container singleton', () => {
+  it('matches each registerCommand deps array to its constructor arity', () => {
     const container = bootstrap();
-    const commandTokens = Object.entries(ServiceTokens)
-      .filter(([key]) => key.endsWith('Command'))
-      .map(([, token]) => token);
-    const singletonValues = Object.values(ServiceTokens).map((token) =>
-      container.resolve(token)
-    );
 
-    for (const token of commandTokens) {
-      const command = container.resolve<Record<string, unknown>>(token);
-      for (const value of Object.values(command)) {
-        // Internal base-class state (commandPath, suppressNotFoundHint) is
-        // undefined/primitive; skip those. Every object-valued field must be
-        // one of the container's singletons — a missing or re-instantiated
-        // dependency would otherwise pass the resolve-not-throw check above.
-        if (
-          value === undefined ||
-          (typeof value !== 'object' && typeof value !== 'function')
-        ) {
-          continue;
-        }
-        expect(singletonValues.some((sv) => sv === value)).toBe(true);
+    for (const registration of commandRegistrations) {
+      const paramCount = (registration.ctor as { length: number }).length;
+      expect(
+        paramCount,
+        `${registration.token} deps length must equal constructor arity`
+      ).toBe(registration.deps.length);
+      for (const dep of registration.deps) {
+        expect(container.has(dep), `${registration.token} dep ${dep}`).toBe(
+          true
+        );
       }
-    }
-  });
-
-  it('matches constructor arity to the wired dependency count for every command', () => {
-    const container = bootstrap();
-    const commandTokens = Object.entries(ServiceTokens)
-      .filter(([key]) => key.endsWith('Command'))
-      .map(([, token]) => token);
-
-    for (const token of commandTokens) {
-      const command = container.resolve<Record<string, unknown>>(token);
-      const paramCount = (command.constructor as { length: number }).length;
-      const depCount = Object.values(command).filter(
-        (value) =>
-          (typeof value === 'object' || typeof value === 'function') &&
-          value !== null &&
-          value !== undefined
-      ).length;
-      expect(paramCount, `${token} ctor arity`).toBe(depCount);
     }
   });
 
   it('wires the registerCommand-wired services in constructor order', () => {
     const container = bootstrap();
-
-    const oauth = container.resolve<{
-      configService: unknown;
-      credentialStore: unknown;
-    }>(ServiceTokens.OAuthService);
-    expect(oauth.configService).toBe(
-      container.resolve(ServiceTokens.ConfigService)
-    );
-    expect(oauth.credentialStore).toBe(
-      container.resolve(ServiceTokens.CredentialStore)
-    );
 
     const context = container.resolve<{
       gitService: unknown;

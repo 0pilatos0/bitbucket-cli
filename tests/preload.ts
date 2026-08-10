@@ -17,6 +17,19 @@ for (const key of Object.keys(process.env)) {
 // globalThis.fetch and restore this one afterwards.
 const realFetch = globalThis.fetch;
 
+function isLocalhostUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'http:' &&
+      (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+    );
+  } catch {
+    // Malformed URLs never reach the network anyway — fail loudly instead.
+    return false;
+  }
+}
+
 globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
   const url =
     typeof input === 'string'
@@ -24,10 +37,7 @@ globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
       : input instanceof URL
         ? input.href
         : input.url;
-  if (
-    url.startsWith('http://localhost:') ||
-    url.startsWith('http://127.0.0.1:')
-  ) {
+  if (isLocalhostUrl(url)) {
     return realFetch(input, init);
   }
   throw new Error(
