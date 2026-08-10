@@ -13,7 +13,7 @@ import {
   redactRequestUrl,
   redactSensitive,
 } from '../../src/services/api-client.service.js';
-import { AxiosError } from 'axios';
+import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
 describe('redactSensitive', () => {
   it('replaces values under sensitive keys with [REDACTED] case-insensitively', () => {
@@ -67,7 +67,11 @@ describe('redactSensitive', () => {
     expect(result.self).toBe('[Circular]');
   });
 
-  it('redacts circular references nested inside arrays', () => {
+  it('flags repeated object references as [Circular] via the seen-set', () => {
+    // Not a cycle: `arr` holds the same object twice. The WeakSet marks it
+    // seen on the first pass, so the second occurrence renders '[Circular]'.
+    // Deliberate seen-set semantics — production bodies come from JSON.parse
+    // and never share references, but the guard must stay bounded anyway.
     const inner: Record<string, unknown> = { token: 'x' };
     const arr = [inner, inner];
     const result = redactSensitive(arr) as Array<Record<string, unknown>>;
@@ -83,21 +87,20 @@ describe('redactRequestUrl', () => {
         '/repositories/ws/r?token=abc&other=xyz',
         'https://api.bitbucket.org/2.0'
       )
-    ).toBe('https://api.bitbucket.org/repositories/ws/r?[redacted]');
+    ).toBe('https://api.bitbucket.org/2.0/repositories/ws/r?[redacted]');
   });
 
   it('keeps a URL without a query string unchanged', () => {
     expect(
       redactRequestUrl('/repositories/ws/r', 'https://api.bitbucket.org/2.0')
-    ).toBe('https://api.bitbucket.org/repositories/ws/r');
+    ).toBe('https://api.bitbucket.org/2.0/repositories/ws/r');
   });
 
-  it('resolves root-relative URLs against the origin (base path is dropped)', () => {
-    // `new URL('/x', 'https://host/2.0')` is root-relative, so the base path
-    // does not survive — the DEBUG log URL omits the /2.0 prefix. Cosmetic
-    // inaccuracy in an opt-in log; pinned here so a future fix is deliberate.
+  it('preserves the base path for root-relative URLs', () => {
+    // axios concatenates baseURL + url, so the logged URL must keep the
+    // base path (e.g. /2.0) to match the actual wire request.
     expect(redactRequestUrl('/a/b', 'https://api.bitbucket.org/2.0')).toBe(
-      'https://api.bitbucket.org/a/b'
+      'https://api.bitbucket.org/2.0/a/b'
     );
   });
 
@@ -126,7 +129,7 @@ function retryError(
     status,
     statusText: String(status),
     headers,
-    config: {} as never,
+    config: {} as InternalAxiosRequestConfig,
   });
 }
 
@@ -182,6 +185,16 @@ describe('extractErrorMessage', () => {
     );
   });
 
+  it('falls through to the top-level message when error.message is not a string', () => {
+    expect(
+      extractErrorMessage({ error: { message: 42 }, message: 'top' })
+    ).toBe('top');
+  });
+
+  it('falls through to the top-level message when error is not an object', () => {
+    expect(extractErrorMessage({ error: 'oops', message: 'top' })).toBe('top');
+  });
+
   it('returns undefined for non-string messages and non-object data', () => {
     expect(extractErrorMessage({ message: 42 })).toBeUndefined();
     expect(extractErrorMessage('plain text')).toBeUndefined();
@@ -205,5 +218,9 @@ describe('formatErrorFields', () => {
     expect(formatErrorFields('nope')).toBeUndefined();
     expect(formatErrorFields(null)).toBeUndefined();
     expect(formatErrorFields(['a', 'b'])).toBeUndefined();
+  });
+
+  it('drops non-string, non-array reasons', () => {
+    expect(formatErrorFields({ title: 42, name: 'keep' })).toBe('name: keep');
   });
 });

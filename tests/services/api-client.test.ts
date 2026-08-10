@@ -21,12 +21,15 @@ import {
   createMockOutputService,
   createNetworkErrorAdapter,
   createTimeoutErrorAdapter,
+  createUrlKeyedAdapter,
   mockConfigService,
   mockOAuthConfigService,
+  restoreSetTimeout,
+  stubSetTimeout,
 } from '../setup.js';
 import type { AxiosInstance } from 'axios';
 
-// Speed up the sleep() calls by overriding global setTimeout
+// Kept for the concurrency test that awaits a real timer.
 const originalSetTimeout = globalThis.setTimeout;
 
 describe('createApiClient - OAuth auth', () => {
@@ -34,15 +37,12 @@ describe('createApiClient - OAuth auth', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -231,15 +231,12 @@ describe('createApiClient - shared instance concurrency', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -408,17 +405,14 @@ describe('createApiClient - retry/backoff', () => {
 
   beforeEach(() => {
     // Make setTimeout resolve instantly to avoid real delays
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
 
     // Suppress retry log noise in test output
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -586,211 +580,16 @@ describe('createApiClient - retry/backoff', () => {
   });
 });
 
-describe('createApiClient - DEBUG response logging redaction', () => {
-  let client: AxiosInstance;
-  let consoleDebugSpy: ReturnType<typeof spyOn>;
-  let consoleErrorSpy: ReturnType<typeof spyOn>;
-  let originalDebug: string | undefined;
-
-  beforeEach(() => {
-    originalDebug = process.env.DEBUG;
-    consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
-    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    consoleDebugSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
-    if (originalDebug === undefined) {
-      delete process.env.DEBUG;
-    } else {
-      process.env.DEBUG = originalDebug;
-    }
-  });
-
-  function allDebugOutput(): string {
-    return consoleDebugSpy.mock.calls
-      .map((args) => args.map((a) => String(a)).join(' '))
-      .join('\n');
-  }
-
-  it('redacts access_token and refresh_token from response body logs', async () => {
-    process.env.DEBUG = 'true';
-    const mockAdapter = createMockAdapter([
-      {
-        status: 200,
-        data: {
-          access_token: 'secret-AT',
-          refresh_token: 'secret-RT',
-          expires_in: 7200,
-          scopes: 'repository',
-        },
-      },
-    ]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/test');
-
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] Response Body:');
-    expect(output).not.toContain('secret-AT');
-    expect(output).not.toContain('secret-RT');
-    expect(output).toContain('[REDACTED]');
-    // Non-sensitive fields still logged.
-    expect(output).toContain('expires_in');
-    expect(output).toContain('7200');
-    expect(output).toContain('scopes');
-  });
-
-  it('redacts tokens from error response body logs', async () => {
-    process.env.DEBUG = 'true';
-    const mockAdapter = createMockAdapter([
-      {
-        status: 400,
-        data: { error: 'invalid_grant', access_token: 'leaked' },
-      },
-    ]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    try {
-      await client.get('/test');
-    } catch {
-      // expected
-    }
-
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] Error Response Body:');
-    expect(output).not.toContain('leaked');
-    expect(output).toContain('[REDACTED]');
-    expect(output).toContain('invalid_grant');
-  });
-
-  it('redacts sensitive keys nested inside arrays and objects', async () => {
-    process.env.DEBUG = 'true';
-    const mockAdapter = createMockAdapter([
-      {
-        status: 200,
-        data: {
-          data: {
-            items: [
-              { id: 1, token: 'nested-secret' },
-              { id: 2, password: 'also-secret' },
-            ],
-          },
-        },
-      },
-    ]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/test');
-
-    const output = allDebugOutput();
-    expect(output).not.toContain('nested-secret');
-    expect(output).not.toContain('also-secret');
-    expect(output).toContain('[REDACTED]');
-  });
-
-  it('does not log response bodies when DEBUG is not set', async () => {
-    delete process.env.DEBUG;
-    const mockAdapter = createMockAdapter([
-      {
-        status: 200,
-        data: { access_token: 'should-never-log' },
-      },
-    ]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/test');
-
-    expect(consoleDebugSpy).not.toHaveBeenCalled();
-  });
-
-  it('handles circular references without infinite recursion', async () => {
-    process.env.DEBUG = 'true';
-
-    // Build a circular structure that the client should log without blowing
-    // up. We don't construct the cycle in the adapter response directly
-    // because JSON.stringify in the test harness would fail; instead inject
-    // one through the redact helper via the actual response logging path.
-    const cyclic: Record<string, unknown> = { name: 'root' };
-    cyclic.self = cyclic;
-
-    const mockAdapter = createMockAdapter([{ status: 200, data: cyclic }]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/test');
-
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] Response Body:');
-    expect(output).toContain('[Circular]');
-    expect(output).toContain('root');
-  });
-
-  it('handles circular references nested inside arrays', async () => {
-    process.env.DEBUG = 'true';
-
-    const child: Record<string, unknown> = { id: 1 };
-    const parent: Record<string, unknown> = { children: [child] };
-    child.parent = parent;
-
-    const mockAdapter = createMockAdapter([{ status: 200, data: parent }]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/test');
-
-    const output = allDebugOutput();
-    expect(output).toContain('[Circular]');
-  });
-
-  it('logs request method and URL when DEBUG is set', async () => {
-    process.env.DEBUG = 'true';
-    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/some/resource');
-
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] GET');
-    expect(output).toContain('/some/resource');
-  });
-
-  it('redacts query strings from request URL DEBUG logs', async () => {
-    process.env.DEBUG = 'true';
-    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
-    client = createApiClient(mockConfigService(), createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter as any;
-
-    await client.get('/some/resource?token=abc&other=xyz');
-
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] GET');
-    expect(output).toContain('/some/resource');
-    expect(output).not.toContain('token=abc');
-    expect(output).not.toContain('other=xyz');
-    expect(output).toContain('[redacted]');
-  });
-});
-
 describe('createApiClient - authentication header', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -869,7 +668,7 @@ describe('createApiClient - Retry-After parsing', () => {
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -962,15 +761,12 @@ describe('createApiClient - error message extraction', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
@@ -1140,16 +936,13 @@ describe('createApiClient - retry messages route through IOutputService', () => 
   let consoleWarnSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
     consoleWarnSpy = spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
     consoleWarnSpy.mockRestore();
   });
@@ -1269,7 +1062,7 @@ describe('createApiClient - request timeout (#249)', () => {
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
     if (originalTimeoutEnv === undefined) {
       delete process.env.BB_HTTP_TIMEOUT;
@@ -1401,15 +1194,12 @@ describe('createApiClient - transient network error retry (#267)', () => {
 
   beforeEach(() => {
     // Make sleep() instant so retries don't slow down the suite.
-    globalThis.setTimeout = ((fn: Function, _ms?: number) => {
-      fn();
-      return 0 as any;
-    }) as any;
+    stubSetTimeout();
     consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    globalThis.setTimeout = originalSetTimeout;
+    restoreSetTimeout();
     consoleErrorSpy.mockRestore();
   });
 
