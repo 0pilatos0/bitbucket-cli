@@ -6,6 +6,14 @@ for (const key of Object.keys(process.env)) {
   if (key.startsWith('BB_')) delete process.env[key];
 }
 
+// Test output must be terminal-independent (issue #269): chalk colorizes when
+// stdout is a TTY, so an interactive `bun test` would emit ANSI codes and
+// break string-exact assertions (e.g. the control-character sanitization
+// suite). Pin color off before any test file — and therefore before chalk is
+// first imported — loads.
+process.env.FORCE_COLOR = '0';
+process.env.NO_COLOR = '1';
+
 // Tests must never reach the real network (see issue #269): the CLI's
 // postAction hook polls registry.npmjs.org for update notices, and without a
 // guarantee that no test file triggers it, a local `bun test` on a TTY would
