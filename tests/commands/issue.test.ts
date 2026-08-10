@@ -102,7 +102,7 @@ function createMockIssueTrackerApi(
         throw new APIError('Resource not found', 404);
       }
       options.onCreateCall?.(request);
-      const issue = (request as { issue: Issue }).issue;
+      const issue = (request as { body: Issue }).body;
       return { data: { ...mockIssue, ...issue, id: 43 } };
     },
     repositoriesWorkspaceRepoSlugIssuesIssueIdPut: async (
@@ -129,8 +129,8 @@ function createMockIssueTrackerApi(
         data: {
           type: 'issue_comment',
           id: 9001,
-          content: (request as { issueComment: { content: { raw: string } } })
-            .issueComment.content,
+          content: (request as { body: { content: { raw: string } } }).body
+            .content,
         },
       };
     },
@@ -436,7 +436,7 @@ describe('CreateIssueCommand', () => {
     expect(captured).toEqual({
       workspace: 'workspace',
       repoSlug: 'repo',
-      issue: {
+      body: {
         type: 'issue',
         title: 'New bug',
         content: { raw: 'It broke.' },
@@ -631,7 +631,7 @@ describe('CloseIssueCommand', () => {
       issueId: '42',
       workspace: 'workspace',
       repoSlug: 'repo',
-      issueComment: {
+      body: {
         type: 'issue_comment',
         content: { raw: 'Fixed in 1.4.2' },
       },
@@ -703,7 +703,7 @@ describe('CommentIssueCommand', () => {
       issueId: '42',
       workspace: 'workspace',
       repoSlug: 'repo',
-      issueComment: {
+      body: {
         type: 'issue_comment',
         content: { raw: 'Reproduced on main' },
       },

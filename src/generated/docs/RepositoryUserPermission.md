@@ -10,7 +10,7 @@ Name | Type | Description | Notes
 **permission** | **string** |  | [optional] [default to undefined]
 **user** | [**User**](User.md) |  | [optional] [default to undefined]
 **repository** | [**Repository**](Repository.md) |  | [optional] [default to undefined]
-**links** | [**ProjectGroupPermissionLinks**](ProjectGroupPermissionLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

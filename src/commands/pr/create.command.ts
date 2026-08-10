@@ -122,7 +122,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
           {
             workspace: repoContext.workspace,
             repoSlug: repoContext.repoSlug,
-            pullrequest: request,
+            body: request,
           }
         );
       pr = response.data;

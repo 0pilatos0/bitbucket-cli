@@ -86,7 +86,7 @@ export class MergePRCommand extends BaseCommand<
             workspace: repoContext.workspace,
             repoSlug: repoContext.repoSlug,
             pullRequestId: prId,
-            pullrequestMergeParameters: request,
+            body: request,
           }
         );
       pr = response.data;

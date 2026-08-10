@@ -7,7 +7,7 @@
  * actionable messages once, so every issue command reports them the same way.
  */
 
-import type { Account, Issue } from '../../generated/api.js';
+import type { Account, Issue, IssueComment } from '../../generated/api.js';
 import {
   IssueKindEnum,
   IssuePriorityEnum,
@@ -28,6 +28,14 @@ export const ISSUE_KINDS: readonly string[] = Object.values(IssueKindEnum);
 
 export const ISSUE_PRIORITIES: readonly string[] =
   Object.values(IssuePriorityEnum);
+
+/** Build the request body for a new issue comment. */
+export function buildIssueComment(message: string): IssueComment {
+  return {
+    type: 'issue_comment',
+    content: { raw: message },
+  };
+}
 
 /** Issues are listed most recently updated first, mirroring `gh issue list`. */
 export const DEFAULT_ISSUE_SORT = '-updated_on';

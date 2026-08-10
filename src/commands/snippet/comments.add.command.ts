@@ -8,7 +8,8 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { SnippetComment, SnippetsApi } from '../../generated/api.js';
+import type { SnippetsApi } from '../../generated/api.js';
+import { buildSnippetComment } from './shared.js';
 
 export interface AddSnippetCommentOptions {
   workspace?: string;
@@ -44,18 +45,11 @@ export class AddSnippetCommentCommand extends BaseCommand<
       'Comment message is required. Use --message option.'
     );
 
-    const body: SnippetComment = {
-      type: 'snippet_comment',
-      content: {
-        raw: message,
-      },
-    };
-
     const response =
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsPost({
         workspace,
         encodedId: options.id,
-        snippetComment: body,
+        body: buildSnippetComment(message),
       });
 
     const comment = response.data;

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**type** | **string** | The type of selector. | [optional] [default to undefined]
+**type** | **string** | The type of selector. | [default to undefined]
 **pattern** | **string** | The name of the matching pipeline definition. | [optional] [default to undefined]
 
 ## Example

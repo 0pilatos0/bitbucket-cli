@@ -170,12 +170,12 @@ const apiInstance = new IssueTrackerApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let exportOptions: ExportOptions; //The options to apply to the export. Available options include `project_key` and `project_name` which, if specified, are used as the project key and name in the exported Jira json format. Option `send_email` specifies whether an email should be sent upon export result. Option `include_attachments` specifies whether attachments are included in the export. (optional)
+let body: ExportOptions; //The options to apply to the export. Available options include `project_key` and `project_name` which, if specified, are used as the Jira space key and name in the exported Jira json format. Option `send_email` specifies whether an email should be sent upon export result. Option `include_attachments` specifies whether attachments are included in the export. (optional)
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesExportPost(
     repoSlug,
     workspace,
-    exportOptions
+    body
 );
 ```
 
@@ -183,7 +183,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesEx
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **exportOptions** | **ExportOptions**| The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the project key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export. | |
+| **body** | **ExportOptions**| The options to apply to the export. Available options include &#x60;project_key&#x60; and &#x60;project_name&#x60; which, if specified, are used as the Jira space key and name in the exported Jira json format. Option &#x60;send_email&#x60; specifies whether an email should be sent upon export result. Option &#x60;include_attachments&#x60; specifies whether attachments are included in the export. | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -815,7 +815,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost**
-> IssueChange repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(issueChange)
+> IssueChange repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(body)
 
 Makes a change to the specified issue.  For example, to change an issue\'s state and assignee, create a new change object that modifies these fields:  ``` curl https://api.bitbucket.org/2.0/site/master/issues/1234/changes \\   -s -u evzijst -X POST -H \"Content-Type: application/json\" \\   -d \'{     \"changes\": {       \"assignee_account_id\": {         \"new\": \"557058:c0b72ad0-1cb5-4018-9cdc-0cde8492c443\"       },       \"state\": {         \"new\": \'resolved\"       }     }     \"message\": {       \"raw\": \"This is now resolved.\"     }   }\' ```  The above example also includes a custom comment to go alongside the change. This comment will also be visible on the issue page in the UI.  The fields of the `changes` object are strings, not objects. This allows for immutable change log records, even after user accounts, milestones, or other objects recorded in a change entry, get renamed or deleted.  The `assignee_account_id` field stores the account id. When POSTing a new change and changing the assignee, the client should therefore use the user\'s account_id in the `changes.assignee_account_id.new` field.  This call requires authentication. Private repositories or private issue trackers require the caller to authenticate with an account that has appropriate authorization.
 
@@ -834,13 +834,13 @@ const apiInstance = new IssueTrackerApi(configuration);
 let issueId: string; //The issue id (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let issueChange: IssueChange; //The new issue state change. The only required elements are `changes.[].new`. All other elements can be omitted from the body.
+let body: IssueChange; //The new issue state change. The only required elements are `changes.[].new`. All other elements can be omitted from the body.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIssueIdChangesPost(
     issueId,
     repoSlug,
     workspace,
-    issueChange
+    body
 );
 ```
 
@@ -848,7 +848,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **issueChange** | **IssueChange**| The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body. | |
+| **body** | **IssueChange**| The new issue state change. The only required elements are &#x60;changes.[].new&#x60;. All other elements can be omitted from the body. | |
 | **issueId** | [**string**] | The issue id | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -999,7 +999,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut**
-> IssueComment repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(issueComment)
+> IssueComment repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(body)
 
 Updates the content of the specified issue comment. Note that only the `content.raw` field can be modified.  ``` $ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/issues/42/comments/5728901 \\   -X PUT -u evzijst \\   -H \'Content-Type: application/json\' \\   -d \'{\"content\": {\"raw\": \"Lorem ipsum.\"}\' ```
 
@@ -1019,14 +1019,14 @@ let commentId: number; //The id of the comment. (default to undefined)
 let issueId: string; //The issue id (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let issueComment: IssueComment; //The updated comment.
+let body: IssueComment; //The updated comment.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsCommentIdPut(
     commentId,
     issueId,
     repoSlug,
     workspace,
-    issueComment
+    body
 );
 ```
 
@@ -1034,7 +1034,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **issueComment** | **IssueComment**| The updated comment. | |
+| **body** | **IssueComment**| The updated comment. | |
 | **commentId** | [**number**] | The id of the comment. | defaults to undefined|
 | **issueId** | [**string**] | The issue id | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
@@ -1124,7 +1124,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost**
-> repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(issueComment)
+> repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(body)
 
 Creates a new issue comment.  ``` $ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/issues/42/comments/ \\   -X POST -u evzijst \\   -H \'Content-Type: application/json\' \\   -d \'{\"content\": {\"raw\": \"Lorem ipsum.\"}}\' ```
 
@@ -1143,13 +1143,13 @@ const apiInstance = new IssueTrackerApi(configuration);
 let issueId: string; //The issue id (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let issueComment: IssueComment; //The new issue comment object.
+let body: IssueComment; //The new issue comment object.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost(
     issueId,
     repoSlug,
     workspace,
-    issueComment
+    body
 );
 ```
 
@@ -1157,7 +1157,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **issueComment** | **IssueComment**| The new issue comment object. | |
+| **body** | **IssueComment**| The new issue comment object. | |
 | **issueId** | [**string**] | The issue id | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -1716,7 +1716,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesIs
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugIssuesPost**
-> Issue repositoriesWorkspaceRepoSlugIssuesPost(issue)
+> Issue repositoriesWorkspaceRepoSlugIssuesPost(body)
 
 Creates a new issue.  This call requires authentication. Private repositories or private issue trackers require the caller to authenticate with an account that has appropriate authorization.  The authenticated user is used for the issue\'s `reporter` field.
 
@@ -1734,12 +1734,12 @@ const apiInstance = new IssueTrackerApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let issue: Issue; //The new issue. The only required element is `title`. All other elements can be omitted from the body.
+let body: Issue; //The new issue. The only required element is `title`. All other elements can be omitted from the body.
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesPost(
     repoSlug,
     workspace,
-    issue
+    body
 );
 ```
 
@@ -1747,7 +1747,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugIssuesPo
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **issue** | **Issue**| The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body. | |
+| **body** | **Issue**| The new issue. The only required element is &#x60;title&#x60;. All other elements can be omitted from the body. | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 

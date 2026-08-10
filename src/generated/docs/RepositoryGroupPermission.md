@@ -7,7 +7,7 @@ A group\'s permission for a given repository.
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**links** | [**ProjectGroupPermissionLinks**](ProjectGroupPermissionLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **permission** | **string** |  | [optional] [default to undefined]
 **group** | [**Group**](Group.md) |  | [optional] [default to undefined]
 **repository** | [**Repository**](Repository.md) |  | [optional] [default to undefined]

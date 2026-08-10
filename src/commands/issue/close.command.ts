@@ -12,7 +12,11 @@ import type {
 import type { IssueTrackerApi } from '../../generated/api.js';
 import { IssueStateEnum } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { rethrowIssueNotFound, type IssueChanges } from './shared.js';
+import {
+  buildIssueComment,
+  rethrowIssueNotFound,
+  type IssueChanges,
+} from './shared.js';
 
 export interface CloseIssueOptions extends GlobalOptions {
   id: string;
@@ -56,10 +60,7 @@ export class CloseIssueCommand extends BaseCommand<CloseIssueOptions, void> {
           issueId: options.id,
           workspace: repoContext.workspace,
           repoSlug: repoContext.repoSlug,
-          issueComment: {
-            type: 'issue_comment',
-            content: { raw: options.comment },
-          },
+          body: buildIssueComment(options.comment),
         })
         .catch(notFound);
     }

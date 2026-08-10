@@ -74,7 +74,7 @@ export class RunPipelineCommand extends BaseCommand<RunPipelineOptions, void> {
     const response = await this.pipelinesApi.createPipelineForRepository({
       workspace: repoContext.workspace,
       repoSlug: repoContext.repoSlug,
-      pipeline,
+      body: pipeline,
     });
 
     const created = response.data;

@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**links** | [**BranchingModelSettingsLinks**](BranchingModelSettingsLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **user** | [**Account**](Account.md) |  | [optional] [default to undefined]
 **workspace** | [**Workspace**](Workspace.md) |  | [optional] [default to undefined]
 

@@ -5,9 +5,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**branch_types** | [**Set&lt;ProjectBranchingModelBranchTypes&gt;**](ProjectBranchingModelBranchTypes.md) | The active branch types. | [optional] [default to undefined]
-**development** | [**BranchingModelDevelopment**](BranchingModelDevelopment.md) |  | [optional] [default to undefined]
-**production** | [**BranchingModelDevelopment**](BranchingModelDevelopment.md) |  | [optional] [default to undefined]
+**branch_types** | **Set&lt;object&gt;** | The active branch types. | [optional] [default to undefined]
+**development** | **object** |  | [optional] [default to undefined]
+**production** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

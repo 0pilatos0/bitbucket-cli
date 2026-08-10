@@ -194,7 +194,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRe
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut**
-> Branchrestriction repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(branchrestriction)
+> Branchrestriction repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(body)
 
 Updates an existing branch restriction rule.  Fields not present in the request body are ignored.  See [`POST`](/cloud/bitbucket/rest/api-group-branch-restrictions/#api-repositories-workspace-repo-slug-branch-restrictions-post) for details.
 
@@ -213,13 +213,13 @@ const apiInstance = new BranchRestrictionsApi(configuration);
 let id: string; //The restriction rule\'s id (default to undefined)
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let branchrestriction: Branchrestriction; //The new version of the existing rule
+let body: Branchrestriction; //The new version of the existing rule
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRestrictionsIdPut(
     id,
     repoSlug,
     workspace,
-    branchrestriction
+    body
 );
 ```
 
@@ -227,7 +227,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRe
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **branchrestriction** | **Branchrestriction**| The new version of the existing rule | |
+| **body** | **Branchrestriction**| The new version of the existing rule | |
 | **id** | [**string**] | The restriction rule\&#39;s id | defaults to undefined|
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -258,7 +258,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRe
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugBranchRestrictionsPost**
-> Branchrestriction repositoriesWorkspaceRepoSlugBranchRestrictionsPost(branchrestriction)
+> Branchrestriction repositoriesWorkspaceRepoSlugBranchRestrictionsPost(body)
 
 Creates a new branch restriction rule for a repository.  `kind` describes what will be restricted. Allowed values include: `push`, `force`, `delete`, `restrict_merges`, `require_tasks_to_be_completed`, `require_approvals_to_merge`, `require_default_reviewer_approvals_to_merge`, `require_no_changes_requested`, `require_passing_builds_to_merge`, `require_commits_behind`, `reset_pullrequest_approvals_on_change`, `smart_reset_pullrequest_approvals`, `reset_pullrequest_changes_requested_on_change`, `require_all_dependencies_merged`, `enforce_merge_checks`, and `allow_auto_merge_when_builds_pass`.  Different kinds of branch restrictions have different requirements:  * `push` and `restrict_merges` require `users` and `groups` to be   specified. Empty lists are allowed, in which case permission is   denied for everybody.  The restriction applies to all branches that match. There are two ways to match a branch. It is configured in `branch_match_kind`:  1. `glob`: Matches a branch against the `pattern`. A `\'*\'` in    `pattern` will expand to match zero or more characters, and every    other character matches itself. For example, `\'foo*\'` will match    `\'foo\'` and `\'foobar\'`, but not `\'barfoo\'`. `\'*\'` will match all    branches. 2. `branching_model`: Matches a branch against the repository\'s    branching model. The `branch_type` controls the type of branch    to match. Allowed values include: `production`, `development`,    `bugfix`, `release`, `feature` and `hotfix`.  The combination of `kind` and match must be unique. This means that two `glob` restrictions in a repository cannot have the same `kind` and `pattern`. Additionally, two `branching_model` restrictions in a repository cannot have the same `kind` and `branch_type`.  `users` and `groups` are lists of users and groups that are except from the restriction. They can only be configured in `push` and `restrict_merges` restrictions. The `push` restriction stops a user pushing to matching branches unless that user is in `users` or is a member of a group in `groups`. The `restrict_merges` stops a user merging pull requests to matching branches unless that user is in `users` or is a member of a group in `groups`. Adding new users or groups to an existing restriction should be done via `PUT`.  Note that branch restrictions with overlapping matchers is allowed, but the resulting behavior may be surprising.
 
@@ -276,12 +276,12 @@ const apiInstance = new BranchRestrictionsApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
-let branchrestriction: Branchrestriction; //The new rule
+let body: Branchrestriction; //The new rule
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRestrictionsPost(
     repoSlug,
     workspace,
-    branchrestriction
+    body
 );
 ```
 
@@ -289,7 +289,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugBranchRe
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
-| **branchrestriction** | **Branchrestriction**| The new rule | |
+| **body** | **Branchrestriction**| The new rule | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 

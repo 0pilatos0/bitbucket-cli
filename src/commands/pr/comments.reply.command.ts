@@ -64,7 +64,7 @@ export class ReplyCommentPRCommand extends BaseCommand<
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
         pullRequestId: prId,
-        pullrequestComment: body,
+        body,
       })
       .catch((error: unknown) =>
         rethrowWithNotFoundContext(

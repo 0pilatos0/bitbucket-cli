@@ -13,7 +13,7 @@ Name | Type | Description | Notes
 **deleted** | **boolean** |  | [optional] [default to undefined]
 **parent** | [**Comment**](Comment.md) |  | [optional] [default to undefined]
 **inline** | [**CommentInline**](CommentInline.md) |  | [optional] [default to undefined]
-**links** | [**CommentLinks**](CommentLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

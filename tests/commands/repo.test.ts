@@ -61,6 +61,7 @@ function createMockRepositoriesApi(
   repos: (typeof mockRepository)[] = [mockRepository],
   options: {
     onListCall?: (request: unknown, axiosOptions?: unknown) => void;
+    onCreateCall?: (request: unknown) => void;
   } = {}
 ): RepositoriesApi {
   return {
@@ -99,9 +100,12 @@ function createMockRepositoriesApi(
           (r) => r.slug === repoSlug || r.full_name?.endsWith(`/${repoSlug}`)
         ) || mockRepository,
     }),
-    repositoriesWorkspaceRepoSlugPost: async () => ({
-      data: mockRepository,
-    }),
+    repositoriesWorkspaceRepoSlugPost: async (request: unknown) => {
+      options.onCreateCall?.(request);
+      return {
+        data: mockRepository,
+      };
+    },
     repositoriesWorkspaceRepoSlugDelete: async () => ({
       data: undefined,
     }),
@@ -492,7 +496,12 @@ describe('ViewRepoCommand', () => {
 
 describe('CreateRepoCommand', () => {
   it('should create repository', async () => {
-    const repositoriesApi = createMockRepositoriesApi();
+    let captured: Record<string, unknown> | undefined;
+    const repositoriesApi = createMockRepositoriesApi([], {
+      onCreateCall: (request) => {
+        captured = request as Record<string, unknown>;
+      },
+    });
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
@@ -505,6 +514,16 @@ describe('CreateRepoCommand', () => {
     );
     await command.execute({ name: 'new-repo' }, { globalOptions: {} });
 
+    expect(captured).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'new-repo',
+      body: {
+        type: 'repository',
+        scm: 'git',
+        name: 'new-repo',
+        is_private: true,
+      },
+    });
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
@@ -590,7 +609,12 @@ describe('CreateRepoCommand', () => {
   });
 
   it('should respect isPrivate option', async () => {
-    const repositoriesApi = createMockRepositoriesApi();
+    let captured: Record<string, unknown> | undefined;
+    const repositoriesApi = createMockRepositoriesApi([], {
+      onCreateCall: (request) => {
+        captured = request as Record<string, unknown>;
+      },
+    });
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
@@ -602,10 +626,21 @@ describe('CreateRepoCommand', () => {
       output
     );
     await command.execute(
-      { name: 'public-repo', public: true },
+      { name: 'public-repo', public: true, description: 'A public repo' },
       { globalOptions: {} }
     );
 
+    expect(captured).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'public-repo',
+      body: {
+        type: 'repository',
+        scm: 'git',
+        name: 'public-repo',
+        is_private: false,
+        description: 'A public repo',
+      },
+    });
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 

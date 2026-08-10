@@ -7,13 +7,13 @@ An issue change.
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**links** | [**IssueChangeLinks**](IssueChangeLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **name** | **string** |  | [optional] [default to undefined]
 **created_on** | **string** |  | [optional] [default to undefined]
 **user** | [**Account**](Account.md) |  | [optional] [default to undefined]
 **issue** | [**Issue**](Issue.md) |  | [optional] [default to undefined]
-**changes** | [**IssueChangeChanges**](IssueChangeChanges.md) |  | [optional] [default to undefined]
-**message** | [**TaskContent**](TaskContent.md) |  | [optional] [default to undefined]
+**changes** | **object** |  | [optional] [default to undefined]
+**message** | [**CommentContent**](CommentContent.md) |  | [optional] [default to undefined]
 
 ## Example
 

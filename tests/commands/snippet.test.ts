@@ -154,7 +154,11 @@ function createMockSnippetFilesService(fileContent = 'file contents here'): {
 function createMockSnippetsApi(
   snippets: (typeof mockSnippet)[] = [mockSnippet],
   comments: (typeof mockComment)[] = [mockComment],
-  options: { onDeleteCall?: (request: unknown) => void } = {}
+  options: {
+    onDeleteCall?: (request: unknown) => void;
+    onCommentCreateCall?: (request: unknown) => void;
+    onCommentEditCall?: (request: unknown) => void;
+  } = {}
 ): SnippetsApi {
   return {
     snippetsWorkspaceGet: async (_request: unknown, axiosOptions?: unknown) => {
@@ -203,10 +207,16 @@ function createMockSnippetsApi(
         },
       };
     },
-    snippetsWorkspaceEncodedIdCommentsPost: async () => ({ data: mockComment }),
-    snippetsWorkspaceEncodedIdCommentsCommentIdPut: async () => ({
-      data: mockComment,
-    }),
+    snippetsWorkspaceEncodedIdCommentsPost: async (request: unknown) => {
+      options.onCommentCreateCall?.(request);
+      return { data: mockComment };
+    },
+    snippetsWorkspaceEncodedIdCommentsCommentIdPut: async (
+      request: unknown
+    ) => {
+      options.onCommentEditCall?.(request);
+      return { data: mockComment };
+    },
     snippetsWorkspaceEncodedIdCommentsCommentIdDelete: async () => ({
       data: undefined,
     }),
@@ -872,11 +882,16 @@ describe('ListSnippetCommentsCommand', () => {
 
 describe('AddSnippetCommentCommand', () => {
   it('should add a comment', async () => {
+    let captured: Record<string, unknown> | undefined;
     const output = createMockOutputService();
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
+    const api = createMockSnippetsApi([], [], {
+      onCommentCreateCall: (request) => {
+        captured = request as Record<string, unknown>;
+      },
+    });
     const cmd = new AddSnippetCommentCommand(api, contextService, output);
 
     await cmd.run(
@@ -884,6 +899,14 @@ describe('AddSnippetCommentCommand', () => {
       makeContext()
     );
 
+    expect(captured).toEqual({
+      workspace: 'workspace',
+      encodedId: 'kypj',
+      body: {
+        type: 'snippet_comment',
+        content: { raw: 'Great!' },
+      },
+    });
     expect(output.logs.some((log) => log.includes('Added comment'))).toBe(true);
   });
 
@@ -903,11 +926,16 @@ describe('AddSnippetCommentCommand', () => {
 
 describe('EditSnippetCommentCommand', () => {
   it('should edit a comment', async () => {
+    let captured: Record<string, unknown> | undefined;
     const output = createMockOutputService();
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
-    const api = createMockSnippetsApi();
+    const api = createMockSnippetsApi([], [], {
+      onCommentEditCall: (request) => {
+        captured = request as Record<string, unknown>;
+      },
+    });
     const cmd = new EditSnippetCommentCommand(api, contextService, output);
 
     await cmd.run(
@@ -920,6 +948,15 @@ describe('EditSnippetCommentCommand', () => {
       makeContext()
     );
 
+    expect(captured).toEqual({
+      workspace: 'workspace',
+      encodedId: 'kypj',
+      commentId: 1,
+      body: {
+        type: 'snippet_comment',
+        content: { raw: 'Updated' },
+      },
+    });
     expect(output.logs.some((log) => log.includes('Updated comment #1'))).toBe(
       true
     );

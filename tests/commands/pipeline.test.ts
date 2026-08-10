@@ -488,7 +488,7 @@ describe('RunPipelineCommand', () => {
     expect(captured).toEqual({
       workspace: 'workspace',
       repoSlug: 'repo',
-      pipeline: {
+      body: {
         type: 'pipeline',
         target: {
           type: 'pipeline_ref_target',
@@ -538,7 +538,7 @@ describe('RunPipelineCommand', () => {
     expect(captured).toEqual({
       workspace: 'workspace',
       repoSlug: 'repo',
-      pipeline: {
+      body: {
         type: 'pipeline',
         target: {
           type: 'pipeline_ref_target',

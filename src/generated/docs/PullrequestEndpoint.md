@@ -6,8 +6,8 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **repository** | [**Repository**](Repository.md) |  | [optional] [default to undefined]
-**branch** | [**PullRequestBranch**](PullRequestBranch.md) |  | [optional] [default to undefined]
-**commit** | [**PullRequestCommit**](PullRequestCommit.md) |  | [optional] [default to undefined]
+**branch** | **object** |  | [optional] [default to undefined]
+**commit** | **object** |  | [optional] [default to undefined]
 
 ## Example
 

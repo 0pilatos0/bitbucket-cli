@@ -108,7 +108,7 @@ export class SetCommitStatusCommand extends BaseCommand<
             commit: sha,
             repoSlug: repoContext.repoSlug,
             workspace: repoContext.workspace,
-            commitstatus,
+            body: commitstatus,
           }
         );
       return response.data;
@@ -137,7 +137,7 @@ export class SetCommitStatusCommand extends BaseCommand<
             key,
             repoSlug: repoContext.repoSlug,
             workspace: repoContext.workspace,
-            commitstatus,
+            body: commitstatus,
           }
         );
       return response.data;

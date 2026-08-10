@@ -24,7 +24,9 @@ bun run format       # Prettier write
 bun run format:check # Prettier check
 
 # Generated API
-bun run generate:api # Regenerate src/generated/ from OpenAPI spec
+bun run generate:api # Regenerate src/generated/ from the pinned spec
+bun run check:api-updates # Check if the pinned spec has an upstream update (0=current, 1=update, 2=unverifiable)
+bun run update:api # Download the latest spec, regenerate src/generated/, restore the old spec if generation fails
 
 # Docs site (Astro, in docs/)
 bun run docs:dev     # Start docs dev server
@@ -135,7 +137,9 @@ bun run release
 ### Generated Code
 
 - `src/generated/**` is auto-generated; avoid manual edits
-- Regenerate via `bun run generate:api` when specs change
+- The pinned spec `specs/bitbucket-cloud.json` is committed; `bun run generate:api` normalizes it via `scripts/normalize-spec.ts` (fixing upstream warts at the spec level) into a gitignored copy, then generates
+- Prefer spec-level fixes in `scripts/normalize-spec.ts` over output-level patches in `scripts/patch-generated.ts`
+- `.github/workflows/check-api-updates.yml` runs `check:api-updates` weekly and opens an issue when upstream drifts
 
 ### Security and Config
 

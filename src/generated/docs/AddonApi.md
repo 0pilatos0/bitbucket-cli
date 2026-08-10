@@ -4,16 +4,63 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
+|[**addonAddonKeyClientKeyGet**](#addonaddonkeyclientkeyget) | **GET** /addon/{addon_key}/client-key | Get the client key of a Connect addon|
 |[**addonDelete**](#addondelete) | **DELETE** /addon | Delete an app|
-|[**addonLinkersGet**](#addonlinkersget) | **GET** /addon/linkers | List linkers for an app|
-|[**addonLinkersLinkerKeyGet**](#addonlinkerslinkerkeyget) | **GET** /addon/linkers/{linker_key} | Get a linker for an app|
-|[**addonLinkersLinkerKeyValuesDelete**](#addonlinkerslinkerkeyvaluesdelete) | **DELETE** /addon/linkers/{linker_key}/values | Delete all linker values|
-|[**addonLinkersLinkerKeyValuesGet**](#addonlinkerslinkerkeyvaluesget) | **GET** /addon/linkers/{linker_key}/values | List linker values for a linker|
-|[**addonLinkersLinkerKeyValuesPost**](#addonlinkerslinkerkeyvaluespost) | **POST** /addon/linkers/{linker_key}/values | Create a linker value|
-|[**addonLinkersLinkerKeyValuesPut**](#addonlinkerslinkerkeyvaluesput) | **PUT** /addon/linkers/{linker_key}/values | Update a linker value|
-|[**addonLinkersLinkerKeyValuesValueIdDelete**](#addonlinkerslinkerkeyvaluesvalueiddelete) | **DELETE** /addon/linkers/{linker_key}/values/{value_id} | Delete a linker value|
-|[**addonLinkersLinkerKeyValuesValueIdGet**](#addonlinkerslinkerkeyvaluesvalueidget) | **GET** /addon/linkers/{linker_key}/values/{value_id} | Get a linker value|
 |[**addonPut**](#addonput) | **PUT** /addon | Update an installed app|
+
+# **addonAddonKeyClientKeyGet**
+> addonAddonKeyClientKeyGet()
+
+Get the client key of the Connect addon associated with a Forge app install via forgeAppId linkage.  This endpoint is part of the Connect -> Forge migration tooling. It is intended to be used by a Forge app using `asApp().requestBitbucket()` only. Prerequisite: app developer needs to register the linkage between their Connect and Forge app by setting `forgeAppId` in the Connect addon descriptor to `app.id` from Forge app manifest, then update the installations. If the request came from an installation of a registered Forge app, the client key of the linked Connect addon installed in the same workspace will be returned.  ``` api.asApp().requestBitbucket(route`/2.0/addon/{addon-key}/client-key`) ```
+
+### Example
+
+```typescript
+import {
+    AddonApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new AddonApi(configuration);
+
+let addonKey: string; //The Connect addon key as defined in an application descriptor.  (default to undefined)
+
+const { status, data } = await apiInstance.addonAddonKeyClientKeyGet(
+    addonKey
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **addonKey** | [**string**] | The Connect addon key as defined in an application descriptor.  | defaults to undefined|
+
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The client key of the Connect addon linked to the Forge app installation where the request was made |  -  |
+|**401** | Invalid authentication. |  -  |
+|**403** | Improper authorization. |  -  |
+|**404** | The Connect addon or the Forge app does not exist. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **addonDelete**
 > addonDelete()
@@ -58,430 +105,6 @@ void (empty response body)
 |**204** | Request has succeeded. The application has been deleted for the user. |  -  |
 |**401** | No authorization. |  -  |
 |**403** | Improper authentication. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersGet**
-> addonLinkersGet()
-
-Gets a list of all [linkers](/cloud/bitbucket/modules/linker/) for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-const { status, data } = await apiInstance.addonLinkersGet();
-```
-
-### Parameters
-This endpoint does not have any parameters.
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | Successful. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyGet**
-> addonLinkersLinkerKeyGet()
-
-Gets a [linker](/cloud/bitbucket/modules/linker/) specified by `linker_key` for the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyGet(
-    linkerKey
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | Successful. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker does not exist. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesDelete**
-> addonLinkersLinkerKeyValuesDelete()
-
-Delete all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesDelete(
-    linkerKey
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**204** | Successfully deleted the linker values. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker does not exist. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesGet**
-> addonLinkersLinkerKeyValuesGet()
-
-Gets a list of all [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesGet(
-    linkerKey
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | Successful. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker does not exist. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesPost**
-> addonLinkersLinkerKeyValuesPost()
-
-Creates a [linker](/cloud/bitbucket/modules/linker/) value for the specified linker of authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesPost(
-    linkerKey
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**201** | Successfully created the linker value. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker does not exist. |  -  |
-|**409** | The linker already has the value being added. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesPut**
-> addonLinkersLinkerKeyValuesPut()
-
-Bulk update [linker](/cloud/bitbucket/modules/linker/) values for the specified linker of the authenticated application.  A linker value lets applications supply values to modify its regular expression.  The base regular expression must use a Bitbucket-specific match group `(?K)` which will be translated to `([\\w\\-]+)`. A value must match this pattern.  [Read more about linker values](/cloud/bitbucket/modules/linker/#usingthebitbucketapitosupplyvalues)  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesPut(
-    linkerKey
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**204** | Successfully updated the linker values. |  -  |
-|**400** | Invalid input. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker does not exist. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesValueIdDelete**
-> addonLinkersLinkerKeyValuesValueIdDelete()
-
-Delete a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-let valueId: number; //The numeric ID of the linker value. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesValueIdDelete(
-    linkerKey,
-    valueId
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-| **valueId** | [**number**] | The numeric ID of the linker value. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**204** | Successfully deleted the linker value. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker value does not exist. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **addonLinkersLinkerKeyValuesValueIdGet**
-> addonLinkersLinkerKeyValuesValueIdGet()
-
-Get a single [linker](/cloud/bitbucket/modules/linker/) value of the authenticated application.  This endpoint is deprecated and will be removed by May 2026.
-
-### Example
-
-```typescript
-import {
-    AddonApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new AddonApi(configuration);
-
-let linkerKey: string; //The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. (default to undefined)
-let valueId: number; //The numeric ID of the linker value. (default to undefined)
-
-const { status, data } = await apiInstance.addonLinkersLinkerKeyValuesValueIdGet(
-    linkerKey,
-    valueId
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **linkerKey** | [**string**] | The unique key of a [linker module](/cloud/bitbucket/modules/linker/) as defined in an application descriptor. | defaults to undefined|
-| **valueId** | [**number**] | The numeric ID of the linker value. | defaults to undefined|
-
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | Successful. |  -  |
-|**401** | Authentication must use app JWT |  -  |
-|**404** | The linker value does not exist. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

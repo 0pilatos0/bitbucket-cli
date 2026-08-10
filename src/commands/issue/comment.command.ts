@@ -10,7 +10,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { IssueTrackerApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { rethrowIssueNotFound } from './shared.js';
+import { buildIssueComment, rethrowIssueNotFound } from './shared.js';
 
 export interface CommentIssueOptions extends GlobalOptions {
   id: string;
@@ -41,18 +41,14 @@ export class CommentIssueCommand extends BaseCommand<
       context
     );
 
-    const body = this.requireOption(options.body, 'body');
+    const message = this.requireOption(options.body, 'body');
 
     const response = await this.issueTrackerApi
       .repositoriesWorkspaceRepoSlugIssuesIssueIdCommentsPost({
         issueId: options.id,
         workspace: repoContext.workspace,
         repoSlug: repoContext.repoSlug,
-        issueComment: {
-          // 'type' is the ModelObject discriminator required on request bodies.
-          type: 'issue_comment',
-          content: { raw: body },
-        },
+        body: buildIssueComment(message),
       })
       .catch((error: unknown) =>
         rethrowIssueNotFound(

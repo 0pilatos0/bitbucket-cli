@@ -7,7 +7,7 @@ A ref object, representing a branch or tag in a repository.
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **type** | **string** |  | [default to undefined]
-**links** | [**RefLinks**](RefLinks.md) |  | [optional] [default to undefined]
+**links** | **object** |  | [optional] [default to undefined]
 **name** | **string** | The name of the ref. | [optional] [default to undefined]
 **target** | [**Commit**](Commit.md) |  | [optional] [default to undefined]
 
