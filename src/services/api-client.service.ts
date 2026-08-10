@@ -102,7 +102,13 @@ const SENSITIVE_KEYS = new Set([
 
 const REDACTED = '[REDACTED]';
 
-function redactSensitive(
+/**
+ * Recursively replace values under case-insensitive sensitive keys
+ * (tokens, passwords, authorization headers) with `[REDACTED]` and break
+ * circular references. Exported for direct unit tests; used by the DEBUG
+ * response/error body logging.
+ */
+export function redactSensitive(
   value: unknown,
   seen = new WeakSet<object>()
 ): unknown {
@@ -134,7 +140,13 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
   __tokenRefreshed?: boolean;
 }
 
-function getRetryDelay(error: AxiosError, attempt: number): number {
+/**
+ * Backoff delay for one retry attempt (1-based). A numeric `Retry-After`
+ * header on a 429 wins; anything else — missing/garbage header, HTTP-date
+ * format, or a non-429 status — falls back to exponential backoff
+ * `1000 * 2^(attempt-1)`. Exported for direct unit tests.
+ */
+export function getRetryDelay(error: AxiosError, attempt: number): number {
   if (error.response?.status === 429) {
     const retryAfter = error.response.headers['retry-after'];
     if (retryAfter) {
@@ -151,7 +163,13 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function redactRequestUrl(
+/**
+ * Strip a request URL down to `origin + pathname`, replacing any query
+ * string with `?[redacted]` so tokens in query params never reach DEBUG
+ * output. Falls back to a manual query split when URL parsing fails.
+ * Exported for direct unit tests.
+ */
+export function redactRequestUrl(
   requestUrl: string | undefined,
   baseUrl: string | undefined
 ): string {
@@ -356,9 +374,9 @@ export function createApiClient(
 /**
  * Flatten Bitbucket's `error.fields` map into `key: reason` pairs. Bitbucket
  * pairs a terse message like "Bad request" with this map, and it is the only
- * part that says which key was rejected.
+ * part that says which key was rejected. Exported for direct unit tests.
  */
-function formatErrorFields(fields: unknown): string | undefined {
+export function formatErrorFields(fields: unknown): string | undefined {
   if (typeof fields !== 'object' || fields === null || Array.isArray(fields)) {
     return undefined;
   }
@@ -377,7 +395,13 @@ function formatErrorFields(fields: unknown): string | undefined {
   return parts.length > 0 ? parts.join('; ') : undefined;
 }
 
-function extractErrorMessage(data: unknown): string | undefined {
+/**
+ * Extract a human-readable message from a Bitbucket error response body:
+ * the nested `error.message` (with formatted `error.fields` appended when
+ * present), else a top-level string `message`. Exported for direct unit
+ * tests.
+ */
+export function extractErrorMessage(data: unknown): string | undefined {
   if (typeof data === 'object' && data !== null) {
     const errorObj = data as Record<string, unknown>;
     if (typeof errorObj.error === 'object' && errorObj.error !== null) {
