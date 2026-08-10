@@ -503,3 +503,185 @@ export const mockDiffStat = {
   lines_added: 1,
   lines_removed: 1,
 };
+
+/**
+ * Axios client mocks shared by the api-client suites (tests/services/
+ * api-client.test.ts and api-client.interceptors.test.ts).
+ */
+
+export function mockConfigService() {
+  return createMockConfigService({
+    username: 'testuser',
+    apiToken: 'testtoken',
+  });
+}
+
+export function mockOAuthConfigService() {
+  return createMockConfigService({
+    authMethod: 'oauth',
+    oauthAccessToken: 'oauth-access-token',
+    oauthRefreshToken: 'oauth-refresh-token',
+    oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
+  });
+}
+
+/**
+ * Creates an axios adapter that returns responses from a queue. Each entry
+ * is either a successful response or an error response. Tracks the number
+ * of calls made.
+ */
+export function createMockAdapter(
+  responses: Array<{
+    status: number;
+    data?: unknown;
+    headers?: Record<string, string>;
+  }>
+) {
+  let callCount = 0;
+  const adapter = (config: unknown) => {
+    const idx = callCount;
+    callCount++;
+    const resp = responses[idx] ?? responses[responses.length - 1];
+    if (resp.status >= 200 && resp.status < 300) {
+      return Promise.resolve({
+        data: resp.data ?? {},
+        status: resp.status,
+        statusText: 'OK',
+        headers: resp.headers ?? {},
+        config,
+      });
+    }
+    // Simulate an axios error for non-2xx
+    const error = new Error(`Request failed with status code ${resp.status}`);
+    (error as any).response = {
+      data: resp.data ?? {},
+      status: resp.status,
+      statusText: resp.status.toString(),
+      headers: resp.headers ?? {},
+      config,
+    };
+    (error as any).config = config;
+    (error as any).isAxiosError = true;
+    // For network errors we handle separately; here we always have a response
+    return Promise.reject(error);
+  };
+
+  return {
+    adapter,
+    getCallCount: () => callCount,
+  };
+}
+
+/**
+ * Creates an adapter that simulates an axios request timeout. A real axios
+ * timeout rejects with an error that has `code === 'ECONNABORTED'` (or
+ * 'ETIMEDOUT'), `request` set, and NO `response` — exactly like a generic
+ * network error but with `code` populated. This routes through the same
+ * `else if (error.request)` branch a real timeout hits. The presence of
+ * `code` is what lets the client emit a timeout-specific message.
+ */
+export function createTimeoutErrorAdapter(
+  code: 'ECONNABORTED' | 'ETIMEDOUT' = 'ECONNABORTED',
+  options: { succeedAfter?: number } = {}
+) {
+  let callCount = 0;
+  let lastError: unknown;
+  const adapter = (_config: unknown) => {
+    callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
+    const error = new Error(`timeout of 30000ms exceeded`);
+    (error as any).code = code;
+    (error as any).request = {}; // request was sent...
+    // ...but no `response` was ever received.
+    (error as any).config = _config;
+    (error as any).isAxiosError = true;
+    lastError = error;
+    return Promise.reject(error);
+  };
+  return {
+    adapter,
+    getCallCount: () => callCount,
+    getLastError: () => lastError,
+  };
+}
+
+/**
+ * Creates an adapter that simulates a network error (no response).
+ * Optionally tags the error with a `code` (e.g. 'ECONNRESET') and/or starts
+ * succeeding after the first `succeedAfter` calls have failed.
+ */
+export function createNetworkErrorAdapter(
+  options: { code?: string; succeedAfter?: number } = {}
+) {
+  let callCount = 0;
+  const adapter = (_config: unknown) => {
+    callCount++;
+    if (
+      options.succeedAfter !== undefined &&
+      callCount > options.succeedAfter
+    ) {
+      return Promise.resolve({
+        data: { ok: true },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: _config,
+      });
+    }
+    const error = new Error('Network Error');
+    if (options.code !== undefined) {
+      (error as any).code = options.code;
+    }
+    (error as any).request = {}; // has request but no response
+    (error as any).config = _config;
+    (error as any).isAxiosError = true;
+    return Promise.reject(error);
+  };
+  return {
+    adapter,
+    getCallCount: () => callCount,
+  };
+}
+
+/**
+ * Creates a mock OAuthService for driving the api-client interceptor.
+ */
+export function createMockOAuthService(
+  options: {
+    validToken?: string;
+    refreshedToken?: string;
+    refreshShouldFail?: boolean;
+  } = {}
+) {
+  let refreshCallCount = 0;
+  return {
+    service: {
+      async getValidAccessToken() {
+        return options.validToken ?? 'valid-oauth-token';
+      },
+      async refreshAccessToken() {
+        refreshCallCount++;
+        if (options.refreshShouldFail) {
+          throw new Error('Refresh failed');
+        }
+        return options.refreshedToken ?? 'refreshed-oauth-token';
+      },
+      async authorize() {
+        return { username: 'user', displayName: 'User', accountId: '123' };
+      },
+      async revokeToken() {},
+    } as any,
+    getRefreshCallCount: () => refreshCallCount,
+  };
+}
