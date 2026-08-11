@@ -12,7 +12,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -69,52 +69,57 @@ function cliEnv(): Record<string, string> {
  * Run the built CLI as a child process. Must be async: the mock server lives
  * in this test process, so a blocking spawnSync would starve the event loop
  * and the CLI's request could never be served (deadlock).
+ *
+ * Uses node:child_process rather than Bun.spawn: on Windows, Bun.spawn's
+ * `proc.exited` can intermittently never resolve even after the child has
+ * exited (observed on CI, issue #309), hanging the test for the full
+ * RUN_TIMEOUT_MS. Node's 'close' event fires after the child exits and its
+ * stdio streams have fully closed — battle-tested on Windows.
  */
 async function runCli(args: string[]): Promise<CliResult> {
-  const proc = Bun.spawn({
-    cmd: [process.execPath, join(distDir, 'index.js'), ...args],
+  const child = spawn(process.execPath, [join(distDir, 'index.js'), ...args], {
     cwd: homeDir,
     env: cliEnv(),
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  const stdoutPromise = collectText(proc.stdout);
-  const stderrPromise = collectText(proc.stderr);
+  let stdout = '';
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk: string) => (stdout += chunk));
+  child.stderr.on('data', (chunk: string) => (stderr += chunk));
 
-  let timedOut = false;
-  const exitCode = await Promise.race([
-    proc.exited,
-    new Promise<number>((resolve) => {
-      setTimeout(() => {
-        timedOut = true;
-        proc.kill();
-        resolve(1);
+  const result = await new Promise<{ status: number; timedOut: boolean }>(
+    (resolve) => {
+      let settled = false;
+      const finish = (status: number, timedOut: boolean) => {
+        if (!settled) {
+          settled = true;
+          resolve({ status, timedOut });
+        }
+      };
+      child.on('error', (error) => {
+        stderr += `[smoke] spawn failed: ${error.message}\n`;
+        finish(1, false);
+      });
+      child.on('close', (code) => finish(code ?? 1, false));
+      const timer = setTimeout(() => {
+        child.kill('SIGKILL');
+        finish(1, true);
       }, RUN_TIMEOUT_MS);
-    }),
-  ]);
+      timer.unref();
+    }
+  );
 
-  const stdout = await stdoutPromise;
-  const stderr = await stderrPromise;
-  if (timedOut) {
+  if (result.timedOut) {
     console.error(
       `[smoke] CLI timed out after ${RUN_TIMEOUT_MS}ms.\n` +
         `--- child stdout ---\n${stdout}\n--- child stderr ---\n${stderr}`
     );
   }
 
-  return { status: timedOut ? 1 : exitCode, stdout, stderr };
-}
-
-async function collectText(
-  stream: ReadableStream<Uint8Array>
-): Promise<string> {
-  let text = '';
-  const decoder = new TextDecoder();
-  for await (const chunk of stream) {
-    text += decoder.decode(chunk);
-  }
-  return text;
+  return { status: result.status, stdout, stderr };
 }
 
 beforeAll(async () => {
