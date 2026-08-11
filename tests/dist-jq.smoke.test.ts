@@ -12,7 +12,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -28,7 +28,12 @@ let server: ReturnType<typeof Bun.serve> | undefined;
 let requestedPaths: string[] = [];
 
 const BUILD_TIMEOUT_MS = 60_000;
+// Internal kill timer for a hung CLI. The per-test Bun timeout (passed as the
+// third arg to `it`) is set larger so this timer always wins the race and can
+// print the child's partial output before the test is torn down.
 const RUN_TIMEOUT_MS = 60_000;
+// Safety net above the internal kill timer; lets the diagnostics print.
+const TEST_TIMEOUT_MS = RUN_TIMEOUT_MS + 10_000;
 
 interface CliResult {
   status: number;
@@ -44,12 +49,15 @@ interface CliResult {
 // - NODE_ENV=production makes BaseCommand.handleError set process.exitCode
 //   (the parent test process runs with NODE_ENV=test, which suppresses it).
 // - FORCE_COLOR=0 / NO_COLOR=1 keep output TTY-independent (chalk).
+// - BB_HTTP_TIMEOUT=10000 fails a broken request fast (10s) instead of
+//   hanging the run for the default 30s — a fast, readable assertion failure.
 function cliEnv(): Record<string, string> {
   return {
     HOME: homeDir,
     USERPROFILE: homeDir,
     APPDATA: join(homeDir, 'AppData', 'Roaming'),
     BB_API_BASE_URL: `http://127.0.0.1:${server!.port}/2.0`,
+    BB_HTTP_TIMEOUT: '10000',
     CI: '1',
     NODE_ENV: 'production',
     FORCE_COLOR: '0',
@@ -61,33 +69,79 @@ function cliEnv(): Record<string, string> {
  * Run the built CLI as a child process. Must be async: the mock server lives
  * in this test process, so a blocking spawnSync would starve the event loop
  * and the CLI's request could never be served (deadlock).
+ *
+ * Completion is signaled by the 'exit' event, not 'close': on Windows,
+ * 'close' (which waits for stdio EOF) can stall forever even after the child
+ * has exited and fully written its output (observed on CI, issue #309).
+ * 'exit' fires on the process handle alone, which libuv reaps reliably. The
+ * captured output is drained with a short grace after 'exit'; a stalled
+ * stdout tail surfaces in the timeout diagnostics.
  */
 async function runCli(args: string[]): Promise<CliResult> {
-  const proc = Bun.spawn({
-    cmd: [process.execPath, join(distDir, 'index.js'), ...args],
+  const child = spawn(process.execPath, [join(distDir, 'index.js'), ...args], {
     cwd: homeDir,
     env: cliEnv(),
-    stdout: 'pipe',
-    stderr: 'pipe',
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  const stdout = new Response(proc.stdout).text();
-  const stderr = new Response(proc.stderr).text();
+  let stdout = '';
+  let stderr = '';
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', (chunk: string) => (stdout += chunk));
+  child.stderr.on('data', (chunk: string) => (stderr += chunk));
 
-  let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    proc.kill();
-  }, RUN_TIMEOUT_MS);
+  const drained = new Promise<void>((resolve) => {
+    let remaining = 2;
+    const done = () => {
+      remaining -= 1;
+      if (remaining === 0) resolve();
+    };
+    child.stdout.on('end', done);
+    child.stderr.on('end', done);
+  });
 
-  const exitCode = await proc.exited;
-  clearTimeout(timer);
+  const { status, timedOut } = await new Promise<{
+    status: number;
+    timedOut: boolean;
+  }>((resolve) => {
+    let settled = false;
+    const finish = (status: number, timedOut: boolean) => {
+      if (!settled) {
+        settled = true;
+        resolve({ status, timedOut });
+      }
+    };
+    child.on('error', (error) => {
+      stderr += `[smoke] spawn failed: ${error.message}\n`;
+      finish(1, false);
+    });
+    child.on('exit', (code) => finish(code ?? 1, false));
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      finish(1, true);
+    }, RUN_TIMEOUT_MS);
+    timer.unref();
+  });
 
-  return {
-    status: timedOut ? 1 : exitCode,
-    stdout: await stdout,
-    stderr: await stderr,
-  };
+  if (timedOut) {
+    // exitCode === null means 'exit' never fired — the child itself hung
+    // rather than a stalled pipe.
+    console.error(
+      `[smoke] CLI timed out after ${RUN_TIMEOUT_MS}ms ` +
+        `(child.exitCode=${child.exitCode}, signalCode=${child.signalCode}).\n` +
+        `--- child stdout ---\n${stdout}\n--- child stderr ---\n${stderr}`
+    );
+  }
+
+  // 'exit' fires before stdio closes; give the stream tails a moment to
+  // drain, then move on with whatever was captured.
+  await Promise.race([
+    drained,
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]);
+
+  return { status, stdout, stderr };
 }
 
 beforeAll(async () => {
@@ -202,7 +256,7 @@ describe('built dist --jq (issue #309)', () => {
       expect(result.stdout).toBe('"alpha"\n');
       expect(requestedPaths).toContain(`/2.0/repositories/${MOCK_WORKSPACE}`);
     },
-    RUN_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 
   it(
@@ -229,6 +283,6 @@ describe('built dist --jq (issue #309)', () => {
         await cp(wasmBackup, join(distDir, 'build', 'jq.wasm'));
       }
     },
-    RUN_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 });
