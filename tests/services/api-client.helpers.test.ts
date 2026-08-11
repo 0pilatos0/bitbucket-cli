@@ -5,13 +5,14 @@
  * precise than observing them through the DEBUG console seam.
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import {
   extractErrorMessage,
   formatErrorFields,
   getRetryDelay,
   redactRequestUrl,
   redactSensitive,
+  resolveBaseUrl,
 } from '../../src/services/api-client.service.js';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
@@ -222,5 +223,37 @@ describe('formatErrorFields', () => {
 
   it('drops non-string, non-array reasons', () => {
     expect(formatErrorFields({ title: 42, name: 'keep' })).toBe('name: keep');
+  });
+});
+
+describe('resolveBaseUrl', () => {
+  const originalBaseUrl = process.env.BB_API_BASE_URL;
+
+  afterEach(() => {
+    if (originalBaseUrl === undefined) {
+      delete process.env.BB_API_BASE_URL;
+    } else {
+      process.env.BB_API_BASE_URL = originalBaseUrl;
+    }
+  });
+
+  it('defaults to the Bitbucket Cloud API when unset', () => {
+    delete process.env.BB_API_BASE_URL;
+    expect(resolveBaseUrl()).toBe('https://api.bitbucket.org/2.0');
+  });
+
+  it('uses BB_API_BASE_URL when set', () => {
+    process.env.BB_API_BASE_URL = 'http://localhost:8080';
+    expect(resolveBaseUrl()).toBe('http://localhost:8080');
+  });
+
+  it('strips trailing slashes and surrounding whitespace', () => {
+    process.env.BB_API_BASE_URL = ' http://localhost:8080/2.0/// ';
+    expect(resolveBaseUrl()).toBe('http://localhost:8080/2.0');
+  });
+
+  it('falls back to the default for a blank value', () => {
+    process.env.BB_API_BASE_URL = '   ';
+    expect(resolveBaseUrl()).toBe('https://api.bitbucket.org/2.0');
   });
 });
