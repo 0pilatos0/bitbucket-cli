@@ -12,17 +12,18 @@
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { spawn, spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const REPO_ROOT = resolve(import.meta.dir, '..');
 const MOCK_WORKSPACE = 'smoke-ws';
 
-let tmpDir: string;
-let distDir: string;
-let homeDir: string;
+let tmpDir = '';
+let distDir = '';
+let homeDir = '';
+let wasmBackup = '';
 let server: ReturnType<typeof Bun.serve> | undefined;
 let requestedPaths: string[] = [];
 
@@ -35,50 +36,58 @@ interface CliResult {
   stderr: string;
 }
 
+// Load-bearing child env (do not "clean up" without re-verifying):
+// - HOME / USERPROFILE / APPDATA isolate the child's config lookup to the
+//   temp dir on every platform (POSIX reads ~/.config/bb, win32 reads
+//   %APPDATA%\bb then %USERPROFILE%\AppData\Roaming\bb).
+// - CI=1 skips the post-action npm-registry update check (version.service).
+// - NODE_ENV=production makes BaseCommand.handleError set process.exitCode
+//   (the parent test process runs with NODE_ENV=test, which suppresses it).
+// - FORCE_COLOR=0 / NO_COLOR=1 keep output TTY-independent (chalk).
+function cliEnv(): Record<string, string> {
+  return {
+    HOME: homeDir,
+    USERPROFILE: homeDir,
+    APPDATA: join(homeDir, 'AppData', 'Roaming'),
+    BB_API_BASE_URL: `http://127.0.0.1:${server!.port}/2.0`,
+    CI: '1',
+    NODE_ENV: 'production',
+    FORCE_COLOR: '0',
+    NO_COLOR: '1',
+  };
+}
+
 /**
  * Run the built CLI as a child process. Must be async: the mock server lives
  * in this test process, so a blocking spawnSync would starve the event loop
  * and the CLI's request could never be served (deadlock).
  */
 async function runCli(args: string[]): Promise<CliResult> {
-  const child = spawn(process.execPath, [join(distDir, 'index.js'), ...args], {
+  const proc = Bun.spawn({
+    cmd: [process.execPath, join(distDir, 'index.js'), ...args],
     cwd: homeDir,
-    env: {
-      HOME: homeDir,
-      USERPROFILE: homeDir,
-      BB_API_BASE_URL: `http://127.0.0.1:${server!.port}/2.0`,
-      CI: '1',
-      NODE_ENV: 'production',
-      FORCE_COLOR: '0',
-      NO_COLOR: '1',
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    env: cliEnv(),
+    stdout: 'pipe',
+    stderr: 'pipe',
   });
 
-  let stdout = '';
-  let stderr = '';
-  child.stdout.setEncoding('utf8');
-  child.stderr.setEncoding('utf8');
-  child.stdout.on('data', (chunk: string) => (stdout += chunk));
-  child.stderr.on('data', (chunk: string) => (stderr += chunk));
+  const stdout = new Response(proc.stdout).text();
+  const stderr = new Response(proc.stderr).text();
 
-  const status = await new Promise<number>((resolve) => {
-    let settled = false;
-    const finish = (code: number) => {
-      if (!settled) {
-        settled = true;
-        resolve(code);
-      }
-    };
-    child.on('exit', (code) => finish(code ?? 1));
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      finish(1);
-    }, RUN_TIMEOUT_MS);
-    timer.unref();
-  });
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    proc.kill();
+  }, RUN_TIMEOUT_MS);
 
-  return { status, stdout, stderr };
+  const exitCode = await proc.exited;
+  clearTimeout(timer);
+
+  return {
+    status: timedOut ? 1 : exitCode,
+    stdout: await stdout,
+    stderr: await stderr,
+  };
 }
 
 beforeAll(async () => {
@@ -103,16 +112,33 @@ beforeAll(async () => {
     JSON.stringify({ name: 'smoke', version: '0.0.0', type: 'module' })
   );
 
-  // Config path is $HOME/.config/bb/config.json (platform-aware; USERPROFILE
-  // covers the Windows leg). Write it directly with the same permissions the
-  // CLI enforces so the permission guard is satisfied.
-  const configDir = join(homeDir, '.config', 'bb');
-  await mkdir(configDir, { recursive: true, mode: 0o700 });
-  await writeFile(
-    join(configDir, 'config.json'),
-    JSON.stringify({ username: 'smoke-user', apiToken: 'smoke-token' }),
-    { mode: 0o600 }
-  );
+  // Write the config in BOTH platform layouts so whichever leg CI runs on
+  // finds the credentials: POSIX reads $HOME/.config/bb, win32 reads
+  // %APPDATA%\bb first, then %USERPROFILE%\AppData\Roaming\bb. Modes are
+  // no-ops on Windows but keep the POSIX permission guard satisfied.
+  const configs = [
+    {
+      dir: join(homeDir, '.config', 'bb'),
+      file: join(homeDir, '.config', 'bb', 'config.json'),
+    },
+    {
+      dir: join(homeDir, 'AppData', 'Roaming', 'bb'),
+      file: join(homeDir, 'AppData', 'Roaming', 'bb', 'config.json'),
+    },
+  ];
+  for (const { dir, file } of configs) {
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+    await writeFile(
+      file,
+      JSON.stringify({ username: 'smoke-user', apiToken: 'smoke-token' }),
+      { mode: 0o600 }
+    );
+  }
+
+  // Keep a copy of the staged wasm so the missing-wasm test can restore it
+  // and the suite stays independent of test order.
+  wasmBackup = join(tmpDir, 'jq.wasm.backup');
+  await cp(join(distDir, 'build', 'jq.wasm'), wasmBackup);
 
   server = Bun.serve({
     port: 0,
@@ -147,14 +173,13 @@ beforeAll(async () => {
       );
     },
   });
-
-  homeDir = join(tmpDir, 'home');
-  await mkdir(homeDir, { recursive: true, mode: 0o700 });
 });
 
 afterAll(async () => {
   server?.stop(true);
-  await rm(tmpDir, { recursive: true, force: true });
+  if (tmpDir) {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
 });
 
 describe('built dist --jq (issue #309)', () => {
@@ -184,19 +209,25 @@ describe('built dist --jq (issue #309)', () => {
     'fails loudly when the wasm is not staged next to the bundle',
     async () => {
       await rm(join(distDir, 'build'), { recursive: true, force: true });
+      try {
+        const result = await runCli([
+          'repo',
+          'list',
+          '--json',
+          '--jq',
+          '.repositories[0].name',
+          '--workspace',
+          MOCK_WORKSPACE,
+        ]);
 
-      const result = await runCli([
-        'repo',
-        'list',
-        '--json',
-        '--jq',
-        '.repositories[0].name',
-        '--workspace',
-        MOCK_WORKSPACE,
-      ]);
-
-      expect(result.status).not.toBe(0);
-      expect(result.stderr).toContain('jq-wasm: could not read the wasm asset');
+        expect(result.status).toBe(1);
+        expect(result.stderr).toContain(
+          'jq-wasm: could not read the wasm asset'
+        );
+      } finally {
+        await mkdir(join(distDir, 'build'), { recursive: true });
+        await cp(wasmBackup, join(distDir, 'build', 'jq.wasm'));
+      }
     },
     RUN_TIMEOUT_MS
   );

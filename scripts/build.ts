@@ -17,12 +17,37 @@ import { resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dir, '..');
 
-const outDirIndex = process.argv.indexOf('--outdir');
-const outDir = resolve(
-  outDirIndex !== -1 && process.argv[outDirIndex + 1] !== undefined
-    ? process.argv[outDirIndex + 1]
-    : resolve(repoRoot, 'dist')
+// jq-wasm resolves `build/jq.wasm` relative to the bundle; this is the asset
+// we stage next to it. The path mirrors jq-wasm's published layout.
+const JQ_WASM_SOURCE = resolve(
+  repoRoot,
+  'node_modules/jq-wasm/dist/build/jq.wasm'
 );
+
+function parseOutDir(): string {
+  const args = process.argv.slice(2);
+  let outDir = resolve(repoRoot, 'dist');
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--outdir') {
+      const value = args[i + 1];
+      if (value === undefined) {
+        console.error('build: --outdir requires a value');
+        process.exit(1);
+      }
+      outDir = resolve(value);
+      i++;
+    } else if (arg.startsWith('--outdir=')) {
+      outDir = resolve(arg.slice('--outdir='.length));
+    } else {
+      console.error(`build: unknown argument: ${arg}`);
+      process.exit(1);
+    }
+  }
+  return outDir;
+}
+
+const outDir = parseOutDir();
 
 const bundle = spawnSync(
   process.execPath,
@@ -43,10 +68,21 @@ if (bundle.status !== 0) {
   process.exit(bundle.status ?? 1);
 }
 
-const wasmSrc = resolve(repoRoot, 'node_modules/jq-wasm/dist/build/jq.wasm');
-const wasmOutDir = resolve(outDir, 'build');
-await mkdir(wasmOutDir, { recursive: true });
-await cp(wasmSrc, resolve(wasmOutDir, 'jq.wasm'));
+try {
+  const wasmOutDir = resolve(outDir, 'build');
+  await mkdir(wasmOutDir, { recursive: true });
+  await cp(JQ_WASM_SOURCE, resolve(wasmOutDir, 'jq.wasm'));
+} catch (error) {
+  console.error(
+    `build: failed to stage the jq-wasm runtime from ${JQ_WASM_SOURCE}. ` +
+      'Run `bun install` and retry.'
+  );
+  if (error instanceof Error) {
+    console.error(`build: ${error.message}`);
+  }
+  process.exit(1);
+}
+
 console.log(
-  `build: staged jq-wasm runtime at ${resolve(wasmOutDir, 'jq.wasm')}`
+  `build: staged jq-wasm runtime at ${resolve(outDir, 'build', 'jq.wasm')}`
 );
