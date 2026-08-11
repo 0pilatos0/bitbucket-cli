@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.23.2
+
+### Patch Changes
+
+- [#312](https://github.com/0pilatos0/bitbucket-cli/pull/312) [`078a68c`](https://github.com/0pilatos0/bitbucket-cli/commit/078a68cfd379350d8ea1a615fef21850f434f744) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Fix `--jq` failing in the published package
+
+  - The jq-wasm WebAssembly binary was never shipped next to the bundled CLI, so `--jq` crashed at runtime from an installed package (`dist/build/jq.wasm` missing)
+  - `bun run build` now stages the wasm via `scripts/build.ts` and ships it in `dist/`
+  - Added `BB_API_BASE_URL` to point the API client at a gateway/mirror/mock (used by the new end-to-end dist smoke test, which runs `--jq` through the real built binary)
+
+- [#312](https://github.com/0pilatos0/bitbucket-cli/pull/312) [`728dbb2`](https://github.com/0pilatos0/bitbucket-cli/commit/728dbb2481d5451fe319727c8a1abceecf118301) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Shrink the published bundle
+
+  - `bun run build` now minifies the bundle: `dist/index.js` goes from 1.79 MB to 0.91 MB (−49%). Sourcemaps are kept (5.8 MB) so uncaught stack traces still resolve to original source; drop `--sourcemap` in `scripts/build.ts` if the tarball size matters more than trace readability
+  - `jq-wasm` moved to devDependencies: its runtime is fully bundled into `dist/index.js` and only the staged wasm asset is read at runtime, so published installs no longer download ~1.4 MB of jq-wasm package files
+
 ## 1.23.1
 
 ### Patch Changes
