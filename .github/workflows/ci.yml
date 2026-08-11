@@ -90,7 +90,9 @@ jobs:
 
       - name: Verify build output
         shell: bash
-        run: test -f dist/index.js || (echo "Build output missing" && exit 1)
+        run: |
+          test -f dist/index.js || (echo "Build output missing" && exit 1)
+          test -f dist/build/jq.wasm || (echo "jq-wasm runtime missing (issue #309)" && exit 1)
 
       # Reporting only — the Bun threshold above is the gate. Non-blocking so a
       # missing CODECOV_TOKEN never fails CI (add it as a repo secret to enable).
