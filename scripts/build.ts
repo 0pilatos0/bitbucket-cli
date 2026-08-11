@@ -58,6 +58,7 @@ const bundle = spawnSync(
     outDir,
     '--target',
     'bun',
+    '--minify',
     '--sourcemap',
     '--external',
     'tabtab',
