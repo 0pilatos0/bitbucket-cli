@@ -11,18 +11,9 @@ if (typeof Bun === 'undefined') {
 
 import { cli } from './cli.js';
 
-// TEMP: exit-hang diagnostics (issue #309 Windows CI) — REMOVE AFTER DIAGNOSIS
-console.error('[exit-dbg] before parseAsync');
-const watchdog = setTimeout(() => {
-  console.error('[exit-dbg] parseAsync STILL PENDING after 5s');
-}, 5000);
-watchdog.unref();
-
 // parseAsync (not parse) so Commander awaits async action handlers and the
 // postAction update-check hook before the process exits.
 await cli.parseAsync(process.argv);
-clearTimeout(watchdog);
-console.error('[exit-dbg] after parseAsync');
 
 // Exit explicitly. On Windows, handles left behind by libraries the command
 // touched — e.g. jq-wasm's Emscripten runtime (noExitRuntime) or an HTTP
