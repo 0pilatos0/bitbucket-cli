@@ -140,6 +140,8 @@ export class OutputService implements IOutputService {
       if (trimmed.length > 0) {
         console.log(trimmed);
       }
+      // TEMP: exit-hang diagnostics (issue #309 Windows CI) — REMOVE AFTER DIAGNOSIS
+      console.error('[exit-dbg] jq output printed');
       return;
     }
 
