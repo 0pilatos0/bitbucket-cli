@@ -28,7 +28,12 @@ let server: ReturnType<typeof Bun.serve> | undefined;
 let requestedPaths: string[] = [];
 
 const BUILD_TIMEOUT_MS = 60_000;
+// Internal kill timer for a hung CLI. The per-test Bun timeout (passed as the
+// third arg to `it`) is set larger so this timer always wins the race and can
+// print the child's partial output before the test is torn down.
 const RUN_TIMEOUT_MS = 60_000;
+// Safety net above the internal kill timer; lets the diagnostics print.
+const TEST_TIMEOUT_MS = RUN_TIMEOUT_MS + 10_000;
 
 interface CliResult {
   status: number;
@@ -44,12 +49,15 @@ interface CliResult {
 // - NODE_ENV=production makes BaseCommand.handleError set process.exitCode
 //   (the parent test process runs with NODE_ENV=test, which suppresses it).
 // - FORCE_COLOR=0 / NO_COLOR=1 keep output TTY-independent (chalk).
+// - BB_HTTP_TIMEOUT=10000 fails a broken request fast (10s) instead of
+//   hanging the run for the default 30s — a fast, readable assertion failure.
 function cliEnv(): Record<string, string> {
   return {
     HOME: homeDir,
     USERPROFILE: homeDir,
     APPDATA: join(homeDir, 'AppData', 'Roaming'),
     BB_API_BASE_URL: `http://127.0.0.1:${server!.port}/2.0`,
+    BB_HTTP_TIMEOUT: '10000',
     CI: '1',
     NODE_ENV: 'production',
     FORCE_COLOR: '0',
@@ -71,23 +79,42 @@ async function runCli(args: string[]): Promise<CliResult> {
     stderr: 'pipe',
   });
 
-  const stdout = new Response(proc.stdout).text();
-  const stderr = new Response(proc.stderr).text();
+  const stdoutPromise = collectText(proc.stdout);
+  const stderrPromise = collectText(proc.stderr);
 
   let timedOut = false;
-  const timer = setTimeout(() => {
-    timedOut = true;
-    proc.kill();
-  }, RUN_TIMEOUT_MS);
+  const exitCode = await Promise.race([
+    proc.exited,
+    new Promise<number>((resolve) => {
+      setTimeout(() => {
+        timedOut = true;
+        proc.kill();
+        resolve(1);
+      }, RUN_TIMEOUT_MS);
+    }),
+  ]);
 
-  const exitCode = await proc.exited;
-  clearTimeout(timer);
+  const stdout = await stdoutPromise;
+  const stderr = await stderrPromise;
+  if (timedOut) {
+    console.error(
+      `[smoke] CLI timed out after ${RUN_TIMEOUT_MS}ms.\n` +
+        `--- child stdout ---\n${stdout}\n--- child stderr ---\n${stderr}`
+    );
+  }
 
-  return {
-    status: timedOut ? 1 : exitCode,
-    stdout: await stdout,
-    stderr: await stderr,
-  };
+  return { status: timedOut ? 1 : exitCode, stdout, stderr };
+}
+
+async function collectText(
+  stream: ReadableStream<Uint8Array>
+): Promise<string> {
+  let text = '';
+  const decoder = new TextDecoder();
+  for await (const chunk of stream) {
+    text += decoder.decode(chunk);
+  }
+  return text;
 }
 
 beforeAll(async () => {
@@ -202,7 +229,7 @@ describe('built dist --jq (issue #309)', () => {
       expect(result.stdout).toBe('"alpha"\n');
       expect(requestedPaths).toContain(`/2.0/repositories/${MOCK_WORKSPACE}`);
     },
-    RUN_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 
   it(
@@ -229,6 +256,6 @@ describe('built dist --jq (issue #309)', () => {
         await cp(wasmBackup, join(distDir, 'build', 'jq.wasm'));
       }
     },
-    RUN_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 });
