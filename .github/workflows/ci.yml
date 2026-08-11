@@ -93,6 +93,10 @@ jobs:
         run: |
           test -f dist/index.js || (echo "Build output missing" && exit 1)
           test -f dist/build/jq.wasm || (echo "jq-wasm runtime missing (issue #309)" && exit 1)
+          # Size gate: the generated API client regrows when the pinned spec
+          # updates (check:api-updates), which silently inflates the tarball.
+          # 1.5 MB leaves headroom above the current 0.91 MB minified bundle.
+          test $(wc -c < dist/index.js) -lt 1572864 || (echo "dist/index.js exceeds the 1.5 MB size gate" && exit 1)
 
       # Reporting only — the Bun threshold above is the gate. Non-blocking so a
       # missing CODECOV_TOKEN never fails CI (add it as a repo secret to enable).
