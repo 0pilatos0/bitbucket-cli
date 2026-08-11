@@ -70,11 +70,12 @@ function cliEnv(): Record<string, string> {
  * in this test process, so a blocking spawnSync would starve the event loop
  * and the CLI's request could never be served (deadlock).
  *
- * Uses node:child_process rather than Bun.spawn: on Windows, Bun.spawn's
- * `proc.exited` can intermittently never resolve even after the child has
- * exited (observed on CI, issue #309), hanging the test for the full
- * RUN_TIMEOUT_MS. Node's 'close' event fires after the child exits and its
- * stdio streams have fully closed — battle-tested on Windows.
+ * Completion is signaled by the 'exit' event, not 'close': on Windows,
+ * 'close' (which waits for stdio EOF) can stall forever even after the child
+ * has exited and fully written its output (observed on CI, issue #309).
+ * 'exit' fires on the process handle alone, which libuv reaps reliably. The
+ * captured output is drained with a short grace after 'exit'; a stalled
+ * stdout tail surfaces in the timeout diagnostics.
  */
 async function runCli(args: string[]): Promise<CliResult> {
   const child = spawn(process.execPath, [join(distDir, 'index.js'), ...args], {
@@ -90,36 +91,57 @@ async function runCli(args: string[]): Promise<CliResult> {
   child.stdout.on('data', (chunk: string) => (stdout += chunk));
   child.stderr.on('data', (chunk: string) => (stderr += chunk));
 
-  const result = await new Promise<{ status: number; timedOut: boolean }>(
-    (resolve) => {
-      let settled = false;
-      const finish = (status: number, timedOut: boolean) => {
-        if (!settled) {
-          settled = true;
-          resolve({ status, timedOut });
-        }
-      };
-      child.on('error', (error) => {
-        stderr += `[smoke] spawn failed: ${error.message}\n`;
-        finish(1, false);
-      });
-      child.on('close', (code) => finish(code ?? 1, false));
-      const timer = setTimeout(() => {
-        child.kill('SIGKILL');
-        finish(1, true);
-      }, RUN_TIMEOUT_MS);
-      timer.unref();
-    }
-  );
+  const drained = new Promise<void>((resolve) => {
+    let remaining = 2;
+    const done = () => {
+      remaining -= 1;
+      if (remaining === 0) resolve();
+    };
+    child.stdout.on('end', done);
+    child.stderr.on('end', done);
+  });
 
-  if (result.timedOut) {
+  const { status, timedOut } = await new Promise<{
+    status: number;
+    timedOut: boolean;
+  }>((resolve) => {
+    let settled = false;
+    const finish = (status: number, timedOut: boolean) => {
+      if (!settled) {
+        settled = true;
+        resolve({ status, timedOut });
+      }
+    };
+    child.on('error', (error) => {
+      stderr += `[smoke] spawn failed: ${error.message}\n`;
+      finish(1, false);
+    });
+    child.on('exit', (code) => finish(code ?? 1, false));
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      finish(1, true);
+    }, RUN_TIMEOUT_MS);
+    timer.unref();
+  });
+
+  if (timedOut) {
+    // exitCode === null means 'exit' never fired — the child itself hung
+    // rather than a stalled pipe.
     console.error(
-      `[smoke] CLI timed out after ${RUN_TIMEOUT_MS}ms.\n` +
+      `[smoke] CLI timed out after ${RUN_TIMEOUT_MS}ms ` +
+        `(child.exitCode=${child.exitCode}, signalCode=${child.signalCode}).\n` +
         `--- child stdout ---\n${stdout}\n--- child stderr ---\n${stderr}`
     );
   }
 
-  return { status: result.status, stdout, stderr };
+  // 'exit' fires before stdio closes; give the stream tails a moment to
+  // drain, then move on with whatever was captured.
+  await Promise.race([
+    drained,
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]);
+
+  return { status, stdout, stderr };
 }
 
 beforeAll(async () => {
