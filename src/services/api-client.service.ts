@@ -14,9 +14,23 @@ import type {
 import type { OAuthService } from './oauth.service.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
-const BASE_URL = 'https://api.bitbucket.org/2.0';
+const DEFAULT_BASE_URL = 'https://api.bitbucket.org/2.0';
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 1000;
+
+/**
+ * Resolve the API base URL from `BB_API_BASE_URL` (e.g. a local gateway or
+ * a mock server in integration tests), falling back to the Bitbucket Cloud
+ * default. Trailing slashes are stripped so the generated client's
+ * root-relative request paths keep their wire shape.
+ */
+export function resolveBaseUrl(): string {
+  const raw = process.env.BB_API_BASE_URL;
+  if (raw === undefined || raw.trim() === '') {
+    return DEFAULT_BASE_URL;
+  }
+  return raw.trim().replace(/\/+$/, '');
+}
 
 /** Default per-request timeout. A server that accepts a connection but never
  * responds would otherwise hang the CLI forever — fatal for CI/scripts where
@@ -205,7 +219,7 @@ export function createApiClient(
   oauthService?: OAuthService
 ): AxiosInstance {
   const instance = axios.create({
-    baseURL: BASE_URL,
+    baseURL: resolveBaseUrl(),
     timeout: resolveTimeoutMs(),
     headers: {
       'Content-Type': 'application/json',

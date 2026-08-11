@@ -21,6 +21,7 @@ its footer.
 | `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
 | `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
 | `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. | `60000` |
+| `BB_API_BASE_URL` | Base URL for Bitbucket API calls. Defaults to `https://api.bitbucket.org/2.0`. Point it at a gateway, a mirror, or a local mock server (trailing slashes are stripped). | `http://localhost:8080/2.0` |
 
 <Aside type="caution" title="BB_HTTP_TIMEOUT is in milliseconds">
 `BB_HTTP_TIMEOUT=60` means 60 milliseconds, so almost every request fails. For

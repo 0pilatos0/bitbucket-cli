@@ -27,7 +27,7 @@
   },
   "scripts": {
     "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target bun --sourcemap --external tabtab",
+    "build": "bun scripts/build.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
