@@ -25771,7 +25771,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "34e44c0db8bf",
+  "x-revision": "d1081e474f57",
   "x-atlassian-narrative": {
     "documents": [
       {
