@@ -35,6 +35,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "generate:api": "bun scripts/normalize-spec.ts && openapi-generator-cli generate && bun scripts/patch-generated.ts",
+    "check:api-contract": "bun scripts/check-api-contract.ts",
     "check:api-updates": "bun scripts/check-api-updates.ts check",
     "update:api": "bun scripts/check-api-updates.ts update",
     "docs:dev": "cd docs && bun run dev",
