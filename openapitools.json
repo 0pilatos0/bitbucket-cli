@@ -3,6 +3,7 @@
   "spaces": 2,
   "generator-cli": {
     "version": "7.19.0",
+    "storageDir": ".cache/openapi-generator",
     "generators": {
       "bitbucket": {
         "generatorName": "typescript-axios",

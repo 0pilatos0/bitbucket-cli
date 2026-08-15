@@ -5,7 +5,8 @@ node_modules/
 dist/
 docs/.astro/
 
-# Generated API client - we commit this to avoid requiring Java/generator in CI
+# Generated API client - we commit this so consumers never need Java or the
+# generator; the api-contract CI job proves it matches the pinned spec
 # src/generated/
 
 # Environment files

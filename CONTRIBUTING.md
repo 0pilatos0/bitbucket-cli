@@ -55,6 +55,7 @@ Before pushing:
 bun test
 bun run lint
 bun run format:check
+bun run check:api-contract   # regenerates src/generated/ and fails on drift
 ```
 
 ### 3. Add a Changeset

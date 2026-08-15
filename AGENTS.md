@@ -25,6 +25,7 @@ bun run format:check # Prettier check
 
 # Generated API
 bun run generate:api # Regenerate src/generated/ from the pinned spec
+bun run check:api-contract # Regenerate and fail if src/generated/ drifts (CI gate)
 bun run check:api-updates # Check if the pinned spec has an upstream update (0=current, 1=update, 2=unverifiable)
 bun run update:api # Download the latest spec, regenerate src/generated/, restore the old spec if generation fails
 
