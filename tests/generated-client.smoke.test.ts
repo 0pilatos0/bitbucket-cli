@@ -41,9 +41,13 @@ describe('generated API client', () => {
 
   it('re-exports every *Api class from the barrel index', () => {
     for (const name of apiClassNames()) {
-      expect(name in barrel, `${name} missing from the barrel index`).toBe(
-        true
-      );
+      const barrelBinding = barrel[name as keyof typeof barrel];
+      expect(
+        barrelBinding,
+        `${name} missing from the barrel index`
+      ).toBeDefined();
+      const apiBinding = api[name as keyof typeof api];
+      expect(barrelBinding).toBe(apiBinding);
     }
   });
 });
