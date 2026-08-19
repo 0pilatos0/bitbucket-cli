@@ -1,0 +1,92 @@
+---
+title: Alias Commands
+description: Create shortcuts for bb commands
+---
+
+Create your own shortcuts for `bb` commands, mirroring `gh alias`. An alias
+expands in place of the first argument: after `bb alias set co "pr checkout $1"`,
+running `bb co 42` runs `bb pr checkout 42`.
+
+Aliases are stored in the `aliases` map of the [configuration file](/reference/configuration/)
+and are managed with the commands below (not with `bb config set`).
+
+## How expansion works
+
+- The first argument after `bb` is looked up in your alias map. Built-in
+  command names always win: an alias can never shadow a real `bb` command.
+- `$1`–`$9` placeholders in the expansion are filled from the arguments that
+  follow the alias. Missing arguments are an error.
+- Arguments not consumed by a placeholder are appended to the expanded command.
+- Expansion is a single level deep — an alias cannot reference another alias.
+
+## `bb alias set`
+
+Create or update an alias.
+
+```bash
+bb alias set <name> <expansion>
+```
+
+### Examples
+
+```bash
+# Shortcut with a placeholder
+bb alias set co "pr checkout $1"
+bb co 42                      # → bb pr checkout 42
+
+# Shortcut for a flag-heavy invocation
+bb alias set prd "pr create --draft"
+bb prd -t "My PR"             # → bb pr create --draft -t "My PR"
+
+# JSON output
+bb alias set co "pr checkout $1" --json
+```
+
+### Shell passthrough (`!` prefix)
+
+An expansion starting with `!` is run through `sh -c` instead of being parsed
+as a `bb` command. The arguments after the alias are available as shell
+positional parameters (`$1`, `$@`), so pipes, `xargs`, and other shell
+constructs work:
+
+```bash
+bb alias set igrep '!bb issue list --all --json | grep "$1"'
+bb igrep login                # → sh -c 'bb issue list --all --json | grep "$1"' bb-alias login
+```
+
+:::caution
+Shell aliases execute arbitrary shell commands you define. They run with your
+permissions, exactly like a shell function or an entry in your shell rc file —
+only define shell aliases you understand. The config file is created with
+`0600` permissions so other local users cannot inject aliases.
+:::
+
+## `bb alias list`
+
+List configured aliases.
+
+```bash
+bb alias list
+```
+
+### Examples
+
+```bash
+bb alias list
+bb alias list --json
+```
+
+## `bb alias delete`
+
+Delete an alias.
+
+```bash
+bb alias delete <name>
+```
+
+### Examples
+
+```bash
+bb alias delete co
+bb alias delete co --json
+```

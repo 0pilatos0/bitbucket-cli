@@ -26,6 +26,7 @@ On Linux and macOS the CLI creates the directory `0700` and the file `0600`, and
 | `prCreateIncludeDefaultReviewers` | yes | yes | Auto-add the repository's default reviewers on `bb pr create` (default: false) |
 | `username` | yes | no — use `bb auth login` | Bitbucket username |
 | `apiToken` | no — use `bb auth token` | no — use `bb auth login` | Bitbucket API token (masked in `bb config list`) |
+| `aliases` | no — use [`bb alias`](/commands/alias/) | no — use [`bb alias`](/commands/alias/) | User-defined command aliases |
 | `lastVersionCheck` | no | no | Timestamp of the last update check. Auto-managed; `bb config get lastVersionCheck` fails with `Unknown config key` |
 
 `bb auth login` also writes `authMethod` — `basic` for API tokens, `oauth` for OAuth — and, after an OAuth login, the `oauth*` keys (`oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, and custom consumer credentials). Only `bb auth login` and `bb auth logout` touch those keys; see [Configuration file](/reference/configuration/) for the full schema.

@@ -249,6 +249,11 @@ export const ServiceTokens = {
   SetConfigCommand: 'SetConfigCommand',
   ListConfigCommand: 'ListConfigCommand',
 
+  // Commands - Alias
+  SetAliasCommand: 'SetAliasCommand',
+  ListAliasesCommand: 'ListAliasesCommand',
+  DeleteAliasCommand: 'DeleteAliasCommand',
+
   // Commands - Completion
   InstallCompletionCommand: 'InstallCompletionCommand',
   UninstallCompletionCommand: 'UninstallCompletionCommand',

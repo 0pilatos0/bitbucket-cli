@@ -122,6 +122,9 @@ import { ViewProjectCommand } from './commands/project/view.command.js';
 import { CreateProjectCommand } from './commands/project/create.command.js';
 
 // Config commands
+import { SetAliasCommand } from './commands/alias/set.command.js';
+import { ListAliasesCommand } from './commands/alias/list.command.js';
+import { DeleteAliasCommand } from './commands/alias/delete.command.js';
 import { GetConfigCommand } from './commands/config/get.command.js';
 import { SetConfigCommand } from './commands/config/set.command.js';
 import { ListConfigCommand } from './commands/config/list.command.js';
@@ -894,6 +897,23 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     container,
     ServiceTokens.ListConfigCommand,
     ListConfigCommand,
+    [ServiceTokens.ConfigService, ServiceTokens.OutputService]
+  );
+
+  registerCommand(container, ServiceTokens.SetAliasCommand, SetAliasCommand, [
+    ServiceTokens.ConfigService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.ListAliasesCommand,
+    ListAliasesCommand,
+    [ServiceTokens.ConfigService, ServiceTokens.OutputService]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.DeleteAliasCommand,
+    DeleteAliasCommand,
     [ServiceTokens.ConfigService, ServiceTokens.OutputService]
   );
 

@@ -125,6 +125,7 @@ export default defineConfig({
               label: "API",
               slug: "commands/api",
             },
+            { label: "Alias Commands", slug: "commands/alias" },
             { label: "Config Commands", slug: "commands/config" },
             { label: "Completion", slug: "commands/completion" },
           ],

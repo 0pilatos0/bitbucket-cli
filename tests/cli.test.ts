@@ -478,6 +478,7 @@ describe('CLI command registration', () => {
   it('should register all top-level commands', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
+      'alias',
       'api',
       'auth',
       'browse',
