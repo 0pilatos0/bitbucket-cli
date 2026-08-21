@@ -68,6 +68,18 @@ describe('substitutePlaceholders', () => {
     ).toEqual(['pr', 'view', '42', '--json']);
   });
 
+  it('keeps arguments skipped by a sparse placeholder', () => {
+    expect(
+      substitutePlaceholders(['pr', 'checkout', '$2'], ['A', 'B', 'C'], 'co')
+    ).toEqual(['pr', 'checkout', 'B', 'A', 'C']);
+  });
+
+  it('appends only unconsumed args when placeholders skip around', () => {
+    expect(
+      substitutePlaceholders(['diff', '$1', '$3'], ['A', 'B', 'C'], 'd13')
+    ).toEqual(['diff', 'A', 'C', 'B']);
+  });
+
   it('appends all args when no placeholder is used', () => {
     expect(
       substitutePlaceholders(['pr', 'list'], ['--all', '--json'], 'prs')
@@ -132,6 +144,15 @@ describe('expandAliasArgv', () => {
     expect(
       expandAliasArgv([...BIN, 'pr', 'list'], { pr: 'repo list' })
     ).toEqual({ kind: 'none' });
+  });
+
+  it('never expands inherited Object members as aliases', () => {
+    expect(expandAliasArgv([...BIN, 'toString'], aliases)).toEqual({
+      kind: 'none',
+    });
+    expect(expandAliasArgv([...BIN, '__proto__'], aliases)).toEqual({
+      kind: 'none',
+    });
   });
 
   it('expands one level only (no recursion into other aliases)', () => {

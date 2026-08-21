@@ -30,8 +30,8 @@ bb alias set <name> <expansion>
 ### Examples
 
 ```bash
-# Shortcut with a placeholder
-bb alias set co "pr checkout $1"
+# Shortcut with a placeholder (single quotes keep $1 literal for bb)
+bb alias set co 'pr checkout $1'
 bb co 42                      # → bb pr checkout 42
 
 # Shortcut for a flag-heavy invocation
@@ -39,7 +39,7 @@ bb alias set prd "pr create --draft"
 bb prd -t "My PR"             # → bb pr create --draft -t "My PR"
 
 # JSON output
-bb alias set co "pr checkout $1" --json
+bb alias set co 'pr checkout $1' --json
 ```
 
 ### Shell passthrough (`!` prefix)

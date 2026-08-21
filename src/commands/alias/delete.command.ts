@@ -28,7 +28,9 @@ export class DeleteAliasCommand extends BaseCommand<{ name: string }, void> {
     const { name } = options;
     const aliases = (await this.configService.getValue('aliases')) ?? {};
 
-    if (aliases[name] === undefined) {
+    // Own properties only: a name like 'toString' must never match through
+    // the prototype chain, and deleting it would be a no-op anyway.
+    if (!Object.prototype.hasOwnProperty.call(aliases, name)) {
       throw new BBError({
         code: ErrorCode.CONFIG_INVALID_KEY,
         message: `No alias named '${name}'. Run 'bb alias list' to see configured aliases.`,

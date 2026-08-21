@@ -160,15 +160,17 @@ const PLACEHOLDER_PATTERN = /\$([1-9])/g;
 
 /**
  * Fill `$1`–`$9` placeholders in the expansion words from `args` and append
- * any arguments no placeholder consumed. Throws when the expansion references
- * a placeholder the caller didn't supply, naming the alias for a clear error.
+ * every argument no placeholder consumed (in their original order), so sparse
+ * placeholders like `$2` don't drop the first argument. Throws when the
+ * expansion references a placeholder the caller didn't supply, naming the
+ * alias for a clear error.
  */
 export function substitutePlaceholders(
   words: string[],
   args: string[],
   aliasName: string
 ): string[] {
-  let highestUsed = 0;
+  const consumed = new Set<number>();
 
   const substituted = words.map((word) =>
     word.replace(PLACEHOLDER_PATTERN, (_match, digit: string) => {
@@ -181,12 +183,13 @@ export function substitutePlaceholders(
           context: { alias: aliasName, placeholder: index },
         });
       }
-      highestUsed = Math.max(highestUsed, index);
+      consumed.add(index);
       return value;
     })
   );
 
-  return [...substituted, ...args.slice(highestUsed)];
+  const leftover = args.filter((_arg, position) => !consumed.has(position + 1));
+  return [...substituted, ...leftover];
 }
 
 /**
@@ -209,7 +212,11 @@ export function expandAliasArgv(
     return { kind: 'none' };
   }
 
-  const expansion = aliases[candidate];
+  // Own properties only: reading `aliases[candidate]` directly would fall
+  // through to Object.prototype members such as 'toString' or 'constructor'.
+  const expansion = Object.prototype.hasOwnProperty.call(aliases, candidate)
+    ? aliases[candidate]
+    : undefined;
   if (expansion === undefined) {
     return { kind: 'none' };
   }

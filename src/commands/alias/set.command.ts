@@ -67,7 +67,12 @@ export class SetAliasCommand extends BaseCommand<
     }
 
     const aliases = (await this.configService.getValue('aliases')) ?? {};
-    const previous = aliases[name];
+
+    // Own properties only: a name like 'toString' must never read a value
+    // through the prototype chain.
+    const previous = Object.prototype.hasOwnProperty.call(aliases, name)
+      ? aliases[name]
+      : undefined;
     await this.configService.setValue('aliases', {
       ...aliases,
       [name]: expansion,

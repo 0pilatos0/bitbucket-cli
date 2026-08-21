@@ -40,8 +40,11 @@ if (!isCompleting) {
       process.argv = expansion.argv;
     }
   } catch (error) {
-    // No OutputService exists this early; mirror the Bun-guard style above.
-    console.error(
+    // Route through IOutputService per the output contract. The module is
+    // imported lazily: this file must not import cli.js (or anything that
+    // pulls it in) before argv is rewritten.
+    const { OutputService } = await import('./services/output.service.js');
+    new OutputService().error(
       error instanceof Error ? `Error: ${error.message}` : String(error)
     );
     process.exit(1);

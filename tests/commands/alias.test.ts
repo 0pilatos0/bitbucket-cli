@@ -92,6 +92,24 @@ describe('SetAliasCommand', () => {
     ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_INVALID });
   });
 
+  it('does not treat inherited members as previous aliases', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new SetAliasCommand(configService, output);
+    await command.execute(
+      { name: 'constructor', expansion: 'repo list' },
+      { globalOptions: {} }
+    );
+
+    expect(output.logs).toContain(
+      "success:Added alias 'constructor' = repo list"
+    );
+    expect(await configService.getValue('aliases')).toEqual({
+      constructor: 'repo list',
+    });
+  });
+
   it('rejects an empty expansion', async () => {
     const command = new SetAliasCommand(
       createMockConfigService(),
@@ -201,6 +219,17 @@ describe('DeleteAliasCommand', () => {
 
     await expect(
       command.execute({ name: 'nosuch' }, { globalOptions: {} })
+    ).rejects.toMatchObject({ code: ErrorCode.CONFIG_INVALID_KEY });
+  });
+
+  it('errors on an inherited Object member name with no such alias', async () => {
+    const command = new DeleteAliasCommand(
+      createMockConfigService(),
+      createMockOutputService()
+    );
+
+    await expect(
+      command.execute({ name: 'toString' }, { globalOptions: {} })
     ).rejects.toMatchObject({ code: ErrorCode.CONFIG_INVALID_KEY });
   });
 
