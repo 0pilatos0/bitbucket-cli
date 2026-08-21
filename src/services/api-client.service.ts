@@ -275,6 +275,11 @@ export function createApiClient(
       return response;
     },
     async (error: AxiosError) => {
+      // Rate-limited responses carry the freshest budget information too:
+      // pace subsequent requests from a 429's headers even though the
+      // response is rejected (the success path handles normal responses).
+      rateLimiter.onResponse(error.response?.headers);
+
       if (process.env.DEBUG === 'true') {
         console.debug(`[HTTP] Error:`, error.message);
         if (error.response) {

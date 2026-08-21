@@ -117,10 +117,17 @@ export async function collectPagesWithMeta<T>(
   let page = 1;
   let data = await fetchPage(page, pagelen);
 
-  // --all fast path: the server told us how many items exist in total, so the
-  // page count is computable up front (`ceil(size / observed page length)`).
-  // Fetch remaining pages in windows of `concurrency` and concatenate in page
-  // order — later pages resolving first never reorder results.
+  // --all fast path: the first page's `size` gives an upfront page-count
+  // estimate (`ceil(size / observed page length)`) so remaining pages can be
+  // fetched in windows of `concurrency` and concatenated in page order —
+  // later pages resolving first never reorder results.
+  //
+  // The estimate shapes the fetch windows but never bounds them: continuation
+  // is governed by wire truth — the last page of each batch advertising
+  // `next`, and empty pages meaning the server ran dry. A stale or lying
+  // `size` therefore cannot silently truncate the collection (underestimate →
+  // extra windows are fetched; overestimate → the walk stops as soon as the
+  // server stops advertising `next`).
   if (
     limit === Number.POSITIVE_INFINITY &&
     concurrency > 1 &&
@@ -134,7 +141,10 @@ export async function collectPagesWithMeta<T>(
     }
 
     const observedPageLength = Math.max(firstValues.length, 1);
-    const totalPages = Math.max(1, Math.ceil(data.size / observedPageLength));
+    const estimatedPages = Math.max(
+      1,
+      Math.ceil(data.size / observedPageLength)
+    );
 
     // Page order is preserved regardless of resolution order: page 1's items
     // go in first, then each batch appends its pages in ascending page order.
@@ -144,26 +154,43 @@ export async function collectPagesWithMeta<T>(
       }
     }
 
-    for (
-      let batchStart = 2;
-      batchStart <= totalPages;
-      batchStart += concurrency
-    ) {
-      const batchEnd = Math.min(batchStart + concurrency - 1, totalPages);
+    let cursor = 2;
+    let hasFollowingPage = data.next !== undefined;
+
+    while (cursor <= estimatedPages || hasFollowingPage) {
+      // Inside the estimate: clip to it. Past it (size understated): keep
+      // fetching a full window at a time until the wire says otherwise.
+      const batchEnd =
+        cursor <= estimatedPages
+          ? Math.min(cursor + concurrency - 1, estimatedPages)
+          : cursor + concurrency - 1;
+
       const pending: Promise<PaginatedCollection<T>>[] = [];
-      for (let p = batchStart; p <= batchEnd; p += 1) {
+      for (let p = cursor; p <= batchEnd; p += 1) {
         pending.push(fetchPage(p, pagelen));
       }
       // A failed page aborts the whole collection via Promise.all rejection.
       const batchResults = await Promise.all(pending);
+
+      let sawEmptyPage = false;
       for (const result of batchResults) {
         const values = result.values ? Array.from(result.values) : [];
+        if (values.length === 0) {
+          sawEmptyPage = true;
+        }
         for (const value of values) {
           if (include(value)) {
             items.push(value);
           }
         }
       }
+
+      // Continuation follows the LAST page of the batch: an absent `next`
+      // ends the walk, an empty page means the server ran out before the
+      // estimate did. Either way, stop trusting `estimatedPages`.
+      const lastResult = batchResults[batchResults.length - 1]!;
+      hasFollowingPage = !sawEmptyPage && lastResult.next !== undefined;
+      cursor = batchEnd + 1;
     }
 
     return { items, hasMore: false };

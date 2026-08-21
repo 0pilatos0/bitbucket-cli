@@ -429,3 +429,82 @@ function range(startInclusive: number, endInclusive: number): number[] {
   for (let i = startInclusive; i <= endInclusive; i += 1) out.push(i);
   return out;
 }
+
+describe('collectPagesWithMeta fast-path size guards', () => {
+  /**
+   * Page source with explicit per-page envelopes (including `next` links) so
+   * tests can simulate a server whose `size` disagrees with reality.
+   */
+  function envelopeSource(
+    envelopes: Record<number, PaginatedCollection<number>>
+  ) {
+    const calls: number[] = [];
+    return {
+      calls,
+      fetchPage: async (page: number): Promise<PaginatedCollection<number>> => {
+        calls.push(page);
+        return envelopes[page] ?? { values: [] };
+      },
+    };
+  }
+
+  it('extends past an understated size instead of truncating --all', async () => {
+    // size claims 4 items (estimate: 2 pages of 2), but the collection really
+    // has 8 items across 4 pages.
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 4, next: 'p2' },
+      2: { values: [3, 4], size: 4, next: 'p3' },
+      3: { values: [5, 6], next: 'p4' },
+      4: { values: [7, 8] },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(result.hasMore).toBe(false);
+    expect(source.calls[0]).toBe(1);
+    expect(source.calls).toContain(3);
+    expect(source.calls).toContain(4);
+  });
+
+  it('stops at wire truth when size overstates the collection', async () => {
+    // size claims 12 items (estimate: 6 pages of 2), but only 2 pages exist;
+    // out-of-range pages come back empty and must end the walk promptly.
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 12, next: 'p2' },
+      2: { values: [3, 4], size: 12 },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4]);
+    expect(result.hasMore).toBe(false);
+    // Pages beyond the real end may be probed within the final window, but
+    // the walk must terminate — no runaway fetching to the estimate's end
+    // and certainly no infinite loop.
+    expect(Math.max(...source.calls)).toBeLessThanOrEqual(7);
+  });
+
+  it('trusts a present next link even when size implies a single page', async () => {
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 2, next: 'p2' },
+      2: { values: [3, 4] },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4]);
+  });
+});

@@ -12,6 +12,10 @@
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
+import {
+  MAX_ADAPTIVE_INTERVAL_MS,
+  RateLimiter,
+} from '../../src/services/rate-limiter.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import {
   createMockAdapter,
@@ -543,5 +547,65 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     expect(output).not.toContain('token=abc');
     expect(output).not.toContain('other=xyz');
     expect(output).toContain('[redacted]');
+  });
+});
+
+describe('createApiClient - rate limiter feedback', () => {
+  it('feeds rejected 429 responses into the rate limiter', async () => {
+    const limiter = new RateLimiter();
+    expect(limiter.intervalMs).toBe(0);
+
+    const mockAdapter = createMockAdapter([
+      {
+        status: 429,
+        data: { error: { message: 'Slow down' } },
+        headers: {
+          'x-ratelimit-remaining': '2',
+          'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 30),
+        },
+      },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService(),
+      undefined,
+      limiter
+    );
+    client.defaults.adapter = mockAdapter.adapter as never;
+
+    await expect(client.get('/test')).rejects.toBeInstanceOf(APIError);
+
+    // The rejected response's headers must still pace future requests:
+    // (30_000 - 500) / 2 far exceeds the cap, so the interval saturates.
+    expect(limiter.intervalMs).toBe(MAX_ADAPTIVE_INTERVAL_MS);
+    // Initial attempt + MAX_RETRIES retries all went out.
+    expect(mockAdapter.getCallCount()).toBe(4);
+  });
+
+  it('feeds successful responses into the rate limiter', async () => {
+    const limiter = new RateLimiter();
+    const mockAdapter = createMockAdapter([
+      {
+        status: 200,
+        data: { ok: true },
+        headers: {
+          'x-ratelimit-remaining': '9',
+          'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 10),
+        },
+      },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService(),
+      undefined,
+      limiter
+    );
+    client.defaults.adapter = mockAdapter.adapter as never;
+
+    const response = await client.get('/test');
+    expect(response.status).toBe(200);
+    // (10_000 - 500) / 9 ≈ 1056ms of adaptive spacing now applies.
+    expect(limiter.intervalMs).toBeGreaterThan(900);
+    expect(limiter.intervalMs).toBeLessThanOrEqual(1056);
   });
 });
