@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.24.0
+
+### Minor Changes
+
+- [#317](https://github.com/0pilatos0/bitbucket-cli/pull/317) [`4880e31`](https://github.com/0pilatos0/bitbucket-cli/commit/4880e310826e7d1eae3dd8f87644aac54365672e) Thanks [@0pilatos0](https://github.com/0pilatos0)! - New `bb alias` command group for user-defined command aliases, mirroring `gh alias` ([#275](https://github.com/0pilatos0/bitbucket-cli/issues/275)). `bb alias set <name> <expansion>` persists an alias in `config.json`; the alias then expands in place of the first argument (`bb co 42` → `bb pr checkout 42`). Expansions support `$1`–`$9` argument placeholders, and a `!` prefix runs the expansion through `sh -c` with the remaining arguments as shell positional parameters. `bb alias list` and `bb alias delete <name>` complete the surface; all three support `--json`. Aliases can never shadow built-in commands.
+
+### Patch Changes
+
+- [#316](https://github.com/0pilatos0/bitbucket-cli/pull/316) [`1306a16`](https://github.com/0pilatos0/bitbucket-cli/commit/1306a167d9110930eddaeb7d1d191e9ecffc60ea) Thanks [@0pilatos0](https://github.com/0pilatos0)! - chore(ci): add a contract test pinning the generated API client to the pinned spec ([#266](https://github.com/0pilatos0/bitbucket-cli/issues/266))
+
+- [`a6d8f03`](https://github.com/0pilatos0/bitbucket-cli/commit/a6d8f03c6e6b60912951d292bf98e0249efd9839) Thanks [@0pilatos0](https://github.com/0pilatos0)! - chore: bump open to 11.0.1 and dev dependencies (@types/node, @changesets/cli 3.x, @changesets/changelog-github 1.x)
+
 ## 1.23.2
 
 ### Patch Changes
