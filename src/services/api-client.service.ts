@@ -12,6 +12,7 @@ import type {
   IOutputService,
 } from '../core/interfaces/services.js';
 import type { OAuthService } from './oauth.service.js';
+import { RateLimiter } from './rate-limiter.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
 const DEFAULT_BASE_URL = 'https://api.bitbucket.org/2.0';
@@ -216,7 +217,8 @@ export function redactRequestUrl(
 export function createApiClient(
   credentialStore: ICredentialStore,
   output: IOutputService,
-  oauthService?: OAuthService
+  oauthService?: OAuthService,
+  rateLimiter: RateLimiter = new RateLimiter()
 ): AxiosInstance {
   const instance = axios.create({
     baseURL: resolveBaseUrl(),
@@ -230,6 +232,10 @@ export function createApiClient(
   // Request interceptor to add auth header (Basic or Bearer)
   instance.interceptors.request.use(
     async (config) => {
+      // Proactive pacing before anything else (issue #277): bulk runs stay
+      // under the rate-limit ceiling instead of reacting to 429s afterwards.
+      await rateLimiter.acquire();
+
       if (process.env.DEBUG === 'true') {
         console.debug(
           `[HTTP] ${config.method?.toUpperCase()} ${redactRequestUrl(config.url, config.baseURL)}`
@@ -258,6 +264,7 @@ export function createApiClient(
   // Response interceptor with retry logic and error transformation
   instance.interceptors.response.use(
     (response) => {
+      rateLimiter.onResponse(response.headers);
       if (process.env.DEBUG === 'true') {
         console.debug(`[HTTP] Response: ${response.status}`);
         console.debug(
