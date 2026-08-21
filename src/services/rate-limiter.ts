@@ -170,6 +170,12 @@ export class RateLimiter {
 
     const resetAtMs = resetSeconds * 1000;
 
+    // A late response from an already-superseded window carries stale budget
+    // data — never let it overwrite newer scarcity state.
+    if (this.windowResetAtMs !== null && resetAtMs < this.windowResetAtMs) {
+      return;
+    }
+
     if (
       this.windowResetAtMs !== null &&
       resetAtMs === this.windowResetAtMs &&

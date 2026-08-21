@@ -206,3 +206,25 @@ describe('RateLimiter header strictness and options contract', () => {
     expect(limiter.intervalMs).toBe(0);
   });
 });
+
+describe('RateLimiter window ordering', () => {
+  it('ignores responses from older, superseded reset windows', () => {
+    const limiter = new RateLimiter();
+    const now = Math.floor(Date.now() / 1000);
+
+    // Scarce budget for a LATER window arrives first.
+    limiter.onResponse({
+      'x-ratelimit-remaining': '2',
+      'x-ratelimit-reset': String(now + 120),
+    });
+    expect(limiter.intervalMs).toBe(MAX_ADAPTIVE_INTERVAL_MS);
+
+    // A stale response from an EARLIER window arrives late — it must not
+    // clear the newer window's scarcity pacing.
+    limiter.onResponse({
+      'x-ratelimit-remaining': '500',
+      'x-ratelimit-reset': String(now + 10),
+    });
+    expect(limiter.intervalMs).toBe(MAX_ADAPTIVE_INTERVAL_MS);
+  });
+});
