@@ -5,9 +5,9 @@ description: Complete reference for the bb configuration file
 
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-All persistent settings live in one JSON file, written by `bb auth login` and
-`bb config set`. This page documents the file itself; for the commands that read
-and write it, see the [Config command reference](/commands/config/).
+All persistent settings live in one JSON file, written by `bb auth login`,
+`bb config set`, and `bb alias set`. This page documents the file itself; for
+the commands that read and write it, see the [Config command reference](/commands/config/).
 
 ## File location
 
@@ -44,6 +44,7 @@ and write it, see the [Config command reference](/commands/config/).
 | `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
 | `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
 | `prCreateIncludeDefaultReviewers` | boolean | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set` |
+| `aliases` | object | User-defined command aliases | `bb alias set` |
 | `lastVersionCheck` | string | Timestamp of last update check | Automatic |
 
 ### Example configuration (OAuth)

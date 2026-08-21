@@ -20,6 +20,7 @@ export interface BBConfig {
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
   prCreateIncludeDefaultReviewers?: boolean;
+  aliases?: Record<string, string>;
 }
 
 export interface AuthCredentials {
@@ -65,6 +66,7 @@ export const CONFIG_KEYS = [
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
+  'aliases',
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
 
