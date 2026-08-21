@@ -150,3 +150,59 @@ describe('RateLimiter', () => {
     expect(limiter.intervalMs).toBeLessThanOrEqual(1050);
   });
 });
+
+describe('RateLimiter header strictness and options contract', () => {
+  it('normalizes non-finite minIntervalMs to zero', () => {
+    expect(new RateLimiter({ minIntervalMs: Number.NaN }).intervalMs).toBe(0);
+    expect(
+      new RateLimiter({ minIntervalMs: Number.POSITIVE_INFINITY }).intervalMs
+    ).toBe(0);
+    // Negative values keep clamping to the existing floor of zero.
+    expect(new RateLimiter({ minIntervalMs: -5 }).intervalMs).toBe(0);
+  });
+
+  it('ignores partially numeric header values like "4junk"', () => {
+    const limiter = new RateLimiter({ minIntervalMs: 40 });
+    limiter.onResponse({
+      'x-ratelimit-remaining': '4junk',
+      'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 30),
+    });
+    // Malformed input must not change pacing at all.
+    expect(limiter.intervalMs).toBe(40);
+  });
+
+  it('keeps pessimistic pacing when a stale same-window response arrives late', () => {
+    const limiter = new RateLimiter();
+    const reset = String(Math.floor(Date.now() / 1000) + 60);
+
+    limiter.onResponse({
+      'x-ratelimit-remaining': '2',
+      'x-ratelimit-reset': reset,
+    });
+    const scarce = limiter.intervalMs;
+    expect(scarce).toBe(MAX_ADAPTIVE_INTERVAL_MS);
+
+    // An older, rosier response from the SAME window arrives late (concurrent
+    // fetches resolve out of order) — it must not undo observed scarcity.
+    limiter.onResponse({
+      'x-ratelimit-remaining': '50',
+      'x-ratelimit-reset': reset,
+    });
+    expect(limiter.intervalMs).toBe(scarce);
+  });
+
+  it('clears scarcity when a newer reset window reports healthy budget', () => {
+    const limiter = new RateLimiter();
+    limiter.onResponse({
+      'x-ratelimit-remaining': '1',
+      'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 5),
+    });
+    expect(limiter.intervalMs).toBe(MAX_ADAPTIVE_INTERVAL_MS);
+
+    limiter.onResponse({
+      'x-ratelimit-remaining': '500',
+      'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600),
+    });
+    expect(limiter.intervalMs).toBe(0);
+  });
+});

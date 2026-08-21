@@ -205,22 +205,38 @@ describe('mock Bitbucket integration (repo list)', () => {
         },
       ],
     });
-    const { command, output } = wireCommand(server);
 
-    await command.execute(
-      { workspace: 'workspace' },
-      { globalOptions: { json: true } }
-    );
+    // Non-JSON mode (the default execute() path): the retry notice must be
+    // emitted as a warning.
+    {
+      const { command, output } = wireCommand(server);
+      await command.execute({ workspace: 'workspace' }, { globalOptions: {} });
 
-    expect(listCalls).toBe(2);
-    const warning = output.logs.find((log) => log.startsWith('warning:')) as
-      string | undefined;
-    expect(warning).toContain('Rate limited');
+      expect(listCalls).toBe(2);
+      const warning = output.logs.find((log) => log.startsWith('warning:')) as
+        string | undefined;
+      expect(warning).toContain('Rate limited');
+    }
 
-    const json = output.logs.find((log) => log.startsWith('json:'));
-    expect(JSON.parse(json!.slice('json:'.length))).toMatchObject({
-      count: 1,
-    });
+    listCalls = 0;
+
+    // JSON mode wired the way production does it — through BaseCommand.run(),
+    // which sets the output service's JSON format before execute(): the retry
+    // notice must be suppressed so it can't pollute structured output.
+    {
+      const { command, output } = wireCommand(server);
+      await command.run(
+        { workspace: 'workspace' },
+        { globalOptions: { json: true }, commandPath: 'bb repo list' }
+      );
+
+      expect(listCalls).toBe(2);
+      expect(output.logs.some((log) => log.startsWith('warning:'))).toBe(false);
+      const json = output.logs.find((log) => log.startsWith('json:'));
+      expect(JSON.parse(json!.slice('json:'.length))).toMatchObject({
+        count: 1,
+      });
+    }
   });
 
   it('maps Bitbucket 404 bodies to APIError with the extracted message', async () => {

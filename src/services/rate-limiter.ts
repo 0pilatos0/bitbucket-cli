@@ -71,16 +71,27 @@ function sleep(ms: number): Promise<void> {
 }
 
 function parseHeaderNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
   }
   if (typeof value === 'string' && value.trim() !== '') {
-    const parsed = Number.parseInt(value, 10);
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
+    // Number() parses the WHOLE string, so a malformed header like '4junk'
+    // from a misbehaving proxy is rejected instead of silently read as 4.
+    const parsed = Number(value.trim());
+    return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+/**
+ * Public constructor contract for {@link RateLimiter}.
+ */
+export interface RateLimiterOptions {
+  /**
+   * Minimum spacing between request starts, in milliseconds. Non-finite
+   * values are normalized to 0.
+   */
+  minIntervalMs?: number;
 }
 
 /**
@@ -93,9 +104,14 @@ export class RateLimiter {
   private adaptiveIntervalMs = 0;
   private lastRequestAt: number | null = null;
   private chain: Promise<void> = Promise.resolve();
+  private windowResetAtMs: number | null = null;
+  private worstRemainingInWindow: number | null = null;
 
-  constructor(options?: { minIntervalMs?: number }) {
-    this.minIntervalMs = Math.max(0, options?.minIntervalMs ?? 0);
+  constructor(options?: RateLimiterOptions) {
+    const minIntervalMs = options?.minIntervalMs ?? 0;
+    this.minIntervalMs = Number.isFinite(minIntervalMs)
+      ? Math.max(0, minIntervalMs)
+      : 0;
   }
 
   /** Current effective spacing between request starts (for tests/DEBUG). */
@@ -134,6 +150,12 @@ export class RateLimiter {
    * Feed response headers back into the limiter. Header names are matched
    * lowercase because axios normalizes them; unknown or malformed values are
    * ignored so non-Bitbucket responses (proxies, gateways) never break it.
+   *
+   * Scarcity state is scoped to the advertised reset window: responses can
+   * arrive out of order under concurrent fetching, and an older, rosier
+   * `X-RateLimit-Remaining` from the SAME window must never undo pacing the
+   * client already observed as necessary — the most pessimistic budget seen
+   * wins until a response reports a newer window.
    */
   public onResponse(headers: unknown): void {
     if (typeof headers !== 'object' || headers === null) {
@@ -146,9 +168,27 @@ export class RateLimiter {
       return;
     }
 
+    const resetAtMs = resetSeconds * 1000;
+
+    if (
+      this.windowResetAtMs !== null &&
+      resetAtMs === this.windowResetAtMs &&
+      this.worstRemainingInWindow !== null
+    ) {
+      this.worstRemainingInWindow = Math.min(
+        this.worstRemainingInWindow,
+        remaining
+      );
+    } else {
+      // First observation in this window, or the server rolled the window:
+      // adopt the fresh values wholesale.
+      this.windowResetAtMs = resetAtMs;
+      this.worstRemainingInWindow = remaining;
+    }
+
     const next = computeAdaptiveInterval(
-      remaining,
-      resetSeconds * 1000,
+      this.worstRemainingInWindow,
+      this.windowResetAtMs,
       Date.now(),
       this.minIntervalMs
     );
