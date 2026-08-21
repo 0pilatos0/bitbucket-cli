@@ -389,13 +389,21 @@ describe('collectPagesWithMeta concurrency (--all fast path)', () => {
   });
 
   it('applies shouldInclude on the concurrent path', async () => {
+    // Two real pages (size 4 / pagelen 2) so the batch loop actually runs and
+    // the filter must hold for batch-fetched values too, not just page 1's.
+    const pagesFetched: number[] = [];
     const result = await collectPagesWithMeta<number>({
       limit: Number.POSITIVE_INFINITY,
       pageSize: 2,
-      fetchPage: async () => ({ values: [1, 2, 3, 4], size: 4 }),
+      fetchPage: async (page) => {
+        pagesFetched.push(page);
+        const values = page === 1 ? [1, 2] : page === 2 ? [3, 4] : [];
+        return { values, size: 4 };
+      },
       shouldInclude: (value) => value % 2 === 0,
     });
 
+    expect(pagesFetched).toEqual([1, 2]);
     expect(result.items).toEqual([2, 4]);
     expect(result.hasMore).toBe(false);
   });
