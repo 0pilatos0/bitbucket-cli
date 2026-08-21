@@ -299,7 +299,15 @@ describe('collectPagesWithMeta concurrency (--all fast path)', () => {
   ): PaginatedCollection<number>[] {
     const pages: PaginatedCollection<number>[] = [];
     for (let i = 0; i < values.length; i += perPage) {
-      pages.push({ values: values.slice(i, i + perPage), size: values.length });
+      const page = pages.length + 1;
+      const hasNext = i + perPage < values.length;
+      pages.push({
+        values: values.slice(i, i + perPage),
+        size: values.length,
+        // Real Bitbucket always advertises `next` while more pages remain;
+        // the fast path treats an absent link as the collection's end.
+        ...(hasNext && { next: `https://mock/page=${page + 1}` }),
+      });
     }
     return pages;
   }
@@ -382,9 +390,9 @@ describe('collectPagesWithMeta concurrency (--all fast path)', () => {
     });
 
     expect(result.items).toEqual([1, 2]);
-    // Cap hit exactly at page end with no next link: unchanged sequential
-    // semantics report nothing more to show.
-    expect(result.hasMore).toBe(false);
+    // Cap hit exactly at page end, but the wire advertises another page
+    // (items 3-4 exist) — sequential semantics report more to show.
+    expect(result.hasMore).toBe(true);
     expect(source.calls).toEqual([1]);
   });
 
@@ -398,7 +406,13 @@ describe('collectPagesWithMeta concurrency (--all fast path)', () => {
       fetchPage: async (page) => {
         pagesFetched.push(page);
         const values = page === 1 ? [1, 2] : page === 2 ? [3, 4] : [];
-        return { values, size: 4 };
+        return {
+          values,
+          size: 4,
+          // Advertised while a following page exists — the fast path's
+          // continuation signal.
+          ...(page < 2 && { next: 'https://mock/page=2' }),
+        };
       },
       shouldInclude: (value) => value % 2 === 0,
     });

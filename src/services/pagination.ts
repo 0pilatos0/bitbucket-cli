@@ -155,9 +155,14 @@ export async function collectPagesWithMeta<T>(
     }
 
     let cursor = 2;
-    let hasFollowingPage = data.next !== undefined;
+    // Continuation is decided solely by the wire: page 1 must advertise
+    // `next`, then each batch's LAST page decides whether anything follows.
+    // `estimatedPages` only shapes how far each window reaches — a stale or
+    // lying `size` can neither truncate the walk nor extend it past the
+    // server's own end.
+    let keepWalking = data.next !== undefined;
 
-    while (cursor <= estimatedPages || hasFollowingPage) {
+    while (keepWalking) {
       // Inside the estimate: clip to it. Past it (size understated): keep
       // fetching a full window at a time until the wire says otherwise.
       const batchEnd =
@@ -187,9 +192,10 @@ export async function collectPagesWithMeta<T>(
 
       // Continuation follows the LAST page of the batch: an absent `next`
       // ends the walk, an empty page means the server ran out before the
-      // estimate did. Either way, stop trusting `estimatedPages`.
+      // estimate did. Either way, stop immediately — never keep fetching
+      // just because `estimatedPages` says more should exist.
       const lastResult = batchResults[batchResults.length - 1]!;
-      hasFollowingPage = !sawEmptyPage && lastResult.next !== undefined;
+      keepWalking = !sawEmptyPage && lastResult.next !== undefined;
       cursor = batchEnd + 1;
     }
 
