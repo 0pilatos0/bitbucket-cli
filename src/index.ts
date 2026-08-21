@@ -1,5 +1,8 @@
 #!/usr/bin/env bun
 
+// Type-only: erased at runtime, so nothing is loaded before argv is rewritten.
+import type { IOutputService } from './core/interfaces/services.js';
+
 // Top-level await below requires module context; this file has no static
 // imports (cli.js must load only after argv is rewritten), so mark it a
 // module explicitly.
@@ -44,7 +47,8 @@ if (!isCompleting) {
     // imported lazily: this file must not import cli.js (or anything that
     // pulls it in) before argv is rewritten.
     const { OutputService } = await import('./services/output.service.js');
-    new OutputService().error(
+    const output: IOutputService = new OutputService();
+    output.error(
       error instanceof Error ? `Error: ${error.message}` : String(error)
     );
     process.exit(1);
