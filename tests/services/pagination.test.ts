@@ -266,3 +266,259 @@ describe('collectPagesWithMeta', () => {
     expect(result.hasMore).toBe(false);
   });
 });
+
+describe('collectPagesWithMeta concurrency (--all fast path)', () => {
+  /** Deferred page source that tracks in-flight requests for overlap checks. */
+  function makeDeferredSource(
+    pages: PaginatedCollection<number>[],
+    options: { releaseAll?: boolean } = {}
+  ) {
+    let inFlight = 0;
+    const peakInFlight = { value: 0 };
+    const calls: number[] = [];
+
+    return {
+      calls,
+      peakInFlight,
+      fetchPage: async (page: number): Promise<PaginatedCollection<number>> => {
+        calls.push(page);
+        inFlight += 1;
+        peakInFlight.value = Math.max(peakInFlight.value, inFlight);
+        // Yield a macrotask so concurrently started fetches genuinely overlap.
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return pages[page - 1] ?? { values: [] };
+      },
+      ...options,
+    };
+  }
+
+  function sizedPages(
+    values: number[],
+    perPage: number
+  ): PaginatedCollection<number>[] {
+    const pages: PaginatedCollection<number>[] = [];
+    for (let i = 0; i < values.length; i += perPage) {
+      const page = pages.length + 1;
+      const hasNext = i + perPage < values.length;
+      pages.push({
+        values: values.slice(i, i + perPage),
+        size: values.length,
+        // Real Bitbucket always advertises `next` while more pages remain;
+        // the fast path treats an absent link as the collection's end.
+        ...(hasNext && { next: `https://mock/page=${page + 1}` }),
+      });
+    }
+    return pages;
+  }
+
+  it('collects every page with bounded concurrency when size is known', async () => {
+    const source = makeDeferredSource(sizedPages([1, 2, 3, 4, 5, 6], 2));
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(result.hasMore).toBe(false);
+    // Pages 2-3 are the only remaining ones; both must be requested together.
+    expect(source.calls[0]).toBe(1);
+    expect(source.calls.slice(1).sort((a, b) => a - b)).toEqual([2, 3]);
+    expect(source.peakInFlight.value).toBe(2);
+  });
+
+  it('caps in-flight pages at the configured concurrency', async () => {
+    const source = makeDeferredSource(sizedPages(range(1, 13), 2));
+
+    await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+      concurrency: 3,
+    });
+
+    // Pages 2..7 exist after page 1; windows of 3 → peak of exactly 3.
+    expect(source.peakInFlight.value).toBe(3);
+    expect(source.calls.sort((a, b) => a - b)).toEqual(range(1, 7));
+  });
+
+  it('preserves page order even when later pages resolve first', async () => {
+    const pages = sizedPages([1, 2, 3, 4, 5, 6], 2);
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: async (page) => {
+        const data = pages[page - 1]!;
+        // Page 3 resolves fastest, page 2 slowest.
+        const delay = page === 3 ? 0 : page === 2 ? 30 : 5;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return data;
+      },
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+
+  it('falls back to strictly sequential fetching without size', async () => {
+    const source = makeDeferredSource([
+      { values: [1, 2], next: 'page2' },
+      { values: [3, 4], next: 'page3' },
+      { values: [5, 6] },
+    ]);
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(source.peakInFlight.value).toBe(1);
+    expect(source.calls).toEqual([1, 2, 3]);
+  });
+
+  it('never parallelizes finite limits', async () => {
+    const source = makeDeferredSource(sizedPages([1, 2, 3, 4], 2));
+
+    const result = await collectPagesWithMeta<number>({
+      limit: 2,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2]);
+    // Cap hit exactly at page end, but the wire advertises another page
+    // (items 3-4 exist) — sequential semantics report more to show.
+    expect(result.hasMore).toBe(true);
+    expect(source.calls).toEqual([1]);
+  });
+
+  it('applies shouldInclude on the concurrent path', async () => {
+    // Two real pages (size 4 / pagelen 2) so the batch loop actually runs and
+    // the filter must hold for batch-fetched values too, not just page 1's.
+    const pagesFetched: number[] = [];
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: async (page) => {
+        pagesFetched.push(page);
+        const values = page === 1 ? [1, 2] : page === 2 ? [3, 4] : [];
+        return {
+          values,
+          size: 4,
+          // Advertised while a following page exists — the fast path's
+          // continuation signal.
+          ...(page < 2 && { next: 'https://mock/page=2' }),
+        };
+      },
+      shouldInclude: (value) => value % 2 === 0,
+    });
+
+    expect(pagesFetched).toEqual([1, 2]);
+    expect(result.items).toEqual([2, 4]);
+    expect(result.hasMore).toBe(false);
+  });
+
+  it('returns an empty result for an empty first page on --all', async () => {
+    const calls: number[] = [];
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      fetchPage: async (page) => {
+        calls.push(page);
+        return { values: [], size: 0 };
+      },
+    });
+
+    expect(result.items).toEqual([]);
+    expect(result.hasMore).toBe(false);
+    expect(calls).toEqual([1]);
+  });
+});
+
+function range(startInclusive: number, endInclusive: number): number[] {
+  const out: number[] = [];
+  for (let i = startInclusive; i <= endInclusive; i += 1) out.push(i);
+  return out;
+}
+
+describe('collectPagesWithMeta fast-path size guards', () => {
+  /**
+   * Page source with explicit per-page envelopes (including `next` links) so
+   * tests can simulate a server whose `size` disagrees with reality.
+   */
+  function envelopeSource(
+    envelopes: Record<number, PaginatedCollection<number>>
+  ) {
+    const calls: number[] = [];
+    return {
+      calls,
+      fetchPage: async (page: number): Promise<PaginatedCollection<number>> => {
+        calls.push(page);
+        return envelopes[page] ?? { values: [] };
+      },
+    };
+  }
+
+  it('extends past an understated size instead of truncating --all', async () => {
+    // size claims 4 items (estimate: 2 pages of 2), but the collection really
+    // has 8 items across 4 pages.
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 4, next: 'p2' },
+      2: { values: [3, 4], size: 4, next: 'p3' },
+      3: { values: [5, 6], next: 'p4' },
+      4: { values: [7, 8] },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(result.hasMore).toBe(false);
+    expect(source.calls[0]).toBe(1);
+    expect(source.calls).toContain(3);
+    expect(source.calls).toContain(4);
+  });
+
+  it('stops at wire truth when size overstates the collection', async () => {
+    // size claims 12 items (estimate: 6 pages of 2), but only 2 pages exist;
+    // out-of-range pages come back empty and must end the walk promptly.
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 12, next: 'p2' },
+      2: { values: [3, 4], size: 12 },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4]);
+    expect(result.hasMore).toBe(false);
+    // Pages beyond the real end may be probed within the final window, but
+    // the walk must terminate — no runaway fetching to the estimate's end
+    // and certainly no infinite loop.
+    expect(Math.max(...source.calls)).toBeLessThanOrEqual(7);
+  });
+
+  it('trusts a present next link even when size implies a single page', async () => {
+    const source = envelopeSource({
+      1: { values: [1, 2], size: 2, next: 'p2' },
+      2: { values: [3, 4] },
+    });
+
+    const result = await collectPagesWithMeta<number>({
+      limit: Number.POSITIVE_INFINITY,
+      pageSize: 2,
+      fetchPage: source.fetchPage,
+    });
+
+    expect(result.items).toEqual([1, 2, 3, 4]);
+  });
+});
