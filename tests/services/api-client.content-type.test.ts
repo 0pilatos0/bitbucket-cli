@@ -11,7 +11,7 @@
  * actual wire headers (a mock adapter replaces the wrapper under test).
  */
 
-import { afterAll, describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import type { Server } from 'node:http';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -56,29 +56,34 @@ async function startCaptureServer(): Promise<{
 }
 
 describe('createApiClient - Content-Type on bodyless requests (issue #321)', () => {
-  const captured: Array<{ server: Server }> = [];
+  let server: Server;
+  let client: AxiosInstance;
+  let requests: Map<string, CapturedRequest>;
+  let previousBaseUrl: string | undefined;
 
-  afterAll(() => {
-    for (const { server } of captured) server.close();
+  beforeEach(async () => {
+    // `BB_API_BASE_URL` is process-wide state; save the prior value so it can
+    // be restored in `afterEach`. Leaving it pointed at a server that is
+    // closed below would break later tests in this Bun process.
+    previousBaseUrl = process.env.BB_API_BASE_URL;
+
+    const capture = await startCaptureServer();
+    server = capture.server;
+    requests = capture.requests;
+    process.env.BB_API_BASE_URL = capture.baseUrl;
+    client = createApiClient(mockConfigService(), createMockOutputService());
   });
 
-  async function createClientAgainstCaptureServer(): Promise<{
-    client: AxiosInstance;
-    requests: Map<string, CapturedRequest>;
-  }> {
-    const { server, baseUrl, requests } = await startCaptureServer();
-    captured.push({ server });
-    process.env.BB_API_BASE_URL = baseUrl;
-    const client = createApiClient(
-      mockConfigService(),
-      createMockOutputService()
-    );
-    return { client, requests };
-  }
+  afterEach(() => {
+    server.close();
+    if (previousBaseUrl === undefined) {
+      delete process.env.BB_API_BASE_URL;
+    } else {
+      process.env.BB_API_BASE_URL = previousBaseUrl;
+    }
+  });
 
   it('omits Content-Type on a bodyless POST', async () => {
-    const { client, requests } = await createClientAgainstCaptureServer();
-
     await client.post('/bodyless-post');
 
     const request = requests.get('POST /bodyless-post');
@@ -87,8 +92,6 @@ describe('createApiClient - Content-Type on bodyless requests (issue #321)', () 
   });
 
   it('omits Content-Type on a bodyless DELETE (e.g. unapprove)', async () => {
-    const { client, requests } = await createClientAgainstCaptureServer();
-
     await client.delete('/bodyless-delete');
 
     const request = requests.get('DELETE /bodyless-delete');
@@ -97,8 +100,6 @@ describe('createApiClient - Content-Type on bodyless requests (issue #321)', () 
   });
 
   it('sends application/json when a POST carries a JSON object body', async () => {
-    const { client, requests } = await createClientAgainstCaptureServer();
-
     await client.post('/json-post', { draft: false });
 
     const request = requests.get('POST /json-post');
@@ -108,8 +109,6 @@ describe('createApiClient - Content-Type on bodyless requests (issue #321)', () 
   });
 
   it('sends application/json when a PUT carries a JSON object body (e.g. bb pr ready)', async () => {
-    const { client, requests } = await createClientAgainstCaptureServer();
-
     await client.put('/json-put', { type: 'pullrequest', draft: false });
 
     const request = requests.get('PUT /json-put');
@@ -121,8 +120,6 @@ describe('createApiClient - Content-Type on bodyless requests (issue #321)', () 
   });
 
   it('keeps Content-Type on a raw string body (e.g. bb api --input)', async () => {
-    const { client, requests } = await createClientAgainstCaptureServer();
-
     await client.post('/raw-body', '{"key":"value"}');
 
     const request = requests.get('POST /raw-body');
