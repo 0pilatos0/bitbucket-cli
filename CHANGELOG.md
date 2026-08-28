@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.25.0
+
+### Minor Changes
+
+- [#318](https://github.com/0pilatos0/bitbucket-cli/pull/318) [`2d23d03`](https://github.com/0pilatos0/bitbucket-cli/commit/2d23d039a803265fda7ab09911d286fd8268845a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - perf: bounded concurrent page fetching for `--all` plus a proactive client-side rate limiter ([#277](https://github.com/0pilatos0/bitbucket-cli/issues/277)). When the first page reports the collection's total `size`, remaining pages are fetched up to 4 in flight and concatenated in page order, roughly halving wall-clock time for large collections; without a usable `size` the walk stays sequential. The shared axios instance now also paces request starts from `X-RateLimit-Remaining`/`X-RateLimit-Reset` headers once the budget runs low, so bulk runs stay under Bitbucket's limits instead of reacting to 429s after the fact.
+
+### Patch Changes
+
+- [#322](https://github.com/0pilatos0/bitbucket-cli/pull/322) [`1fe1c79`](https://github.com/0pilatos0/bitbucket-cli/commit/1fe1c79ccc7e63a2f5ca27ef3fc587148777481e) Thanks [@0pilatos0](https://github.com/0pilatos0)! - fix: stop sending `Content-Type: application/json` with a zero-length body on bodyless requests ([#321](https://github.com/0pilatos0/bitbucket-cli/issues/321)). Bodyless POSTs and DELETEs (`bb pr approve`, `bb pr decline`, `bb commit approve`, `bb api -X POST` without fields, etc.) inherited the shared client's `Content-Type: application/json` instance default, and Bitbucket's request parser rejected the empty body declared as JSON with a bare-text 400 before the request reached the endpoint. The header is now stripped at the adapter level whenever a request carries no body; requests with a body (JSON objects, raw `--input` strings, multipart snippet uploads) are unchanged.
+
+- [#318](https://github.com/0pilatos0/bitbucket-cli/pull/318) [`2d23d03`](https://github.com/0pilatos0/bitbucket-cli/commit/2d23d039a803265fda7ab09911d286fd8268845a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - test: add an integration test layer driving real commands through the real generated API client against a local mock Bitbucket HTTP server ([#264](https://github.com/0pilatos0/bitbucket-cli/issues/264)). The fixture (`tests/helpers/mock-bitbucket.ts`) speaks enough of the wire protocol — paginated envelopes with `size`/`next`, Basic-auth enforcement, Bitbucket-shaped error bodies — to validate endpoint paths, query params, auth headers, pagination walking (including concurrent `--all` fetching), 429 retry behavior, and error mapping end-to-end.
+
 ## 1.24.0
 
 ### Minor Changes
