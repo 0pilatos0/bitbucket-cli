@@ -229,6 +229,24 @@ export function createApiClient(
     },
   });
 
+  // Strip `Content-Type` from bodyless requests (issue #321): the instance
+  // default above is applied to every request, so bodyless POSTs (e.g.
+  // `bb pr approve` / `bb pr decline`) go out declaring `application/json`
+  // with a zero-length body, which Bitbucket's request parser rejects with a
+  // bare-text 400 before the request reaches the endpoint. The default must
+  // be stripped at the adapter level, after `dispatchRequest` has already run
+  // (axios additionally injects `application/x-www-form-urlencoded` for
+  // POST/PUT/PATCH when no Content-Type is set, which would replace anything
+  // removed in a request interceptor). Request and `bb api` bodies are
+  // unaffected: when `data` is present the header stays exactly as resolved.
+  const stockAdapter = axios.getAdapter(instance.defaults.adapter);
+  instance.defaults.adapter = async (config) => {
+    if (config.data == null) {
+      (config.headers as { delete(name: string): void }).delete('Content-Type');
+    }
+    return stockAdapter(config);
+  };
+
   // Request interceptor to add auth header (Basic or Bearer)
   instance.interceptors.request.use(
     async (config) => {
