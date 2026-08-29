@@ -263,9 +263,11 @@ const installCmds = {
   });
 
   copyBtn?.addEventListener('click', () => {
-    const text = cmdEl?.textContent.replace(/^\$/, '') ?? '';
+    const text = (cmdEl?.textContent ?? '').replace(/^\$/, '');
     navigator.clipboard?.writeText(text);
     copyBtn.textContent = 'copied ✓';
-    setTimeout(() => (copyBtn.textContent = 'copy'), 1400);
+    setTimeout(() => {
+      if (copyBtn) copyBtn.textContent = 'copy';
+    }, 1400);
   });
 </script>

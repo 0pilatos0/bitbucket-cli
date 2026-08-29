@@ -353,15 +353,19 @@
     steps.forEach((s) => s.classList.toggle('on', s.dataset.step === String(n)));
   }
 
+  let pendingTimers = [];
+
   function applyStep(n) {
+    pendingTimers.forEach(clearTimeout);
+    pendingTimers = [];
     show(n);
     if (n >= 3) {
       // checks go green
-      checks.forEach((c, i) => setTimeout(() => {
+      checks.forEach((c, i) => pendingTimers.push(setTimeout(() => {
         c.classList.remove('pending'); c.classList.add('pass');
         c.querySelector('.st').textContent = 'passed · ' + (12 + i * 7) + 's';
-      }, (n === 3 ? 250 : 0) + i * 180));
-      if (n >= 3) setTimeout(() => { approval.style.display = 'flex'; }, n === 3 ? 900 : 0);
+      }, (n === 3 ? 250 : 0) + i * 180)));
+      if (n >= 3) pendingTimers.push(setTimeout(() => { approval.style.display = 'flex'; }, n === 3 ? 900 : 0));
     } else {
       checks.forEach((c) => { c.classList.add('pending'); c.classList.remove('pass'); c.querySelector('.st').textContent = 'pending…'; });
       approval.style.display = 'none';

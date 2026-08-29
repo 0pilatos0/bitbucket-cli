@@ -312,13 +312,15 @@ header.starlight-header .links a:hover::after {
 }
 .sidebar-content a[aria-current='page'] .sl-badge {
   --sl-color-bg-badge: transparent;
-  --sl-color-border-badge: color-mix(in srgb, currentColor 34%, transparent);
+  --sl-color-border-badge: color-mix(in srgb, currentcolor 34%, transparent);
+
   color: inherit;
 }
 /* badges anywhere in the sidebar follow the accent, not Starlight's default purple */
 .sidebar-content .sl-badge {
   --sl-color-bg-badge: color-mix(in srgb, var(--sl-color-accent) 12%, transparent);
   --sl-color-border-badge: color-mix(in srgb, var(--sl-color-accent) 34%, transparent);
+
   color: var(--sl-color-accent);
   font-family: var(--bb-font-mono);
   font-size: 0.5625rem;

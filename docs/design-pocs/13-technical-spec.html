@@ -381,10 +381,14 @@
       cmdEl.textContent = cmds[el.dataset.pm];
     });
   });
-  document.getElementById('copyBtn').addEventListener('click', function () {
-    navigator.clipboard?.writeText(cmdEl.textContent);
-    this.textContent = '✓';
-    setTimeout(() => (this.textContent = '⧉'), 1200);
+  document.getElementById('copyBtn').addEventListener('click', async function () {
+    try {
+      await navigator.clipboard?.writeText(cmdEl.textContent);
+      this.textContent = '✓';
+      setTimeout(() => (this.textContent = '⧉'), 1200);
+    } catch {
+      /* clipboard unavailable — leave the button as-is */
+    }
   });
 
   // marquee: real command names, duplicated for the loop

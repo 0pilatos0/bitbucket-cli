@@ -210,7 +210,10 @@
 
   /* ---------- right TOC ---------- */
   .toc { position: sticky; top: 69px; height: calc(100vh - 69px); overflow-y: auto; padding: 40px 0; font-size: 12.5px; display: none; }
-  @media (min-width: 1200px) { .toc { display: block; } }
+  @media (min-width: 1200px) {
+    .shell { grid-template-columns: 250px minmax(0, 1fr) 220px; }
+    .toc { display: block; grid-column: 3; }
+  }
   .toc-title { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 12px; }
   .toc a {
     display: block; padding: 4.5px 0 4.5px 14px; color: var(--fg-3);
