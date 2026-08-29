@@ -1,0 +1,130 @@
+---
+/**
+ * Ascetic command index — all command groups in two hairline
+ * columns of rows. At rest: group, description, subcommand count.
+ * On hover: the count swaps for a real example command. Pure CSS.
+ */
+const groups = [
+  { n: 'bb pr', d: 'full pull-request lifecycle, comments, reviewers', c: 24, ex: 'bb pr merge 42 --strategy squash' },
+  { n: 'bb repo', d: 'clone, create, list, view, delete', c: 8, ex: 'bb repo clone workspace/repo' },
+  { n: 'bb pipeline', d: 'run, watch, logs, stop', c: 7, ex: 'bb pipeline logs 42' },
+  { n: 'bb issue', d: 'track and update issues', c: 6, ex: 'bb issue list --state open' },
+  { n: 'bb commit', d: 'history and build statuses', c: 4, ex: 'bb commit list --limit 10' },
+  { n: 'bb snippet', d: 'create and share snippets', c: 4, ex: 'bb snippet create -t notes -f a.txt' },
+  { n: 'bb config', d: 'manage local configuration', c: 3, ex: 'bb config set editor vim' },
+  { n: 'bb auth', d: 'login, logout, whoami', c: 3, ex: 'bb auth login' },
+  { n: 'bb project', d: 'projects inside workspaces', c: 3, ex: 'bb project view PROJ' },
+  { n: 'bb workspace', d: 'workspaces you belong to', c: 2, ex: 'bb workspace list' },
+  { n: 'bb status', d: 'publish commit build statuses', c: 1, ex: 'bb status set abc1234 --state SUCCESSFUL' },
+  { n: 'bb alias', d: 'personal command shortcuts', c: 1, ex: "bb alias set co 'pr checkout'" },
+  { n: 'bb browse', d: 'open the web UI at PRs, files, lines', c: 1, ex: 'bb browse src/cli.ts:20' },
+  { n: 'bb api', d: 'raw 2.0 endpoints, paginated', c: 1, ex: 'bb api /user' },
+  { n: 'bb completion', d: 'shell completions', c: 1, ex: 'bb completion zsh' },
+];
+---
+
+<div class="bb-commands">
+  <div class="bb-refhead">
+    <span>Commands</span>
+    <span class="cnt">15 command groups</span>
+  </div>
+  <div class="bb-groups">
+    {
+      groups.map((g) => (
+        <a class="group" href={`/commands/${g.n.split(' ')[1]}/`}>
+          <span class="n">{g.n}</span>
+          <span class="d">{g.d}</span>
+          <span class="right">
+            <span class="cnt">{g.c}</span>
+            <span class="ex">{g.ex}</span>
+          </span>
+        </a>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .bb-refhead {
+    font-family: var(--bb-font-mono);
+    font-size: 0.7188rem;
+    font-weight: 500;
+    color: var(--bb-fg-3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.125rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .bb-refhead .cnt {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .bb-groups {
+    display: grid;
+  }
+  .group {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr 11.5rem;
+    gap: 0.75rem;
+    padding: 0.5625rem 0.625rem;
+    margin: 0 -0.625rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    align-items: baseline;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    border-radius: 6px;
+    transition: background 140ms;
+    text-decoration: none;
+  }
+  .group:hover {
+    text-decoration: none;
+  }
+  .group:last-child {
+    border-bottom: none;
+  }
+  .group .n {
+    font-family: var(--bb-font-mono);
+    font-size: 0.7813rem;
+    color: var(--sl-color-fg);
+    transition: color 140ms;
+  }
+  .group .d {
+    color: var(--bb-fg-3);
+  }
+  .group .right {
+    text-align: right;
+    font-family: var(--bb-font-mono);
+    font-size: 0.7188rem;
+    color: var(--bb-fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .group .right .ex {
+    display: none;
+    color: var(--sl-color-accent);
+  }
+  .group:hover {
+    background: var(--bb-bg-sub);
+  }
+  .group:hover .n {
+    color: var(--sl-color-accent);
+  }
+  .group:hover .right .cnt {
+    display: none;
+  }
+  .group:hover .right .ex {
+    display: inline;
+  }
+
+  @media (max-width: 800px) {
+    .group {
+      grid-template-columns: 6rem 1fr;
+    }
+    .group .right {
+      display: none;
+    }
+  }
+</style>

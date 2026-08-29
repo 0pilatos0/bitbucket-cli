@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Technical Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 13 — "TECHNICAL SPEC"
+     The Vercel-aesthetic executed at full intensity, but with a
+     proprietary twist so it doesn't read as template: the page
+     is drawn like an engineering document. Crosshair registers,
+     measurement rulers, coordinate annotations, a drawing-number
+     in the header. Asymmetric bento grid for the feature matrix,
+     an infinite marquee of real commands, and a giant footer CTA.
+     Monochrome + the brand's electric blue. Zero ornament.
+     ============================================================ */
+  :root {
+    --bg:      #0a0a0b;
+    --bg-sub:  #101012;
+    --line:    #202023;
+    --line-hi: #34343a;
+    --fg:      #f2f2f2;
+    --fg-2:    #9b9ba3;
+    --fg-3:    #5b5b63;
+    --accent:  #3b82f6;
+    --accent-sub: rgba(59, 130, 246, 0.1);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection { background: rgba(59, 130, 246, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  /* crosshair register decoration */
+  .cross { position: relative; }
+  .cross::before, .cross::after {
+    content: '+'; position: absolute; font-family: var(--mono);
+    font-size: 12px; color: var(--fg-3); user-select: none;
+  }
+  .cross::before { top: -7px; left: -6px; }
+  .cross::after { bottom: -9px; right: -6px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .nav { display: flex; align-items: center; gap: 26px; height: 58px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+  .brand .glyph { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-hi); border-radius: 5px; padding: 2px 7px; color: var(--fg); }
+  .nav .dwg { font-family: var(--mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.06em; }
+  .nav nav { display: flex; gap: 2px; margin-left: auto; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .gh {
+    font-size: 13px; color: var(--fg-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px;
+  }
+  .nav .gh:hover { border-color: var(--line-hi); color: var(--fg); }
+
+  /* ---------- Hero: engineering title block ---------- */
+  .hero { position: relative; padding: clamp(56px, 9vw, 104px) 0 0; }
+  .hero .grid-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 72px 72px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 80%);
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 40%, transparent 80%);
+  }
+  .titleblock {
+    position: relative;
+    border: 1px solid var(--line);
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+  .titleblock .cell { padding: clamp(28px, 4vw, 44px); border-right: 1px solid var(--line); }
+  .titleblock .cell:last-child { border-right: none; }
+  .rev {
+    display: flex; flex-direction: column; justify-content: space-between;
+    font-family: var(--mono); font-size: 11px; color: var(--fg-3); gap: 14px;
+    min-width: 150px;
+  }
+  .rev b { color: var(--fg-2); font-weight: 500; }
+  .rev .accent { color: var(--accent); }
+  .overline { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.12em; text-transform: uppercase; }
+  h1 {
+    margin-top: 18px;
+    font-size: clamp(2.4rem, 5.6vw, 4.2rem);
+    font-weight: 700; letter-spacing: -0.035em; line-height: 1.0;
+  }
+  h1 .hollow {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--fg-2);
+  }
+  .hero .sub { margin-top: 20px; color: var(--fg-2); font-size: 15.5px; max-width: 52ch; line-height: 1.7; }
+  .hero .sub code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .actions { display: flex; gap: 10px; margin-top: 28px; }
+  .btn {
+    font-size: 13.5px; font-weight: 500; padding: 10px 18px; border-radius: 7px;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: background 120ms, border-color 120ms, color 120ms, transform 120ms;
+  }
+  .btn-solid { background: var(--fg); color: var(--bg); }
+  .btn-solid:hover { background: #fff; transform: translateY(-1px); }
+  .btn-quiet { border: 1px solid var(--line-hi); color: var(--fg-2); }
+  .btn-quiet:hover { color: var(--fg); border-color: var(--accent); }
+
+  /* install row */
+  .installrow {
+    margin-top: 26px; display: inline-flex; align-items: center;
+    border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg-sub); font-family: var(--mono); font-size: 13px;
+    overflow: hidden;
+  }
+  .installrow .pm { display: flex; }
+  .installrow .pm span {
+    padding: 9px 14px; color: var(--fg-3); cursor: pointer;
+    border-right: 1px solid var(--line); font-size: 12px;
+    transition: color 120ms, background 120ms;
+  }
+  .installrow .pm span.on { color: var(--fg); background: rgba(255,255,255,0.04); }
+  .installrow code { padding: 9px 16px; color: var(--fg); }
+  .installrow .copy {
+    padding: 9px 14px; color: var(--fg-3); cursor: pointer;
+    border-left: 1px solid var(--line); transition: color 120ms;
+  }
+  .installrow .copy:hover { color: var(--accent); }
+
+  /* ---------- Marquee ---------- */
+  .marquee { border-block: 1px solid var(--line); margin-top: clamp(48px, 7vw, 80px); overflow: hidden; }
+  .track { display: flex; gap: 0; width: max-content; animation: slide 36s linear infinite; }
+  .track span {
+    font-family: var(--mono); font-size: 12.5px; color: var(--fg-3);
+    padding: 13px 0; white-space: nowrap;
+  }
+  .track span b { color: var(--fg-2); font-weight: 500; }
+  .track span::after { content: '·'; margin: 0 22px; color: var(--line-hi); }
+  @keyframes slide { to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .track { animation: none; } }
+
+  /* ---------- Bento feature matrix ---------- */
+  section { padding: clamp(52px, 7vw, 88px) 0 0; }
+  .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 28px; }
+  .sec-head .no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .sec-head h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 650; letter-spacing: -0.025em; }
+  .sec-head p { color: var(--fg-2); margin-left: auto; max-width: 36ch; font-size: 14px; text-align: right; }
+
+  .bento { display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 118px; gap: 12px; }
+  .bcell {
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg-sub);
+    padding: 20px;
+    position: relative;
+    transition: border-color 150ms, background 150ms;
+    overflow: hidden;
+  }
+  .bcell:hover { border-color: var(--line-hi); background: #121216; }
+  .b-4 { grid-column: span 4; grid-row: span 2; }
+  .b-2 { grid-column: span 2; grid-row: span 1; }
+  .b-3 { grid-column: span 3; }
+  .b-6 { grid-column: span 6; }
+  .bcell h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .bcell .tag { font-family: var(--mono); font-size: 10.5px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; display: block; }
+  .bcell p { font-size: 13.5px; color: var(--fg-2); margin-top: 8px; line-height: 1.6; max-width: 46ch; }
+  .bcell .coord {
+    position: absolute; top: 14px; right: 16px;
+    font-family: var(--mono); font-size: 10px; color: var(--fg-3);
+  }
+  .bcell pre {
+    margin-top: 18px; font-family: var(--mono); font-size: 12px; line-height: 1.85;
+    color: var(--fg-2); overflow-x: auto;
+  }
+  .bcell pre .k { color: var(--accent); }
+  .bcell pre .c { color: var(--fg-3); }
+  .bcell pre .g { color: var(--fg); }
+  .bcell table { width: 100%; border-collapse: collapse; margin-top: 16px; font-family: var(--mono); font-size: 11.5px; }
+  .bcell th { text-align: left; color: var(--fg-3); font-weight: 400; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .bcell td { padding: 6px 0; color: var(--fg-2); border-bottom: 1px solid var(--line); }
+  .bcell tr:last-child td { border-bottom: none; }
+  .bcell td.ok { color: #4ade80; }
+  .bcell td.err { color: #f87171; }
+  .bignum {
+    font-family: var(--mono); font-size: clamp(2.4rem, 4vw, 3.4rem); font-weight: 700;
+    letter-spacing: -0.02em; color: var(--fg); line-height: 1;
+  }
+  .bignum small { font-size: 0.4em; color: var(--fg-3); font-weight: 400; }
+
+  /* ---------- Giant footer CTA ---------- */
+  .cta {
+    margin-top: clamp(56px, 8vw, 96px);
+    border-top: 1px solid var(--line);
+    padding: clamp(48px, 8vw, 96px) 0;
+    text-align: center;
+    position: relative;
+  }
+  .cta h2 {
+    font-size: clamp(2.4rem, 7vw, 5.4rem);
+    font-weight: 700; letter-spacing: -0.04em; line-height: 1;
+  }
+  .cta h2 .mono { font-family: var(--mono); font-weight: 500; font-size: 0.75em; color: var(--accent); }
+  .cta p { color: var(--fg-2); margin-top: 18px; font-size: 15px; }
+  .cta .actions { justify-content: center; margin-top: 30px; }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a:hover { color: var(--fg); }
+
+  @media (max-width: 900px) {
+    .titleblock { grid-template-columns: 1fr; }
+    .titleblock .cell { border-right: none; border-bottom: 1px solid var(--line); }
+    .rev { flex-direction: row; }
+    .bento { grid-template-columns: 1fr 1fr; grid-auto-rows: auto; }
+    .b-4, .b-2, .b-3, .b-6 { grid-column: span 2; grid-row: auto; }
+    .bcell pre, .bcell table { display: none; }
+    .sec-head p { display: none; }
+    .nav .dwg { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <span class="dwg">DWG № BB-2026-047 · REV C</span>
+    <nav>
+      <a href="#matrix">Features</a>
+      <a href="#">Docs</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">GitHub ↗</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Hero as engineering title block -->
+  <div class="hero">
+    <div class="grid-bg"></div>
+    <div class="titleblock cross">
+      <div class="cell">
+        <div class="overline">DWG BB-2026-047 — Command line interface</div>
+        <h1>Bitbucket,<br />drawn for <span class="hollow">the terminal.</span></h1>
+        <p class="sub">Sixteen command groups over the full Bitbucket Cloud 2.0 API. <code>--json</code> on everything, <code>--jq</code> built in, exit codes you can branch on. Generated from a pinned OpenAPI spec — the types can't drift.</p>
+        <div class="actions">
+          <a class="btn btn-solid" href="#">Get started</a>
+          <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">View source</a>
+        </div>
+        <div class="installrow">
+          <div class="pm"><span class="on" data-pm="npm">npm</span><span data-pm="pnpm">pnpm</span><span data-pm="bun">bun</span></div>
+          <code id="installCmd">npm install -g @pilatos/bitbucket-cli</code>
+          <span class="copy" id="copyBtn" title="Copy">⧉</span>
+        </div>
+      </div>
+      <div class="cell rev">
+        <div><b>SCALE</b><br />1:1</div>
+        <div><b>SHEET</b><br />01 / 01</div>
+        <div><b>RUNTIME</b><br />Bun ≥ 1.0</div>
+        <div><b>LICENSE</b><br /><span class="accent">MIT</span></div>
+        <div><b>STATUS</b><br /><span class="accent">● OPERATIONAL</span></div>
+      </div>
+    </div>
+
+    <!-- marquee of real commands -->
+    <div class="marquee" aria-hidden="true">
+      <div class="track" id="track"></div>
+    </div>
+  </div>
+
+  <!-- Bento feature matrix -->
+  <section id="matrix">
+    <div class="sec-head">
+      <span class="no">02</span>
+      <h2>Feature matrix</h2>
+      <p>Asymmetric on purpose — cell size maps to how often you'll reach for it.</p>
+    </div>
+    <div class="bento">
+      <div class="bcell b-4 cross">
+        <span class="coord">A1</span>
+        <span class="tag">Primary surface</span>
+        <h3>Pull requests, end to end</h3>
+        <p>Open, review, approve, and merge without leaving the shell. Merge strategies are explicit flags, never config. Reviewers, comments, and checks are all first-class subcommands.</p>
+        <pre><span class="c"># merge with intent, not defaults</span>
+<span class="g">$</span> bb pr merge <span class="k">42</span> <span class="k">--strategy</span> squash
+<span class="g">✓ Merged pull request #42 into main (squash)</span></pre>
+      </div>
+      <div class="bcell b-2">
+        <span class="coord">A5</span>
+        <span class="tag">Automation</span>
+        <h3>JSON everywhere</h3>
+        <p><b style="color:var(--fg); font-family:var(--mono); font-size:0.9em;">100%</b> of commands project fields with <code style="font-family:var(--mono); font-size:0.9em;">--json</code>.</p>
+      </div>
+      <div class="bcell b-2">
+        <span class="coord">B5</span>
+        <span class="tag">Automation</span>
+        <h3>jq built in</h3>
+        <p>In-process filtering. No binary, no pipe.</p>
+      </div>
+      <div class="bcell b-2">
+        <span class="coord">C1</span>
+        <span class="tag">Pipelines</span>
+        <h3>CI from the shell</h3>
+        <pre style="margin-top:12px;"><span class="g">$</span> bb pipeline run <span class="k">--branch</span> main
+<span class="g">✓ Queued build #313</span></pre>
+      </div>
+      <div class="bcell b-4">
+        <span class="coord">C3</span>
+        <span class="tag">Reliability contract</span>
+        <h3>Stable exit codes &amp; error taxonomy</h3>
+        <table>
+          <thead><tr><th>EXIT</th><th>MEANING</th><th>EXAMPLE</th></tr></thead>
+          <tbody>
+            <tr><td class="ok">0</td><td>success</td><td>command completed</td></tr>
+            <tr><td>2</td><td>API error</td><td>429 rate limited, retried with backoff</td></tr>
+            <tr><td class="err">3</td><td>auth error</td><td>invalid or expired app password</td></tr>
+            <tr><td class="err">4</td><td>not found</td><td>unknown workspace / repo / PR id</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="bcell b-2">
+        <span class="coord">E1</span>
+        <span class="tag">Generated</span>
+        <div class="bignum">62<small> cmds</small></div>
+        <p>Every subcommand generated and typed against the pinned spec.</p>
+      </div>
+      <div class="bcell b-2">
+        <span class="coord">E3</span>
+        <span class="tag">Portability</span>
+        <div class="bignum">3<small> OSes</small></div>
+        <p>macOS, Linux, Windows. One binary, ~9 MB on disk.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Giant CTA -->
+  <div class="cta cross">
+    <h2>Install it in <span class="mono">one line.</span></h2>
+    <p>Requires Bun 1.0+. Unofficial and community-maintained under MIT.</p>
+    <div class="actions">
+      <a class="btn btn-solid" href="#">Read the quickstart</a>
+      <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">GitHub ↗</a>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>BB-2026-047 · REV C · NOT AFFILIATED WITH ATLASSIAN</span>
+    <nav><a href="#">DOCS</a><a href="#">ISSUES</a><a href="#">CONTRIBUTING</a><a href="#">CHANGELOG</a></nav>
+  </div>
+</footer>
+
+<script>
+  // install command toggle + copy
+  const cmds = { npm: 'npm install -g @pilatos/bitbucket-cli', pnpm: 'pnpm add -g @pilatos/bitbucket-cli', bun: 'bun install -g @pilatos/bitbucket-cli' };
+  const cmdEl = document.getElementById('installCmd');
+  document.querySelectorAll('.installrow .pm span').forEach((el) => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.installrow .pm span').forEach((s) => s.classList.remove('on'));
+      el.classList.add('on');
+      cmdEl.textContent = cmds[el.dataset.pm];
+    });
+  });
+  document.getElementById('copyBtn').addEventListener('click', async function () {
+    try {
+      await navigator.clipboard?.writeText(cmdEl.textContent);
+      this.textContent = '✓';
+    } catch {
+      this.textContent = '✗';
+    }
+    setTimeout(() => (this.textContent = '⧉'), 1200);
+  });
+
+  // marquee: real command names, duplicated for the loop
+  const commands = [
+    'bb repo clone workspace/repo', 'bb pr create -t "Title"', 'bb pr approve 42',
+    'bb pr merge 42 --strategy squash', 'bb pr diff 42', 'bb pr checks 42',
+    'bb pipeline run --branch main', 'bb pipeline logs 42', 'bb issue list --state open',
+    'bb snippet create -t notes -f a.txt', 'bb commit list --limit 10',
+    'bb browse src/cli.ts:20', 'bb api /user', 'bb pr list --json id,title --jq \'.[0].title\'',
+    'bb workspace list', 'bb project view PROJ', 'bb status set abc1234 --state SUCCESSFUL',
+    'bb auth login',
+  ];
+  const track = document.getElementById('track');
+  const half = commands.map((c) => `<span><b>${c.split(' ').slice(0, 2).join(' ')}</b> ${c.split(' ').slice(2).join(' ')}</span>`).join('');
+  track.innerHTML = half + half;
+</script>
+</body>
+</html>

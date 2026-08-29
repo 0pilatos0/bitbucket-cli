@@ -1,0 +1,281 @@
+---
+/**
+ * Starlight `Hero` override — the Ascetic landing hero.
+ * Same contract as the built-in Hero: reads title/tagline/actions
+ * from the page's `hero` frontmatter, renders our layout instead.
+ * Keeps the PAGE_TITLE_ID h1 (`_top`) for accessibility.
+ */
+const { data } = Astro.locals.starlightRoute.entry;
+const { title = data.title, tagline, actions = [] } = data.hero || {};
+
+const installCmds = {
+  npm: 'npm install -g @pilatos/bitbucket-cli',
+  pnpm: 'pnpm add -g @pilatos/bitbucket-cli',
+  bun: 'bun install -g @pilatos/bitbucket-cli',
+};
+---
+
+<header class="bb-hero">
+  <p class="overline">A command line interface for Bitbucket Cloud</p>
+  <h1 id="_top" data-page-title set:html={title} />
+  {tagline && <p class="sub" set:html={tagline} />}
+
+  <div class="install">
+    <div class="pm" aria-label="Package manager">
+      <button class="on" data-pm="npm" aria-pressed="true">npm</button>
+      <button data-pm="pnpm" aria-pressed="false">pnpm</button>
+      <button data-pm="bun" aria-pressed="false">bun</button>
+    </div>
+    <code id="bb-install-cmd"><span class="dollar">$</span>{installCmds.npm}</code>
+    <button class="copy" id="bb-install-copy" aria-label="Copy install command">copy</button>
+  </div>
+
+  <p class="meta">
+    Requires Bun 1.0+<span class="sep">·</span>macOS, Linux, Windows<span class="sep">·</span>MIT
+  </p>
+
+  {
+    actions.length > 0 && (
+      <div class="actions">
+        {actions.map(({ attrs: { class: className, ...attrs } = {}, link: href, text, variant }) => (
+          <a
+            href={href}
+            class:list={['bb-cta', { quiet: variant === 'minimal' }, className]}
+            {...attrs}
+          >
+            {text}
+          </a>
+        ))}
+      </div>
+    )
+  }
+</header>
+
+<style>
+  .bb-hero {
+    padding: clamp(3rem, 9vw, 6.5rem) 0 clamp(2.5rem, 6vw, 4rem);
+  }
+  .overline {
+    font-family: var(--bb-font-mono);
+    font-size: 0.72rem;
+    color: var(--bb-fg-3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.375rem;
+  }
+  h1 {
+    font-size: clamp(1.9rem, 4.2vw, 3rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.14;
+    max-width: 26ch;
+    color: var(--sl-color-fg);
+    text-wrap: balance;
+  }
+  h1 :global(.mono) {
+    font-family: var(--bb-font-mono);
+    font-weight: 500;
+    font-size: 0.82em;
+    color: var(--sl-color-accent);
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    margin-top: 1.375rem;
+    color: var(--sl-color-fg-muted);
+    font-size: 1rem;
+    max-width: 52ch;
+    line-height: 1.7;
+  }
+  .sub :global(code) {
+    font-family: var(--bb-font-mono);
+    font-size: 0.83em;
+    color: var(--sl-color-fg);
+    background: var(--bb-bg-sub);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+
+  .install {
+    margin-top: 2.125rem;
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 8px;
+    background: var(--bb-bg-sub);
+    font-family: var(--bb-font-mono);
+    font-size: 0.8125rem;
+    overflow: hidden;
+  }
+  .install .pm {
+    display: flex;
+  }
+  .install .pm button {
+    background: none;
+    border: none;
+    border-right: 1px solid var(--sl-color-hairline);
+    color: var(--bb-fg-3);
+    font-family: var(--bb-font-mono);
+    font-size: 0.75rem;
+    padding: 0 0.8125rem;
+    cursor: pointer;
+    transition:
+      color 140ms,
+      background 140ms;
+  }
+  .install .pm button.on {
+    color: var(--sl-color-fg);
+    background: color-mix(in srgb, var(--sl-color-fg) 5%, transparent);
+  }
+  .install .pm button:hover {
+    color: var(--sl-color-fg);
+  }
+  .install code {
+    display: flex;
+    align-items: center;
+    padding: 0.6875rem 1rem;
+    color: var(--sl-color-fg);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .install code .dollar {
+    color: var(--bb-fg-3);
+    margin-right: 0.625rem;
+    user-select: none;
+  }
+  .install .copy {
+    background: none;
+    border: none;
+    border-left: 1px solid var(--sl-color-hairline);
+    color: var(--bb-fg-3);
+    font-family: var(--bb-font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0 0.875rem;
+    cursor: pointer;
+    transition: color 140ms;
+  }
+  .install .copy:hover {
+    color: var(--sl-color-accent);
+  }
+
+  .meta {
+    margin-top: 1.125rem;
+    font-family: var(--bb-font-mono);
+    font-size: 0.75rem;
+    color: var(--bb-fg-3);
+  }
+  .meta .sep {
+    margin: 0 0.5rem;
+    color: var(--sl-color-hairline);
+  }
+
+  .actions {
+    display: flex;
+    gap: 0.625rem;
+    margin-top: 1.75rem;
+    flex-wrap: wrap;
+  }
+  .actions :global(.bb-cta) {
+    font-size: 0.8438rem;
+    font-weight: 500;
+    padding: 0.5625rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--sl-color-hairline);
+    color: var(--sl-color-fg);
+    text-decoration: none;
+    transition:
+      background 140ms,
+      border-color 140ms,
+      color 140ms;
+  }
+  .actions :global(.bb-cta:hover) {
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent);
+  }
+
+  /* entrance nod — one-time, respects reduced motion */
+  @media (prefers-reduced-motion: no-preference) {
+    .bb-hero > * {
+      animation: bb-rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .bb-hero > *:nth-child(2) {
+      animation-delay: 60ms;
+    }
+    .bb-hero > *:nth-child(3) {
+      animation-delay: 120ms;
+    }
+    .bb-hero > *:nth-child(4) {
+      animation-delay: 180ms;
+    }
+    .bb-hero > *:nth-child(5) {
+      animation-delay: 240ms;
+    }
+    .bb-hero > *:nth-child(6) {
+      animation-delay: 300ms;
+    }
+    @keyframes bb-rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+  }
+
+  @media (max-width: 800px) {
+    .install {
+      width: 100%;
+    }
+    .install code {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+</style>
+
+<script>
+  const installCmds = {
+    npm: 'npm install -g @pilatos/bitbucket-cli',
+    pnpm: 'pnpm add -g @pilatos/bitbucket-cli',
+    bun: 'bun install -g @pilatos/bitbucket-cli',
+  };
+  const cmdEl = document.getElementById('bb-install-cmd');
+  const copyBtn = document.getElementById('bb-install-copy');
+
+  document.querySelectorAll('.install .pm button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document
+        .querySelectorAll<HTMLButtonElement>('.install .pm button')
+        .forEach((b) => {
+          b.classList.remove('on');
+          b.setAttribute('aria-pressed', 'false');
+        });
+      btn.classList.add('on');
+      btn.setAttribute('aria-pressed', 'true');
+      const pm = btn.dataset.pm as keyof typeof installCmds;
+      const dollar = cmdEl?.querySelector('.dollar');
+      if (cmdEl) {
+        cmdEl.textContent = installCmds[pm];
+        if (dollar) cmdEl.prepend(dollar);
+      }
+    });
+  });
+
+  copyBtn?.addEventListener('click', async () => {
+    const text = (cmdEl?.textContent ?? '').replace(/^\$/, '');
+    if (!('clipboard' in navigator)) {
+      copyBtn.textContent = 'copy failed';
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'copied ✓';
+      } catch {
+        copyBtn.textContent = 'copy failed';
+      }
+    }
+    setTimeout(() => {
+      if (copyBtn) copyBtn.textContent = 'copy';
+    }, 1400);
+  });
+</script>

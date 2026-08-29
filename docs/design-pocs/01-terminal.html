@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en" data-phosphor="green">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Bitbucket CLI · Terminal POC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 1 — "TERMINAL NATIVE"
+     The page *is* a terminal. Every panel is a TUI window,
+     every heading a prompt, every card a bordered pane.
+     ============================================================ */
+  :root {
+    --bg:        #0a0f0a;
+    --bg-panel:  #0d150d;
+    --bg-inset:  #060a06;
+    --fg:        #b8cfb8;
+    --fg-dim:    #5d7a5d;
+    --fg-bright: #e8f5e8;
+    --accent:    #4af04a;
+    --accent-dim:#1d5c1d;
+    --warn:      #f0b64a;
+    --border:    #1d3a1d;
+    --border-hi: #2f5c2f;
+    --sel:       rgba(74, 240, 74, 0.15);
+  }
+  html[data-phosphor="amber"] {
+    --bg:        #0f0b05;
+    --bg-panel:  #150f07;
+    --bg-inset:  #0a0703;
+    --fg:        #d4bd8f;
+    --fg-dim:    #7d6a44;
+    --fg-bright: #f5e9cd;
+    --accent:    #ffb642;
+    --accent-dim:#5c431a;
+    --warn:      #ff6b42;
+    --border:    #3a2c12;
+    --border-hi: #5c4520;
+    --sel:       rgba(255, 182, 66, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scrollbar-color: var(--border-hi) var(--bg); }
+
+  body {
+    font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Subtle CRT scanlines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px, transparent 2px,
+      rgba(0, 0, 0, 0.12) 3px
+    );
+    z-index: 999;
+  }
+
+  ::selection { background: var(--sel); color: var(--fg-bright); }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Top status bar (tmux style) ---------- */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    font-size: 12.5px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-inset);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .statusbar .seg {
+    padding: 8px 14px;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+  }
+  .statusbar .seg.logo {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  .statusbar .seg.session { color: var(--fg-dim); }
+  .statusbar .seg .key { color: var(--accent); }
+  .statusbar .spacer { flex: 1; border-right: none; }
+  .statusbar .seg.right { border-right: none; border-left: 1px solid var(--border); color: var(--fg-dim); }
+  .statusbar .seg.phos {
+    cursor: pointer;
+    user-select: none;
+    border-right: none;
+    color: var(--fg-dim);
+  }
+  .statusbar .seg.phos:hover { color: var(--accent); }
+
+  /* ---------- Panel primitive: TUI window ---------- */
+  .panel {
+    border: 1px solid var(--border);
+    background: var(--bg-panel);
+    margin-top: 28px;
+    position: relative;
+  }
+  .panel > .title {
+    position: absolute;
+    top: -11px;
+    left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    color: var(--accent);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .panel > .title::before { content: '─ '; color: var(--border-hi); }
+  .panel > .title::after  { content: ' ─'; color: var(--border-hi); }
+  .panel-body { padding: 28px 24px 24px; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 64px 0 8px; }
+  .ascii {
+    color: var(--accent);
+    font-size: clamp(6px, 1.55vw, 13px);
+    line-height: 1.15;
+    font-weight: 700;
+    white-space: pre;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+    user-select: none;
+  }
+  .hero .sub {
+    margin-top: 20px;
+    max-width: 62ch;
+    color: var(--fg);
+    font-size: 14.5px;
+  }
+  .hero .sub .hl { color: var(--fg-bright); font-weight: 700; }
+
+  /* Typing prompt */
+  .prompt {
+    margin-top: 28px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    font-size: 14px;
+  }
+  .prompt .ps1 { color: var(--warn); }
+  .prompt .ps1 .path { color: var(--fg-dim); }
+  .prompt .cmd { color: var(--fg-bright); }
+  .prompt .cursor {
+    display: inline-block;
+    width: 9px;
+    height: 1.15em;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .hero-actions { margin-top: 22px; display: flex; gap: 14px; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    background: transparent;
+    cursor: pointer;
+    transition: background 120ms, color 120ms, box-shadow 120ms;
+  }
+  .btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 40%, transparent);
+    text-decoration: none;
+  }
+  .btn.ghost { border-color: var(--border-hi); color: var(--fg); font-weight: 500; }
+  .btn.ghost:hover { background: var(--bg-inset); color: var(--fg-bright); box-shadow: none; }
+
+  /* ---------- Install tabs ---------- */
+  .tabs { display: flex; gap: 0; margin-bottom: 0; }
+  .tab {
+    padding: 7px 16px;
+    font-size: 12.5px;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    background: var(--bg-inset);
+    color: var(--fg-dim);
+    cursor: pointer;
+  }
+  .tab.active { background: var(--bg-panel); color: var(--accent); font-weight: 700; }
+  .tabpane {
+    border: 1px solid var(--border);
+    background: var(--bg-inset);
+    padding: 16px 18px;
+    font-size: 13.5px;
+  }
+  .tabpane .cmt { color: var(--fg-dim); }
+  .tabpane .dollar { color: var(--warn); user-select: none; }
+
+  /* ---------- Feature grid as panes ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .cell {
+    background: var(--bg-panel);
+    padding: 20px;
+    transition: background 120ms;
+  }
+  .cell:hover { background: var(--bg-inset); }
+  .cell .cmdline { color: var(--accent); font-size: 13px; }
+  .cell .cmdline::before { content: '$ '; color: var(--fg-dim); }
+  .cell p { margin-top: 10px; font-size: 13px; color: var(--fg-dim); line-height: 1.55; }
+  .cell .cellnum {
+    float: right;
+    color: var(--border-hi);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ---------- Demo session output ---------- */
+  .term-out { font-size: 13px; line-height: 1.7; }
+  .term-out .ok  { color: var(--accent); }
+  .term-out .dim { color: var(--fg-dim); }
+  .term-out .bright { color: var(--fg-bright); }
+  .term-out .warn { color: var(--warn); }
+  .term-out table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12.5px; }
+  .term-out th {
+    text-align: left;
+    color: var(--accent);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-hi);
+    padding: 4px 14px 4px 0;
+    letter-spacing: 0.06em;
+  }
+  .term-out td { padding: 4px 14px 4px 0; color: var(--fg); white-space: nowrap; }
+  .term-out td.dim { color: var(--fg-dim); }
+
+  /* ---------- Sidebar-ish quick links ---------- */
+  .linkrows { display: grid; grid-template-columns: 1fr 1fr; gap: 0 40px; }
+  .linkrow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 9px 2px;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13.5px;
+  }
+  .linkrow:hover { background: var(--sel); }
+  .linkrow .arr { color: var(--fg-dim); }
+  .linkrow:hover .arr { color: var(--accent); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    margin-top: 48px;
+    border-top: 1px solid var(--border);
+    padding: 22px 0 40px;
+    font-size: 12.5px;
+    color: var(--fg-dim);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  footer a { color: var(--fg); }
+  footer a:hover { color: var(--accent); }
+
+  /* Section heading rendered as a prompt line */
+  .sec-prompt {
+    margin-top: 56px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--fg-bright);
+  }
+  .sec-prompt::before { content: '$ '; color: var(--warn); font-weight: 400; }
+  .sec-prompt .flag { color: var(--accent); }
+  .sec-prompt .cmt { color: var(--fg-dim); font-weight: 400; font-size: 13px; }
+
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; }
+    .linkrows { grid-template-columns: 1fr; }
+    .statusbar .seg.hide-sm { display: none; }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hero > * { animation: rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+    .hero > *:nth-child(2) { animation-delay: 90ms; }
+    .hero > *:nth-child(3) { animation-delay: 180ms; }
+    .hero > *:nth-child(4) { animation-delay: 270ms; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ tmux-style status bar ============ -->
+<nav class="statusbar">
+  <div class="seg logo">bb</div>
+  <div class="seg session hide-sm">0:docs*</div>
+  <a class="seg hide-sm" href="#install"><span class="key">1</span>:install</a>
+  <a class="seg hide-sm" href="#features"><span class="key">2</span>:features</a>
+  <a class="seg hide-sm" href="#demo"><span class="key">3</span>:demo</a>
+  <a class="seg hide-sm" href="#explore"><span class="key">4</span>:explore</a>
+  <div class="spacer"></div>
+  <div class="seg phos" id="phosToggle" title="Toggle phosphor">◐ phosphor: <span id="phosLabel">green</span></div>
+  <a class="seg right" href="https://github.com/0pilatos0/bitbucket-cli">github ↗</a>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ Hero ============ -->
+  <header class="hero">
+    <pre class="ascii" aria-hidden="true">  ██████╗ ██████╗     ████████╗██╗   ██╗██╗
+  ██╔══██╗██╔══██╗    ╚══██╔══╝██║   ██║██║
+  ██████╔╝██║  ██║       ██║   ██║   ██║██║
+  ██╔══██╗██║  ██║       ██║   ██║   ██║██║
+  ██████╔╝██████╔╝       ██║   ╚██████╔╝██║
+  ╚═════╝ ╚═════╝        ╚═╝    ╚═════╝ ╚═╝</pre>
+
+    <p class="sub"><span class="hl">Bitbucket, from your terminal.</span> Clone repositories, manage pull requests, run pipelines and automate everything — with JSON output on every command. If you know <span class="hl">gh</span>, you're already home.</p>
+
+    <div class="prompt">
+      <span class="ps1">~<span class="path">/dev/myproject</span> ❯</span>
+      <span class="cmd" id="typed"></span><span class="cursor"></span>
+    </div>
+
+    <div class="hero-actions">
+      <a class="btn" href="#install">get started_</a>
+      <a class="btn ghost" href="https://github.com/0pilatos0/bitbucket-cli">view source →</a>
+    </div>
+  </header>
+
+  <!-- ============ Install ============ -->
+  <div class="sec-prompt" id="install">bb install <span class="flag">--global</span> <span class="cmt"># requires Bun 1.0+</span></div>
+  <section class="panel" style="margin-top:18px">
+    <div class="title">install</div>
+    <div class="panel-body">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="npm">npm</button>
+        <button class="tab" data-tab="pnpm">pnpm</button>
+        <button class="tab" data-tab="bun">bun</button>
+      </div>
+      <div class="tabpane" id="pane-npm"><span class="cmt"># global install</span><br /><span class="dollar">$</span> npm install -g @pilatos/bitbucket-cli</div>
+      <div class="tabpane" id="pane-pnpm" hidden><span class="dollar">$</span> pnpm add -g @pilatos/bitbucket-cli</div>
+      <div class="tabpane" id="pane-bun" hidden><span class="dollar">$</span> bun install -g @pilatos/bitbucket-cli</div>
+    </div>
+  </section>
+
+  <!-- ============ Features ============ -->
+  <div class="sec-prompt" id="features">bb --help <span class="cmt"># what can it do?</span></div>
+  <section class="grid" style="margin-top:18px">
+    <div class="cell">
+      <span class="cellnum">01</span>
+      <div class="cmdline">bb repo clone ws/repo</div>
+      <p>Clone, create, list, view and delete repositories across every workspace you belong to.</p>
+    </div>
+    <div class="cell">
+      <span class="cellnum">02</span>
+      <div class="cmdline">bb pr merge 42</div>
+      <p>Full PR lifecycle — create, review, approve and merge with explicit strategy control.</p>
+    </div>
+    <div class="cell">
+      <span class="cellnum">03</span>
+      <div class="cmdline">bb pr diff 42</div>
+      <p>View diffs, checkout PR branches locally, inspect CI checks before you approve.</p>
+    </div>
+    <div class="cell">
+      <span class="cellnum">04</span>
+      <div class="cmdline">bb pipeline run</div>
+      <p>Trigger, watch and stop Bitbucket Pipelines. Stream logs straight to your terminal.</p>
+    </div>
+    <div class="cell">
+      <span class="cellnum">05</span>
+      <div class="cmdline">bb pr list --json --jq</div>
+      <p>Every command speaks JSON. Project fields, filter in-process — no jq binary needed.</p>
+    </div>
+    <div class="cell">
+      <span class="cellnum">06</span>
+      <div class="cmdline">bb api /user</div>
+      <p>Raw access to any Bitbucket 2.0 endpoint not yet wrapped by a typed command.</p>
+    </div>
+  </section>
+
+  <!-- ============ Demo ============ -->
+  <div class="sec-prompt" id="demo">bb pr list <span class="flag">--workspace acme</span> <span class="cmt"># sample session</span></div>
+  <section class="panel" style="margin-top:18px">
+    <div class="title">session</div>
+    <div class="panel-body term-out">
+      <div><span class="warn">❯</span> <span class="bright">bb pr list --workspace acme --state OPEN</span></div>
+      <table>
+        <thead><tr><th>ID</th><th>TITLE</th><th>BRANCH</th><th>STATE</th><th>REVIEWERS</th></tr></thead>
+        <tbody>
+          <tr><td>#47</td><td class="dim">feat: streaming pipeline logs</td><td class="dim">feat/log-stream</td><td class="ok">OPEN</td><td class="dim">2</td></tr>
+          <tr><td>#46</td><td class="dim">fix: retry on 429 rate limits</td><td class="dim">fix/retry-429</td><td class="ok">OPEN</td><td class="dim">1</td></tr>
+          <tr><td>#45</td><td class="dim">chore: bump generated client</td><td class="dim">chore/api-bump</td><td class="warn">DRAFT</td><td class="dim">0</td></tr>
+        </tbody>
+      </table>
+      <div><span class="ok">✓</span> <span class="dim">3 pull requests · 245ms · json: --json id,title</span></div>
+    </div>
+  </section>
+
+  <!-- ============ Explore ============ -->
+  <div class="sec-prompt" id="explore">bb docs <span class="flag">--open</span> <span class="cmt"># jump in</span></div>
+  <section class="panel" style="margin-top:18px">
+    <div class="title">explore</div>
+    <div class="panel-body linkrows">
+      <a class="linkrow" href="#">quickstart <span class="arr">→</span></a>
+      <a class="linkrow" href="#">authentication <span class="arr">→</span></a>
+      <a class="linkrow" href="#">command reference <span class="arr">→</span></a>
+      <a class="linkrow" href="#">scripting &amp; automation <span class="arr">→</span></a>
+      <a class="linkrow" href="#">ci/cd integration <span class="arr">→</span></a>
+      <a class="linkrow" href="#">recipes <span style="color:var(--warn)">[new]</span> <span class="arr">→</span></a>
+      <a class="linkrow" href="#">ai agent integration <span style="color:var(--warn)">[new]</span> <span class="arr">→</span></a>
+      <a class="linkrow" href="#">troubleshooting / faq <span class="arr">→</span></a>
+    </div>
+  </section>
+
+  <footer>
+    <span>unofficial · community-maintained · not affiliated with atlassian</span>
+    <span><a href="#">github</a> · <a href="#">issues</a> · <a href="#">contribute</a> · <a href="#">changelog</a></span>
+  </footer>
+
+</main>
+
+<script>
+  // Phosphor toggle
+  const root = document.documentElement;
+  const label = document.getElementById('phosLabel');
+  document.getElementById('phosToggle').addEventListener('click', () => {
+    const next = root.dataset.phosphor === 'green' ? 'amber' : 'green';
+    root.dataset.phosphor = next;
+    label.textContent = next;
+  });
+
+  // Install tabs
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.tabpane').forEach((p) => (p.hidden = true));
+      tab.classList.add('active');
+      document.getElementById('pane-' + tab.dataset.tab).hidden = false;
+    });
+  });
+
+  // Typing effect in hero prompt
+  const cmds = [
+    'bb pr list --json id,title',
+    'bb pr approve 47',
+    'bb pipeline run --branch main',
+    'bb repo clone acme/core-api',
+  ];
+  const typed = document.getElementById('typed');
+  let ci = 0, pos = 0, deleting = false;
+  function tick() {
+    const cmd = cmds[ci];
+    if (!deleting) {
+      pos++;
+      typed.textContent = cmd.slice(0, pos);
+      if (pos === cmd.length) { deleting = true; return setTimeout(tick, 1800); }
+      setTimeout(tick, 55 + Math.random() * 60);
+    } else {
+      pos--;
+      typed.textContent = cmd.slice(0, pos);
+      if (pos === 0) { deleting = false; ci = (ci + 1) % cmds.length; return setTimeout(tick, 350); }
+      setTimeout(tick, 24);
+    }
+  }
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tick();
+  else typed.textContent = cmds[0];
+</script>
+</body>
+</html>

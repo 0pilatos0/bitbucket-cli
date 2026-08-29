@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — the living manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 11 — "THE LIVING MANUAL"
+     Trend-grounded: the 2026 pattern that matters most is a LIVE
+     PRODUCT SURFACE above the fold — not a mockup. So the hero
+     is a working terminal. You can type in it. `help`, `bb pr
+     list`, `bb repo clone`, `bb --json`… it responds.
+     The rest of the page practices "density that scrolls" and
+     "trust through specificity": real numbers, no logo walls,
+     engineer-voice copy. Linear-grade restraint.
+     ============================================================ */
+  :root {
+    --bg:      #0b0d12;
+    --bg-sub:  #10131b;
+    --bg-term: #0d1017;
+    --line:    #1e2331;
+    --line-hi: #2d3547;
+    --fg:      #e8ebf2;
+    --fg-2:    #9aa2b4;
+    --fg-3:    #5d6577;
+    --accent:  #5b8def;
+    --accent-dim: hsla(219, 84%, 64%, 0.12);
+    --green:   #57c793;
+    --red:     #e0665f;
+    --amber:   #d9a44a;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: hsla(219, 84%, 64%, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .nav { display: flex; align-items: center; gap: 24px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+  .brand .glyph {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--fg); border: 1px solid var(--line-hi);
+    background: var(--bg-sub); border-radius: 6px; padding: 2px 7px;
+  }
+  .nav nav { display: flex; gap: 2px; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .spacer { flex: 1; }
+  .nav .ver { font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+  .nav .gh {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 13px; color: var(--fg-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px;
+  }
+  .nav .gh:hover { border-color: var(--line-hi); color: var(--fg); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: clamp(48px, 8vw, 88px) 0 40px; }
+  .hero .cols {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: clamp(32px, 5vw, 72px);
+    align-items: center;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 4.2vw, 3rem);
+    font-weight: 700; letter-spacing: -0.03em; line-height: 1.08;
+  }
+  .lede { margin-top: 16px; color: var(--fg-2); font-size: 16px; line-height: 1.65; max-width: 40ch; }
+  .lede code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .actions { display: flex; gap: 10px; margin-top: 26px; }
+  .btn {
+    font-size: 13.5px; font-weight: 500; padding: 9px 16px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .btn-solid { background: var(--fg); color: var(--bg); }
+  .btn-solid:hover { background: #fff; }
+  .btn-quiet { border: 1px solid var(--line-hi); color: var(--fg-2); }
+  .btn-quiet:hover { color: var(--fg); border-color: #3d4557; background: var(--bg-sub); }
+  .hint { margin-top: 22px; font-size: 13px; color: var(--fg-3); }
+  .hint .chip {
+    display: inline-block; font-family: var(--mono); font-size: 11.5px;
+    color: var(--fg-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: 2px 8px; margin: 0 4px 6px 0; cursor: pointer;
+    background: var(--bg-sub); transition: border-color 120ms, color 120ms;
+  }
+  .hint .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---------- Working terminal ---------- */
+  .term {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-term);
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    cursor: text;
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: var(--bg-sub);
+  }
+  .term-bar i { width: 10px; height: 10px; border-radius: 50%; background: #262c3b; }
+  .term-bar span { margin-left: 8px; font-size: 11.5px; color: var(--fg-3); }
+  .term-body { padding: 14px 16px; height: 340px; overflow-y: auto; }
+  .term-body .l { white-space: pre-wrap; word-break: break-word; }
+  .t-prompt { color: var(--accent); }
+  .t-cmd { color: var(--fg); }
+  .t-dim { color: var(--fg-3); }
+  .t-ok { color: var(--green); }
+  .t-err { color: var(--red); }
+  .t-warn { color: var(--amber); }
+  .t-head { color: var(--fg-3); }
+  .t-accent { color: var(--accent); }
+  .term-input { display: flex; gap: 8px; padding: 0 16px 14px; }
+  .term-input .ps { color: var(--accent); white-space: nowrap; }
+  .term-input input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--fg); font-family: var(--mono); font-size: 13px; caret-color: var(--accent);
+  }
+
+  /* ---------- Sections ---------- */
+  section { border-top: 1px solid var(--line); padding: clamp(44px, 6vw, 72px) 0; }
+  .sec-head { margin-bottom: 32px; }
+  .sec-head .kick { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; }
+  .sec-head h2 { font-size: clamp(1.4rem, 2.8vw, 1.9rem); font-weight: 650; letter-spacing: -0.02em; margin-top: 8px; }
+  .sec-head p { color: var(--fg-2); margin-top: 8px; max-width: 60ch; }
+
+  /* command matrix */
+  .matrix { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .mx {
+    padding: 15px 16px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line);
+    transition: background 120ms;
+  }
+  .mx:hover { background: var(--bg-sub); }
+  .mx:nth-child(4n) { border-right: none; }
+  .mx:nth-last-child(-n+4) { border-bottom: none; }
+  .mx .n { font-family: var(--mono); font-size: 12.5px; font-weight: 500; color: var(--fg); }
+  .mx .n::before { content: 'bb '; color: var(--fg-3); }
+  .mx .d { font-size: 12px; color: var(--fg-3); margin-top: 3px; }
+
+  /* specificity strip */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .stat { background: var(--bg); padding: 26px 22px; }
+  .stat .n { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat .n small { font-size: 14px; font-weight: 500; color: var(--fg-2); }
+  .stat .l { font-size: 12.5px; color: var(--fg-3); margin-top: 4px; line-height: 1.5; }
+
+  /* split demos */
+  .demo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+  .demo .txt { display: flex; flex-direction: column; justify-content: center; }
+  .demo .txt h3 { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.015em; }
+  .demo .txt p { color: var(--fg-2); margin-top: 10px; font-size: 14.5px; }
+  .demo .txt p code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .miniterm {
+    border: 1px solid var(--line); border-radius: 10px; background: var(--bg-term);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.85; padding: 16px 18px;
+    overflow-x: auto;
+  }
+  .miniterm .l { white-space: pre; }
+
+  .demo + .demo { margin-top: 48px; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--line); padding: 44px 0 64px; }
+  .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
+  .foot-grid h4 { font-size: 11.5px; font-weight: 600; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .foot-grid ul { list-style: none; display: grid; gap: 9px; }
+  .foot-grid a { font-size: 13.5px; color: var(--fg-2); }
+  .foot-grid a:hover { color: var(--fg); }
+  .foot-note { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--fg-3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 900px) {
+    .hero .cols { grid-template-columns: 1fr; }
+    .matrix { grid-template-columns: 1fr 1fr; }
+    .mx:nth-child(4n) { border-right: 1px solid var(--line); }
+    .mx:nth-child(2n) { border-right: none; }
+    .mx:nth-last-child(-n+4) { border-bottom: 1px solid var(--line); }
+    .mx:nth-last-child(-n+2) { border-bottom: none; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .demo { grid-template-columns: 1fr; }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+    .nav nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#commands">Commands</a>
+      <a href="#json">Scripting</a>
+      <a href="#bythenumbers">Benchmarks</a>
+      <a href="#">Guides</a>
+    </nav>
+    <div class="spacer"></div>
+    <span class="ver">v2.4.1</span>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.26 5.66.41.36.78 1.06.78 2.14 0 1.54-.02 2.79-.02 3.17 0 .31.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Hero: copy left, WORKING terminal right -->
+  <div class="hero">
+    <div class="cols">
+      <div>
+        <h1>The terminal is the docs. Try it.</h1>
+        <p class="lede">bb is a command line interface for Bitbucket Cloud. The shell to the right is real — type <code>help</code>, or click a command below. Everything it prints is what you'd actually get.</p>
+        <div class="actions">
+          <a class="btn btn-solid" href="#">Install</a>
+          <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">Source</a>
+        </div>
+        <div class="hint">
+          Try: <span class="chip" data-cmd="help">help</span><span class="chip" data-cmd="bb pr list">bb pr list</span><span class="chip" data-cmd="bb pr list --json id,title">bb pr list --json</span><span class="chip" data-cmd="bb pipeline list --status FAILED">bb pipeline list</span><span class="chip" data-cmd="bb repo clone acme/core-api">bb repo clone …</span>
+        </div>
+      </div>
+
+      <div class="term" id="term">
+        <div class="term-bar"><i></i><i></i><i></i><span>bb playground — type <b style="color:var(--fg-2)">help</b></span></div>
+        <div class="term-body" id="termOut"></div>
+        <div class="term-input">
+          <span class="ps">❯</span>
+          <input id="termIn" type="text" autocomplete="off" spellcheck="false" aria-label="Terminal input" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command matrix -->
+  <section id="commands">
+    <div class="sec-head">
+      <div class="kick">Reference</div>
+      <h2>Sixteen command groups</h2>
+      <p>Generated from a pinned OpenAPI spec of the Bitbucket Cloud 2.0 REST API. If the endpoint exists, there's a typed path to it.</p>
+    </div>
+    <div class="matrix">
+      <a class="mx" href="#"><div class="n">repo</div><div class="d">clone, create, list, delete</div></a>
+      <a class="mx" href="#"><div class="n">pr</div><div class="d">24 subcommands, full lifecycle</div></a>
+      <a class="mx" href="#"><div class="n">pipeline</div><div class="d">run, watch, logs, stop</div></a>
+      <a class="mx" href="#"><div class="n">issue</div><div class="d">track and update</div></a>
+      <a class="mx" href="#"><div class="n">commit</div><div class="d">history, build status</div></a>
+      <a class="mx" href="#"><div class="n">snippet</div><div class="d">create and share</div></a>
+      <a class="mx" href="#"><div class="n">workspace</div><div class="d">memberships</div></a>
+      <a class="mx" href="#"><div class="n">project</div><div class="d">projects in workspaces</div></a>
+      <a class="mx" href="#"><div class="n">browse</div><div class="d">open the web UI</div></a>
+      <a class="mx" href="#"><div class="n">api</div><div class="d">raw endpoints, paginated</div></a>
+      <a class="mx" href="#"><div class="n">auth</div><div class="d">login, logout, whoami</div></a>
+      <a class="mx" href="#"><div class="n">config</div><div class="d">local configuration</div></a>
+    </div>
+  </section>
+
+  <!-- Scripting demos -->
+  <section id="json">
+    <div class="sec-head">
+      <div class="kick">Automation</div>
+      <h2>Output that scripts can trust</h2>
+      <p>Text output is for people. When stdout is a machine, bb changes shape instead of making you parse prose.</p>
+    </div>
+
+    <div class="demo">
+      <div class="txt">
+        <h3>Field projection</h3>
+        <p><code>--json</code> accepts a field list. Dotted paths keep their full name as the key. You get a flat array with exactly the fields you asked for — nothing else to diff against next release.</p>
+      </div>
+      <div class="miniterm">
+        <div class="l"><span class="t-dim">$ </span><span class="t-cmd" style="color:var(--fg)">bb pr list --json id,title,author.display_name</span></div>
+        <div class="l"><span class="t-dim">[</span></div>
+        <div class="l"><span class="t-dim">  {"id":47,"title":"feat: streaming logs","author.display_name":"Paul"}</span></div>
+        <div class="l"><span class="t-dim">]</span></div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <div class="txt">
+        <h3>In-process jq</h3>
+        <p><code>--jq</code> evaluates inside the CLI process. No jq binary, no shell pipe, works in the most minimal CI container you can build.</p>
+      </div>
+      <div class="miniterm">
+        <div class="l"><span class="t-dim">$ </span><span class="t-cmd" style="color:var(--fg)">bb pr list --jq '.[0].title'</span></div>
+        <div class="l"><span class="t-dim">"feat: streaming pipeline logs"</span></div>
+        <div class="l">&nbsp;</div>
+        <div class="l"><span class="t-dim">$ </span><span class="t-cmd" style="color:var(--fg)">bb api /repositories/acme/core-api/pullrequests --paginate --jq 'length'</span></div>
+        <div class="l"><span class="t-dim">47</span></div>
+      </div>
+    </div>
+
+    <div class="demo">
+      <div class="txt">
+        <h3>Exit codes you can branch on</h3>
+        <p>Every failure has a documented, stable exit code. CI gates on <code>bb pipeline status</code> without scraping text.</p>
+      </div>
+      <div class="miniterm">
+        <div class="l"><span class="t-dim">$ </span><span class="t-cmd" style="color:var(--fg)">bb pipeline status --branch main</span></div>
+        <div class="l"><span class="t-ok">● IN_PROGRESS</span><span class="t-dim">  build #313 · 4m 12s</span></div>
+        <div class="l"><span class="t-dim">$ echo $?</span></div>
+        <div class="l"><span class="t-dim">2</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Specificity -->
+  <section id="bythenumbers">
+    <div class="sec-head">
+      <div class="kick">By the numbers</div>
+      <h2>Specifics, not claims</h2>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">62<small> subcommands</small></div><div class="l">across 16 command groups, every one documented with examples</div></div>
+      <div class="stat"><div class="n">100<small>%</small></div><div class="l">of commands support --json with field projection</div></div>
+      <div class="stat"><div class="n">0<small> deps</small></div><div class="l">no jq binary, no runtime beyond Bun itself</div></div>
+      <div class="stat"><div class="n">1<small> binary</small></div><div class="l">installs globally in one command, ~9 MB on disk</div></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+        <p style="margin-top:12px; font-size:13px; color:var(--fg-3); max-width:30ch;">Open-source CLI for Bitbucket Cloud, built on Bun. Community-maintained, not affiliated with Atlassian.</p>
+      </div>
+      <div><h4>Getting started</h4><ul><li><a href="#">Quick start</a></li><li><a href="#">Installation</a></li><li><a href="#">Authentication</a></li></ul></div>
+      <div><h4>Reference</h4><ul><li><a href="#">Commands</a></li><li><a href="#">JSON output</a></li><li><a href="#">Error codes</a></li></ul></div>
+      <div><h4>Project</h4><ul><li><a href="#">GitHub</a></li><li><a href="#">Issues</a></li><li><a href="#">Changelog</a></li></ul></div>
+    </div>
+    <div class="foot-note"><span>MIT License</span><span>Bitbucket is a trademark of Atlassian.</span></div>
+  </div>
+</footer>
+
+<script>
+  // ------- working terminal -------
+  const out = document.getElementById('termOut');
+  const input = document.getElementById('termIn');
+  const term = document.getElementById('term');
+
+  const line = (html, cls = '') => {
+    const d = document.createElement('div');
+    d.className = 'l ' + cls;
+    d.innerHTML = html;
+    out.appendChild(d);
+  };
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const scroll = () => { out.scrollTop = out.scrollHeight; };
+
+  const PRS = [
+    [47, 'feat: streaming pipeline logs', 'feat/log-stream', 'OPEN', '2'],
+    [46, 'fix: retry on 429 rate limits', 'fix/retry-429', 'OPEN', '1'],
+    [45, 'chore: bump generated client', 'chore/api-bump', 'DRAFT', '0'],
+  ];
+
+  function run(raw) {
+    line(`<span class="t-prompt">❯</span> <span class="t-cmd">${esc(raw)}</span>`);
+    const cmd = raw.trim();
+    if (!cmd) return;
+
+    if (cmd === 'clear') { out.innerHTML = ''; return; }
+
+    if (cmd === 'help' || cmd === 'bb --help' || cmd === 'bb help') {
+      line(`<span class="t-head">USAGE</span>`);
+      line(`  <span class="t-cmd">bb</span> <span class="t-accent">&lt;command&gt;</span> <span class="t-dim">[flags]</span>`);
+      line(`<span class="t-head">COMMANDS</span>`);
+      [['auth','login, logout, whoami'],['repo','clone, create, list, delete'],
+       ['pr','create, list, approve, merge, diff, checks'],['pipeline','run, list, logs, stop'],
+       ['issue','list, create, update'],['api','raw 2.0 endpoints, --paginate'],
+       ['browse','open PRs, files, commits in browser'],['config','manage local configuration']].forEach(([n, d]) =>
+        line(`  <span class="t-accent">${n.padEnd(10)}</span><span class="t-dim">${d}</span>`));
+      line(``);
+      line(`<span class="t-dim">Try: bb pr list · bb pr list --json id,title · bb --version</span>`);
+      return;
+    }
+
+    if (cmd === 'bb --version' || cmd === 'bb -v') {
+      line(`bb 2.4.1 <span class="t-dim">(bun 1.2 · typescript 5.8)</span>`);
+      return;
+    }
+
+    if (cmd.startsWith('bb pr list')) {
+      const json = cmd.includes('--json');
+      if (json) {
+        const fields = (cmd.match(/--json\s+(\S+)/) || [])[1];
+        if (fields) {
+          const keys = fields.split(',');
+          line(`<span class="t-dim">[</span>`);
+          PRS.forEach((p) => {
+            const obj = {};
+            keys.forEach((k) => {
+              if (k === 'id') obj[k] = p[0];
+              else if (k === 'title') obj[k] = p[1];
+              else if (k === 'author.display_name') obj[k] = 'Paul van der Lei';
+              else if (k === 'state') obj[k] = p[3];
+            });
+            line(`  <span class="t-dim">${esc(JSON.stringify(obj))}</span>`);
+          });
+          line(`<span class="t-dim">]</span>`);
+        } else {
+          line(`<span class="t-dim">[{"id":47,"title":"feat: streaming pipeline logs","state":"OPEN","reviewers":2}, …]</span>`);
+        }
+      } else {
+        line(`<span class="t-head">ID    TITLE                            BRANCH             STATE</span>`);
+        PRS.forEach((p) => line(
+          `<span class="t-cmd">#${String(p[0]).padEnd(5)}</span><span class="t-dim">${p[1].padEnd(33)}${p[2].padEnd(19)}</span>` +
+          (p[3] === 'OPEN' ? `<span class="t-ok">OPEN</span>` : `<span class="t-warn">${p[3]}</span>`)
+        ));
+      }
+      line(`<span class="t-ok">✓</span> <span class="t-dim">3 pull requests · 218ms</span>`);
+      return;
+    }
+
+    if (cmd.startsWith('bb pipeline list') || cmd.startsWith('bb pipeline status')) {
+      const failed = cmd.includes('FAILED');
+      if (failed) {
+        line(`<span class="t-head">ID    BRANCH    STATUS   DURATION</span>`);
+        line(`<span class="t-cmd">#312 </span><span class="t-dim">main      </span><span class="t-err">FAILED  </span><span class="t-dim"> 4m 32s</span>`);
+        line(`<span class="t-cmd">#309 </span><span class="t-dim">main      </span><span class="t-err">FAILED  </span><span class="t-dim"> 19m 40s</span>`);
+        line(`<span class="t-ok">✓</span> <span class="t-dim">2 failed builds · run 'bb pipeline logs 312' to inspect</span>`);
+      } else {
+        line(`<span class="t-cmd">#313 </span><span class="t-dim">main      </span><span class="t-ok">SUCCESSFUL  </span><span class="t-dim"> 4m 12s</span>`);
+        line(`<span class="t-cmd">#312 </span><span class="t-dim">main      </span><span class="t-err">FAILED    </span><span class="t-dim"> 4m 32s</span>`);
+      }
+      return;
+    }
+
+    if (cmd.startsWith('bb repo clone')) {
+      const repo = cmd.split(/\s+/)[3] || 'workspace/repo';
+      line(`<span class="t-dim">Cloning into '${repo.split('/').pop()}'...</span>`);
+      line(`<span class="t-dim">remote: Enumerating objects: 2841, done.</span>`);
+      line(`<span class="t-dim">Resolving deltas: 100% (1204/1204), done.</span>`);
+      line(`<span class="t-ok">✓</span> <span class="t-dim">Cloned ${repo} (2,841 objects · 1.9s)</span>`);
+      return;
+    }
+
+    if (cmd.startsWith('bb api')) {
+      line(`{<span class="t-dim">"uuid": "{9f7a…}", "username": "paulvanderlei", "display_name": "Paul van der Lei"}</span>`);
+      return;
+    }
+
+    if (cmd.startsWith('bb auth')) {
+      line(`<span class="t-ok">✓</span> <span class="t-dim">Logged in as @paulvanderlei · credentials stored in ~/.config/bb</span>`);
+      return;
+    }
+
+    if (cmd.startsWith('bb')) {
+      line(`<span class="t-err">✗</span> <span class="t-err">unknown command</span> <span class="t-cmd">${esc(cmd.split(/\s+/)[1] || '')}</span>`);
+      line(`<span class="t-dim">Run 'bb --help' for usage. (This playground implements a few commands — the real CLI implements all of them.)</span>`);
+      return;
+    }
+
+    // treat bare words as suggestions
+    line(`<span class="t-err">✗</span> <span class="t-dim">command not found: ${esc(cmd.split(/\s+/)[0])} — this playground only runs bb commands</span>`);
+  }
+
+  // boot sequence
+  run('bb auth login');
+  line('');
+  run('bb pr list');
+  input.focus();
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      run(input.value);
+      input.value = '';
+      scroll();
+    }
+  });
+  term.addEventListener('click', () => input.focus());
+  document.querySelectorAll('.chip').forEach((c) =>
+    c.addEventListener('click', () => { run(c.dataset.cmd); scroll(); }));
+</script>
+</body>
+</html>

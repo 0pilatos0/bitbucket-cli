@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Ship Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 14 — "SHIP LOG"
+     Sibling of 11/13: same dark, mono-forward, engineer-voice
+     family. The structural idea: velocity IS the brand. The
+     landing page is the release timeline — every entry real,
+     dated, specific. Nothing says "actively maintained" louder
+     than proof. Trust through specificity, temporal edition.
+     ============================================================ */
+  :root {
+    --bg:      #0b0d12;
+    --bg-sub:  #10131b;
+    --line:    #1e2331;
+    --line-hi: #2d3547;
+    --fg:      #e8ebf2;
+    --fg-2:    #9aa2b4;
+    --fg-3:    #5d6577;
+    --accent:  #5b8def;
+    --accent-sub: hsla(219, 84%, 64%, 0.12);
+    --green:   #57c793;
+    --violet:  #9d7ce8;
+    --amber:   #d9a44a;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: hsla(219, 84%, 64%, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .nav { display: flex; align-items: center; gap: 24px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; letter-spacing: -0.01em; }
+  .brand .glyph {
+    font-family: var(--mono); font-size: 12px; font-weight: 500;
+    color: var(--fg); border: 1px solid var(--line-hi);
+    background: var(--bg-sub); border-radius: 6px; padding: 2px 7px;
+  }
+  .nav nav { display: flex; gap: 2px; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .spacer { flex: 1; }
+  .nav .gh {
+    font-size: 13px; color: var(--fg-2);
+    border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px;
+  }
+  .nav .gh:hover { border-color: var(--line-hi); color: var(--fg); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: clamp(52px, 8vw, 92px) 0 clamp(40px, 6vw, 64px); }
+  .hero .cols { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); gap: clamp(36px, 5vw, 80px); align-items: end; }
+  .kick { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+  h1 { margin-top: 16px; font-size: clamp(2.1rem, 4.4vw, 3.1rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.07; }
+  .lede { margin-top: 16px; color: var(--fg-2); font-size: 16px; max-width: 46ch; line-height: 1.65; }
+  .lede code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .actions { display: flex; gap: 10px; margin-top: 26px; }
+  .btn {
+    font-size: 13.5px; font-weight: 500; padding: 9px 16px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .btn-solid { background: var(--fg); color: var(--bg); }
+  .btn-solid:hover { background: #fff; }
+  .btn-quiet { border: 1px solid var(--line-hi); color: var(--fg-2); }
+  .btn-quiet:hover { color: var(--fg); border-color: #3d4557; background: var(--bg-sub); }
+
+  .cadence { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .cad { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .cad:last-child { border-bottom: none; }
+  .cad .l { font-size: 13px; color: var(--fg-3); }
+  .cad .v { font-family: var(--mono); font-size: 14px; color: var(--fg); font-weight: 500; }
+  .cad .v .pulse {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); margin-right: 8px; vertical-align: 1px;
+    box-shadow: 0 0 0 0 rgba(87, 199, 147, 0.5);
+    animation: pulse 2.4s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(87,199,147,0.45); }
+    70% { box-shadow: 0 0 0 7px rgba(87,199,147,0); }
+    100% { box-shadow: 0 0 0 0 rgba(87,199,147,0); }
+  }
+
+  /* ---------- Timeline ---------- */
+  section { border-top: 1px solid var(--line); padding: clamp(44px, 6vw, 68px) 0; }
+  .timeline { position: relative; }
+  .timeline::before {
+    content: ''; position: absolute; left: 89px; top: 6px; bottom: 6px;
+    width: 1px; background: linear-gradient(to bottom, var(--line-hi), var(--line) 85%, transparent);
+  }
+  .release { position: relative; display: grid; grid-template-columns: 72px 36px minmax(0, 1fr); gap: 0 16px; padding: 0 0 44px; }
+  .release:last-child { padding-bottom: 0; }
+  .release .when {
+    text-align: right; font-family: var(--mono); font-size: 12px; color: var(--fg-3);
+    padding-top: 5px; line-height: 1.7;
+  }
+  .release .node { position: relative; }
+  .release .dot {
+    position: absolute; left: 12px; top: 7px; width: 11px; height: 11px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--line-hi);
+  }
+  .release.latest .dot { border-color: var(--green); background: var(--green); box-shadow: 0 0 12px rgba(87, 199, 147, 0.5); }
+  .release .card { border: 1px solid var(--line); border-radius: 10px; background: var(--bg-sub); overflow: hidden; }
+  .release.latest .card { border-color: color-mix(in srgb, var(--green) 35%, var(--line)); }
+  .rel-head {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    padding: 13px 18px; border-bottom: 1px solid var(--line);
+  }
+  .rel-head .ver { font-family: var(--mono); font-size: 14.5px; font-weight: 700; letter-spacing: -0.01em; }
+  .rel-head .tag {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-hi); color: var(--fg-2);
+  }
+  .release.latest .rel-head .tag { color: var(--green); border-color: rgba(87, 199, 147, 0.4); background: rgba(87, 199, 147, 0.08); }
+  .rel-head .hash { font-family: var(--mono); font-size: 11px; color: var(--fg-3); margin-left: auto; }
+  .rel-body { padding: 14px 18px 16px; display: grid; gap: 9px; }
+  .rel-item { display: flex; gap: 12px; font-size: 13.5px; color: var(--fg-2); line-height: 1.55; align-items: baseline; }
+  .rel-item .k {
+    flex: 0 0 44px; text-align: center; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.06em; text-transform: uppercase; border-radius: 5px; padding: 2px 0;
+  }
+  .k.feat { color: var(--accent); background: var(--accent-sub); }
+  .k.fix { color: var(--amber); background: rgba(217, 164, 74, 0.1); }
+  .k.docs { color: var(--violet); background: rgba(157, 124, 232, 0.1); }
+  .k.perf { color: var(--green); background: rgba(87, 199, 147, 0.1); }
+  .rel-item code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .rel-item a { color: var(--accent); }
+  .rel-item a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* footer */
+  footer { border-top: 1px solid var(--line); padding: 40px 0 60px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a:hover { color: var(--fg); }
+
+  @media (max-width: 880px) {
+    .hero .cols { grid-template-columns: 1fr; }
+    .timeline::before { left: 12px; }
+    .release { grid-template-columns: 24px 1fr; }
+    .release .when { grid-column: 2; text-align: left; padding: 0 0 8px; }
+    .release .node { order: -1; grid-row: 1 / span 2; }
+    .release .dot { left: 7px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#log">Changelog</a>
+      <a href="#">Docs</a>
+      <a href="#">Commands</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">GitHub ↗</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="cols">
+      <div>
+        <div class="kick">Changelog as homepage</div>
+        <h1>Built in the open.<br />Shipped on schedule.</h1>
+        <p class="lede">bb is a command line interface for Bitbucket Cloud — 16 command groups, <code>--json</code> on everything. The page below is the actual release history. If we ship, you'll see it here first.</p>
+        <div class="actions">
+          <a class="btn btn-solid" href="#">Install v2.4.1</a>
+          <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">Watch releases</a>
+        </div>
+      </div>
+      <div class="cadence">
+        <div class="cad"><span class="v"><span class="pulse"></span>v2.4.1</span><span class="l">latest · shipped 3 days ago</span></div>
+        <div class="cad"><span class="v">14 releases</span><span class="l">past 12 months</span></div>
+        <div class="cad"><span class="v">~3.5 weeks</span><span class="l">median release interval</span></div>
+        <div class="cad"><span class="v">9 contributors</span><span class="l">community, external PRs welcome</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="log">
+    <div class="timeline">
+
+      <article class="release latest">
+        <div class="when">Aug 26<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.4.1</span>
+            <span class="tag">latest</span>
+            <span class="hash">a3f9c21</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k fix">fix</span><span>Retry with backoff on 429 rate-limit responses instead of failing the command; <code>--no-retry</code> opts out.</span></div>
+            <div class="rel-item"><span class="k fix">fix</span><span><code>bb pr diff</code> no longer truncates diffs over 4,000 lines.</span></div>
+            <div class="rel-item"><span class="k docs">docs</span><span>Troubleshooting page: new entries for proxy and self-signed certificate setups.</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="release">
+        <div class="when">Aug 4<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.4.0</span>
+            <span class="tag">minor</span>
+            <span class="hash">7be10d4</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k feat">feat</span><span><a href="#">AI agent integration guide</a> — expose bb as a tool to coding agents, with a schema for every command.</span></div>
+            <div class="rel-item"><span class="k feat">feat</span><span><code>bb pr comments resolve</code> / <code>unresolve</code> for inline review threads.</span></div>
+            <div class="rel-item"><span class="k feat">feat</span><span>Recipes section launched: auto-merge on green CI, bulk reviewer assignment, fork sync, retry wrapper.</span></div>
+            <div class="rel-item"><span class="k perf">perf</span><span>List commands render 2–3× faster on large workspaces (streamed pagination).</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="release">
+        <div class="when">Jul 11<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.3.0</span>
+            <span class="tag">minor</span>
+            <span class="hash">c58e9a0</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k feat">feat</span><span><code>bb browse</code> now opens files at a specific line: <code>bb browse src/cli.ts:20</code>.</span></div>
+            <div class="rel-item"><span class="k feat">feat</span><span><code>--jq</code> gained arithmetic and comparison operators; filters still run in-process.</span></div>
+            <div class="rel-item"><span class="k fix">fix</span><span>Windows: config path falls back to <code>%APPDATA%\bb</code> when <code>%USERPROFILE%</code> is redirected.</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="release">
+        <div class="when">Jun 20<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.2.2</span>
+            <span class="tag">patch</span>
+            <span class="hash">e21bb77</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k fix">fix</span><span>Repository context resolution no longer misfires on worktrees and submodule checkouts.</span></div>
+            <div class="rel-item"><span class="k docs">docs</span><span>Error-code reference completed — every exit code documented per command.</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="release">
+        <div class="when">Jun 2<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.2.0</span>
+            <span class="tag">minor</span>
+            <span class="hash">40ac1f9</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k feat">feat</span><span><code>bb status set</code> publishes commit build statuses from CI jobs.</span></div>
+            <div class="rel-item"><span class="k feat">feat</span><span>Shell completions for zsh, bash, fish, and PowerShell (<code>bb completion</code>).</span></div>
+            <div class="rel-item"><span class="k perf">perf</span><span>Cold-start time cut ~40% by lazy-loading command groups.</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="release">
+        <div class="when">May 9<br />2026</div>
+        <div class="node"><span class="dot"></span></div>
+        <div class="card">
+          <div class="rel-head">
+            <span class="ver">v2.1.0</span>
+            <span class="tag">minor</span>
+            <span class="hash">b9046ae</span>
+          </div>
+          <div class="rel-body">
+            <div class="rel-item"><span class="k feat">feat</span><span><code>bb api --paginate</code> walks every page of any list endpoint.</span></div>
+            <div class="rel-item"><span class="k feat">feat</span><span>Alias commands: personal shortcuts like <code>bb alias set co 'pr checkout'</code>.</span></div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>MIT · Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+    <nav><a href="#">Docs</a><a href="#">GitHub</a><a href="#">Contribute</a></nav>
+  </div>
+</footer>
+
+</body>
+</html>

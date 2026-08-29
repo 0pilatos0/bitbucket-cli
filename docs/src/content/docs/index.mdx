@@ -3,226 +3,27 @@ title: Bitbucket CLI
 description: Manage Bitbucket Cloud pull requests, repos, pipelines, and issues from the terminal. JSON output on every command.
 template: splash
 hero:
-  tagline: Clone repositories, manage pull requests, and automate workflows from your terminal. If you know GitHub's gh, you'll feel right at home.
+  title: "Fast, scriptable, and honest about its output. <span class='mono'>bb</span> puts Bitbucket Cloud in your terminal."
+  tagline: "Fifteen command groups over the full 2.0 REST API. Every command outputs JSON — <code>--json</code> projects exactly the fields you name, <code>--jq</code> filters in-process."
   actions:
-    - text: Get Started
+    - text: Quick start
       link: /getting-started/quickstart/
-      icon: right-arrow
     - text: View on GitHub
       link: https://github.com/0pilatos0/bitbucket-cli
-      icon: external
       variant: minimal
 ---
 
-import {
-  Card,
-  CardGrid,
-  LinkButton,
-  LinkCard,
-  Tabs,
-  TabItem,
-} from '@astrojs/starlight/components';
+import CommandIndex from '../../components/CommandIndex.astro';
+import Principles from '../../components/Principles.astro';
+import SessionExample from '../../components/SessionExample.astro';
 
-## Install
+<div class="bb-ref">
+  <CommandIndex />
 
-Requires [Bun](https://bun.sh) 1.0+ runtime.
+  <Principles />
+</div>
 
-<Tabs>
-  <TabItem label="npm">
-    ```bash
-    npm install -g @pilatos/bitbucket-cli
-    ```
-  </TabItem>
-  <TabItem label="pnpm">
-    ```bash
-    pnpm add -g @pilatos/bitbucket-cli
-    ```
-  </TabItem>
-  <TabItem label="Bun">
-    ```bash
-    bun install -g @pilatos/bitbucket-cli
-    ```
-  </TabItem>
-</Tabs>
-
-```bash
-bb auth login                          # authenticate
-bb repo clone myworkspace/myrepo       # clone a repository
-bb pr create -t "My awesome feature"   # create a PR
-bb pr list                             # list open PRs
-```
-
----
-
-## What can you do?
-
-<CardGrid>
-  <Card title="Repository management" icon="folder">
-    Clone, create, list, view, and delete repositories.
-
-    ```bash
-    bb repo clone workspace/repo
-    bb repo create my-new-project
-    bb repo list -w myworkspace
-    ```
-  </Card>
-
-  <Card title="Pull requests" icon="document">
-    Full PR lifecycle — create, review, approve, merge.
-
-    ```bash
-    bb pr create -t "Add feature"
-    bb pr approve 42
-    bb pr merge 42 --strategy squash
-    ```
-  </Card>
-
-  <Card title="Code review" icon="open-book">
-    View diffs, checkout PR branches, inspect checks.
-
-    ```bash
-    bb pr diff 42
-    bb pr checkout 42
-    bb pr checks 42
-    ```
-  </Card>
-
-  <Card title="CI/CD pipelines" icon="approve-check">
-    Trigger, inspect, and stop Bitbucket Pipelines.
-
-    ```bash
-    bb pipeline run --branch main
-    bb pipeline list --status FAILED
-    bb pipeline logs 42
-    ```
-  </Card>
-
-  <Card title="Workspaces and projects" icon="database">
-    Find the workspaces you belong to and the projects inside them.
-
-    ```bash
-    bb workspace list
-    bb project list
-    bb project view PROJ
-    ```
-  </Card>
-
-  <Card title="Issues, snippets, and commits" icon="notes">
-    Track issues, share snippets, read history, and publish build statuses.
-
-    ```bash
-    bb issue list --state open
-    bb snippet create -t notes -f a.txt
-    bb commit list --limit 10
-    bb status set abc1234 --key BB-DEPLOY --state SUCCESSFUL
-    ```
-
-    See [Issue commands](/commands/issue/) and [Snippet commands](/commands/snippet/).
-  </Card>
-
-  <Card title="Jump to the web UI" icon="external">
-    Open Bitbucket pages — PRs, files, commits, settings — in your browser.
-
-    ```bash
-    bb browse 42
-    bb browse src/cli.ts:20
-    bb browse --pipelines
-    ```
-  </Card>
-
-  <Card title="Scripting and automation" icon="setting">
-    Every command speaks JSON. `--json` projects to a field list, `--jq` filters in-process — no external `jq` binary, no shell pipe.
-
-    ```bash
-    bb pr list --json id,title,author.display_name
-    bb pipeline run --branch main --json --jq '.build_number'
-    ```
-
-    A field list returns a flat array of objects; dotted paths keep their full
-    name as the key. See the [Scripting guide](/guides/scripting/).
-  </Card>
-
-  <Card title="Raw API access" icon="rocket">
-    Reach any Bitbucket 2.0 endpoint not yet wrapped by a typed command.
-
-    ```bash
-    bb api /user
-    bb api /repositories/{workspace}/{repo}/pullrequests --paginate
-    bb api POST /repositories/ws/repo/issues -f title=Bug
-    ```
-  </Card>
-</CardGrid>
-
----
-
-## PR workflows
-
-<CardGrid>
-  <LinkCard
-    title="Create, edit, and view"
-    href="/commands/pr/create-and-edit/"
-    description="Open a PR, change its title or description, list PRs, inspect one."
-  />
-  <LinkCard
-    title="Review and merge"
-    href="/commands/pr/review-and-merge/"
-    description="Approve, decline, mark drafts ready, and merge with explicit strategy control."
-  />
-  <LinkCard
-    title="Diff and checkout"
-    href="/commands/pr/diff-and-checkout/"
-    description="Review patch output, fetch PR branches locally, and open browser diffs."
-  />
-  <LinkCard
-    title="Activity and checks"
-    href="/commands/pr/activity-and-checks/"
-    description="Inspect activity history and CI/build status before approving or merging."
-  />
-  <LinkCard
-    title="Review comments"
-    href="/commands/pr/comments/"
-    description="List, add, view, edit, reply to, resolve, unresolve, and delete general or inline review comments."
-  />
-  <LinkCard
-    title="Reviewers"
-    href="/commands/pr/reviewers/"
-    description="Add and remove reviewers. Adding someone already assigned is a no-op, as is removing someone who is not."
-  />
-</CardGrid>
-
-<LinkButton href="/commands/pr/" icon="right-arrow" variant="primary">All PR commands</LinkButton>
-
----
-
-## Explore
-
-<CardGrid>
-  <LinkCard
-    title="Scripting guide"
-    href="/guides/scripting/"
-    description="JSON output, exit codes, shell patterns."
-  />
-  <LinkCard
-    title="CI/CD integration"
-    href="/guides/cicd/"
-    description="GitHub Actions, GitLab CI, Jenkins, and more."
-  />
-  <LinkCard
-    title="Recipes"
-    href="/recipes/"
-    description="Auto-merge on green CI, bulk reviewer assignment, fork sync, reporting, retry wrappers."
-  />
-  <LinkCard
-    title="AI agent integration"
-    href="/guides/ai-agents/"
-    description="Wire the CLI into coding agents and tool-calling loops."
-  />
-  <LinkCard
-    title="Troubleshooting"
-    href="/help/troubleshooting/"
-    description="Common issues and solutions."
-  />
-</CardGrid>
+<SessionExample />
 
 ---
 

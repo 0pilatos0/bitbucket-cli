@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Signal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 16 — "SIGNAL"
+     Sibling of 11/13. Structural idea: the page is a living
+     system schematic. 13's engineering-drawing language, but
+     the diagram is wired: request packets travel from your
+     terminal through bb to the Bitbucket 2.0 API and back,
+     with branches to Pipelines, the web UI, and your scripts.
+     One auth, one binary, every surface. The hero shows the
+     architecture instead of describing it.
+     ============================================================ */
+  :root {
+    --bg:      #0a0c11;
+    --bg-sub:  #0f1219;
+    --line:    #1d2330;
+    --line-hi: #2c3547;
+    --fg:      #e8ebf2;
+    --fg-2:    #99a1b3;
+    --fg-3:    #5c6476;
+    --accent:  #5b8def;
+    --accent-sub: hsla(219, 84%, 64%, 0.1);
+    --green:   #57c793;
+    --violet:  #9d7ce8;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  /* dot grid */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 90% 55% at 50% 0%, #000 30%, transparent 75%);
+  }
+  ::selection { background: hsla(219, 84%, 64%, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+  .cross { position: relative; }
+  .cross::before, .cross::after {
+    content: '+'; position: absolute; font-family: var(--mono);
+    font-size: 12px; color: var(--fg-3); user-select: none;
+  }
+  .cross::before { top: -7px; left: -6px; }
+  .cross::after { bottom: -9px; right: -6px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .nav { display: flex; align-items: center; gap: 24px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; }
+  .brand .glyph {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--fg); border: 1px solid var(--line-hi);
+    background: var(--bg-sub); border-radius: 6px; padding: 2px 7px;
+  }
+  .nav nav { display: flex; gap: 2px; margin-left: auto; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .gh { font-size: 13px; color: var(--fg-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+  .nav .gh:hover { border-color: var(--line-hi); color: var(--fg); }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: clamp(52px, 8vw, 92px) 0 0; }
+  .kick { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+  h1 { margin: 16px auto 0; font-size: clamp(2.2rem, 4.8vw, 3.4rem); font-weight: 700; letter-spacing: -0.032em; line-height: 1.06; max-width: 18ch; }
+  h1 .dim { color: var(--fg-3); }
+  .lede { margin: 18px auto 0; color: var(--fg-2); font-size: 16px; max-width: 50ch; }
+  .lede code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .actions { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
+  .btn {
+    font-size: 13.5px; font-weight: 500; padding: 10px 18px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .btn-solid { background: var(--fg); color: var(--bg); }
+  .btn-solid:hover { background: #fff; }
+  .btn-quiet { border: 1px solid var(--line-hi); color: var(--fg-2); }
+  .btn-quiet:hover { color: var(--fg); border-color: #3d4557; background: var(--bg-sub); }
+
+  /* ---------- Schematic ---------- */
+  .schematic { margin-top: clamp(40px, 6vw, 64px); border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent), var(--bg-sub); overflow: hidden; position: relative; }
+  .sch-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 18px; border-bottom: 1px solid var(--line);
+    font-family: var(--mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em;
+  }
+  .sch-bar .live { color: var(--green); }
+  .sch-bar .live::before { content: '●'; margin-right: 7px; animation: blink 2.2s infinite; }
+  @keyframes blink { 50% { opacity: 0.35; } }
+  svg.diagram { display: block; width: 100%; height: auto; }
+  .n-label { font-family: var(--mono); font-size: 12.5px; font-weight: 500; fill: var(--fg); }
+  .n-sub { font-family: var(--mono); font-size: 10px; fill: var(--fg-3); letter-spacing: 0.08em; }
+  .wire { stroke: var(--line-hi); stroke-width: 1.2; fill: none; }
+  .wire-hot { stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-dasharray: 5 7; animation: march 1.1s linear infinite; }
+  @keyframes march { to { stroke-dashoffset: -12; } }
+  .packet { fill: var(--accent); }
+  .packet.g { fill: var(--green); }
+  .packet.v { fill: var(--violet); }
+  .node-box { fill: var(--bg); stroke: var(--line-hi); stroke-width: 1.2; rx: 10; }
+  .node-core { stroke: var(--accent); }
+  .stat-l { font-family: var(--mono); font-size: 10px; fill: var(--fg-3); }
+  @media (prefers-reduced-motion: reduce) {
+    .wire-hot, .sch-bar .live::before { animation: none; }
+    .packet { display: none; }
+  }
+
+  /* ---------- Sections ---------- */
+  section { border-top: 1px solid var(--line); padding: clamp(44px, 6vw, 68px) 0; }
+  .sec-head { margin-bottom: 30px; }
+  .sec-head .kick2 { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+  .sec-head h2 { margin-top: 8px; font-size: clamp(1.4rem, 2.8vw, 1.9rem); font-weight: 650; letter-spacing: -0.02em; }
+  .sec-head p { color: var(--fg-2); margin-top: 8px; max-width: 60ch; }
+
+  .surfaces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .surf { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-sub); padding: 20px; transition: border-color 150ms, transform 150ms; }
+  .surf:hover { border-color: var(--line-hi); transform: translateY(-2px); }
+  .surf .tag { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .surf h3 { font-size: 15px; font-weight: 600; margin-top: 10px; }
+  .surf p { font-size: 13.5px; color: var(--fg-2); margin-top: 7px; line-height: 1.6; }
+  .surf .cmd { margin-top: 14px; font-family: var(--mono); font-size: 12px; color: var(--fg); border: 1px solid var(--line); background: var(--bg); border-radius: 7px; padding: 8px 11px; overflow-x: auto; white-space: nowrap; }
+  .surf .cmd::before { content: '$ '; color: var(--fg-3); }
+
+  /* minimal spec table */
+  .spec { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .spec-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 16px; padding: 13px 20px; border-bottom: 1px solid var(--line); align-items: baseline; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-row:hover { background: var(--bg-sub); }
+  .spec-row .k { font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+  .spec-row .v { font-size: 14px; color: var(--fg-2); }
+  .spec-row .v code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); }
+  .spec-row .n { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+  footer { border-top: 1px solid var(--line); padding: 36px 0 48px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a:hover { color: var(--fg); }
+
+  @media (max-width: 880px) {
+    .surfaces { grid-template-columns: 1fr; }
+    .spec-row { grid-template-columns: 1fr; gap: 4px; }
+    .spec-row .n { display: none; }
+    .nav nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#surfaces">Surfaces</a>
+      <a href="#spec">Spec</a>
+      <a href="#">Docs</a>
+    </nav>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">GitHub ↗</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="kick">System schematic</div>
+    <h1>One binary between<br />you <span class="dim">and the API.</span></h1>
+    <p class="lede">bb is a single authenticated client in front of the Bitbucket Cloud 2.0 REST API. Terminal, scripts, CI — every surface speaks the same command language, with <code>--json</code> on everything.</p>
+    <div class="actions">
+      <a class="btn btn-solid" href="#">Install</a>
+      <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">Read the source</a>
+    </div>
+  </div>
+
+  <!-- ============ Live schematic ============ -->
+  <div class="schematic cross">
+    <div class="sch-bar">
+      <span>FIG. 01 — REQUEST PATH · SIMPLIFIED</span>
+      <span class="live">LIVE</span>
+    </div>
+    <svg class="diagram" viewBox="0 0 1100 420" role="img" aria-label="Diagram: your terminal and CI scripts call bb, which talks to the Bitbucket Cloud API; bb also branches to Pipelines and the web UI.">
+      <!-- wires: terminal -> bb -->
+      <path id="w1" class="wire-hot" d="M 210 130 C 300 130, 320 190, 420 190" />
+      <path id="w2" class="wire-hot" d="M 210 250 C 300 250, 320 210, 420 210" />
+      <!-- bb -> api -->
+      <path id="w3" class="wire-hot" d="M 680 200 C 760 200, 780 200, 860 200" />
+      <!-- bb -> pipelines -->
+      <path id="w4" class="wire" d="M 620 240 C 640 300, 700 320, 780 320" />
+      <path class="wire-hot" d="M 620 240 C 640 300, 700 320, 780 320" opacity="0.55"/>
+      <!-- bb -> web ui -->
+      <path id="w5" class="wire" d="M 620 170 C 640 110, 700 90, 780 90" />
+      <path class="wire-hot" d="M 620 170 C 640 110, 700 90, 780 90" opacity="0.55"/>
+      <!-- api -> response back -->
+      <path id="w6" class="wire" d="M 860 220 C 780 226, 760 226, 680 226" stroke-dasharray="2 6" />
+
+      <!-- travelling packets -->
+      <circle r="3" class="packet"><animateMotion dur="2.6s" repeatCount="indefinite"><mpath href="#w1"/></animateMotion></circle>
+      <circle r="3" class="packet g"><animateMotion dur="3.1s" begin="0.7s" repeatCount="indefinite"><mpath href="#w2"/></animateMotion></circle>
+      <circle r="3" class="packet"><animateMotion dur="1.9s" begin="1.1s" repeatCount="indefinite"><mpath href="#w3"/></animateMotion></circle>
+      <circle r="3" class="packet v"><animateMotion dur="2.2s" begin="0.3s" repeatCount="indefinite"><mpath href="#w4"/></animateMotion></circle>
+      <circle r="3" class="packet g"><animateMotion dur="2.4s" begin="1.4s" repeatCount="indefinite"><mpath href="#w5"/></animateMotion></circle>
+
+      <!-- node: terminal -->
+      <rect class="node-box" x="60" y="100" width="150" height="60" rx="10"/>
+      <text class="n-label" x="135" y="126" text-anchor="middle">YOUR TERMINAL</text>
+      <text class="n-sub" x="135" y="145" text-anchor="middle">ZSH · BASH · PS</text>
+
+      <!-- node: ci -->
+      <rect class="node-box" x="60" y="220" width="150" height="60" rx="10"/>
+      <text class="n-label" x="135" y="246" text-anchor="middle">CI SCRIPTS</text>
+      <text class="n-sub" x="135" y="265" text-anchor="middle">ACTIONS · JENKINS</text>
+
+      <!-- node: bb core -->
+      <rect class="node-box node-core" x="420" y="160" width="260" height="80" rx="12"/>
+      <text class="n-label" x="550" y="194" text-anchor="middle" style="font-size:15px">bb</text>
+      <text class="n-sub" x="550" y="216" text-anchor="middle">16 COMMAND GROUPS · --JSON · --JQ</text>
+
+      <!-- node: api -->
+      <rect class="node-box" x="860" y="170" width="190" height="60" rx="10"/>
+      <text class="n-label" x="955" y="196" text-anchor="middle">BITBUCKET CLOUD</text>
+      <text class="n-sub" x="955" y="215" text-anchor="middle">REST 2.0 · OAUTH/APP PW</text>
+
+      <!-- branch: pipelines -->
+      <rect class="node-box" x="780" y="292" width="170" height="56" rx="10"/>
+      <text class="n-label" x="865" y="315" text-anchor="middle" style="font-size:12px">PIPELINES</text>
+      <text class="n-sub" x="865" y="334" text-anchor="middle">RUN · LOGS · STOP</text>
+
+      <!-- branch: web ui -->
+      <rect class="node-box" x="780" y="62" width="170" height="56" rx="10"/>
+      <text class="n-label" x="865" y="85" text-anchor="middle" style="font-size:12px">WEB UI</text>
+      <text class="n-sub" x="865" y="104" text-anchor="middle">BB BROWSE</text>
+
+      <!-- corner annotations -->
+      <text class="stat-l" x="30" y="402">BB-2026-047 · SIMPLIFIED · NOT ALL ENDPOINTS SHOWN</text>
+      <text class="stat-l" x="1070" y="402" text-anchor="end">BASIC AUTH VIA CONFIG 0600</text>
+    </svg>
+  </div>
+
+  <!-- ============ Surfaces ============ -->
+  <section id="surfaces">
+    <div class="sec-head">
+      <div class="kick2">Surfaces</div>
+      <h2>Three ways in, one client</h2>
+      <p>Humans read text output. Machines read JSON. Everyone gets the same auth, same flags, same exit codes.</p>
+    </div>
+    <div class="surfaces">
+      <div class="surf">
+        <span class="tag">Humans</span>
+        <h3>Typed commands</h3>
+        <p>Short groups, repository context from your git remote, output made for reading.</p>
+        <div class="cmd">bb pr list --state OPEN</div>
+      </div>
+      <div class="surf">
+        <span class="tag">Scripts</span>
+        <h3>Projected JSON</h3>
+        <p>Field lists and in-process jq. A flat array, exactly the keys you named.</p>
+        <div class="cmd">bb pr list --json id,title --jq '.[0].id'</div>
+      </div>
+      <div class="surf">
+        <span class="tag">Agents</span>
+        <h3>Tool schemas</h3>
+        <p>Every command documented as a callable tool for coding agents and loops.</p>
+        <div class="cmd">bb api /user --jq '.display_name'</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Spec ============ -->
+  <section id="spec">
+    <div class="sec-head">
+      <div class="kick2">Specification</div>
+      <h2>The contract, in nine rows</h2>
+    </div>
+    <div class="spec">
+      <div class="spec-row"><span class="k">COMMAND GROUPS</span><span class="v">repo, pr, pipeline, issue, commit, snippet, workspace, project, browse, api, auth, config, alias, status, completion</span><span class="n">16</span></div>
+      <div class="spec-row"><span class="k">SUBCOMMANDS</span><span class="v">each documented with flags, defaults, and examples</span><span class="n">62</span></div>
+      <div class="spec-row"><span class="k">JSON COVERAGE</span><span class="v"><code>--json</code> with field projection on every command</span><span class="n">100%</span></div>
+      <div class="spec-row"><span class="k">FILTERING</span><span class="v">in-process <code>--jq</code>, no external binary</span><span class="n">0 deps</span></div>
+      <div class="spec-row"><span class="k">API SOURCE</span><span class="v">generated from one pinned OpenAPI spec; CI fails on drift</span><span class="n">1 spec</span></div>
+      <div class="spec-row"><span class="k">EXIT CODES</span><span class="v">stable taxonomy: 0 ok · 2 api · 3 auth · 4 not found</span><span class="n">4 classes</span></div>
+      <div class="spec-row"><span class="k">AUTH</span><span class="v">app password via Basic auth, stored <code>0600</code>, never logged</span><span class="n">1 file</span></div>
+      <div class="spec-row"><span class="k">PLATFORMS</span><span class="v">macOS · Linux · Windows</span><span class="n">3</span></div>
+      <div class="spec-row"><span class="k">RUNTIME</span><span class="v">Bun ≥ 1.0, TypeScript strict</span><span class="n">MIT</span></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>MIT · Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+    <nav><a href="#">Docs</a><a href="#">GitHub</a><a href="#">Changelog</a></nav>
+  </div>
+</footer>
+
+</body>
+</html>
