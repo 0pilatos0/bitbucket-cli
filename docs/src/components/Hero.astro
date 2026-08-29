@@ -21,10 +21,10 @@ const installCmds = {
   {tagline && <p class="sub" set:html={tagline} />}
 
   <div class="install">
-    <div class="pm" role="tablist" aria-label="Package manager">
-      <button class="on" data-pm="npm" role="tab" aria-selected="true">npm</button>
-      <button data-pm="pnpm" role="tab" aria-selected="false">pnpm</button>
-      <button data-pm="bun" role="tab" aria-selected="false">bun</button>
+    <div class="pm" aria-label="Package manager">
+      <button class="on" data-pm="npm" aria-pressed="true">npm</button>
+      <button data-pm="pnpm" aria-pressed="false">pnpm</button>
+      <button data-pm="bun" aria-pressed="false">bun</button>
     </div>
     <code id="bb-install-cmd"><span class="dollar">$</span>{installCmds.npm}</code>
     <button class="copy" id="bb-install-copy" aria-label="Copy install command">copy</button>
@@ -249,10 +249,10 @@ const installCmds = {
         .querySelectorAll<HTMLButtonElement>('.install .pm button')
         .forEach((b) => {
           b.classList.remove('on');
-          b.setAttribute('aria-selected', 'false');
+          b.setAttribute('aria-pressed', 'false');
         });
       btn.classList.add('on');
-      btn.setAttribute('aria-selected', 'true');
+      btn.setAttribute('aria-pressed', 'true');
       const pm = btn.dataset.pm as keyof typeof installCmds;
       const dollar = cmdEl?.querySelector('.dollar');
       if (cmdEl) {
@@ -262,10 +262,18 @@ const installCmds = {
     });
   });
 
-  copyBtn?.addEventListener('click', () => {
+  copyBtn?.addEventListener('click', async () => {
     const text = (cmdEl?.textContent ?? '').replace(/^\$/, '');
-    navigator.clipboard?.writeText(text);
-    copyBtn.textContent = 'copied ✓';
+    if (!('clipboard' in navigator)) {
+      copyBtn.textContent = 'copy failed';
+    } else {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'copied ✓';
+      } catch {
+        copyBtn.textContent = 'copy failed';
+      }
+    }
     setTimeout(() => {
       if (copyBtn) copyBtn.textContent = 'copy';
     }, 1400);

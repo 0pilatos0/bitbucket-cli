@@ -385,10 +385,10 @@
     try {
       await navigator.clipboard?.writeText(cmdEl.textContent);
       this.textContent = '✓';
-      setTimeout(() => (this.textContent = '⧉'), 1200);
     } catch {
-      /* clipboard unavailable — leave the button as-is */
+      this.textContent = '✗';
     }
+    setTimeout(() => (this.textContent = '⧉'), 1200);
   });
 
   // marquee: real command names, duplicated for the loop
