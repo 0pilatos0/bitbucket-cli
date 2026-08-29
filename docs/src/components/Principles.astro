@@ -1,0 +1,109 @@
+---
+/**
+ * Ascetic principles — numbered hairline rows explaining the
+ * design contract of the CLI. Copy is kept factual: exit codes
+ * claim follows reference/error-codes (numeric codes, exit = 1).
+ */
+const principles = [
+  {
+    title: 'Machines are users too',
+    body: '<code>--json id,title</code> projects exactly the fields you name; dotted paths keep their full key as the object key.',
+  },
+  {
+    title: 'No jq dependency',
+    body: '<code>--jq</code> evaluates in-process. It works in the most minimal CI image you can build.',
+  },
+  {
+    title: 'Error codes you can branch on',
+    body: 'Every failure carries a numeric <code>code</code> in the JSON payload — the process exit status stays <code>1</code>. All codes are documented in the reference.',
+  },
+  {
+    title: "Types can't drift",
+    body: 'The API client is generated from one pinned OpenAPI spec; CI fails if the generated code drifts from it.',
+  },
+  {
+    title: 'Secrets stay put',
+    body: 'Credentials are stored with <code>0600</code> permissions in your platform\'s config directory. Never logged, never printed.',
+  },
+];
+---
+
+<div class="bb-principles-block">
+  <div class="bb-refhead">
+    <span>Principles</span>
+    <span class="cnt">why it's built this way</span>
+  </div>
+  <div class="bb-principles">
+    {
+      principles.map((p, i) => (
+        <div class="p">
+          <span class="no">{String(i + 1).padStart(2, '0')}</span>
+          <span>
+            <b>{p.title}</b>
+            <Fragment set:html={p.body} />
+          </span>
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .bb-refhead {
+    font-family: var(--bb-font-mono);
+    font-size: 0.7188rem;
+    font-weight: 500;
+    color: var(--bb-fg-3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.125rem;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .bb-refhead .cnt {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .bb-principles {
+    display: grid;
+  }
+  .p {
+    display: grid;
+    grid-template-columns: 1.875rem 1fr;
+    gap: 0.75rem;
+    padding: 0.8125rem 0;
+    border-bottom: 1px solid var(--sl-color-hairline);
+    font-size: 0.8438rem;
+    color: var(--sl-color-fg-muted);
+    line-height: 1.6;
+  }
+  .p:last-child {
+    border-bottom: none;
+  }
+  .p .no {
+    font-family: var(--bb-font-mono);
+    font-size: 0.6875rem;
+    color: var(--bb-fg-3);
+    padding-top: 0.1563rem;
+    transition: color 140ms;
+  }
+  .p:hover .no {
+    color: var(--sl-color-accent);
+  }
+  .p b {
+    color: var(--sl-color-fg);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.125rem;
+  }
+  .p :global(code) {
+    font-family: var(--bb-font-mono);
+    font-size: 0.84em;
+    color: var(--sl-color-fg);
+    background: var(--bb-bg-sub);
+    border: 1px solid var(--sl-color-hairline);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+</style>

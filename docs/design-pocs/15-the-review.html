@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — The Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 15 — "THE REVIEW"
+     Sibling of 11/13. Structural idea: the scroll-locked demo —
+     2026's replacement for the explainer video (Loom, Linear,
+     Notion all ship variations). A sticky pull-request panel
+     lives its lifecycle as you scroll: opened → diff → checks &
+     approval → merged. Each step on the right names the exact
+     command that did it. Show, don't tell.
+     ============================================================ */
+  :root {
+    --bg:      #0b0d12;
+    --bg-sub:  #10131b;
+    --bg-card: #0e1119;
+    --line:    #1e2331;
+    --line-hi: #2d3547;
+    --fg:      #e8ebf2;
+    --fg-2:    #9aa2b4;
+    --fg-3:    #5d6577;
+    --accent:  #5b8def;
+    --accent-sub: hsla(219, 84%, 64%, 0.12);
+    --green:   #57c793;
+    --green-sub: rgba(87, 199, 147, 0.12);
+    --violet:  #9d7ce8;
+    --red:     #e0665f;
+    --add-bg:  rgba(87, 199, 147, 0.09);
+    --add-fg:  #8fdcb8;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 15px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: hsla(219, 84%, 64%, 0.3); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  .nav { display: flex; align-items: center; gap: 24px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; }
+  .brand .glyph {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--fg); border: 1px solid var(--line-hi);
+    background: var(--bg-sub); border-radius: 6px; padding: 2px 7px;
+  }
+  .nav nav { display: flex; gap: 2px; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 10px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .spacer { flex: 1; }
+  .nav .gh { font-size: 13px; color: var(--fg-2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; }
+  .nav .gh:hover { border-color: var(--line-hi); color: var(--fg); }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: clamp(52px, 8vw, 88px) 0 24px; }
+  .kick { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; }
+  h1 { margin-top: 16px; font-size: clamp(2.1rem, 4.4vw, 3.1rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.08; }
+  .lede { margin: 16px auto 0; color: var(--fg-2); font-size: 16px; max-width: 52ch; }
+  .lede code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+
+  /* ---------- Scrollytelling stage ---------- */
+  .stage {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: clamp(32px, 5vw, 72px);
+    padding: 40px 0 20px;
+    align-items: start;
+  }
+  .sticky-col { position: sticky; top: 88px; }
+
+  /* the PR panel */
+  .pr {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-card);
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+    transition: border-color 400ms;
+  }
+  .pr-header { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .pr-header .row1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pr-header h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .pr-header .id { font-family: var(--mono); font-size: 13px; color: var(--fg-3); }
+  .pr-header .row2 { margin-top: 7px; font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); display: flex; gap: 14px; flex-wrap: wrap; }
+  .pr-header .row2 .branch { color: var(--fg-2); }
+  .badge {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2.5px 9px; border-radius: 999px; border: 1px solid var(--line-hi); color: var(--fg-2);
+    transition: all 400ms;
+  }
+  .badge.open { color: var(--green); border-color: rgba(87,199,147,0.4); background: var(--green-sub); }
+  .badge.merged { color: var(--violet); border-color: rgba(157,124,232,0.4); background: rgba(157,124,232,0.12); }
+
+  .pr-body { padding: 18px 20px; min-height: 330px; position: relative; }
+  .pane { position: absolute; inset: 18px 20px; opacity: 0; transform: translateY(8px); transition: opacity 350ms, transform 350ms; pointer-events: none; }
+  .pane.on { opacity: 1; transform: none; pointer-events: auto; }
+  .pane-label { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 12px; }
+
+  /* description pane */
+  .desc p { font-size: 13.5px; color: var(--fg-2); line-height: 1.7; }
+  .desc p + p { margin-top: 10px; }
+  .desc code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+
+  /* diff pane */
+  .diff { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; font-family: var(--mono); font-size: 11.75px; line-height: 1.75; }
+  .diff .file { padding: 7px 12px; border-bottom: 1px solid var(--line); background: var(--bg-sub); color: var(--fg-2); }
+  .diff .ln { padding: 0 12px; white-space: pre; color: var(--fg-3); }
+  .diff .ln.add { background: var(--add-bg); color: var(--add-fg); }
+  .diff .ln.add::before { content: '+'; color: var(--green); margin-right: 2px; }
+  .diff .ln.del { background: rgba(224, 102, 95, 0.08); color: #e39a95; }
+  .diff .ln.del::before { content: '−'; color: var(--red); margin-right: 2px; }
+  .diff .ln.ctx::before { content: ' '; margin-right: 2px; }
+
+  /* checks pane */
+  .check { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; color: var(--fg-2); }
+  .check:last-child { border-bottom: none; }
+  .check .st { font-family: var(--mono); font-size: 11px; margin-left: auto; }
+  .check.pending .st { color: var(--fg-3); }
+  .check.pass .st { color: var(--green); }
+  .check .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--fg-3); flex: 0 0 7px; }
+  .check.pass .dot { background: var(--green); box-shadow: 0 0 8px rgba(87,199,147,0.6); }
+  .approval {
+    margin-top: 14px; display: flex; gap: 10px; align-items: flex-start;
+    border: 1px solid rgba(87,199,147,0.35); background: var(--green-sub);
+    border-radius: 8px; padding: 10px 12px; font-size: 13px;
+  }
+  .approval .av {
+    flex: 0 0 24px; width: 24px; height: 24px; border-radius: 6px;
+    background: var(--accent); color: #fff; font-size: 11px; font-weight: 600;
+    display: grid; place-items: center;
+  }
+  .approval b { color: var(--green); font-weight: 600; }
+
+  /* merged pane */
+  .merged-banner {
+    border: 1px solid rgba(157,124,232,0.4); background: rgba(157,124,232,0.1);
+    border-radius: 8px; padding: 12px 14px; font-size: 13.5px;
+  }
+  .merged-banner b { color: var(--violet); }
+  .merged-banner .mono { font-family: var(--mono); font-size: 12px; color: var(--fg-2); display: block; margin-top: 6px; }
+
+  /* merge button */
+  .pr-footer { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
+  .mergebtn {
+    font-size: 13px; font-weight: 600; padding: 8px 18px; border-radius: 8px;
+    background: var(--fg); color: var(--bg); border: none; cursor: pointer; font-family: var(--sans);
+    transition: background 350ms, color 350ms;
+  }
+  .pr.merging .mergebtn { background: var(--violet); color: #fff; cursor: default; }
+  .pr-footer .hint { font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+
+  /* steps */
+  .steps { display: flex; flex-direction: column; }
+  .step { min-height: 78vh; display: flex; flex-direction: column; justify-content: center; opacity: 0.35; transition: opacity 400ms; }
+  .step.on { opacity: 1; }
+  .step .no { font-family: var(--mono); font-size: 11.5px; color: var(--accent); letter-spacing: 0.1em; }
+  .step h3 { margin-top: 10px; font-size: 1.35rem; font-weight: 650; letter-spacing: -0.02em; }
+  .step p { margin-top: 10px; color: var(--fg-2); font-size: 14.5px; max-width: 40ch; }
+  .step p code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .step .cmd {
+    margin-top: 16px; display: inline-block; align-self: flex-start;
+    font-family: var(--mono); font-size: 12.5px; color: var(--fg);
+    border: 1px solid var(--line); border-left: 2px solid var(--accent);
+    background: var(--bg-sub); border-radius: 0 8px 8px 0; padding: 9px 14px;
+  }
+
+  .after { border-top: 1px solid var(--line); padding: clamp(44px, 6vw, 68px) 0; }
+  .after .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .after .cell { border: 1px solid var(--line); border-radius: 10px; background: var(--bg-sub); padding: 18px; }
+  .after .cell h4 { font-size: 14px; font-weight: 600; }
+  .after .cell p { font-size: 13px; color: var(--fg-2); margin-top: 6px; }
+  .after .cell .cmd { font-family: var(--mono); font-size: 11.5px; color: var(--accent); margin-top: 12px; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0 48px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a:hover { color: var(--fg); }
+
+  @media (max-width: 940px) {
+    .stage { grid-template-columns: 1fr; }
+    .sticky-col { position: static; order: -1; }
+    .pr-body { min-height: 300px; }
+    .step { min-height: 60vh; }
+    .after .grid { grid-template-columns: 1fr; }
+    .nav nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#stage">Demo</a>
+      <a href="#">Docs</a>
+      <a href="#">Commands</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">GitHub ↗</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div class="kick">Scroll-driven demo</div>
+    <h1>One pull request,<br />four commands.</h1>
+    <p class="lede">Keep scrolling. The panel tracks a real PR through its whole lifecycle — every state change is one <code>bb</code> command. No browser tab opened.</p>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- sticky PR panel -->
+    <div class="sticky-col">
+      <div class="pr" id="pr">
+        <div class="pr-header">
+          <div class="row1">
+            <span class="badge open" id="prBadge">Open</span>
+            <h2>feat: streaming pipeline logs</h2>
+            <span class="id">#48</span>
+          </div>
+          <div class="row2">
+            <span class="branch">feat/log-stream → main</span>
+            <span>acme / core-api</span>
+            <span>paulvanderlei</span>
+          </div>
+        </div>
+        <div class="pr-body">
+          <div class="pane desc" data-pane="1">
+            <div class="pane-label">Description</div>
+            <p>Pipeline logs currently require opening the browser and waiting for the page. This adds a <code>bb pipeline logs</code> command that streams the log endpoint directly to stdout.</p>
+            <p>Output is plain text by default and JSON (<code>--json</code>) for tooling — consistent with every other command in the CLI.</p>
+          </div>
+          <div class="pane diffp" data-pane="2">
+            <div class="pane-label">src/commands/pipeline.ts — +18 −3</div>
+            <div class="diff">
+              <div class="file">src/commands/pipeline.ts</div>
+              <div class="ln ctx">  async run() {</div>
+              <div class="ln del">    const res = await fetchLogs(id)</div>
+              <div class="ln del">    print(res.text)</div>
+              <div class="ln ctx"></div>
+              <div class="ln add">    const stream = await api.stream(</div>
+              <div class="ln add">      `/pipelines/${id}/logs`,</div>
+              <div class="ln add">      { follow: this.flag('follow') }</div>
+              <div class="ln add">    )</div>
+              <div class="ln add">    for await (const chunk of stream) {</div>
+              <div class="ln add">      process.stdout.write(chunk)</div>
+              <div class="ln add">    }</div>
+              <div class="ln ctx">  }</div>
+            </div>
+          </div>
+          <div class="pane checksp" data-pane="3">
+            <div class="pane-label">Checks</div>
+            <div class="check" data-check><span class="dot"></span> build-and-test<span class="st">pending…</span></div>
+            <div class="check" data-check><span class="dot"></span> lint<span class="st">pending…</span></div>
+            <div class="check" data-check><span class="dot"></span> typecheck<span class="st">pending…</span></div>
+            <div class="approval" data-approval style="display:none">
+              <span class="av">MK</span>
+              <span><b>@marek approved</b> — "finally, no more browser. ship it." <span style="color:var(--fg-3)">· 2h ago</span></span>
+            </div>
+          </div>
+          <div class="pane mergedp" data-pane="4">
+            <div class="pane-label">Result</div>
+            <div class="merged-banner">
+              <b>Merged as #48.</b> Squashed into <span class="mono">main</span> by paulvanderlei.
+              <span class="mono">commit 9f7a3b2 · 11 files · +214 −96</span>
+            </div>
+          </div>
+        </div>
+        <div class="pr-footer">
+          <button class="mergebtn" id="mergeBtn">Merge</button>
+          <span class="hint" id="mergeHint">wait for checks ✓</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- narrative steps -->
+    <div class="steps">
+      <div class="step" data-step="1">
+        <span class="no">STEP 1 / 4</span>
+        <h3>Open, from the branch you're on</h3>
+        <p>bb reads workspace and repository from your git remote — no flags needed. Title, description, reviewers in one invocation.</p>
+        <span class="cmd">bb pr create -t "feat: streaming pipeline logs"</span>
+      </div>
+      <div class="step" data-step="2">
+        <span class="no">STEP 2 / 4</span>
+        <h3>Read the diff in the terminal</h3>
+        <p>Syntax-aware patch output. Review before anyone else has to.</p>
+        <span class="cmd">bb pr diff 48</span>
+      </div>
+      <div class="step" data-step="3">
+        <span class="no">STEP 3 / 4</span>
+        <h3>Wait for green, then approve</h3>
+        <p>Checks are one command, not a browser tab. Approval is explicit and recorded.</p>
+        <span class="cmd">bb pr checks 48 && bb pr approve 48</span>
+      </div>
+      <div class="step" data-step="4">
+        <span class="no">STEP 4 / 4</span>
+        <h3>Merge with stated intent</h3>
+        <p>Squash, merge commit, or fast-forward — always an explicit flag, never a surprise default.</p>
+        <span class="cmd">bb pr merge 48 --strategy squash</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="after">
+    <div class="grid">
+      <div class="cell"><h4>24 PR subcommands</h4><p>Create, list, diff, checkout, comment, reviewers, checks, activity, merge.</p><div class="cmd">bb pr --help</div></div>
+      <div class="cell"><h4>JSON on every one</h4><p>The same lifecycle, scriptable: project fields, filter in-process.</p><div class="cmd">bb pr list --json id,state</div></div>
+      <div class="cell"><h4>Documented exit codes</h4><p>Branch on failures in CI instead of scraping text output.</p><div class="cmd">bb pr merge 48 || notify</div></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>MIT · Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+    <nav><a href="#">Docs</a><a href="#">GitHub</a><a href="#">Contribute</a></nav>
+  </div>
+</footer>
+
+<script>
+  const panes = {};
+  document.querySelectorAll('.pane').forEach((p) => (panes[p.dataset.pane] = p));
+  const steps = document.querySelectorAll('.step');
+  const pr = document.getElementById('pr');
+  const badge = document.getElementById('prBadge');
+  const mergeBtn = document.getElementById('mergeBtn');
+  const mergeHint = document.getElementById('mergeHint');
+  const checks = document.querySelectorAll('[data-check]');
+  const approval = document.querySelector('[data-approval]');
+
+  function show(n) {
+    Object.entries(panes).forEach(([k, p]) => p.classList.toggle('on', k === String(n)));
+    steps.forEach((s) => s.classList.toggle('on', s.dataset.step === String(n)));
+  }
+
+  function applyStep(n) {
+    show(n);
+    if (n >= 3) {
+      // checks go green
+      checks.forEach((c, i) => setTimeout(() => {
+        c.classList.remove('pending'); c.classList.add('pass');
+        c.querySelector('.st').textContent = 'passed · ' + (12 + i * 7) + 's';
+      }, (n === 3 ? 250 : 0) + i * 180));
+      if (n >= 3) setTimeout(() => { approval.style.display = 'flex'; }, n === 3 ? 900 : 0);
+    } else {
+      checks.forEach((c) => { c.classList.add('pending'); c.classList.remove('pass'); c.querySelector('.st').textContent = 'pending…'; });
+      approval.style.display = 'none';
+    }
+    if (n >= 4) {
+      pr.classList.add('merging');
+      badge.textContent = 'Merged'; badge.className = 'badge merged';
+      mergeBtn.textContent = 'Merged ✓';
+      mergeHint.textContent = 'commit 9f7a3b2 on main';
+    } else {
+      pr.classList.remove('merging');
+      badge.textContent = 'Open'; badge.className = 'badge open';
+      mergeBtn.textContent = 'Merge';
+      mergeHint.textContent = 'wait for checks ✓';
+    }
+  }
+
+  // scroll-locked steps
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) applyStep(Number(e.target.dataset.step)); });
+  }, { rootMargin: '-45% 0px -45% 0px' });
+  steps.forEach((s) => io.observe(s));
+
+  applyStep(1);
+</script>
+</body>
+</html>

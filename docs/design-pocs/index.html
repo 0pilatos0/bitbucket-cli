@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitbucket CLI — Docs Redesign POCs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;650&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #ffffff; --bg-sub: #f7f8fa; --line: #e6e8ee; --line-hi: #d4d8e2;
+    --fg: #101828; --fg-2: #475467; --fg-3: #98a2b3;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh; padding: 56px 24px 80px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.025em; }
+  p.note { color: var(--fg-2); margin: 10px 0 36px; font-size: 14.5px; max-width: 60ch; line-height: 1.6; }
+  .label { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3); margin: 32px 0 14px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  a.card {
+    display: flex; flex-direction: column; gap: 10px;
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 20px; text-decoration: none; color: inherit;
+    transition: border-color 140ms, box-shadow 140ms;
+  }
+  a.card:hover { border-color: var(--line-hi); box-shadow: 0 4px 16px rgba(16,24,40,0.06); }
+  .swatch { display: flex; gap: 5px; }
+  .swatch i { width: 18px; height: 18px; border-radius: 5px; border: 1px solid var(--line); }
+  .card .n { font-family: var(--mono); font-size: 10.5px; color: var(--fg-3); letter-spacing: 0.1em; }
+  .card h2 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .card p { font-size: 12.5px; color: var(--fg-2); line-height: 1.6; flex: 1; }
+  .card .go { font-size: 12.5px; font-weight: 500; color: var(--fg); }
+  footer { margin-top: 48px; font-size: 12px; color: var(--fg-3); font-family: var(--mono); }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Bitbucket CLI docs — redesign POCs</h1>
+  <p class="note">v2 · Restrained, content-first directions. Each is a self-contained page; the third shows the theme applied to actual docs reading with a working light/dark toggle.</p>
+
+  <div class="label">v6 — back to clean</div>
+  <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+    <a class="card" href="17-ascetic.html" style="grid-column: 1 / -1;">
+      <div class="swatch"><i style="background:#0a0a0b"></i><i style="background:#5b8def"></i><i style="background:#1e1e22"></i><i style="background:#ededee"></i></div>
+      <div class="n">POC / 17 · r2 — the chosen direction, polished</div>
+      <h2>Ascetic</h2>
+      <p>The refined landing: complete 16-group index with example-on-hover, numbered principles, rebuilt session block (line-row structure, blinking caret), package-manager switch, automatic light theme, one-time entrance fade, micro-transitions everywhere. <strong style="color:var(--fg)">← the proposal</strong></p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="20-ascetic-docs.html" style="grid-column: 1 / -1;">
+      <div class="swatch"><i style="background:#0a0a0b"></i><i style="background:#5b8def"></i><i style="background:#101013"></i><i style="background:#e0665f"></i></div>
+      <div class="n">POC / 20 — the docs, same system</div>
+      <h2>Ascetic Docs</h2>
+      <p>How every docs page will look: same top nav, real sidebar IA, content column with framed code blocks, subcommand index, callouts, spec tables, right-hand TOC with scroll-spy, prev/next pager.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="18-the-essay.html">
+      <div class="swatch"><i style="background:#ffffff"></i><i style="background:#2563eb"></i><i style="background:#e6e8ee"></i><i style="background:#16181d"></i></div>
+      <div class="n">POC / 18</div>
+      <h2>The Essay</h2>
+      <p>Light and quiet: a single 640px reading column. The landing page written as a short, factual essay.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="19-front-matter.html">
+      <div class="swatch"><i style="background:#fcfcfa"></i><i style="background:#191919"></i><i style="background:#1d4ed8"></i><i style="background:#e3e2da"></i></div>
+      <div class="n">POC / 19</div>
+      <h2>Front Matter</h2>
+      <p>The homepage as a technical manual's front matter: title block and a Contents with dot leaders.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <div class="label">v5 — the 11/13 family, extended</div>
+  <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+    <a class="card" href="14-ship-log.html">
+      <div class="swatch"><i style="background:#0b0d12"></i><i style="background:#5b8def"></i><i style="background:#57c793"></i><i style="background:#9d7ce8"></i></div>
+      <div class="n">POC / 14</div>
+      <h2>Ship Log</h2>
+      <p>Velocity as the brand: the landing page <em>is</em> the release timeline — dated releases, tagged entries, cadence stats with a live pulse. Trust through specificity, temporal edition.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="15-the-review.html">
+      <div class="swatch"><i style="background:#0b0d12"></i><i style="background:#5b8def"></i><i style="background:#8fdcb8"></i><i style="background:#9d7ce8"></i></div>
+      <div class="n">POC / 15</div>
+      <h2>The Review</h2>
+      <p>Scroll-locked demo (the 2026 explainer-video replacement): a sticky PR panel lives its lifecycle as you scroll — opened → diff → checks &amp; approval → merged. Every state change is one command.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="16-signal.html">
+      <div class="swatch"><i style="background:#0a0c11"></i><i style="background:#5b8def"></i><i style="background:#57c793"></i><i style="background:#9d7ce8"></i></div>
+      <div class="n">POC / 16</div>
+      <h2>Signal</h2>
+      <p>A living system schematic: request packets travel from terminal and CI through bb to the Bitbucket 2.0 API, with animated branch wires. Ends in a nine-row contract spec table.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <div class="label">v4 — trend-researched, out-of-the-box</div>
+  <div class="grid" style="grid-template-columns: repeat(3, 1fr);">
+    <a class="card" href="11-living-manual.html">
+      <div class="swatch"><i style="background:#0b0d12"></i><i style="background:#5b8def"></i><i style="background:#57c793"></i><i style="background:#e8ebf2"></i></div>
+      <div class="n">POC / 11</div>
+      <h2>The Living Manual</h2>
+      <p>The hero is a <strong>working terminal</strong> — type <code>help</code>, <code>bb pr list</code>, `--json` variants. 2026's highest-leverage pattern: live product surface above the fold, density that scrolls, trust through specificity.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="12-paper-terminal.html">
+      <div class="swatch"><i style="background:#f7f2e9"></i><i style="background:#211b12"></i><i style="background:#bc4b26"></i><i style="background:#f1eadc"></i></div>
+      <div class="n">POC / 12</div>
+      <h2>Paper Terminal</h2>
+      <p>The deliberate palette break: warm cream paper, ink, ember accent, serif display (Fraunces), grain texture, magazine register. The CLI appears as a printed specimen. Breaks two Linear-aesthetic tells on purpose.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="13-technical-spec.html">
+      <div class="swatch"><i style="background:#0a0a0b"></i><i style="background:#3b82f6"></i><i style="background:#34343a"></i><i style="background:#f2f2f2"></i></div>
+      <div class="n">POC / 13</div>
+      <h2>Technical Spec</h2>
+      <p>The Vercel aesthetic at full intensity with a proprietary twist: engineering-drawing language (title block, crosshairs, coordinates), asymmetric bento, command marquee, giant footer CTA.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <div class="label">v3 — evolution of the current landing</div>
+  <div class="grid" style="grid-template-columns: repeat(2, 1fr);">
+    <a class="card" href="07-current-refined.html">
+      <div class="swatch"><i style="background:#0d1117"></i><i style="background:#2f6fed"></i><i style="background:#5b8def"></i><i style="background:#eef2f8"></i></div>
+      <div class="n">POC / 07</div>
+      <h2>Current, Refined</h2>
+      <p>The live landing's identity kept intact — split hero with quick-start code card, icon chips, dual theme. The baseline.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="08-gradient-centered.html">
+      <div class="swatch"><i style="background:#0d1117"></i><i style="background:#2f6fed"></i><i style="background:#8fb3ff"></i><i style="background:#eef2f8"></i></div>
+      <div class="n">POC / 08</div>
+      <h2>Gradient Centered</h2>
+      <p>Same identity, classic centered-marketing hero: gradient headline (echoing the live site's h1), stronger atmosphere, quickstart front-and-center.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="09-light-editorial.html">
+      <div class="swatch"><i style="background:#fdfdfe"></i><i style="background:#1a5cd6"></i><i style="background:#e4e8ef"></i><i style="background:#0d1117"></i></div>
+      <div class="n">POC / 09</div>
+      <h2>Light Editorial Navy</h2>
+      <p>Light-first: white paper, faint blue washes, hairline sections, mono index numbers instead of icon chips. Reads like a printed manual that happens to be blue.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="10-deep-console.html">
+      <div class="swatch"><i style="background:#090c12"></i><i style="background:#3d7bff"></i><i style="background:#8f7dff"></i><i style="background:#e9edf5"></i></div>
+      <div class="n">POC / 10</div>
+      <h2>Deep Console</h2>
+      <p>Pushed darker and more atmospheric: deeper blacks, faint hairline grid, blue→violet accent range, edge-lit terminal with top billing. Dark-only by design.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <div class="label">v2 — refined set</div>
+  <div class="grid">
+    <a class="card" href="04-precision-dark.html">
+      <div class="swatch"><i style="background:#0a0a0a"></i><i style="background:#ededed"></i><i style="background:#1f1f1f"></i><i style="background:#6ea1ff"></i></div>
+      <div class="n">POC / 04</div>
+      <h2>Precision Dark</h2>
+      <p>Engineering-tool aesthetic. Monochrome near-black, one accent used sparingly, real terminal session as the hero, command index, dense footer.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="05-product-light.html">
+      <div class="swatch"><i style="background:#ffffff"></i><i style="background:#101828"></i><i style="background:#e6e8ee"></i><i style="background:#2f6fed"></i></div>
+      <div class="n">POC / 05</div>
+      <h2>Product Light</h2>
+      <p>Refined SaaS product page. White, quiet borders, tabbed install, restrained stats row, deep-dive split with real scripting example.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="06-docs-native.html">
+      <div class="swatch"><i style="background:#ffffff"></i><i style="background:#1f5fd6"></i><i style="background:#101318"></i><i style="background:#6d9bff"></i></div>
+      <div class="n">POC / 06</div>
+      <h2>Docs Native</h2>
+      <p>The theme where it lives: full docs shell — sidebar (your real nav), content, TOC, search — with a working light/dark toggle.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <div class="label">v1 — archive, for comparison</div>
+  <div class="grid">
+    <a class="card" href="01-terminal.html">
+      <div class="n">POC / 01</div>
+      <h2>Terminal Native</h2>
+      <p>TUI panels, ASCII logo, phosphor toggle.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="02-swiss.html">
+      <div class="n">POC / 02</div>
+      <h2>Swiss Editorial</h2>
+      <p>Paper, ink, one red accent, poster type.</p>
+      <span class="go">Open →</span>
+    </a>
+    <a class="card" href="03-aurora.html">
+      <div class="n">POC / 03</div>
+      <h2>Aurora Glass</h2>
+      <p>Aurora gradients, glass panels, palette hero.</p>
+      <span class="go">Open →</span>
+    </a>
+  </div>
+
+  <footer>// docs/design-pocs/ · throwaway proofs, no build step required</footer>
+</main>
+</body>
+</html>

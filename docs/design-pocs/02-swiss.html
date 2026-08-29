@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitbucket CLI — Swiss Editorial POC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 2 — "SWISS EDITORIAL"
+     International typographic style. White paper, black ink,
+     one red accent, a visible hairline grid, enormous type.
+     The docs would read like a well-set technical manual.
+     ============================================================ */
+  :root {
+    --paper:   #faf9f6;
+    --ink:     #111110;
+    --ink-60:  rgba(17, 17, 16, 0.62);
+    --ink-30:  rgba(17, 17, 16, 0.30);
+    --ink-10:  rgba(17, 17, 16, 0.10);
+    --red:     #e02d00;
+    --rule:    1px solid var(--ink);
+    --rule-soft: 1px solid var(--ink-10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Archivo', 'Helvetica Neue', sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--red); color: var(--paper); }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px); }
+
+  /* ---------- Masthead ---------- */
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 18px 0;
+    border-bottom: var(--rule);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .masthead .mark { display: flex; align-items: baseline; gap: 10px; }
+  .masthead .mark .box {
+    background: var(--red);
+    color: var(--paper);
+    font-weight: 800;
+    padding: 2px 8px;
+    letter-spacing: 0;
+    font-size: 14px;
+  }
+  .masthead nav { display: flex; gap: 28px; }
+  .masthead nav a { position: relative; }
+  .masthead nav a:hover { color: var(--red); }
+  .masthead .meta { color: var(--ink-60); font-weight: 500; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: clamp(48px, 8vw, 110px) 0 clamp(40px, 6vw, 80px); border-bottom: var(--rule); }
+  .hero .kicker {
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-60);
+    margin-bottom: 28px;
+  }
+  .hero .kicker .no { color: var(--red); }
+  h1 {
+    font-size: clamp(3rem, 9.5vw, 8.5rem);
+    line-height: 0.95;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    text-transform: uppercase;
+    max-width: 14ch;
+  }
+  h1 .accent { color: var(--red); }
+  h1 .serif {
+    font-family: 'Newsreader', Georgia, serif;
+    font-style: italic;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: -0.01em;
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 80px);
+    margin-top: clamp(32px, 5vw, 64px);
+    align-items: start;
+  }
+  .hero .lede {
+    font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+    line-height: 1.6;
+    color: var(--ink-60);
+    max-width: 34ch;
+  }
+  .hero .lede strong { color: var(--ink); font-weight: 600; }
+  .cta-row { display: flex; gap: 0; margin-top: 34px; flex-wrap: wrap; }
+  .cta {
+    border: var(--rule);
+    padding: 15px 30px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background 140ms, color 140ms;
+  }
+  .cta:hover { background: var(--ink); color: var(--paper); }
+  .cta.primary { background: var(--red); border-color: var(--red); color: var(--paper); }
+  .cta.primary:hover { background: var(--ink); border-color: var(--ink); }
+
+  /* install snippet in hero right column */
+  .spec {
+    border: var(--rule);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  .spec .spec-head {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: var(--rule);
+    font-family: 'Archivo', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .spec .spec-head span:last-child { color: var(--red); }
+  .spec pre {
+    padding: 18px 16px;
+    line-height: 1.9;
+    overflow-x: auto;
+  }
+  .spec .c { color: var(--ink-30); }
+  .spec .p { color: var(--red); font-weight: 600; }
+
+  /* ---------- Numbered section headers ---------- */
+  .section { border-bottom: var(--rule); padding: clamp(40px, 6vw, 72px) 0; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: clamp(28px, 4vw, 44px);
+  }
+  .section-head .num {
+    font-size: clamp(2.2rem, 4vw, 3.2rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    color: var(--red);
+    line-height: 1;
+  }
+  .section-head h2 {
+    font-size: clamp(1.5rem, 3vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .section-head .rule { flex: 1; border-top: var(--rule); align-self: center; min-width: 40px; }
+
+  /* ---------- Feature index (numbered list rows) ---------- */
+  .featrow {
+    display: grid;
+    grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 24px;
+    padding: 26px 0;
+    border-bottom: var(--rule-soft);
+    align-items: baseline;
+    transition: background 140ms, padding-left 140ms;
+  }
+  .featrow:last-child { border-bottom: none; }
+  .featrow:hover { background: rgba(224, 45, 0, 0.045); padding-left: 12px; }
+  .featrow .fnum { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--red); font-weight: 600; }
+  .featrow h3 { font-size: clamp(1.1rem, 2vw, 1.45rem); font-weight: 700; letter-spacing: -0.015em; }
+  .featrow .cmd {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    color: var(--ink-60);
+    line-height: 2;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .featrow .cmd b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Workflows / link cards as index table ---------- */
+  .wf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: var(--rule);
+    border-left: var(--rule);
+  }
+  .wf {
+    border-right: var(--rule);
+    border-bottom: var(--rule);
+    padding: 28px 24px 34px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 190px;
+    transition: background 140ms;
+    position: relative;
+  }
+  .wf:hover { background: var(--ink); color: var(--paper); }
+  .wf:hover .wf-desc { color: rgba(250, 249, 246, 0.6); }
+  .wf:hover .wf-arrow { color: var(--red); transform: translate(4px, -4px); }
+  .wf .wf-cat {
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--red);
+  }
+  .wf h3 { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.015em; }
+  .wf .wf-desc { font-size: 0.9rem; color: var(--ink-60); line-height: 1.55; flex: 1; }
+  .wf .wf-arrow {
+    font-size: 1.2rem;
+    align-self: flex-end;
+    transition: transform 140ms, color 140ms;
+  }
+
+  /* ---------- Big number strip ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: var(--rule);
+  }
+  .stat { padding: 34px 24px; border-bottom: var(--rule); }
+  .stat + .stat { border-left: var(--rule-soft); }
+  .stat .n {
+    font-size: clamp(2rem, 4.5vw, 3.4rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .stat .n em { font-style: normal; color: var(--red); }
+  .stat .l {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-60);
+  }
+
+  /* ---------- Footer colophon ---------- */
+  footer { padding: 44px 0 64px; }
+  .colophon {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    font-size: 12.5px;
+    color: var(--ink-60);
+  }
+  .colophon .stamp {
+    font-family: 'IBM Plex Mono', monospace;
+    border: var(--rule);
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--ink);
+  }
+  .colophon nav { display: flex; gap: 22px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; font-size: 11.5px; }
+  .colophon nav a:hover { color: var(--red); }
+
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .wf-grid { grid-template-columns: 1fr 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .featrow { grid-template-columns: 50px 1fr; }
+    .featrow .cmd { grid-column: 2; }
+    .masthead nav { display: none; }
+  }
+  @media (max-width: 560px) {
+    .wf-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr; }
+    .stat + .stat { border-left: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ Masthead ============ -->
+<header class="wrap masthead">
+  <div class="mark"><span class="box">bb</span><span>Bitbucket CLI</span></div>
+  <nav>
+    <a href="#install">Install</a>
+    <a href="#features">Features</a>
+    <a href="#workflows">Docs</a>
+    <a href="#">GitHub ↗</a>
+  </nav>
+  <span class="meta">v-latest · Unofficial</span>
+</header>
+
+<main class="wrap">
+
+  <!-- ============ Hero ============ -->
+  <section class="hero">
+    <p class="kicker"><span class="no">①</span> Command-line interface — Bitbucket Cloud — Est. Bun 1.0</p>
+    <h1>Bitbucket,<br />from the <span class="serif">command line.</span><span class="accent">*</span></h1>
+
+    <div class="hero-grid">
+      <div>
+        <p class="lede">Clone repositories. Merge pull requests. Run pipelines. Automate everything. <strong>JSON output on every command</strong> — if you know GitHub's <strong>gh</strong>, you already know <strong>bb</strong>.</p>
+        <div class="cta-row">
+          <a class="cta primary" href="#install">Get started →</a>
+          <a class="cta" href="#">View on GitHub</a>
+        </div>
+      </div>
+      <aside class="spec">
+        <div class="spec-head"><span>Fig. 01 — Installation</span><span>§ install</span></div>
+        <pre><span class="c"># requires Bun 1.0+</span>
+<span class="p">$</span> npm install -g @pilatos/bitbucket-cli
+
+<span class="c"># authenticate</span>
+<span class="p">$</span> bb auth login
+
+<span class="c"># create a pull request</span>
+<span class="p">$</span> bb pr create -t "My feature"</pre>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ Features ============ -->
+  <section class="section" id="features">
+    <div class="section-head">
+      <span class="num">01</span>
+      <h2>Capabilities</h2>
+      <span class="rule"></span>
+      <span style="font-size:12px; letter-spacing:0.15em; text-transform:uppercase; color:var(--ink-60); font-weight:600">Index of commands</span>
+    </div>
+
+    <div class="featrow">
+      <span class="fnum">1.1</span>
+      <h3>Repositories</h3>
+      <div class="cmd"><b>bb repo clone ws/repo</b> · bb repo create · bb repo list -w ws</div>
+    </div>
+    <div class="featrow">
+      <span class="fnum">1.2</span>
+      <h3>Pull requests</h3>
+      <div class="cmd"><b>bb pr create -t "Title"</b> · bb pr approve 42 · bb pr merge 42 --strategy squash</div>
+    </div>
+    <div class="featrow">
+      <span class="fnum">1.3</span>
+      <h3>Code review</h3>
+      <div class="cmd"><b>bb pr diff 42</b> · bb pr checkout 42 · bb pr checks 42</div>
+    </div>
+    <div class="featrow">
+      <span class="fnum">1.4</span>
+      <h3>Pipelines</h3>
+      <div class="cmd"><b>bb pipeline run --branch main</b> · bb pipeline logs 42</div>
+    </div>
+    <div class="featrow">
+      <span class="fnum">1.5</span>
+      <h3>Scripting</h3>
+      <div class="cmd"><b>bb pr list --json id,title --jq '.[0].title'</b> — no jq binary required</div>
+    </div>
+    <div class="featrow">
+      <span class="fnum">1.6</span>
+      <h3>Raw API</h3>
+      <div class="cmd"><b>bb api /repositories/{ws}/{repo}/pullrequests --paginate</b></div>
+    </div>
+  </section>
+
+  <!-- ============ Workflows ============ -->
+  <section class="section" id="workflows">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Documentation</h2>
+      <span class="rule"></span>
+    </div>
+    <div class="wf-grid">
+      <a class="wf" href="#">
+        <span class="wf-cat">Guide</span>
+        <h3>Quick Start</h3>
+        <p class="wf-desc">Install, authenticate, and run your first command in under two minutes.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+      <a class="wf" href="#">
+        <span class="wf-cat">Reference</span>
+        <h3>Command Reference</h3>
+        <p class="wf-desc">Every command, flag, and default — repo, pr, pipeline, issue, snippet, api.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+      <a class="wf" href="#">
+        <span class="wf-cat">Guide — New</span>
+        <h3>Scripting &amp; Automation</h3>
+        <p class="wf-desc">JSON output, exit codes, field projection, and in-process jq filtering.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+      <a class="wf" href="#">
+        <span class="wf-cat">Guide</span>
+        <h3>CI/CD Integration</h3>
+        <p class="wf-desc">Wire bb into GitHub Actions, GitLab CI, Jenkins, and Bitbucket Pipelines.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+      <a class="wf" href="#">
+        <span class="wf-cat">Recipes — New</span>
+        <h3>Recipes</h3>
+        <p class="wf-desc">Auto-merge on green CI, bulk reviewer assignment, fork sync, retry wrappers.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+      <a class="wf" href="#">
+        <span class="wf-cat">Guide — New</span>
+        <h3>AI Agent Integration</h3>
+        <p class="wf-desc">Wire the CLI into coding agents and tool-calling loops.</p>
+        <span class="wf-arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ Stats strip ============ -->
+  <section class="stats">
+    <div class="stat"><div class="n">16<em>+</em></div><div class="l">Command groups</div></div>
+    <div class="stat"><div class="n">100<em>%</em></div><div class="l">JSON output coverage</div></div>
+    <div class="stat"><div class="n"><em>0</em></div><div class="l">External jq dependency</div></div>
+    <div class="stat"><div class="n">Bun</div><div class="l">Runtime, TypeScript</div></div>
+  </section>
+
+  <!-- ============ Footer ============ -->
+  <footer>
+    <div class="colophon">
+      <span>Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+      <nav>
+        <a href="#">GitHub</a>
+        <a href="#">Issues</a>
+        <a href="#">Contribute</a>
+        <a href="#">Changelog</a>
+      </nav>
+      <span class="stamp">bb / set in Archivo &amp; Plex Mono</span>
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>

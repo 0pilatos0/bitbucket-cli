@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Front Matter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 19 — "FRONT MATTER"
+     The cleanest structural idea of the three: treat the docs
+     homepage like the front matter of a well-edited technical
+     manual. A title block, an edition line, then a proper
+     Contents with dot leaders — every entry a real link. No
+     cards, no grids, no imagery. Typography does everything.
+     ============================================================ */
+  :root {
+    --bg:     #fcfcfa;
+    --ink:    #191919;
+    --ink-2:  #565650;
+    --ink-3:  #96958c;
+    --line:   #e3e2da;
+    --line-hi:#c9c8bc;
+    --accent: #1d4ed8;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--sans); font-size: 15.5px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: rgba(29, 78, 216, 0.14); }
+  a { color: inherit; text-decoration: none; }
+  .page { max-width: 760px; margin: 0 auto; padding: 0 28px; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* top rule + running head */
+  .runhead {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 22px 0 14px; border-bottom: 1.5px solid var(--ink);
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-2);
+  }
+  .runhead .mark { color: var(--ink); font-weight: 500; }
+  .runhead a:hover { color: var(--accent); }
+  .runhead nav { display: flex; gap: 22px; }
+  .runhead nav a { color: var(--ink-2); }
+
+  /* title block */
+  .titleblock { padding: clamp(56px, 10vw, 104px) 0 clamp(40px, 7vw, 72px); }
+  .edition { font-family: var(--mono); font-size: 12px; color: var(--ink-3); letter-spacing: 0.06em; margin-bottom: 26px; }
+  h1 {
+    font-size: clamp(2.2rem, 5.2vw, 3.4rem);
+    font-weight: 600; letter-spacing: -0.03em; line-height: 1.08;
+    max-width: 20ch;
+  }
+  .titleblock .abstract {
+    margin-top: 26px; max-width: 52ch;
+    color: var(--ink-2); font-size: 16.5px; line-height: 1.7;
+  }
+  .titleblock .abstract strong { color: var(--ink); font-weight: 600; }
+  .titleblock .abstract code {
+    font-family: var(--mono); font-size: 0.82em; color: var(--ink);
+    background: #f1f0ea; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+  }
+  .installline {
+    margin-top: 30px; font-family: var(--mono); font-size: 13.5px;
+    display: inline-flex; align-items: baseline; gap: 12px;
+    border-bottom: 1px solid var(--line-hi); padding-bottom: 8px;
+  }
+  .installline .dollar { color: var(--ink-3); user-select: none; }
+  .installline a { color: var(--accent); border-bottom: 1px solid transparent; }
+  .installline a:hover { border-bottom-color: var(--accent); }
+
+  /* contents with dot leaders */
+  .contents { padding: clamp(36px, 6vw, 56px) 0; border-top: 1px solid var(--line); }
+  .contents h2 {
+    font-family: var(--mono); font-size: 11.5px; font-weight: 500;
+    letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
+    margin-bottom: 18px;
+  }
+  .part { margin-bottom: 26px; }
+  .part:last-child { margin-bottom: 0; }
+  .part-title {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-2);
+    margin-bottom: 4px;
+  }
+  .toc-line {
+    display: flex; align-items: baseline; gap: 12px;
+    padding: 6px 0; font-size: 15px;
+  }
+  .toc-line .t { color: var(--ink); font-weight: 500; }
+  .toc-line:hover .t { color: var(--accent); }
+  .toc-line .leader {
+    flex: 1; border-bottom: 1px dotted var(--line-hi);
+    transform: translateY(-4px);
+  }
+  .toc-line .meta { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+  .toc-line:hover .meta { color: var(--accent); }
+  .toc-line .new {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--accent);
+    padding: 0 5px; border-radius: 3px; margin-left: 8px; vertical-align: 2px;
+  }
+
+  /* colophon */
+  .colophon {
+    margin-top: auto; border-top: 1.5px solid var(--ink);
+    padding: 20px 0 44px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  }
+  .colophon nav { display: flex; gap: 20px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .colophon nav a { color: var(--ink-2); }
+  .colophon nav a:hover { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    .runhead nav { display: none; }
+    .toc-line .meta { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="runhead">
+    <span class="mark">bb — Bitbucket CLI</span>
+    <nav><a href="#">Docs</a><a href="#">Commands</a><a href="https://github.com/0pilatos0/bitbucket-cli">GitHub</a></nav>
+    <span>Second edition · 2026</span>
+  </div>
+
+  <!-- Title block -->
+  <div class="titleblock">
+    <div class="edition">A command line interface for Bitbucket Cloud — unofficial, community edition, MIT</div>
+    <h1>The terminal manual for Bitbucket Cloud.</h1>
+    <p class="abstract"><strong>bb</strong> wraps the Bitbucket Cloud 2.0 REST API in sixteen command groups — repositories, pull requests, pipelines, issues, and a raw escape hatch for everything else. Every command outputs JSON: <code>--json</code> projects fields, <code>--jq</code> filters in-process. One binary, one config file, no other dependencies.</p>
+    <div class="installline">
+      <span><span class="dollar">$</span> <a href="#">npm install -g @pilatos/bitbucket-cli</a></span>
+      <span style="color:var(--ink-3)">requires Bun 1.0+</span>
+    </div>
+  </div>
+
+  <!-- Contents -->
+  <div class="contents">
+    <h2>Contents</h2>
+
+    <div class="part">
+      <div class="part-title">I. Getting started</div>
+      <a class="toc-line" href="#"><span class="t">Quick start</span><span class="leader"></span><span class="meta">2 min</span></a>
+      <a class="toc-line" href="#"><span class="t">Installation</span><span class="leader"></span><span class="meta">npm · pnpm · bun</span></a>
+      <a class="toc-line" href="#"><span class="t">Authentication</span><span class="leader"></span><span class="meta">app passwords</span></a>
+    </div>
+
+    <div class="part">
+      <div class="part-title">II. Command reference</div>
+      <a class="toc-line" href="#"><span class="t">Repositories</span><span class="leader"></span><span class="meta">bb repo</span></a>
+      <a class="toc-line" href="#"><span class="t">Pull requests</span><span class="leader"></span><span class="meta">bb pr · 24</span></a>
+      <a class="toc-line" href="#"><span class="t">Pipelines</span><span class="leader"></span><span class="meta">bb pipeline</span></a>
+      <a class="toc-line" href="#"><span class="t">Issues, snippets &amp; commits</span><span class="leader"></span><span class="meta">bb issue</span></a>
+      <a class="toc-line" href="#"><span class="t">Workspaces &amp; projects</span><span class="leader"></span><span class="meta">bb workspace</span></a>
+      <a class="toc-line" href="#"><span class="t">Raw API</span><span class="leader"></span><span class="meta">bb api</span></a>
+      <a class="toc-line" href="#"><span class="t">Configuration &amp; aliases</span><span class="leader"></span><span class="meta">bb config</span></a>
+    </div>
+
+    <div class="part">
+      <div class="part-title">III. Guides</div>
+      <a class="toc-line" href="#"><span class="t">Scripting &amp; automation</span><span class="leader"></span><span class="meta">guide</span></a>
+      <a class="toc-line" href="#"><span class="t">CI/CD integration</span><span class="leader"></span><span class="meta">guide</span></a>
+      <a class="toc-line" href="#"><span class="t">AI agent integration<span class="new">new</span></span><span class="leader"></span><span class="meta">guide</span></a>
+      <a class="toc-line" href="#"><span class="t">Recipes<span class="new">new</span></span><span class="leader"></span><span class="meta">5 recipes</span></a>
+    </div>
+
+    <div class="part">
+      <div class="part-title">IV. Reference</div>
+      <a class="toc-line" href="#"><span class="t">Global flags</span><span class="leader"></span><span class="meta">7 flags</span></a>
+      <a class="toc-line" href="#"><span class="t">JSON output</span><span class="leader"></span><span class="meta">--json · --jq</span></a>
+      <a class="toc-line" href="#"><span class="t">Error codes</span><span class="leader"></span><span class="meta">4 classes</span></a>
+      <a class="toc-line" href="#"><span class="t">Token scopes</span><span class="leader"></span><span class="meta">reference</span></a>
+    </div>
+
+    <div class="part">
+      <div class="part-title">V. Help</div>
+      <a class="toc-line" href="#"><span class="t">Troubleshooting</span><span class="leader"></span><span class="meta">faq</span></a>
+      <a class="toc-line" href="#"><span class="t">Changelog</span><span class="leader"></span><span class="meta">v2.4.1</span></a>
+    </div>
+  </div>
+
+  <!-- Colophon -->
+  <div class="colophon">
+    <span>Not affiliated with Atlassian. Bitbucket is a trademark of Atlassian.</span>
+    <nav><a href="#">GitHub</a><a href="#">Issues</a><a href="#">Contribute</a></nav>
+    <span>Set in Inter &amp; JetBrains Mono.</span>
+  </div>
+
+</div>
+
+</body>
+</html>

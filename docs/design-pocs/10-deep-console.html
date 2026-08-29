@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitbucket CLI — Variant C: Deep Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     VARIANT C — "DEEP CONSOLE"
+     07's identity pushed darker and more atmospheric: deeper
+     blacks, a faint hairline grid, and the accent allowed a
+     controlled blue→violet range (216°→236°) on select details.
+     Dark-only — the mood is the identity. The terminal gets top
+     billing: a taller, richer session in the hero.
+     ============================================================ */
+  :root {
+    --bg:        #090c12;
+    --bg-raised: #0e1219;
+    --bg-inset:  #0a0d13;
+    --line:      #1c2230;
+    --line-hi:   #2c3548;
+    --fg:        #e9edf5;
+    --fg-2:      hsl(221, 14%, 70%);
+    --fg-3:      hsl(221, 12%, 48%);
+    --accent:        hsl(219, 100%, 60%);
+    --accent-strong: hsl(222, 90%, 50%);
+    --accent-high:   hsl(213, 100%, 74%);
+    --violet: hsl(236, 90%, 70%);
+    --accent-sub: hsla(220, 90%, 55%, 0.12);
+    --grad: linear-gradient(100deg, hsl(213, 100%, 68%), hsl(236, 90%, 72%));
+    --glow-1: hsla(222, 100%, 55%, 0.1);
+    --glow-2: hsla(236, 90%, 60%, 0.07);
+    --radius: 14px;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; color-scheme: dark; }
+  body {
+    background:
+      radial-gradient(ellipse 60% 45% at 18% 0%, var(--glow-1), transparent),
+      radial-gradient(ellipse 55% 45% at 88% 8%, var(--glow-2), transparent),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  /* faint hairline grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 75%);
+  }
+  ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    position: sticky; top: 0; z-index: 40;
+    border-bottom: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 80%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .nav { display: flex; align-items: center; gap: 24px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; }
+  .brand .glyph {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: linear-gradient(145deg, hsl(217, 95%, 52%), hsl(238, 80%, 52%));
+    color: #fff; font-family: var(--mono); font-size: 12px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+  .nav nav { display: flex; gap: 2px; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 11px; border-radius: 8px; }
+  .nav nav a:hover { color: var(--fg); background: var(--accent-sub); }
+  .nav .spacer { flex: 1; }
+  .gh {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13.5px; font-weight: 500; color: var(--fg-2);
+    padding: 7px 13px; border: 1px solid var(--line); border-radius: 9px;
+  }
+  .gh:hover { color: var(--fg); border-color: var(--line-hi, #2c3548); }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 10fr) minmax(0, 11fr);
+    gap: clamp(36px, 5vw, 64px);
+    align-items: center;
+    padding: clamp(56px, 9vw, 100px) 0 clamp(44px, 6vw, 72px);
+  }
+  .hero .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 500; color: var(--accent-high);
+    background: var(--accent-sub);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 999px; padding: 5px 13px; margin-bottom: 22px;
+  }
+  h1 {
+    font-size: clamp(2.3rem, 4.6vw, 3.4rem);
+    font-weight: 700; letter-spacing: -0.035em; line-height: 1.07;
+  }
+  h1 .grad {
+    background: var(--grad);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero .tagline { margin-top: 18px; font-size: clamp(1.02rem, 1.7vw, 1.15rem); line-height: 1.65; color: var(--fg-2); max-width: 42ch; text-wrap: balance; }
+  .hero .actions { display: flex; gap: 12px; margin-top: 30px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600;
+    padding: 11px 20px; border-radius: 10px;
+    transition: transform 140ms, background 140ms, border-color 140ms, box-shadow 140ms;
+  }
+  .btn-primary {
+    background: linear-gradient(100deg, hsl(219, 95%, 52%), hsl(232, 85%, 55%));
+    color: #fff;
+    box-shadow: 0 6px 22px hsla(222, 95%, 52%, 0.32);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 28px hsla(222, 95%, 52%, 0.42); }
+  .btn-quiet { border: 1px solid #2c3548; font-weight: 500; }
+  .btn-quiet:hover { border-color: var(--accent); color: var(--accent-high); transform: translateY(-1px); }
+  .hero .meta { margin-top: 24px; font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+
+  /* terminal — top billing */
+  .term {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-inset);
+    overflow: hidden;
+    box-shadow: 0 24px 70px hsla(230, 80%, 3%, 0.55);
+    position: relative;
+  }
+  .term::before {
+    content: '';
+    position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+    background: linear-gradient(140deg, hsla(213, 90%, 60%, 0.35), transparent 35%, transparent 60%, hsla(236, 90%, 65%, 0.3));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+  .term-bar {
+    display: flex; align-items: center; gap: 7px;
+    padding: 10px 14px; border-bottom: 1px solid var(--line);
+    background: var(--bg-raised);
+  }
+  .term-bar i { width: 10px; height: 10px; border-radius: 50%; background: #232b3d; }
+  .term-bar span { margin-left: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); }
+  .term-body { padding: 16px 18px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85; overflow-x: auto; }
+  .term-body .l { white-space: pre; }
+  .t-prompt { color: var(--fg-3); user-select: none; }
+  .t-cmd { color: var(--fg); }
+  .t-flag { color: var(--accent-high); }
+  .t-arg { color: var(--fg-2); }
+  .t-ok { color: hsl(152, 55%, 52%); }
+  .t-dim { color: var(--fg-3); }
+  .t-head { color: var(--fg-3); }
+  .t-vio { color: var(--violet); }
+
+  section { border-top: 1px solid var(--line); padding: clamp(40px, 5.5vw, 60px) 0; }
+  .sec-head { margin-bottom: 28px; }
+  .sec-head h2 { font-size: clamp(1.35rem, 2.5vw, 1.7rem); font-weight: 700; letter-spacing: -0.025em; }
+  .sec-head h2 .idx { font-family: var(--mono); font-size: 0.75em; color: var(--violet); font-weight: 500; margin-right: 10px; }
+  .sec-head p { color: var(--fg-2); margin-top: 8px; max-width: 58ch; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .card {
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-raised); padding: 20px;
+    transition: transform 180ms cubic-bezier(0.22,1,0.36,1), border-color 180ms;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-3px); border-color: #31405e; }
+  .card h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  .card h3::before { content: attr(data-n); font-family: var(--mono); font-size: 11px; color: var(--violet); margin-right: 10px; font-weight: 500; }
+  .card p { font-size: 13.5px; color: var(--fg-2); margin-top: 6px; line-height: 1.6; }
+  .card .snippet {
+    margin-top: 14px; font-family: var(--mono); font-size: 11.75px; line-height: 1.8;
+    background: var(--bg-inset); border: 1px solid var(--line);
+    border-radius: 9px; padding: 10px 12px;
+    overflow-x: auto; white-space: nowrap; color: var(--fg-2);
+  }
+  .card .snippet .k { color: var(--accent-high); }
+
+  .linkcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .linkcard {
+    display: flex; flex-direction: column; gap: 6px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    background: var(--bg-raised); padding: 17px 18px;
+    transition: transform 160ms cubic-bezier(0.22,1,0.36,1), border-color 160ms;
+  }
+  .linkcard:hover { transform: translateY(-2px); border-color: #31405e; }
+  .linkcard h4 { font-size: 14.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .linkcard h4 svg { color: var(--fg-3); transition: transform 160ms, color 160ms; }
+  .linkcard:hover h4 svg { color: var(--accent-high); transform: translateX(3px); }
+  .linkcard span { font-size: 13px; color: var(--fg-2); line-height: 1.55; }
+  .badge {
+    font-size: 10.5px; font-weight: 600; color: var(--violet);
+    background: hsla(236, 90%, 65%, 0.1);
+    border: 1px solid hsla(236, 90%, 65%, 0.3);
+    border-radius: 999px; padding: 1px 8px; margin-left: 8px;
+  }
+
+  .community { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
+  .community .links { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  footer { border-top: 1px solid var(--line); padding: 32px 0 48px; }
+  .foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 20px; }
+  .foot a:hover { color: var(--fg); }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; }
+    .cards, .linkcards { grid-template-columns: 1fr 1fr; }
+    .nav nav { display: none; }
+  }
+  @media (max-width: 560px) { .cards, .linkcards { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: no-preference) {
+    .hero > * { animation: rise 550ms cubic-bezier(0.22,1,0.36,1) both; }
+    .hero > *:nth-child(2) { animation-delay: 100ms; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#pr">PR commands</a>
+      <a href="#explore">Guides</a>
+    </nav>
+    <div class="spacer"></div>
+    <a class="gh" href="https://github.com/0pilatos0/bitbucket-cli">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.75 2.69 1.25 3.34.95.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.12 3.05.74.81 1.18 1.83 1.18 3.09 0 4.41-2.69 5.38-5.26 5.66.41.36.78 1.06.78 2.14 0 1.54-.02 2.79-.02 3.17 0 .31.21.67.8.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+      GitHub
+    </a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="hero">
+    <div>
+      <span class="kicker">v2.4 · Unofficial, community-maintained</span>
+      <h1>Bitbucket, from<br />your <span class="grad">terminal.</span></h1>
+      <p class="tagline">Clone repositories, manage pull requests, and automate workflows. If you know GitHub's <strong>gh</strong>, you'll feel right at home — with JSON output on every command.</p>
+      <div class="actions">
+        <a class="btn btn-primary" href="#">Get started
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn-quiet" href="#">Installation</a>
+      </div>
+      <p class="meta">Requires Bun 1.0+ · npm install -g @pilatos/bitbucket-cli</p>
+    </div>
+
+    <div class="term">
+      <div class="term-bar"><i></i><i></i><i></i><span>zsh — workspace/repo</span></div>
+      <div class="term-body">
+        <div class="l"><span class="t-prompt">$ </span><span class="t-cmd">bb</span> <span class="t-cmd">auth login</span></div>
+        <div class="l"><span class="t-ok">✓</span> <span class="t-arg">Logged in as </span><span class="t-vio">@paul</span><span class="t-arg"> (app password stored)</span></div>
+        <div class="l">&nbsp;</div>
+        <div class="l"><span class="t-prompt">$ </span><span class="t-cmd">bb</span> <span class="t-cmd">pr create -t</span> <span class="t-arg">"My awesome feature"</span></div>
+        <div class="l"><span class="t-ok">✓</span> <span class="t-arg">Opened pull request </span><span class="t-flag">#48</span><span class="t-arg"> → main</span></div>
+        <div class="l">&nbsp;</div>
+        <div class="l"><span class="t-prompt">$ </span><span class="t-cmd">bb</span> <span class="t-cmd">pr list</span> <span class="t-flag">--state</span> <span class="t-arg">OPEN</span></div>
+        <div class="l"><span class="t-head">ID    TITLE                            STATE</span></div>
+        <div class="l"><span class="t-arg">#48   </span><span class="t-arg">my awesome feature              </span><span class="t-ok">OPEN</span></div>
+        <div class="l"><span class="t-arg">#47   </span><span class="t-arg">feat: streaming pipeline logs   </span><span class="t-ok">OPEN</span></div>
+        <div class="l"><span class="t-arg">#46   </span><span class="t-arg">fix: retry on 429 rate limits   </span><span class="t-ok">OPEN</span></div>
+        <div class="l">&nbsp;</div>
+        <div class="l"><span class="t-prompt">$ </span><span class="t-cmd">bb</span> <span class="t-cmd">pipeline run</span> <span class="t-flag">--branch</span> <span class="t-arg">main</span> <span class="t-flag">--json</span> <span class="t-flag">--jq</span> <span class="t-arg">'.build_number'</span></div>
+        <div class="l"><span class="t-dim">313</span></div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="sec-head">
+      <h2><span class="idx">§01</span>What can you do?</h2>
+      <p>Sixteen command groups over the full Bitbucket Cloud 2.0 API — generated from a pinned OpenAPI spec, so types never drift.</p>
+    </div>
+    <div class="cards">
+      <div class="card" data-n="01"><h3>Repository management</h3><p>Clone, create, list, view, and delete repositories.</p><div class="snippet">bb repo clone <span class="k">workspace/repo</span><br />bb repo list -w <span class="k">myworkspace</span></div></div>
+      <div class="card" data-n="02"><h3>Pull requests</h3><p>Full PR lifecycle — create, review, approve, merge.</p><div class="snippet">bb pr approve <span class="k">42</span><br />bb pr merge <span class="k">42</span> <span class="k">--strategy</span> squash</div></div>
+      <div class="card" data-n="03"><h3>Code review</h3><p>View diffs, checkout PR branches, inspect checks.</p><div class="snippet">bb pr diff <span class="k">42</span><br />bb pr checkout <span class="k">42</span></div></div>
+      <div class="card" data-n="04"><h3>CI/CD pipelines</h3><p>Trigger, inspect, and stop Bitbucket Pipelines.</p><div class="snippet">bb pipeline run <span class="k">--branch</span> main<br />bb pipeline logs <span class="k">42</span></div></div>
+      <div class="card" data-n="05"><h3>Workspaces &amp; projects</h3><p>Find the workspaces you belong to and the projects inside them.</p><div class="snippet">bb workspace list<br />bb project view <span class="k">PROJ</span></div></div>
+      <div class="card" data-n="06"><h3>Issues, snippets &amp; commits</h3><p>Track issues, share snippets, read history, publish build statuses.</p><div class="snippet">bb issue list <span class="k">--state</span> open<br />bb status set <span class="k">abc1234</span> <span class="k">--state</span> SUCCESSFUL</div></div>
+      <div class="card" data-n="07"><h3>Jump to the web UI</h3><p>Open Bitbucket pages — PRs, files, commits, settings — in your browser.</p><div class="snippet">bb browse <span class="k">src/cli.ts:20</span><br />bb browse <span class="k">--pipelines</span></div></div>
+      <div class="card" data-n="08"><h3>Scripting &amp; automation</h3><p>Every command speaks JSON. <strong>--json</strong> projects a field list, <strong>--jq</strong> filters in-process.</p><div class="snippet">bb pr list <span class="k">--json</span> id,title<br />bb pr list <span class="k">--jq</span> <span class="k">'.[0].title'</span></div></div>
+      <div class="card" data-n="09"><h3>Raw API access</h3><p>Reach any Bitbucket 2.0 endpoint not yet wrapped by a typed command.</p><div class="snippet">bb api <span class="k">/user</span><br />bb api /repositories/… <span class="k">--paginate</span></div></div>
+    </div>
+  </section>
+
+  <section id="pr">
+    <div class="sec-head">
+      <h2><span class="idx">§02</span>PR workflows</h2>
+      <p>Everything around pull requests, from opening to merging — including comments and reviewers.</p>
+    </div>
+    <div class="linkcards">
+      <a class="linkcard" href="#"><h4>Create, edit, and view <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Open a PR, change its title or description, list PRs, inspect one.</span></a>
+      <a class="linkcard" href="#"><h4>Review and merge <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Approve, decline, mark drafts ready, and merge with explicit strategy control.</span></a>
+      <a class="linkcard" href="#"><h4>Diff and checkout <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Review patch output, fetch PR branches locally, and open browser diffs.</span></a>
+      <a class="linkcard" href="#"><h4>Activity and checks <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Inspect activity history and CI/build status before approving or merging.</span></a>
+      <a class="linkcard" href="#"><h4>Review comments <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>List, add, reply to, resolve, and delete general or inline review comments.</span></a>
+      <a class="linkcard" href="#"><h4>Reviewers <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Add and remove reviewers — idempotent, with sensible no-ops.</span></a>
+    </div>
+  </section>
+
+  <section id="explore">
+    <div class="sec-head">
+      <h2><span class="idx">§03</span>Explore</h2>
+    </div>
+    <div class="linkcards">
+      <a class="linkcard" href="#"><h4>Scripting guide <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>JSON output, exit codes, shell patterns.</span></a>
+      <a class="linkcard" href="#"><h4>CI/CD integration <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>GitHub Actions, GitLab CI, Jenkins, and more.</span></a>
+      <a class="linkcard" href="#"><h4>Recipes <span class="badge">New</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Auto-merge on green CI, bulk reviewer assignment, fork sync, retry wrappers.</span></a>
+      <a class="linkcard" href="#"><h4>AI agent integration <span class="badge">New</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Wire the CLI into coding agents and tool-calling loops.</span></a>
+      <a class="linkcard" href="#"><h4>Troubleshooting <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h4><span>Common issues and solutions.</span></a>
+    </div>
+  </section>
+
+  <section>
+    <div class="community">
+      <div>
+        <h2 style="font-size:1.3rem; font-weight:700; letter-spacing:-0.02em;">Community</h2>
+        <p style="color:var(--fg-2); margin-top:8px; font-size:14px;">This is an <strong>unofficial</strong>, community-maintained CLI. Not affiliated with Atlassian.</p>
+      </div>
+      <div class="links">
+        <a class="btn btn-quiet" href="#">GitHub repository</a>
+        <a class="btn btn-quiet" href="#">Report issues</a>
+        <a class="btn btn-quiet" href="#">Contribute</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>© Bitbucket CLI contributors · MIT</span>
+    <nav><a href="#">Docs</a><a href="#">GitHub</a><a href="#">Changelog</a></nav>
+  </div>
+</footer>
+
+</body>
+</html>

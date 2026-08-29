@@ -16,6 +16,17 @@ const fullTitle = pageTitle === siteTitle ? siteTitle : `${pageTitle} | ${siteTi
 
 // Ensure we have a description
 const metaDescription = description || (entry?.data?.description) || 'A powerful command-line interface for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows — all from your terminal.';
+
+// Dedupe <title> on the home page: Starlight suffixes the site name
+// ("Bitbucket CLI | Bitbucket CLI") — collapse that back to the site title.
+const routeHead = Astro.locals.starlightRoute?.head;
+if (routeHead) {
+  for (const item of routeHead) {
+    if (item.tag === 'title' && item.content === `${siteTitle} | ${siteTitle}`) {
+      item.content = siteTitle;
+    }
+  }
+}
 ---
 
 <!-- Default Starlight Head -->

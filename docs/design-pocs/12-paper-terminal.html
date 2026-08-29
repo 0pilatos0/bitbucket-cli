@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — Paper Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=DM+Sans:opsz,wght@9..40,400..600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 12 — "PAPER TERMINAL"
+     The deliberate palette break the trend research calls for:
+     the entire dev-tool category ships near-black + violet. This
+     goes the other way — warm cream paper, ink text, one ember
+     accent, a serif display face. Reads like a literary magazine
+     (Resend / Anthropic register) instead of an IDE. The CLI
+     itself appears as a printed specimen: black ink on paper,
+     the one place dark ink blocks are allowed.
+     ============================================================ */
+  :root {
+    --paper:   #f7f2e9;
+    --paper-2: #f1eadc;
+    --ink:     #211b12;
+    --ink-2:   #5c5343;
+    --ink-3:   #948a75;
+    --line:    #ddd3bf;
+    --line-hi: #c3b697;
+    --ember:   #bc4b26;
+    --ember-sub: rgba(188, 75, 38, 0.08);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'DM Sans Variable', 'DM Sans', system-ui, sans-serif;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: light; scroll-behavior: smooth; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15.5px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+  /* paper grain */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0.5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.5 0 0 0 0 0.42 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection { background: rgba(188, 75, 38, 0.18); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+
+  /* ---------- Masthead ---------- */
+  header.site { border-bottom: 1.5px solid var(--ink); }
+  .mast { display: flex; align-items: baseline; justify-content: space-between; padding: 20px 0 14px; }
+  .brand { font-family: var(--serif); font-weight: 600; font-size: 22px; letter-spacing: -0.01em; }
+  .brand .bb {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    color: var(--paper); background: var(--ink);
+    padding: 3px 8px; border-radius: 4px; margin-right: 10px; vertical-align: 3px;
+  }
+  .mast nav { display: flex; gap: 24px; font-size: 13.5px; }
+  .mast nav a { color: var(--ink-2); border-bottom: 1px solid transparent; }
+  .mast nav a:hover { color: var(--ember); border-bottom-color: var(--ember); }
+  .mast .meta { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+
+  /* ---------- Hero ---------- */
+  .hero { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(36px, 6vw, 80px); padding: clamp(52px, 8vw, 96px) 0 clamp(40px, 6vw, 64px); align-items: start; }
+  .hero .overline {
+    font-family: var(--mono); font-size: 12px; color: var(--ember);
+    letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 22px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.6rem, 5.4vw, 4.1rem);
+    font-weight: 500; letter-spacing: -0.015em; line-height: 1.04;
+  }
+  h1 em { font-style: italic; font-weight: 400; color: var(--ember); }
+  .hero .lede {
+    margin-top: 24px; font-size: 17px; line-height: 1.7; color: var(--ink-2); max-width: 46ch;
+  }
+  .hero .lede strong { color: var(--ink); font-weight: 600; }
+  .hero .lede a { border-bottom: 1px solid var(--line-hi); }
+  .hero .lede a:hover { color: var(--ember); border-bottom-color: var(--ember); }
+  .actions { display: flex; gap: 0; margin-top: 30px; }
+  .btn {
+    font-family: var(--mono); font-size: 13px; font-weight: 500;
+    padding: 12px 22px; border: 1.5px solid var(--ink);
+    transition: background 140ms, color 140ms;
+  }
+  .btn-solid { background: var(--ink); color: var(--paper); }
+  .btn-solid:hover { background: var(--ember); border-color: var(--ember); }
+  .btn-quiet { border-left: none; color: var(--ink); }
+  .btn-quiet:hover { background: var(--ember-sub); }
+  .hero .note { margin-top: 18px; font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+
+  /* specimen terminal — printed, not backlit */
+  .specimen {
+    border: 1.5px solid var(--ink);
+    background: #fbf8f1;
+    box-shadow: 6px 6px 0 rgba(33, 27, 18, 0.9);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.9;
+  }
+  .specimen .head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 16px; border-bottom: 1.5px solid var(--ink);
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+  }
+  .specimen .head .fig { color: var(--ember); }
+  .specimen pre { padding: 16px 18px; overflow-x: auto; }
+  .s-p { color: var(--ink-3); user-select: none; }
+  .s-c { color: var(--ink); font-weight: 500; }
+  .s-k { color: var(--ember); }
+  .s-d { color: var(--ink-2); }
+  .s-ok { color: var(--ember); font-weight: 500; }
+
+  /* ---------- Sections as articles ---------- */
+  section { border-top: 1.5px solid var(--ink); padding: clamp(44px, 6vw, 72px) 0; }
+  .sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 36px; }
+  .sec-head .no { font-family: var(--serif); font-style: italic; font-size: 1.4rem; color: var(--ember); }
+  .sec-head h2 { font-family: var(--serif); font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 500; letter-spacing: -0.01em; }
+  .sec-head .fill { flex: 1; border-top: 1px solid var(--line-hi); align-self: center; min-width: 40px; }
+
+  .intro {
+    columns: 2; column-gap: 48px; column-rule: 1px solid var(--line);
+    color: var(--ink-2); font-size: 15.5px; max-width: none;
+  }
+  .intro p { margin-bottom: 14px; break-inside: avoid; }
+  .intro strong { color: var(--ink); }
+  .intro code { font-family: var(--mono); font-size: 0.82em; color: var(--ink); background: var(--ember-sub); border-radius: 3px; padding: 1px 5px; }
+
+  /* capability index */
+  .cap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 56px; }
+  .caprow {
+    display: grid; grid-template-columns: 58px 1fr auto; gap: 16px;
+    padding: 18px 0; border-bottom: 1px solid var(--line); align-items: baseline;
+  }
+  .caprow .idx { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+  .caprow:hover .idx { color: var(--ember); }
+  .caprow h3 { font-family: var(--serif); font-size: 1.15rem; font-weight: 500; }
+  .caprow p { font-size: 13px; color: var(--ink-2); margin-top: 3px; grid-column: 2; }
+  .caprow .cmd { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); text-align: right; white-space: nowrap; }
+  .caprow:hover .cmd { color: var(--ember); }
+
+  /* pull quote / specificity */
+  .figures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; padding: 8px 0 0; }
+  .fig-block .n { font-family: var(--serif); font-size: clamp(2.2rem, 4vw, 3.2rem); font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+  .fig-block .n sup { font-size: 0.45em; color: var(--ember); }
+  .fig-block .l { font-size: 13px; color: var(--ink-2); margin-top: 10px; line-height: 1.6; }
+
+  /* guides as table of contents */
+  .toc { display: grid; grid-template-columns: 1fr 1fr; gap: 0 56px; }
+  .toc a {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 16px 2px; border-bottom: 1px solid var(--line);
+  }
+  .toc a:hover { color: var(--ember); }
+  .toc .t { font-family: var(--serif); font-size: 1.1rem; }
+  .toc .t .badge {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ember); border: 1px solid var(--ember); border-radius: 999px;
+    padding: 1px 8px; margin-left: 10px; vertical-align: 2px;
+  }
+  .toc .d { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+  .toc a:hover .d { color: var(--ember); }
+
+  /* colophon footer */
+  footer { border-top: 1.5px solid var(--ink); padding: 36px 0 64px; }
+  .colophon { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 18px; font-size: 12.5px; color: var(--ink-2); }
+  .colophon nav { display: flex; gap: 22px; font-family: var(--mono); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .colophon nav a:hover { color: var(--ember); }
+  .colophon .stamp { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; }
+    .intro { columns: 1; }
+    .cap, .toc { grid-template-columns: 1fr; }
+    .figures { grid-template-columns: 1fr 1fr; gap: 28px; }
+    .mast nav { display: none; }
+    .caprow { grid-template-columns: 44px 1fr; }
+    .caprow .cmd { grid-column: 2; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap mast">
+    <a class="brand" href="#"><span class="bb">bb</span>Bitbucket CLI</a>
+    <nav>
+      <a href="#install">Install</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#guides">Guides</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <span class="meta">Issue № 47 · Unofficial · MIT</span>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div>
+      <div class="overline">A command line interface for Bitbucket Cloud</div>
+      <h1>Git hosting,<br />set in <em>type.</em></h1>
+      <p class="lede"><strong>bb</strong> wraps the Bitbucket Cloud 2.0 API in sixteen composable command groups. Repositories, pull requests, pipelines — driven from your shell, with JSON output on every command. Built by a community, for the terminal-first.</p>
+      <div class="actions">
+        <a class="btn btn-solid" href="#install">npm install -g</a>
+        <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">Read the source ↗</a>
+      </div>
+      <p class="note">Requires Bun 1.0+ · macOS, Linux, Windows · zero runtime dependencies</p>
+    </div>
+
+    <div class="specimen">
+      <div class="head"><span>Specimen — daily use</span><span class="fig">Fig. 1</span></div>
+      <pre><span class="s-p">$</span> <span class="s-c">bb auth login</span>
+<span class="s-ok">✓</span> <span class="s-d">Logged in as @paulvanderlei</span>
+
+<span class="s-p">$</span> <span class="s-c">bb pr create -t</span> <span class="s-k">"Streaming logs"</span>
+<span class="s-ok">✓</span> <span class="s-d">Opened pull request #48 → main</span>
+
+<span class="s-p">$</span> <span class="s-c">bb pr merge 48</span> <span class="s-k">--strategy</span> squash
+<span class="s-ok">✓</span> <span class="s-d">Merged #48 into main</span></pre>
+    </div>
+  </div>
+
+  <!-- Install -->
+  <section id="install">
+    <div class="sec-head">
+      <span class="no">i.</span>
+      <h2>Installation</h2>
+      <span class="fill"></span>
+    </div>
+    <div class="intro">
+      <p>The CLI ships as a single package on npm and installs globally with your package manager of choice. Authentication happens once: <code>bb auth login</code> stores an app password in your platform's config directory with <code>0600</code> permissions.</p>
+      <p>From then on, most commands resolve their workspace and repository from the git remote of your current checkout — <code>bb pr list</code> is enough. Explicit flags always win when you need to target another repository.</p>
+      <pre style="font-family:var(--mono); font-size:12.5px; line-height:2; margin-top:6px;"><span class="s-p">$</span> <span class="s-c">npm install -g</span> <span class="s-k">@pilatos/bitbucket-cli</span>
+<span class="s-p">$</span> <span class="s-c">pnpm add -g</span> <span class="s-k">@pilatos/bitbucket-cli</span>
+<span class="s-p">$</span> <span class="s-c">bun install -g</span> <span class="s-k">@pilatos/bitbucket-cli</span></pre>
+    </div>
+  </section>
+
+  <!-- Capabilities -->
+  <section id="capabilities">
+    <div class="sec-head">
+      <span class="no">ii.</span>
+      <h2>An index of capabilities</h2>
+      <span class="fill"></span>
+    </div>
+    <div class="cap">
+      <div class="caprow"><span class="idx">ii.1</span><h3>Repositories</h3><p>Clone, create, list, view, and delete.</p><span class="cmd">bb repo clone ws/repo</span></div>
+      <div class="caprow"><span class="idx">ii.2</span><h3>Pull requests</h3><p>Full lifecycle, explicit merge strategies.</p><span class="cmd">bb pr merge 42 --strategy squash</span></div>
+      <div class="caprow"><span class="idx">ii.3</span><h3>Code review</h3><p>Diffs, branch checkout, CI checks.</p><span class="cmd">bb pr diff 42</span></div>
+      <div class="caprow"><span class="idx">ii.4</span><h3>Pipelines</h3><p>Trigger, watch, stop; stream logs.</p><span class="cmd">bb pipeline run --branch main</span></div>
+      <div class="caprow"><span class="idx">ii.5</span><h3>Scripting</h3><p>JSON projection and in-process jq.</p><span class="cmd">bb pr list --json id,title</span></div>
+      <div class="caprow"><span class="idx">ii.6</span><h3>Raw API</h3><p>Any 2.0 endpoint, paginated.</p><span class="cmd">bb api /repositories/… --paginate</span></div>
+      <div class="caprow"><span class="idx">ii.7</span><h3>Web UI bridges</h3><p>Open PRs, files, commits in the browser.</p><span class="cmd">bb browse src/cli.ts:20</span></div>
+      <div class="caprow"><span class="idx">ii.8</span><h3>Issues &amp; snippets</h3><p>Track work, share files, publish statuses.</p><span class="cmd">bb issue list --state open</span></div>
+    </div>
+  </section>
+
+  <!-- Figures -->
+  <section>
+    <div class="sec-head">
+      <span class="no">iii.</span>
+      <h2>The figures</h2>
+      <span class="fill"></span>
+    </div>
+    <div class="figures">
+      <div class="fig-block"><div class="n">62</div><div class="l">subcommands across 16 command groups, each documented with examples</div></div>
+      <div class="fig-block"><div class="n">100<sup>%</sup></div><div class="l">of commands support --json field projection</div></div>
+      <div class="fig-block"><div class="n">0</div><div class="l">external dependencies — no jq binary, nothing beyond Bun</div></div>
+      <div class="fig-block"><div class="n">1<sup> spec</sup></div><div class="l">pinned OpenAPI document; the client regenerates from it in CI</div></div>
+    </div>
+  </section>
+
+  <!-- Guides -->
+  <section id="guides">
+    <div class="sec-head">
+      <span class="no">iv.</span>
+      <h2>Guides &amp; reference</h2>
+      <span class="fill"></span>
+    </div>
+    <div class="toc">
+      <a href="#"><span class="t">Quick start</span><span class="d">2 min read</span></a>
+      <a href="#"><span class="t">Command reference</span><span class="d">62 commands</span></a>
+      <a href="#"><span class="t">Scripting &amp; automation</span><span class="d">guide</span></a>
+      <a href="#"><span class="t">CI/CD integration</span><span class="d">guide</span></a>
+      <a href="#"><span class="t">Recipes<span class="badge">New</span></span><span class="d">5 recipes</span></a>
+      <a href="#"><span class="t">AI agent integration<span class="badge">New</span></span><span class="d">guide</span></a>
+      <a href="#"><span class="t">Token scopes</span><span class="d">reference</span></a>
+      <a href="#"><span class="t">Troubleshooting</span><span class="d">help</span></a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap colophon">
+    <span>An unofficial, community-maintained CLI. Not affiliated with Atlassian; Bitbucket is their trademark.</span>
+    <nav><a href="#">GitHub</a><a href="#">Issues</a><a href="#">Contribute</a><a href="#">MIT License</a></nav>
+    <span class="stamp">Set in Fraunces, DM Sans &amp; JetBrains Mono.</span>
+  </div>
+</footer>
+
+</body>
+</html>

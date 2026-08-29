@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitbucket CLI — Aurora Glass POC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 3 — "AURORA GLASS"
+     Modern dev-tool landing (Linear / Raycast / Vercel school):
+     deep space background, animated aurora gradients, frosted
+     glass panels, a command-palette hero, glowing accents.
+     ============================================================ */
+  :root {
+    --bg:      #05060c;
+    --fg:      #e7eaf2;
+    --fg-dim:  #9aa1b5;
+    --fg-faint:#5c6378;
+    --glass:   rgba(255, 255, 255, 0.035);
+    --glass-hi:rgba(255, 255, 255, 0.07);
+    --line:    rgba(255, 255, 255, 0.09);
+    --blue:    #4f8dff;
+    --violet:  #9d6bff;
+    --cyan:    #45d8e0;
+    --pink:    #ff6bb3;
+    --grad: linear-gradient(96deg, var(--cyan), var(--blue) 45%, var(--violet));
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: rgba(79, 141, 255, 0.35); }
+
+  a { color: inherit; text-decoration: none; }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Aurora background ---------- */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(110px);
+    opacity: 0.5;
+    will-change: transform;
+  }
+  .blob.b1 {
+    width: 60vw; height: 60vw;
+    top: -30vw; left: -12vw;
+    background: radial-gradient(circle, rgba(79,141,255,0.5), transparent 65%);
+    animation: drift1 26s ease-in-out infinite alternate;
+  }
+  .blob.b2 {
+    width: 45vw; height: 45vw;
+    top: -18vw; right: -14vw;
+    background: radial-gradient(circle, rgba(157,107,255,0.42), transparent 65%);
+    animation: drift2 32s ease-in-out infinite alternate;
+  }
+  .blob.b3 {
+    width: 40vw; height: 40vw;
+    top: 30vh; left: 42vw;
+    background: radial-gradient(circle, rgba(69,216,224,0.22), transparent 65%);
+    animation: drift3 24s ease-in-out infinite alternate;
+  }
+  .starfield {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 34% 8%,  rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 58% 30%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 76% 12%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 90% 38%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 22% 48%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1.5px 1.5px at 66% 56%, rgba(255,255,255,0.2), transparent);
+  }
+  @keyframes drift1 { to { transform: translate(9vw, 6vh) scale(1.12); } }
+  @keyframes drift2 { to { transform: translate(-7vw, 9vh) scale(0.92); } }
+  @keyframes drift3 { to { transform: translate(-9vw, -7vh) scale(1.18); } }
+
+  /* ---------- Nav ---------- */
+  nav.top {
+    position: sticky;
+    top: 16px;
+    z-index: 50;
+    margin-top: 16px;
+  }
+  nav.top .bar {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(8, 10, 18, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+  .logo .orb {
+    width: 26px; height: 26px;
+    border-radius: 8px;
+    background: conic-gradient(from 210deg, var(--cyan), var(--blue), var(--violet), var(--pink), var(--cyan));
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #05060c;
+  }
+  nav.top .links { display: flex; gap: 22px; font-size: 13.5px; color: var(--fg-dim); }
+  nav.top .links a:hover { color: var(--fg); }
+  nav.top .spacer { flex: 1; }
+  .navcta {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 16px;
+    border-radius: 999px;
+    background: var(--glass-hi);
+    border: 1px solid var(--line);
+    transition: background 150ms, border-color 150ms;
+  }
+  .navcta:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: clamp(70px, 11vw, 130px) 0 30px; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: var(--fg-dim);
+    border: 1px solid var(--line);
+    background: var(--glass);
+    border-radius: 999px;
+    padding: 6px 14px;
+    backdrop-filter: blur(8px);
+  }
+  .pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+  }
+  .hero h1 {
+    margin-top: 26px;
+    font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+  }
+  .hero h1 .grad {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero .sub {
+    margin: 22px auto 0;
+    max-width: 42rem;
+    font-size: clamp(1rem, 1.6vw, 1.15rem);
+    color: var(--fg-dim);
+    line-height: 1.7;
+  }
+  .hero-actions {
+    margin-top: 34px;
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 26px;
+    border-radius: 12px;
+    font-size: 14.5px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    transition: transform 150ms, box-shadow 150ms, background 150ms;
+  }
+  .btn.primary {
+    background: linear-gradient(96deg, #3f7bff, #7a5cff);
+    color: #fff;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.12) inset,
+      0 10px 34px rgba(79, 141, 255, 0.35);
+  }
+  .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 14px 44px rgba(79,141,255,0.45); }
+  .btn.ghost {
+    background: var(--glass);
+    border-color: var(--line);
+    color: var(--fg);
+    backdrop-filter: blur(8px);
+  }
+  .btn.ghost:hover { background: var(--glass-hi); transform: translateY(-2px); }
+
+  /* ---------- Command palette hero mock ---------- */
+  .palette {
+    margin: 56px auto 0;
+    max-width: 680px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(10, 12, 22, 0.72);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow:
+      0 30px 80px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(255,255,255,0.04) inset,
+      0 -1px 0 rgba(255,255,255,0.08) inset;
+    overflow: hidden;
+    text-align: left;
+    position: relative;
+  }
+  .palette::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(120deg, rgba(69,216,224,0.5), transparent 30%, transparent 65%, rgba(157,107,255,0.5));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .palette .input {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+  }
+  .palette .input .chevron { color: var(--fg-faint); }
+  .palette .input .q { color: var(--fg); }
+  .palette .input .caret {
+    width: 8px; height: 1.1em;
+    background: var(--cyan);
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .palette .input .kbd {
+    margin-left: auto;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: var(--fg-faint);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 7px;
+  }
+  .palette .rows { padding: 8px; }
+  .prow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--fg-dim);
+  }
+  .prow .ic {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: var(--glass-hi);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .prow code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--fg);
+  }
+  .prow .meta { margin-left: auto; font-size: 11.5px; color: var(--fg-faint); }
+  .prow.active {
+    background: linear-gradient(90deg, rgba(79,141,255,0.16), rgba(157,107,255,0.1));
+    border: 1px solid rgba(79, 141, 255, 0.3);
+    color: var(--fg);
+  }
+  .palette .foot {
+    display: flex;
+    gap: 18px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--fg-faint);
+  }
+  .palette .foot b { color: var(--fg-dim); font-weight: 600; }
+
+  /* ---------- Glass feature cards ---------- */
+  .section { padding: clamp(56px, 9vw, 100px) 0 0; }
+  .sec-head { text-align: center; margin-bottom: 44px; }
+  .sec-head .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .sec-head h2 {
+    margin-top: 12px;
+    font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .sec-head p { color: var(--fg-dim); margin-top: 10px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .gcard {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    padding: 26px 24px;
+    transition: transform 200ms cubic-bezier(0.22,1,0.36,1), border-color 200ms, box-shadow 200ms;
+    position: relative;
+    overflow: hidden;
+  }
+  .gcard::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(420px 180px at 50% -20%, rgba(79,141,255,0.14), transparent);
+    opacity: 0;
+    transition: opacity 250ms;
+    pointer-events: none;
+  }
+  .gcard:hover {
+    transform: translateY(-4px);
+    border-color: rgba(120, 150, 255, 0.35);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.4);
+  }
+  .gcard:hover::after { opacity: 1; }
+  .gcard .icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    background: linear-gradient(140deg, rgba(69,216,224,0.18), rgba(122,92,255,0.18));
+    border: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 18px;
+  }
+  .gcard h3 { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
+  .gcard p { margin-top: 8px; font-size: 0.9rem; color: var(--fg-dim); line-height: 1.65; }
+  .gcard code {
+    display: block;
+    margin-top: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* ---------- Workflow link strip ---------- */
+  .wfstrip {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .wf-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--glass);
+    padding: 16px 18px;
+    transition: border-color 150ms, background 150ms, transform 150ms;
+  }
+  .wf-link:hover {
+    border-color: rgba(120,150,255,0.4);
+    background: var(--glass-hi);
+    transform: translateY(-2px);
+  }
+  .wf-link .txt { font-size: 14px; font-weight: 600; }
+  .wf-link .sub { display: block; font-size: 12px; font-weight: 400; color: var(--fg-faint); margin-top: 2px; }
+  .wf-link .arr { margin-left: auto; color: var(--fg-faint); transition: transform 150ms, color 150ms; }
+  .wf-link:hover .arr { color: var(--cyan); transform: translateX(4px); }
+  .badge-new {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    border: 1px solid rgba(69,216,224,0.4);
+    background: rgba(69,216,224,0.08);
+    padding: 2px 7px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: 2px;
+  }
+
+  /* ---------- Install band ---------- */
+  .install {
+    margin-top: clamp(56px, 9vw, 100px);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+      radial-gradient(600px 240px at 15% 0%, rgba(79,141,255,0.14), transparent),
+      radial-gradient(600px 240px at 85% 100%, rgba(157,107,255,0.14), transparent),
+      rgba(10, 12, 22, 0.6);
+    backdrop-filter: blur(18px);
+    padding: clamp(32px, 5vw, 56px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  .install h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 800; letter-spacing: -0.03em; }
+  .install h2 .grad {
+    background: var(--grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .install .note { color: var(--fg-dim); margin-top: 12px; font-size: 0.95rem; }
+  .install .pkg {
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .install .pkg .head {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .install .pkg .head i {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.14);
+  }
+  .install .pkg .body { padding: 16px; line-height: 2; }
+  .install .pkg .dollar { color: var(--fg-faint); user-select: none; }
+  .install .pkg .cm { color: var(--fg-faint); }
+  .install .pkg .hl { color: var(--cyan); }
+
+  /* ---------- Footer ---------- */
+  footer {
+    margin-top: clamp(56px, 9vw, 100px);
+    border-top: 1px solid var(--line);
+    padding: 36px 0 56px;
+    font-size: 13px;
+    color: var(--fg-faint);
+  }
+  footer .row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  footer nav { display: flex; gap: 22px; }
+  footer a:hover { color: var(--fg); }
+
+  @media (max-width: 880px) {
+    .cards, .wfstrip { grid-template-columns: 1fr; }
+    .install { grid-template-columns: 1fr; }
+    nav.top .links { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob { animation: none; }
+    .palette .input .caret { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Aurora background -->
+<div class="aurora" aria-hidden="true">
+  <div class="starfield"></div>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+</div>
+
+<!-- ============ Floating glass nav ============ -->
+<nav class="top">
+  <div class="bar">
+    <a class="logo" href="#"><span class="orb">bb</span> Bitbucket CLI</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#docs">Docs</a>
+      <a href="#install">Install</a>
+    </div>
+    <div class="spacer"></div>
+    <a class="navcta" href="https://github.com/0pilatos0/bitbucket-cli">★ GitHub</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+  <!-- ============ Hero ============ -->
+  <header class="hero">
+    <span class="pill"><span class="dot"></span> v-latest · Unofficial &amp; community-maintained</span>
+    <h1>Bitbucket Cloud,<br /><span class="grad">from your terminal.</span></h1>
+    <p class="sub">Clone repositories, manage pull requests, and automate workflows — with JSON output on every command. If you know GitHub's <strong>gh</strong>, you'll feel right at home.</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="#install">Get started <span>→</span></a>
+      <a class="btn ghost" href="#">View on GitHub ↗</a>
+    </div>
+
+    <!-- Command palette mock -->
+    <div class="palette" role="img" aria-label="Command palette showing bb pull request commands">
+      <div class="input">
+        <span class="chevron">❯</span>
+        <span class="q">bb pr merge</span><span class="caret"></span>
+        <span class="kbd">⌘K</span>
+      </div>
+      <div class="rows">
+        <div class="prow active">
+          <span class="ic">⑂</span>
+          <code>bb pr merge 42 --strategy squash</code>
+          <span class="meta">merge with squash</span>
+        </div>
+        <div class="prow">
+          <span class="ic">⑂</span>
+          <code>bb pr merge 42 --strategy merge</code>
+          <span class="meta">merge commit</span>
+        </div>
+        <div class="prow">
+          <span class="ic">✓</span>
+          <code>bb pr approve 42</code>
+          <span class="meta">approve reviewer</span>
+        </div>
+        <div class="prow">
+          <span class="ic">☰</span>
+          <code>bb pr list --json id,title</code>
+          <span class="meta">JSON output</span>
+        </div>
+      </div>
+      <div class="foot"><span><b>↑↓</b> navigate</span><span><b>↵</b> select</span><span><b>esc</b> close</span><span style="margin-left:auto">245ms · 0 errors</span></div>
+    </div>
+  </header>
+
+  <!-- ============ Features ============ -->
+  <section class="section" id="features">
+    <div class="sec-head">
+      <div class="eyebrow">Capabilities</div>
+      <h2>Everything, without leaving the terminal.</h2>
+      <p>Sixteen command groups over the full Bitbucket Cloud API — typed, scriptable, fast.</p>
+    </div>
+    <div class="cards">
+      <div class="gcard">
+        <div class="icon">⑂</div>
+        <h3>Pull requests</h3>
+        <p>Full PR lifecycle — create, review, approve, and merge with explicit strategy control.</p>
+        <code>bb pr merge 42 --strategy squash</code>
+      </div>
+      <div class="gcard">
+        <div class="icon">⎇</div>
+        <h3>Repositories</h3>
+        <p>Clone, create, list, view and delete repos across every workspace you belong to.</p>
+        <code>bb repo clone workspace/repo</code>
+      </div>
+      <div class="gcard">
+        <div class="icon">◈</div>
+        <h3>Pipelines</h3>
+        <p>Trigger, inspect, and stop Bitbucket Pipelines. Stream logs straight to your shell.</p>
+        <code>bb pipeline run --branch main</code>
+      </div>
+      <div class="gcard">
+        <div class="icon">⌗</div>
+        <h3>JSON everywhere</h3>
+        <p>Every command speaks JSON. Project fields and filter in-process — no jq binary needed.</p>
+        <code>bb pr list --json id,title --jq '.[0].title'</code>
+      </div>
+      <div class="gcard">
+        <div class="icon">↗</div>
+        <h3>Jump to the web</h3>
+        <p>Open any Bitbucket page — PRs, files, commits, settings — directly in your browser.</p>
+        <code>bb browse src/cli.ts:20</code>
+      </div>
+      <div class="gcard">
+        <div class="icon">✦</div>
+        <h3>Raw API access</h3>
+        <p>Reach any Bitbucket 2.0 endpoint not yet wrapped by a typed command.</p>
+        <code>bb api /repositories/{ws}/{repo}/pullrequests</code>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Docs links ============ -->
+  <section class="section" id="docs">
+    <div class="sec-head">
+      <div class="eyebrow">Documentation</div>
+      <h2>From zero to automated.</h2>
+    </div>
+    <div class="wfstrip">
+      <a class="wf-link" href="#">
+        <span class="txt">Quick start<span class="sub">Install, auth, first command</span></span>
+        <span class="arr">→</span>
+      </a>
+      <a class="wf-link" href="#">
+        <span class="txt">Command reference<span class="sub">Every flag, every default</span></span>
+        <span class="arr">→</span>
+      </a>
+      <a class="wf-link" href="#">
+        <span class="txt">Scripting &amp; automation<span class="sub">JSON, exit codes, patterns</span></span>
+        <span class="arr">→</span>
+      </a>
+      <a class="wf-link" href="#">
+        <span class="txt">CI/CD integration<span class="sub">Actions, GitLab, Jenkins</span></span>
+        <span class="arr">→</span>
+      </a>
+      <a class="wf-link" href="#">
+        <span class="txt">Recipes<span class="badge-new">New</span><span class="sub">Auto-merge, reviewer bulk ops</span></span>
+        <span class="arr">→</span>
+      </a>
+      <a class="wf-link" href="#">
+        <span class="txt">AI agent integration<span class="badge-new">New</span><span class="sub">Tool-calling loops</span></span>
+        <span class="arr">→</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ Install ============ -->
+  <section class="install" id="install">
+    <div>
+      <h2>One install.<br /><span class="grad">Infinite automation.</span></h2>
+      <p class="note">Requires the Bun runtime (1.0+). Authenticate once with <code style="font-family:'JetBrains Mono',monospace">bb auth login</code> — a Bitbucket app password with the right scopes.</p>
+    </div>
+    <div class="pkg">
+      <div class="head"><i></i><i></i><i></i></div>
+      <div class="body">
+        <span class="cm"># pick your package manager</span><br />
+        <span class="dollar">$</span> npm install -g <span class="hl">@pilatos/bitbucket-cli</span><br />
+        <span class="dollar">$</span> bb auth login<br />
+        <span class="cm"># ✓ authenticated as @you</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Footer ============ -->
+  <footer>
+    <div class="row">
+      <span>Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+      <nav>
+        <a href="#">GitHub</a>
+        <a href="#">Issues</a>
+        <a href="#">Contribute</a>
+        <a href="#">Changelog</a>
+      </nav>
+    </div>
+  </footer>
+
+</main>
+</body>
+</html>

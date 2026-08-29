@@ -56,6 +56,17 @@ export default defineConfig({
       },
       components: {
         Head: './src/components/Head.astro',
+        Hero: './src/components/Hero.astro',
+      },
+      expressiveCode: {
+        themes: ['github-dark', 'github-light'],
+        styleOverrides: {
+          borderRadius: '10px',
+          borderWidth: '1px',
+          borderColor: 'var(--sl-color-hairline)',
+          codeFontSize: '0.8125rem',
+          codeLineHeight: '1.75',
+        },
       },
       head: [
         {

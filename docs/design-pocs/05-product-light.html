@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bitbucket CLI — A command line interface for Bitbucket Cloud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;650&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC B — PRODUCT LIGHT
+     Refined SaaS product page. White, one blue accent, quiet
+     borders, tabular details. Stripe-grade restraint: hierarchy
+     through type and spacing, not decoration.
+     ============================================================ */
+  :root {
+    --bg:      #ffffff;
+    --bg-sub:  #f8f9fb;
+    --line:    #e6e8ee;
+    --line-hi: #d4d8e2;
+    --fg:      #101828;
+    --fg-2:    #475467;
+    --fg-3:    #98a2b3;
+    --accent:  #2f6fed;
+    --accent-sub: #ecf3fe;
+    --green:   #12805c;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: #d6e4fd; }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- Nav ---------- */
+  header.site { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(10px); z-index: 40; }
+  .nav { display: flex; align-items: center; gap: 28px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; }
+  .brand .glyph {
+    font-family: var(--mono); font-size: 12.5px; font-weight: 500;
+    background: var(--fg); color: #fff;
+    border-radius: 6px; padding: 2px 7px;
+  }
+  .nav nav { display: flex; gap: 2px; }
+  .nav nav a { font-size: 13.5px; color: var(--fg-2); padding: 6px 11px; border-radius: 6px; }
+  .nav nav a:hover { color: var(--fg); background: var(--bg-sub); }
+  .nav .spacer { flex: 1; }
+  .nav .ver { font-family: var(--mono); font-size: 12px; color: var(--fg-3); }
+  .btn {
+    font-size: 13.5px; font-weight: 500;
+    padding: 8px 15px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 7px;
+    transition: background 120ms, border-color 120ms, color 120ms;
+  }
+  .btn-dark { background: var(--fg); color: #fff; }
+  .btn-dark:hover { background: #000; }
+  .btn-quiet { border: 1px solid var(--line-hi); color: var(--fg-2); }
+  .btn-quiet:hover { color: var(--fg); border-color: #b9bfcc; }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: clamp(64px, 9vw, 104px) 0 0; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--fg-2);
+    border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 12px; background: var(--bg-sub);
+  }
+  .tag b { color: var(--fg); font-weight: 500; }
+  h1 {
+    margin: 24px auto 0;
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+    font-weight: 650; letter-spacing: -0.03em; line-height: 1.1;
+    max-width: 20ch;
+  }
+  .lede { margin: 18px auto 0; color: var(--fg-2); font-size: 16.5px; max-width: 52ch; }
+  .lede code { font-family: var(--mono); font-size: 0.85em; color: var(--fg); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
+  .actions { display: flex; justify-content: center; gap: 10px; margin-top: 28px; }
+
+  /* install card */
+  .install {
+    max-width: 620px; margin: 44px auto 0;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--bg-sub);
+    overflow: hidden;
+    text-align: left;
+  }
+  .tabs { display: flex; gap: 2px; padding: 8px 8px 0; }
+  .tab {
+    font-family: var(--mono); font-size: 12px;
+    padding: 6px 12px; border-radius: 7px 7px 0 0;
+    color: var(--fg-3); cursor: pointer;
+    border: 1px solid transparent; border-bottom: none;
+  }
+  .tab.active { background: #fff; border-color: var(--line); color: var(--fg); font-weight: 500; }
+  .pane { display: none; background: #fff; border-top: 1px solid var(--line); padding: 14px 18px; font-family: var(--mono); font-size: 13px; color: var(--fg); }
+  .pane.active { display: block; }
+  .pane .c { color: var(--fg-3); }
+  .pane .p { color: var(--fg-3); user-select: none; }
+  .pane .pkg { color: var(--accent); }
+
+  /* stats row */
+  .stats { display: flex; justify-content: center; gap: clamp(24px, 5vw, 56px); margin: 44px 0 0; padding: 24px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .n { font-size: 20px; font-weight: 650; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
+
+  /* ---------- Sections ---------- */
+  section { padding: clamp(52px, 7vw, 84px) 0; }
+  .sec-head { margin-bottom: 36px; }
+  .sec-head .kick { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+  .sec-head h2 { font-size: clamp(1.5rem, 2.8vw, 2rem); font-weight: 650; letter-spacing: -0.022em; margin-top: 10px; }
+  .sec-head p { color: var(--fg-2); margin-top: 10px; max-width: 56ch; }
+
+  /* feature cards */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .feat {
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 22px;
+    transition: border-color 150ms, box-shadow 150ms;
+    background: var(--bg);
+  }
+  .feat:hover { border-color: var(--line-hi); box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05); }
+  .feat .ic { width: 34px; height: 34px; border-radius: 8px; background: var(--accent-sub); color: var(--accent); display: grid; place-items: center; margin-bottom: 16px; }
+  .feat h3 { font-size: 14.5px; font-weight: 600; }
+  .feat p { font-size: 13.5px; color: var(--fg-2); margin-top: 6px; line-height: 1.6; }
+  .feat .ex { margin-top: 14px; font-family: var(--mono); font-size: 11.5px; color: var(--fg-2); background: var(--bg-sub); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; overflow-x: auto; white-space: nowrap; }
+
+  /* split deep-dive */
+  .deep { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: clamp(32px, 5vw, 72px); align-items: center; }
+  .deep ul { list-style: none; margin-top: 22px; display: grid; gap: 16px; }
+  .deep li { display: flex; gap: 12px; font-size: 14.5px; color: var(--fg-2); }
+  .deep li svg { flex: 0 0 18px; margin-top: 3px; color: var(--green); }
+  .deep li b { color: var(--fg); font-weight: 500; }
+  .codecard { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: 0 6px 24px rgba(16,24,40,0.06); }
+  .codecard .bar { display: flex; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line); background: var(--bg-sub); font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); justify-content: space-between; }
+  .codecard pre { padding: 16px 18px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; overflow-x: auto; background: #fff; }
+  .k { color: var(--accent); }         /* flags/keywords */
+  .s { color: #116149; }               /* strings/values */
+  .c { color: var(--fg-3); }           /* comments */
+  .o { color: var(--fg); }             /* output */
+
+  /* docs links */
+  .doc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .doc {
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 18px; display: block;
+    transition: border-color 150ms, background 150ms;
+  }
+  .doc:hover { border-color: var(--line-hi); background: var(--bg-sub); }
+  .doc h3 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .doc h3 svg { color: var(--fg-3); transition: transform 150ms, color 150ms; }
+  .doc:hover h3 svg { transform: translateX(2px); color: var(--accent); }
+  .doc p { font-size: 12.5px; color: var(--fg-2); margin-top: 6px; line-height: 1.55; }
+  .pill-new { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); background: var(--accent-sub); border-radius: 999px; padding: 2px 8px; margin-left: 4px; }
+
+  /* ---------- Footer ---------- */
+  footer { border-top: 1px solid var(--line); padding: 48px 0 64px; background: var(--bg-sub); }
+  .foot-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; }
+  .foot-grid h4 { font-size: 12px; font-weight: 600; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .foot-grid ul { list-style: none; display: grid; gap: 9px; }
+  .foot-grid a { font-size: 13.5px; color: var(--fg-2); }
+  .foot-grid a:hover { color: var(--fg); }
+  .foot-note { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--fg-3); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+  @media (max-width: 880px) {
+    .feat-grid, .doc-grid { grid-template-columns: 1fr 1fr; }
+    .deep { grid-template-columns: 1fr; }
+    .foot-grid { grid-template-columns: 1fr 1fr; }
+    .nav nav { display: none; }
+  }
+  @media (max-width: 560px) {
+    .feat-grid, .doc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap nav">
+    <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+    <nav>
+      <a href="#">Docs</a>
+      <a href="#">Commands</a>
+      <a href="#">Guides</a>
+      <a href="#">Recipes</a>
+      <a href="#">Changelog</a>
+    </nav>
+    <div class="spacer"></div>
+    <span class="ver">v2.4.1</span>
+    <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">GitHub</a>
+    <a class="btn btn-dark" href="#">Get started</a>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <span class="tag"><b>v2.4</b> · Open source · Unofficial, community-maintained</span>
+    <h1>A command line interface for Bitbucket Cloud</h1>
+    <p class="lede">Clone repositories, manage pull requests, and run pipelines from your terminal — with <code>--json</code> output on every command for scripts, CI pipelines, and agents.</p>
+    <div class="actions">
+      <a class="btn btn-dark" href="#">Get started</a>
+      <a class="btn btn-quiet" href="https://github.com/0pilatos0/bitbucket-cli">View source</a>
+    </div>
+
+    <div class="install">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-p="npm">npm</button>
+        <button class="tab" data-p="pnpm">pnpm</button>
+        <button class="tab" data-p="bun">bun</button>
+      </div>
+      <div class="pane active" id="p-npm"><span class="c"># global install</span><br /><span class="p">$</span> npm install -g <span class="pkg">@pilatos/bitbucket-cli</span></div>
+      <div class="pane" id="p-pnpm"><span class="p">$</span> pnpm add -g <span class="pkg">@pilatos/bitbucket-cli</span></div>
+      <div class="pane" id="p-bun"><span class="p">$</span> bun install -g <span class="pkg">@pilatos/bitbucket-cli</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n">16</div><div class="l">command groups</div></div>
+      <div class="stat"><div class="n">100%</div><div class="l">JSON coverage</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">external jq dependency</div></div>
+      <div class="stat"><div class="n">MIT</div><div class="l">license</div></div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section id="features">
+    <div class="sec-head">
+      <div class="kick">Capabilities</div>
+      <h2>What it covers</h2>
+      <p>Every command group wraps the Bitbucket Cloud 2.0 REST API, generated from a pinned OpenAPI spec so types never drift.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><path d="M6 9v6M18 9a9 9 0 0 1-9 9"/></svg></div>
+        <h3>Pull requests</h3>
+        <p>Create, review, approve, and merge — with explicit merge-strategy control and reviewer management.</p>
+        <div class="ex">bb pr merge 42 --strategy squash</div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M8 9h8M8 13h5"/></svg></div>
+        <h3>Repositories</h3>
+        <p>Clone, create, list, view, and delete repositories across every workspace you belong to.</p>
+        <div class="ex">bb repo clone workspace/repo</div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+        <h3>Pipelines</h3>
+        <p>Trigger, inspect, and stop Bitbucket Pipelines. Read logs without opening the browser.</p>
+        <div class="ex">bb pipeline run --branch main</div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+        <h3>Scripting first-class</h3>
+        <p>Field projection with <b>--json</b> and in-process filtering with <b>--jq</b> — no external jq binary.</p>
+        <div class="ex">bb pr list --json id,title --jq '.[0].title'</div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></div>
+        <h3>Web UI shortcuts</h3>
+        <p>Open any Bitbucket page — PRs, files at a line, commits, pipeline settings — in one command.</p>
+        <div class="ex">bb browse src/cli.ts:20</div>
+      </div>
+      <div class="feat">
+        <div class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2 3 10l7 4 4 7 7-19Z"/></svg></div>
+        <h3>Raw API access</h3>
+        <p>Reach any 2.0 endpoint that isn't wrapped yet, with auth, pagination, and form bodies handled.</p>
+        <div class="ex">bb api /repositories/{ws}/{repo}/pullrequests</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Deep dive -->
+  <section id="scripting" style="border-top:1px solid var(--line)">
+    <div class="deep">
+      <div>
+        <div class="sec-head" style="margin-bottom:0">
+          <div class="kick">For automation</div>
+          <h2>Designed to be scripted against</h2>
+          <p style="margin-top:10px">Text output is for people. When stdout is a machine, bb changes shape instead of making you parse prose.</p>
+        </div>
+        <ul>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Projected JSON.</b> <code style="font-family:var(--mono);font-size:0.9em">--json id,title</code> returns a flat array with exactly those keys — dotted paths keep their full name.</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>No jq dependency.</b> <code style="font-family:var(--mono);font-size:0.9em">--jq</code> filters in-process. Works in minimal CI containers.</span></li>
+          <li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span><b>Documented exit codes</b> and stable error codes — failures are detectable, not just visible.</span></li>
+        </ul>
+      </div>
+      <div class="codecard">
+        <div class="bar"><span>release.sh</span><span>bash</span></div>
+        <pre><span class="c"># wait for CI, then merge when green</span>
+<span class="k">if</span> bb pipeline status --branch main --json state \
+    | grep -q SUCCESSFUL; <span class="k">then</span>
+  bb pr merge <span class="s">"$PR_ID"</span> --strategy squash
+  bb status set <span class="s">"$SHA"</span> --key BB-DEPLOY \
+      --state SUCCESSFUL
+<span class="k">fi</span>
+
+<span class="c"># → ✓ Merged pull request #47 into main</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Docs -->
+  <section id="docs" style="border-top:1px solid var(--line)">
+    <div class="sec-head">
+      <div class="kick">Documentation</div>
+      <h2>Start here</h2>
+    </div>
+    <div class="doc-grid">
+      <a class="doc" href="#">
+        <h3>Quick start <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h3>
+        <p>Install, authenticate with an app password, and run your first command.</p>
+      </a>
+      <a class="doc" href="#">
+        <h3>Commands <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h3>
+        <p>Every group, subcommand, flag, and default — repo, pr, pipeline, api, and more.</p>
+      </a>
+      <a class="doc" href="#">
+        <h3>Scripting <span class="pill-new">Guide</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h3>
+        <p>JSON output, field projection, exit codes, and shell patterns.</p>
+      </a>
+      <a class="doc" href="#">
+        <h3>Recipes <span class="pill-new">New</span> <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></h3>
+        <p>Auto-merge on green CI, bulk reviewer assignment, fork sync.</p>
+      </a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="brand" href="#"><span class="glyph">bb</span> Bitbucket CLI</a>
+        <p style="margin-top:12px; font-size:13px; color:var(--fg-2); max-width:30ch;">An open-source CLI for Bitbucket Cloud, built on Bun and TypeScript.</p>
+      </div>
+      <div>
+        <h4>Getting started</h4>
+        <ul><li><a href="#">Quick start</a></li><li><a href="#">Installation</a></li><li><a href="#">Authentication</a></li></ul>
+      </div>
+      <div>
+        <h4>Reference</h4>
+        <ul><li><a href="#">Commands</a></li><li><a href="#">Global flags</a></li><li><a href="#">JSON output</a></li><li><a href="#">Error codes</a></li></ul>
+      </div>
+      <div>
+        <h4>Project</h4>
+        <ul><li><a href="#">GitHub</a></li><li><a href="#">Issues</a></li><li><a href="#">Contributing</a></li><li><a href="#">Changelog</a></li></ul>
+      </div>
+    </div>
+    <div class="foot-note">
+      <span>MIT License</span>
+      <span>Unofficial, community-maintained. Not affiliated with Atlassian.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((t) => t.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach((p) => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('p-' + tab.dataset.p).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

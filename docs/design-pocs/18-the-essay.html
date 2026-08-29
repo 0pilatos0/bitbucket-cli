@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>bb — The Essay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     POC 18 — "THE ESSAY"
+     The clean counterpoint to the dark variants: a light page
+     with a single 640px reading column. The landing page is
+     written as a short, factual essay — the kind a senior
+     engineer would actually finish reading. No cards, no grids,
+     no icons. Prose, code, hairlines.
+     ============================================================ */
+  :root {
+    --bg:     #ffffff;
+    --bg-sub: #f6f7f9;
+    --line:   #e6e8ee;
+    --line-hi:#c9cedb;
+    --fg:     #16181d;
+    --fg-2:   #4c5261;
+    --fg-3:   #8a90a0;
+    --accent: #2563eb;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { color-scheme: light; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: rgba(37, 99, 235, 0.15); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .col { max-width: 640px; margin: 0 auto; padding: 0 24px; }
+
+  /* masthead */
+  .mast { padding: 28px 0; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; }
+  .mast .mark { font-family: var(--mono); font-weight: 500; color: var(--fg); }
+  .mast nav { display: flex; gap: 20px; }
+  .mast nav a { color: var(--fg-3); }
+  .mast nav a:hover { color: var(--fg); text-decoration: none; }
+
+  /* essay */
+  .essay { padding: clamp(48px, 8vw, 88px) 0 32px; }
+  .overline { font-family: var(--mono); font-size: 12px; color: var(--fg-3); margin-bottom: 20px; }
+  h1 {
+    font-size: clamp(1.7rem, 3.6vw, 2.4rem);
+    font-weight: 600; letter-spacing: -0.025em; line-height: 1.22;
+  }
+  .essay > p { margin-top: 22px; color: var(--fg-2); }
+  .essay > p strong { color: var(--fg); font-weight: 600; }
+  .essay code {
+    font-family: var(--mono); font-size: 0.82em; color: var(--fg);
+    background: var(--bg-sub); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+  }
+
+  /* install block */
+  .install {
+    margin: 30px 0 0;
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  }
+  .install .bar {
+    display: flex; gap: 0; border-bottom: 1px solid var(--line); background: var(--bg-sub);
+  }
+  .install .bar span {
+    font-family: var(--mono); font-size: 12px; padding: 8px 14px;
+    color: var(--fg-3); cursor: pointer; border-right: 1px solid var(--line);
+  }
+  .install .bar span.on { color: var(--fg); background: #fff; font-weight: 500; }
+  .install .body { padding: 13px 16px; font-family: var(--mono); font-size: 13px; color: var(--fg); }
+
+  /* blockquote spec */
+  blockquote {
+    margin: 34px 0 0; padding: 18px 22px;
+    border-left: 2px solid var(--accent);
+    background: var(--bg-sub);
+    border-radius: 0 8px 8px 0;
+    font-size: 15px; color: var(--fg-2); line-height: 1.7;
+  }
+  blockquote b { color: var(--fg); font-weight: 600; }
+  blockquote .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px dashed var(--line); }
+  blockquote .row:last-child { border-bottom: none; }
+  blockquote .row .v { font-family: var(--mono); font-size: 12.5px; color: var(--fg); }
+
+  /* terminal moment */
+  .term {
+    margin: 30px 0 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  }
+  .term .tbar {
+    display: flex; align-items: center; gap: 6px; padding: 9px 14px;
+    border-bottom: 1px solid var(--line); background: var(--bg-sub);
+  }
+  .term .tbar i { width: 9px; height: 9px; border-radius: 50%; background: #dfe2e9; }
+  .term .tbar span { margin-left: 8px; font-family: var(--mono); font-size: 11px; color: var(--fg-3); }
+  .term pre {
+    padding: 15px 17px; font-family: var(--mono); font-size: 12.5px; line-height: 1.9;
+    color: var(--fg-2); overflow-x: auto;
+  }
+  .term .p { color: var(--fg-3); user-select: none; }
+  .term .c { color: var(--fg-3); }
+  .term .k { color: var(--accent); }
+  .term .g { color: var(--fg); }
+  .term .ok { color: #12805c; }
+
+  /* further reading list */
+  .further { margin-top: 34px; border-top: 1px solid var(--line); }
+  .further a {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 13px 2px; border-bottom: 1px solid var(--line);
+    color: var(--fg); font-size: 14.5px; font-weight: 500;
+  }
+  .further a:hover { color: var(--accent); text-decoration: none; }
+  .further .d { font-family: var(--mono); font-size: 11.5px; color: var(--fg-3); font-weight: 400; }
+  .further .new { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-left: 8px; }
+
+  /* footer */
+  .foot { padding: 40px 0 64px; border-top: 1px solid var(--line); margin-top: 56px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12.5px; color: var(--fg-3); }
+  .foot nav { display: flex; gap: 18px; }
+  .foot a { color: var(--fg-3); }
+  .foot a:hover { color: var(--fg); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="col">
+  <div class="mast">
+    <span class="mark">bb — Bitbucket CLI</span>
+    <nav><a href="#">Docs</a><a href="#">Commands</a><a href="https://github.com/0pilatos0/bitbucket-cli">GitHub</a></nav>
+  </div>
+
+  <article class="essay">
+    <div class="overline">v2.4.1 · Unofficial, community-maintained · MIT</div>
+    <h1>Bitbucket Cloud, from the command line.</h1>
+
+    <p><strong>bb</strong> wraps the Bitbucket Cloud 2.0 REST API in sixteen command groups — repositories, pull requests, pipelines, issues, snippets, and a raw escape hatch for everything else. If you know GitHub's <code>gh</code>, the shape is deliberately familiar.</p>
+
+    <p>Install it globally with your package manager of choice. The only prerequisite is the <a href="https://bun.sh">Bun</a> runtime, version 1.0 or later.</p>
+
+    <div class="install">
+      <div class="bar">
+        <span class="on" data-pm="npm">npm</span><span data-pm="pnpm">pnpm</span><span data-pm="bun">bun</span>
+      </div>
+      <div class="body" id="pmCmd">npm install -g @pilatos/bitbucket-cli</div>
+    </div>
+
+    <p>Authentication happens once. <code>bb auth login</code> stores an app password in your platform's config directory with <code>0600</code> permissions, and from then on most commands resolve their workspace and repository from the git remote of whatever checkout you're standing in.</p>
+
+    <div class="term">
+      <div class="tbar"><i></i><i></i><i></i><span>example session</span></div>
+      <pre><span class="p">$</span> bb pr list <span class="k">--state</span> OPEN
+<span class="g">#47   feat: streaming pipeline logs   OPEN</span>
+<span class="g">#46   fix: retry on 429 rate limits   OPEN</span>
+
+<span class="p">$</span> bb pr merge <span class="k">47</span> <span class="k">--strategy</span> squash
+<span class="ok">✓ Merged pull request #47 into main (squash)</span>
+
+<span class="p">$</span> bb pipeline run <span class="k">--branch</span> main
+<span class="ok">✓ Queued build #313</span></pre>
+    </div>
+
+    <p>For scripts and CI, text output is the wrong medium. Every command therefore speaks JSON when asked — and rather than making you shell out to <code>jq</code>, filtering runs inside the CLI process.</p>
+
+    <blockquote>
+      <div class="row"><span><b>Coverage</b> — commands that support <code>--json</code></span><span class="v">100%</span></div>
+      <div class="row"><span><b>Surface</b> — subcommands across 16 groups</span><span class="v">62</span></div>
+      <div class="row"><span><b>Dependencies</b> — beyond Bun itself</span><span class="v">0</span></div>
+      <div class="row"><span><b>Spec</b> — generated from one pinned OpenAPI document</span><span class="v">always in sync</span></div>
+      <div class="row"><span><b>License</b></span><span class="v">MIT</span></div>
+    </blockquote>
+
+    <p>The project is unofficial and maintained by the community — it is not affiliated with Atlassian. Bug reports and pull requests are welcome on <a href="https://github.com/0pilatos0/bitbucket-cli">GitHub</a>.</p>
+
+    <div class="further">
+      <a href="#"><span>Quick start</span><span class="d">2 min</span></a>
+      <a href="#"><span>Authentication</span><span class="d">app passwords</span></a>
+      <a href="#"><span>Command reference</span><span class="d">62 commands</span></a>
+      <a href="#"><span>Scripting &amp; automation</span><span class="d">guide</span></a>
+      <a href="#"><span>Recipes<span class="new">new</span></span><span class="d">5 recipes</span></a>
+      <a href="#"><span>AI agent integration<span class="new">new</span></span><span class="d">guide</span></a>
+    </div>
+  </article>
+
+  <footer class="foot">
+    <span>© Bitbucket CLI contributors</span>
+    <nav><a href="#">Docs</a><a href="#">Changelog</a><a href="#">Contribute</a></nav>
+  </footer>
+</div>
+
+<script>
+  const cmds = { npm: 'npm install -g @pilatos/bitbucket-cli', pnpm: 'pnpm add -g @pilatos/bitbucket-cli', bun: 'bun install -g @pilatos/bitbucket-cli' };
+  document.querySelectorAll('.install .bar span').forEach((el) => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.install .bar span').forEach((s) => s.classList.remove('on'));
+      el.classList.add('on');
+      document.getElementById('pmCmd').textContent = cmds[el.dataset.pm];
+    });
+  });
+</script>
+</body>
+</html>
