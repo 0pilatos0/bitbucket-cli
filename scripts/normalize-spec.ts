@@ -52,13 +52,14 @@ const INLINE_REF = '#/definitions/comment_inline';
 
 // Target fields, keyed by definition name. The inline schemas must keep these
 // exact property sets; any drift fails generation with a loud error.
+// Issue-tracker targets (`issue.content`, `issue_change.message`) were
+// removed upstream: Atlassian fully removed the native issue tracker API
+// on 2026-08-20, dropping these definitions from the published spec.
 const CONTENT_FIELDS: Array<[string, string]> = [
   ['comment', 'content'],
-  ['issue', 'content'],
   ['task', 'content'],
   ['pullrequest', 'summary'],
   ['base_commit', 'summary'],
-  ['issue_change', 'message'],
 ];
 const INLINE_FIELDS: Array<[string, string]> = [['comment', 'inline']];
 

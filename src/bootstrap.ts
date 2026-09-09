@@ -30,7 +30,6 @@ import {
   CommitsApi,
   SnippetsApi,
   PipelinesApi,
-  IssueTrackerApi,
   WorkspacesApi,
   ProjectsApi,
 } from './generated/api.js';
@@ -103,14 +102,6 @@ import { ViewCommitCommand } from './commands/commit/view.command.js';
 // Status commands (commit build statuses)
 import { ListCommitStatusesCommand } from './commands/status/list.command.js';
 import { SetCommitStatusCommand } from './commands/status/set.command.js';
-
-// Issue commands
-import { ListIssuesCommand } from './commands/issue/list.command.js';
-import { ViewIssueCommand } from './commands/issue/view.command.js';
-import { CreateIssueCommand } from './commands/issue/create.command.js';
-import { EditIssueCommand } from './commands/issue/edit.command.js';
-import { CloseIssueCommand } from './commands/issue/close.command.js';
-import { CommentIssueCommand } from './commands/issue/comment.command.js';
 
 // Workspace commands
 import { ListWorkspacesCommand } from './commands/workspace/list.command.js';
@@ -265,7 +256,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerApiClient(container, ServiceTokens.CommitsApi, CommitsApi);
   registerApiClient(container, ServiceTokens.SnippetsApi, SnippetsApi);
   registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
-  registerApiClient(container, ServiceTokens.IssueTrackerApi, IssueTrackerApi);
   registerApiClient(container, ServiceTokens.WorkspacesApi, WorkspacesApi);
   registerApiClient(container, ServiceTokens.ProjectsApi, ProjectsApi);
 
@@ -776,58 +766,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     SetCommitStatusCommand,
     [
       ServiceTokens.CommitStatusesApi,
-      ServiceTokens.ContextService,
-      ServiceTokens.OutputService,
-    ]
-  );
-
-  // Issue commands
-  registerCommand(
-    container,
-    ServiceTokens.ListIssuesCommand,
-    ListIssuesCommand,
-    [
-      ServiceTokens.IssueTrackerApi,
-      ServiceTokens.ContextService,
-      ServiceTokens.OutputService,
-    ]
-  );
-  registerCommand(container, ServiceTokens.ViewIssueCommand, ViewIssueCommand, [
-    ServiceTokens.IssueTrackerApi,
-    ServiceTokens.ContextService,
-    ServiceTokens.OutputService,
-  ]);
-  registerCommand(
-    container,
-    ServiceTokens.CreateIssueCommand,
-    CreateIssueCommand,
-    [
-      ServiceTokens.IssueTrackerApi,
-      ServiceTokens.ContextService,
-      ServiceTokens.OutputService,
-    ]
-  );
-  registerCommand(container, ServiceTokens.EditIssueCommand, EditIssueCommand, [
-    ServiceTokens.IssueTrackerApi,
-    ServiceTokens.ContextService,
-    ServiceTokens.OutputService,
-  ]);
-  registerCommand(
-    container,
-    ServiceTokens.CloseIssueCommand,
-    CloseIssueCommand,
-    [
-      ServiceTokens.IssueTrackerApi,
-      ServiceTokens.ContextService,
-      ServiceTokens.OutputService,
-    ]
-  );
-  registerCommand(
-    container,
-    ServiceTokens.CommentIssueCommand,
-    CommentIssueCommand,
-    [
-      ServiceTokens.IssueTrackerApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]

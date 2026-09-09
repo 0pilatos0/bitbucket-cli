@@ -34,9 +34,9 @@ bb pr list --json --all
 bb pr list --json --limit 100
 ```
 
-Twelve commands take `--limit` and `--all`: `repo list`, `pr list`,
+Eleven commands take `--limit` and `--all`: `repo list`, `pr list`,
 `pr activity`, `pr comments list`, `snippet list`, `snippet comments list`,
-`pipeline list`, `commit list`, `status list`, `issue list`, `workspace list`,
+`pipeline list`, `commit list`, `status list`, `workspace list`,
 `project list`. Other list-style commands return their full result set and
 accept neither flag — `bb pr reviewers list` and
 `bb repo default-reviewers list`, for example.
@@ -124,7 +124,7 @@ bb api /repositories/myworkspace/myrepo/pullrequests --paginate \
   --jq '.values[].title'
 
 # Create resources that have no typed command yet
-bb api POST /repositories/myworkspace/myrepo/issues -f title="Bug report"
+bb api POST /repositories/{workspace}/{repo}/branch-restrictions --input body.json
 ```
 
 `{workspace}` and `{repo}` placeholders resolve from `-w`/`-r` or the current

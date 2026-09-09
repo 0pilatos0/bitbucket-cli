@@ -163,29 +163,13 @@ describe('UrlBuilderService', () => {
     });
   });
 
-  describe('downloads(), issues, wiki, settings', () => {
+  describe('downloads(), settings', () => {
     const builder = new UrlBuilderService();
 
     it('returns downloads URL with trailing slash', () => {
       expect(builder.downloads(ctx)).toBe(
         'https://bitbucket.org/acme/widgets/downloads/'
       );
-    });
-
-    it('returns issue list URL (no trailing slash)', () => {
-      expect(builder.issueList(ctx)).toBe(
-        'https://bitbucket.org/acme/widgets/issues'
-      );
-    });
-
-    it('builds an issue detail URL', () => {
-      expect(builder.issue(ctx, 12)).toBe(
-        'https://bitbucket.org/acme/widgets/issues/12'
-      );
-    });
-
-    it('returns wiki URL', () => {
-      expect(builder.wiki(ctx)).toBe('https://bitbucket.org/acme/widgets/wiki');
     });
 
     it('returns settings/admin URL', () => {

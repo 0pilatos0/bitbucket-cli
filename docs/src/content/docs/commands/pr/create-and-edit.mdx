@@ -126,7 +126,7 @@ bb pr edit 42 -t "New title" --json
 
 - When no ID is provided, the command searches for an open PR where the source branch matches your current git branch
 - At least one of `--title`, `--body`, or `--body-file` must be provided
-- If both `-b/--body` and `-F/--body-file` are given, the file wins and no error is raised. This differs from `bb issue create`, which rejects the combination
+- If both `-b/--body` and `-F/--body-file` are given, the file wins and no error is raised
 - An unreadable path fails with `Failed to read file '<path>': <reason>`
 
 ---

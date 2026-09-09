@@ -32,7 +32,6 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**repositoriesWorkspaceRepoSlugSrcGet**](#repositoriesworkspacereposlugsrcget) | **GET** /repositories/{workspace}/{repo_slug}/src | Get the root directory of the main branch|
 |[**repositoriesWorkspaceRepoSlugSrcPost**](#repositoriesworkspacereposlugsrcpost) | **POST** /repositories/{workspace}/{repo_slug}/src | Create a commit by uploading a file|
 |[**repositoriesWorkspaceRepoSlugWatchersGet**](#repositoriesworkspacereposlugwatchersget) | **GET** /repositories/{workspace}/{repo_slug}/watchers | List repositories watchers|
-|[**userPermissionsRepositoriesGet**](#userpermissionsrepositoriesget) | **GET** /user/permissions/repositories | List repository permissions for a user|
 |[**userWorkspacesWorkspacePermissionsRepositoriesGet**](#userworkspacesworkspacepermissionsrepositoriesget) | **GET** /user/workspaces/{workspace}/permissions/repositories | List repository permissions in a workspace for a user|
 
 # **repositoriesGet**
@@ -1720,60 +1719,6 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugWatchers
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | A paginated list of all the watchers on the specified repository. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **userPermissionsRepositoriesGet**
-> PaginatedRepositoryPermissions userPermissionsRepositoriesGet()
-
-**This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**  Returns an object for each repository the caller has explicit access to and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"geordi\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
-
-### Example
-
-```typescript
-import {
-    RepositoriesApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new RepositoriesApi(configuration);
-
-let q: string; // Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). (optional) (default to undefined)
-let sort: string; // Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). (optional) (default to undefined)
-
-const { status, data } = await apiInstance.userPermissionsRepositoriesGet(
-    q,
-    sort
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **q** | [**string**] |  Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). | (optional) defaults to undefined|
-| **sort** | [**string**] |  Name of a response property sort the result by as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). | (optional) defaults to undefined|
-
-
-### Return type
-
-**PaginatedRepositoryPermissions**
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | Repository permissions for the repositories a caller has explicit access to. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

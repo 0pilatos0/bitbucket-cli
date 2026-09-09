@@ -97,9 +97,9 @@ The `--app-password` flag is a legacy name. It triggers API token authentication
 
 Repository and pull request commands need `read:repository:bitbucket` and `read:pullrequest:bitbucket`, plus the matching `write:` scopes to create, edit, merge, approve, or decline. Creating a repository needs the admin scope (legacy `repository:admin`) and deleting one needs the delete scope (legacy `repository:delete`); Atlassian publishes these as `admin:repository:bitbucket` and `delete:repository:bitbucket`.
 
-Everything else — pipelines, issues, snippets, projects — needs its own scope. See [Token scopes](/reference/token-scopes/) for the per-command table.
+Everything else — pipelines, snippets, projects — needs its own scope. See [Token scopes](/reference/token-scopes/) for the per-command table.
 
-OAuth logins request a fixed scope set: `account repository repository:admin pullrequest pullrequest:write`. Commands outside repositories and pull requests (`bb pipeline`, `bb issue`, `bb snippet`, `bb project`) are not covered, and neither is `bb repo delete`. Use an API token with the matching scopes for those.
+OAuth logins request a fixed scope set: `account repository repository:admin pullrequest pullrequest:write`. Commands outside repositories and pull requests (`bb pipeline`, `bb snippet`, `bb project`) are not covered, and neither is `bb repo delete`. Use an API token with the matching scopes for those.
 
 See the [Authentication guide](/getting-started/authentication/) for setup instructions.
 

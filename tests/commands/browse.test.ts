@@ -277,33 +277,6 @@ describe('BrowseCommand', () => {
       expect(result.url).toBe('https://bitbucket.org/acme/widgets/downloads/');
     });
 
-    it('--issue <id> opens an issue', async () => {
-      const { command } = buildCommand();
-      const result = await command.execute(
-        { issue: '12' },
-        { globalOptions: {} }
-      );
-      expect(result.url).toBe('https://bitbucket.org/acme/widgets/issues/12');
-    });
-
-    it('--issues opens the issue tracker list', async () => {
-      const { command } = buildCommand();
-      const result = await command.execute(
-        { issues: true },
-        { globalOptions: {} }
-      );
-      expect(result.url).toBe('https://bitbucket.org/acme/widgets/issues');
-    });
-
-    it('--wiki opens the wiki', async () => {
-      const { command } = buildCommand();
-      const result = await command.execute(
-        { wiki: true },
-        { globalOptions: {} }
-      );
-      expect(result.url).toBe('https://bitbucket.org/acme/widgets/wiki');
-    });
-
     it('--settings opens the admin page', async () => {
       const { command } = buildCommand();
       const result = await command.execute(
@@ -389,13 +362,6 @@ describe('BrowseCommand', () => {
       ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_INVALID });
       await expect(
         command.execute({ pr: 'abc' }, { globalOptions: {} })
-      ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_INVALID });
-    });
-
-    it('rejects non-numeric --issue values', async () => {
-      const { command } = buildCommand();
-      await expect(
-        command.execute({ issue: 'foo' }, { globalOptions: {} })
       ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_INVALID });
     });
 

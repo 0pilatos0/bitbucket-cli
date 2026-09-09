@@ -117,10 +117,6 @@ export default defineConfig({
               slug: "commands/status",
             },
             {
-              label: "Issue Commands",
-              slug: "commands/issue",
-            },
-            {
               label: "Workspace Commands",
               slug: "commands/workspace",
             },

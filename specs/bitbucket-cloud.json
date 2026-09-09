@@ -2680,109 +2680,6 @@
         }
       ]
     },
-    "/repositories/{workspace}/{repo_slug}/components": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the components that have been defined in the issue tracker.\n\nThis resource is only available on repositories that have the issue\ntracker enabled.",
-        "summary": "List components",
-        "responses": {
-          "200": {
-            "description": "The components that have been defined in the issue tracker.",
-            "schema": { "$ref": "#/definitions/paginated_components" }
-          },
-          "404": {
-            "description": "The specified repository does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/components/{component_id}": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue tracker component object.",
-        "summary": "Get a component for issues",
-        "responses": {
-          "200": {
-            "description": "The specified component object.",
-            "schema": { "$ref": "#/definitions/component" }
-          },
-          "404": {
-            "description": "The specified repository or component does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "component_id",
-          "in": "path",
-          "description": "The component's id",
-          "required": true,
-          "type": "integer"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
     "/repositories/{workspace}/{repo_slug}/default-reviewers": {
       "get": {
         "tags": ["Pullrequests"],
@@ -4420,7 +4317,15 @@
           { "oauth2": ["repository"] },
           { "basic": [] },
           { "api_key": [] }
-        ]
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:repository:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "parameters": [
         {
@@ -4864,1426 +4769,6 @@
         }
       ]
     },
-    "/repositories/{workspace}/{repo_slug}/issues": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the issues in the issue tracker.",
-        "summary": "List issues",
-        "responses": {
-          "200": {
-            "description": "A paginated list of the issues matching any filter criteria that were provided.",
-            "schema": { "$ref": "#/definitions/paginated_issues" }
-          },
-          "404": {
-            "description": "The specified repository does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "Creates a new issue.\n\nThis call requires authentication. Private repositories or private\nissue trackers require the caller to authenticate with an account that\nhas appropriate authorization.\n\nThe authenticated user is used for the issue's `reporter` field.",
-        "summary": "Create an issue",
-        "responses": {
-          "201": {
-            "description": "The newly created issue.",
-            "schema": { "$ref": "#/definitions/issue" },
-            "headers": {
-              "Location": {
-                "type": "string",
-                "description": "The (absolute) URL of the newly created issue."
-              }
-            }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user isn't authorized to create the issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "_body",
-            "in": "body",
-            "description": "The new issue. The only required element is `title`. All other elements can be omitted from the body.",
-            "required": true,
-            "schema": { "$ref": "#/definitions/issue" }
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/export": {
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "A POST request to this endpoint initiates a new background celery task that archives the repo's issues.\n\nWhen the job has been accepted, it will return a 202 (Accepted) along with a unique url to this job in the\n'Location' response header. This url is the endpoint for where the user can obtain their zip files.\"",
-        "summary": "Export issues",
-        "responses": {
-          "202": { "description": "The export job has been accepted" },
-          "401": {
-            "description": "The request wasn't authenticated properly",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user does not have admin permission on the repo",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The repo does not exist or does not have an issue tracker",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "_body",
-            "in": "body",
-            "description": "The options to apply to the export. Available options include `project_key` and `project_name` which, if specified, are used as the Jira space key and name in the exported Jira json format. Option `send_email` specifies whether an email should be sent upon export result. Option `include_attachments` specifies whether attachments are included in the export.",
-            "required": false,
-            "schema": { "$ref": "#/definitions/export_options" }
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue", "repository:admin"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/export/{repo_name}-issues-{task_id}.zip": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "This endpoint is used to poll for the progress of an issue export\njob and return the zip file after the job is complete.\nAs long as the job is running, this will return a 202 response\nwith in the response body a description of the current status.\n\nAfter the job has been scheduled, but before it starts executing, the endpoint\nreturns a 202 response with status `ACCEPTED`.\n\nOnce it starts running, it is a 202 response with status `STARTED` and progress filled.\n\nAfter it is finished, it becomes a 200 response with status `SUCCESS` or `FAILURE`.",
-        "summary": "Check issue export status",
-        "responses": {
-          "202": {
-            "description": "Export job accepted",
-            "schema": { "$ref": "#/definitions/issue_job_status" },
-            "examples": {
-              "application/json": {
-                "type": "issue_job_status",
-                "status": "ACCEPTED",
-                "phase": "Initializing",
-                "total": 0,
-                "count": 0,
-                "pct": 0
-              }
-            }
-          },
-          "401": {
-            "description": "The request wasn't authenticated properly",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user does not have admin permission on the repo",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "No export job has begun",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue", "repository:admin"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_name",
-          "in": "path",
-          "description": "The name of the repo",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "task_id",
-          "in": "path",
-          "description": "The ID of the export task",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/import": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "When using GET, this endpoint reports the status of the current import task.\n\nAfter the job has been scheduled, but before it starts executing, the endpoint\nreturns a 202 response with status `ACCEPTED`.\n\nOnce it starts running, it is a 202 response with status `STARTED` and progress filled.\n\nAfter it is finished, it becomes a 200 response with status `SUCCESS` or `FAILURE`.",
-        "summary": "Check issue import status",
-        "responses": {
-          "200": {
-            "description": "Import job complete with either FAILURE or SUCCESS status",
-            "schema": { "$ref": "#/definitions/issue_job_status" }
-          },
-          "202": {
-            "description": "Import job started",
-            "schema": { "$ref": "#/definitions/issue_job_status" },
-            "examples": {
-              "application/json": {
-                "type": "issue_job_status",
-                "status": "ACCEPTED",
-                "phase": "Attachments",
-                "total": 15,
-                "count": 0,
-                "percent": 0
-              }
-            }
-          },
-          "401": {
-            "description": "The request wasn't authenticated properly",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user does not have admin permission on the repo",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "No export job has begun",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write", "repository:admin"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "admin:repository:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "A POST request to this endpoint will import the zip file given by the archive parameter into the repository. All\nexisting issues will be deleted and replaced by the contents of the imported zip file.\n\nImports are done through a multipart/form-data POST. There is one valid and required form field, with the name\n\"archive,\" which needs to be a file field:\n\n```\n$ curl -u <username> -X POST -F archive=@/path/to/file.zip https://api.bitbucket.org/2.0/repositories/<owner_username>/<repo_slug>/issues/import\n```",
-        "summary": "Import issues",
-        "responses": {
-          "202": {
-            "description": "Import job accepted",
-            "schema": { "$ref": "#/definitions/issue_job_status" },
-            "examples": {
-              "application/json": {
-                "type": "issue_job_status",
-                "status": "ACCEPTED",
-                "phase": "Attachments",
-                "total": 15,
-                "count": 0,
-                "percent": 0
-              }
-            }
-          },
-          "401": {
-            "description": "The request wasn't authenticated properly",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user does not have admin permission on the repo",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "No export job has begun",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "409": {
-            "description": "Import already running",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write", "repository:admin"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "admin:repository:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}": {
-      "delete": {
-        "tags": ["Issue tracker"],
-        "description": "Deletes the specified issue. This requires write access to the\nrepository.",
-        "summary": "Delete an issue",
-        "responses": {
-          "204": {
-            "description": "Indicates the issue was deleted successfully."
-          },
-          "403": {
-            "description": "When the authenticated user isn't authorized to delete the issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["delete:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue.",
-        "summary": "Get an issue",
-        "responses": {
-          "200": {
-            "description": "The issue object.",
-            "schema": { "$ref": "#/definitions/issue" }
-          },
-          "403": {
-            "description": "When the authenticated user isn't authorized to access the issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "410": {
-            "description": "The specified issue is unavailable.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "put": {
-        "tags": ["Issue tracker"],
-        "description": "Modifies the issue.\n\n```\n$ curl https://api.bitbucket.org/2.0/repostories/evzijst/dogslow/issues/123 \\\n  -u evzijst -s -X PUT -H 'Content-Type: application/json' \\\n  -d '{\n  \"title\": \"Updated title\",\n  \"assignee\": {\n    \"account_id\": \"5d5355e8c6b9320d9ea5b28d\"\n  },\n  \"priority\": \"minor\",\n  \"version\": {\n    \"name\": \"1.0\"\n  },\n  \"component\": null\n}'\n```\n\nThis example changes the `title`, `assignee`, `priority` and the\n`version`. It also removes the value of the `component` from the issue\nby setting the field to `null`. Any field not present keeps its existing\nvalue.\n\nEach time an issue is edited in the UI or through the API, an immutable\nchange record is created under the `/issues/123/changes` endpoint. It\nalso has a comment associated with the change.",
-        "summary": "Update an issue",
-        "responses": {
-          "200": {
-            "description": "The updated issue object.",
-            "schema": { "$ref": "#/definitions/issue" }
-          },
-          "403": {
-            "description": "When the authenticated user isn't authorized to access the issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/attachments": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns all attachments for this issue.\n\nThis returns the files' meta data. This does not return the files'\nactual contents.\n\nThe files are always ordered by their upload date.",
-        "summary": "List attachments for an issue",
-        "responses": {
-          "200": {
-            "description": "A paginated list of all attachments for this issue.",
-            "schema": { "$ref": "#/definitions/paginated_issue_attachments" }
-          },
-          "401": {
-            "description": "If the issue tracker is private and the request was not authenticated."
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "Upload new issue attachments.\n\nTo upload files, perform a `multipart/form-data` POST containing one\nor more file fields.\n\nWhen a file is uploaded with the same name as an existing attachment,\nthen the existing file will be replaced.",
-        "summary": "Upload an attachment to an issue",
-        "responses": {
-          "201": {
-            "description": "An empty response document.",
-            "headers": {
-              "Location": {
-                "type": "string",
-                "description": "The URL to the issue's collection of attachments."
-              }
-            }
-          },
-          "400": {
-            "description": "If no files were uploaded, or if the wrong `Content-Type` was used."
-          },
-          "401": {
-            "description": "If the issue tracker is private and the request was not authenticated."
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/attachments/{path}": {
-      "delete": {
-        "tags": ["Issue tracker"],
-        "description": "Deletes an attachment.",
-        "summary": "Delete an attachment for an issue",
-        "responses": {
-          "204": {
-            "description": "Indicates that the deletion was successful"
-          },
-          "401": {
-            "description": "If the issue tracker is private and the request was not authenticated."
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the contents of the specified file attachment.\n\nNote that this endpoint does not return a JSON response, but instead\nreturns a redirect pointing to the actual file that in turn will return\nthe raw contents.\n\nThe redirect URL contains a one-time token that has a limited lifetime.\nAs a result, the link should not be persisted, stored, or shared.",
-        "summary": "Get attachment for an issue",
-        "responses": {
-          "302": {
-            "description": "A redirect to the file's contents",
-            "headers": { "Location": { "type": "string" } }
-          },
-          "401": {
-            "description": "If the issue tracker is private and the request was not authenticated."
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "path",
-          "in": "path",
-          "description": "Path to the file.",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/changes": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the list of all changes that have been made to the specified\nissue. Changes are returned in chronological order with the oldest\nchange first.\n\nEach time an issue is edited in the UI or through the API, an immutable\nchange record is created under the `/issues/123/changes` endpoint. It\nalso has a comment associated with the change.\n\nNote that this operation is changing significantly, due to privacy changes.\nSee the [announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-changes-gdpr/#changes-to-the-issue-changes-api)\nfor details.\n\nChanges support [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) that\ncan be used to search for specific changes. For instance, to see\nwhen an issue transitioned to \"resolved\":\n\n```\n$ curl -s https://api.bitbucket.org/2.0/repositories/site/master/issues/1/changes \\\n   -G --data-urlencode='q=changes.state.new = \"resolved\"'\n```\n\nThis resource is only available on repositories that have the issue\ntracker enabled.\n\nN.B.\n\nThe `changes.assignee` and `changes.assignee_account_id` fields are not\na `user` object. Instead, they contain the raw `username` and\n`account_id` of the user. This is to protect the integrity of the audit\nlog even after a user account gets deleted.\n\nThe `changes.assignee` field is deprecated will disappear in the\nfuture. Use `changes.assignee_account_id` instead.",
-        "summary": "List changes on an issue",
-        "responses": {
-          "200": {
-            "description": "Returns all the issue changes that were made on the specified issue.",
-            "schema": { "$ref": "#/definitions/paginated_log_entries" },
-            "examples": {
-              "application/json": {
-                "pagelen": 20,
-                "values": [
-                  {
-                    "changes": {
-                      "priority": { "new": "trivial", "old": "major" },
-                      "assignee": { "new": "", "old": "evzijst" },
-                      "assignee_account_id": {
-                        "new": "",
-                        "old": "557058:c0b72ad0-1cb5-4018-9cdc-0cde8492c443"
-                      },
-                      "kind": { "new": "enhancement", "old": "bug" }
-                    },
-                    "links": {
-                      "self": {
-                        "href": "https://api.bitbucket.org/2.0/repositories/evzijst/dogslow/issues/1/changes/2"
-                      },
-                      "html": {
-                        "href": "https://bitbucket.org/evzijst/dogslow/issues/1#comment-2"
-                      }
-                    },
-                    "issue": {
-                      "links": {
-                        "self": {
-                          "href": "https://api.bitbucket.org/2.0/repositories/evzijst/dogslow/issues/1"
-                        }
-                      },
-                      "type": "issue",
-                      "id": 1,
-                      "repository": {
-                        "links": {
-                          "self": {
-                            "href": "https://api.bitbucket.org/2.0/repositories/evzijst/dogslow"
-                          },
-                          "html": {
-                            "href": "https://bitbucket.org/evzijst/dogslow"
-                          },
-                          "avatar": {
-                            "href": "https://bitbucket.org/evzijst/dogslow/avatar/32/"
-                          }
-                        },
-                        "type": "repository",
-                        "name": "dogslow",
-                        "full_name": "evzijst/dogslow",
-                        "uuid": "{988b17c6-1a47-4e70-84ee-854d5f012bf6}"
-                      },
-                      "title": "Updated title"
-                    },
-                    "created_on": "2018-03-03T00:35:28.353630+00:00",
-                    "user": {
-                      "username": "evzijst",
-                      "nickname": "evzijst",
-                      "display_name": "evzijst",
-                      "type": "user",
-                      "uuid": "{aaa7972b-38af-4fb1-802d-6e3854c95778}",
-                      "links": {
-                        "self": {
-                          "href": "https://api.bitbucket.org/2.0/users/evzijst"
-                        },
-                        "html": { "href": "https://bitbucket.org/evzijst/" },
-                        "avatar": {
-                          "href": "https://bitbucket.org/account/evzijst/avatar/32/"
-                        }
-                      }
-                    },
-                    "message": {
-                      "raw": "Removed assignee, changed kind and priority.",
-                      "markup": "markdown",
-                      "html": "<p>Removed assignee, changed kind and priority.</p>",
-                      "type": "rendered"
-                    },
-                    "type": "issue_change",
-                    "id": 2
-                  }
-                ],
-                "page": 1
-              }
-            }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "description": "\nQuery string to narrow down the response. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "\nName of a response property to sort results. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results)\nfor details.\n",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "Makes a change to the specified issue.\n\nFor example, to change an issue's state and assignee, create a new\nchange object that modifies these fields:\n\n```\ncurl https://api.bitbucket.org/2.0/site/master/issues/1234/changes \\\n  -s -u evzijst -X POST -H \"Content-Type: application/json\" \\\n  -d '{\n    \"changes\": {\n      \"assignee_account_id\": {\n        \"new\": \"557058:c0b72ad0-1cb5-4018-9cdc-0cde8492c443\"\n      },\n      \"state\": {\n        \"new\": 'resolved\"\n      }\n    }\n    \"message\": {\n      \"raw\": \"This is now resolved.\"\n    }\n  }'\n```\n\nThe above example also includes a custom comment to go alongside the\nchange. This comment will also be visible on the issue page in the UI.\n\nThe fields of the `changes` object are strings, not objects. This\nallows for immutable change log records, even after user accounts,\nmilestones, or other objects recorded in a change entry, get renamed or\ndeleted.\n\nThe `assignee_account_id` field stores the account id. When POSTing a\nnew change and changing the assignee, the client should therefore use\nthe user's account_id in the `changes.assignee_account_id.new` field.\n\nThis call requires authentication. Private repositories or private\nissue trackers require the caller to authenticate with an account that\nhas appropriate authorization.",
-        "summary": "Modify the state of an issue",
-        "responses": {
-          "201": {
-            "description": "The newly created issue change.",
-            "schema": { "$ref": "#/definitions/issue_change" },
-            "headers": {
-              "Location": {
-                "type": "string",
-                "description": "The (absolute) URL of the newly created issue change."
-              }
-            }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "403": {
-            "description": "When the authenticated user isn't authorized to modify the issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "_body",
-            "in": "body",
-            "description": "The new issue state change. The only required elements are `changes.[].new`. All other elements can be omitted from the body.",
-            "required": true,
-            "schema": { "$ref": "#/definitions/issue_change" }
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/changes/{change_id}": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue change object.\n\nThis resource is only available on repositories that have the issue\ntracker enabled.",
-        "summary": "Get issue change object",
-        "responses": {
-          "200": {
-            "description": "The specified issue change object.",
-            "schema": { "$ref": "#/definitions/issue_change" }
-          },
-          "404": {
-            "description": "The specified repository or issue change does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "change_id",
-          "in": "path",
-          "description": "The issue change id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/comments": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns a paginated list of all comments that were made on the\nspecified issue.\n\nThe default sorting is oldest to newest and can be overridden with\nthe `sort` query parameter.\n\nThis endpoint also supports filtering and sorting of the results. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.",
-        "summary": "List comments on an issue",
-        "responses": {
-          "200": {
-            "description": "A paginated list of issue comments.",
-            "schema": { "$ref": "#/definitions/paginated_issue_comments" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "description": "\nQuery string to narrow down the response as per\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "post": {
-        "tags": ["Issue tracker"],
-        "description": "Creates a new issue comment.\n\n```\n$ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/issues/42/comments/ \\\n  -X POST -u evzijst \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"content\": {\"raw\": \"Lorem ipsum.\"}}'\n```",
-        "summary": "Create a comment on an issue",
-        "responses": {
-          "201": {
-            "description": "The newly created comment.",
-            "headers": {
-              "Location": {
-                "type": "string",
-                "description": "The location of the newly issue comment."
-              }
-            }
-          },
-          "400": {
-            "description": "If the input was invalid, or if the comment being created is detected as spam ",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "_body",
-            "in": "body",
-            "description": "The new issue comment object.",
-            "required": true,
-            "schema": { "$ref": "#/definitions/issue_comment" }
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/comments/{comment_id}": {
-      "delete": {
-        "tags": ["Issue tracker"],
-        "description": "Deletes the specified comment.",
-        "summary": "Delete a comment on an issue",
-        "responses": {
-          "204": { "description": "Indicates successful deletion." }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue comment object.",
-        "summary": "Get a comment on an issue",
-        "responses": {
-          "200": {
-            "description": "The issue comment.",
-            "schema": { "$ref": "#/definitions/issue_comment" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "put": {
-        "tags": ["Issue tracker"],
-        "description": "Updates the content of the specified issue comment. Note that only\nthe `content.raw` field can be modified.\n\n```\n$ curl https://api.bitbucket.org/2.0/repositories/atlassian/prlinks/issues/42/comments/5728901 \\\n  -X PUT -u evzijst \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"content\": {\"raw\": \"Lorem ipsum.\"}'\n```",
-        "summary": "Update a comment on an issue",
-        "responses": {
-          "200": {
-            "description": "The updated issue comment.",
-            "schema": { "$ref": "#/definitions/issue_comment" }
-          },
-          "400": {
-            "description": "If the input was invalid, or if the update to the comment is detected as spam ",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "_body",
-            "in": "body",
-            "description": "The updated comment.",
-            "required": true,
-            "schema": { "$ref": "#/definitions/issue_comment" }
-          }
-        ],
-        "security": [
-          { "oauth2": ["issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "write:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "comment_id",
-          "in": "path",
-          "description": "The id of the comment.",
-          "required": true,
-          "type": "integer",
-          "format": "int64"
-        },
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/vote": {
-      "delete": {
-        "tags": ["Issue tracker"],
-        "description": "Retract your vote.",
-        "summary": "Remove vote for an issue",
-        "responses": {
-          "default": {
-            "description": "Unexpected error.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account:write", "issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "write:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Check whether the authenticated user has voted for this issue.\nA 204 status code indicates that the user has voted, while a 404\nimplies they haven't.",
-        "summary": "Check if current user voted for an issue",
-        "responses": {
-          "204": {
-            "description": "If the authenticated user has not voted for this issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "If the authenticated user has not voted for this issue, or when the repo does not exist, or does not have an issue tracker.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account", "issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "read:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "put": {
-        "tags": ["Issue tracker"],
-        "description": "Vote for this issue.\n\nTo cast your vote, do an empty PUT. The 204 status code indicates that\nthe operation was successful.",
-        "summary": "Vote for an issue",
-        "responses": {
-          "204": {
-            "description": "Indicating the authenticated user has cast their vote successfully.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account:write", "issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "write:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/issues/{issue_id}/watch": {
-      "delete": {
-        "tags": ["Issue tracker"],
-        "description": "Stop watching this issue.",
-        "summary": "Stop watching an issue",
-        "responses": {
-          "204": {
-            "description": "Indicates that the authenticated user successfully stopped watching this issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "The specified repository or issue does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account:write", "issue:write"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "write:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Indicated whether or not the authenticated user is watching this\nissue.",
-        "summary": "Check if current user is watching a issue",
-        "responses": {
-          "204": {
-            "description": "If the authenticated user is watching this issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "If the authenticated user is not watching this issue, or when the repo does not exist, or does not have an issue tracker.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account", "issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket", "read:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "put": {
-        "tags": ["Issue tracker"],
-        "description": "Start watching this issue.\n\nTo start watching this issue, do an empty PUT. The 204 status code\nindicates that the operation was successful.",
-        "summary": "Watch an issue",
-        "responses": {
-          "204": {
-            "description": "Indicates that the authenticated user successfully started watching this issue.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "401": {
-            "description": "When the request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          },
-          "404": {
-            "description": "If the authenticated user is not watching this issue, or when the repo does not exist, or does not have an issue tracker.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["account:write", "issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["write:issue:bitbucket", "write:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "issue_id",
-          "in": "path",
-          "description": "The issue id",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
     "/repositories/{workspace}/{repo_slug}/merge-base/{revspec}": {
       "get": {
         "tags": ["Commits"],
@@ -6334,109 +4819,6 @@
           "name": "revspec",
           "in": "path",
           "description": "A commit range using double dot notation (e.g. `3a8b42..9ff173`).\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/milestones": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the milestones that have been defined in the issue tracker.\n\nThis resource is only available on repositories that have the issue\ntracker enabled.",
-        "summary": "List milestones",
-        "responses": {
-          "200": {
-            "description": "The milestones that have been defined in the issue tracker.",
-            "schema": { "$ref": "#/definitions/paginated_milestones" }
-          },
-          "404": {
-            "description": "The specified repository does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/milestones/{milestone_id}": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue tracker milestone object.",
-        "summary": "Get a milestone",
-        "responses": {
-          "200": {
-            "description": "The specified milestone object.",
-            "schema": { "$ref": "#/definitions/milestone" }
-          },
-          "404": {
-            "description": "The specified repository or milestone does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "milestone_id",
-          "in": "path",
-          "description": "The milestone's id",
-          "required": true,
-          "type": "integer"
-        },
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
           "required": true,
           "type": "string"
         },
@@ -7312,7 +5694,7 @@
       "post": {
         "tags": ["Pipelines"],
         "summary": "Run a pipeline",
-        "description": "Endpoint to create and initiate a pipeline.\nThere are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.\n\n## Trigger a pipeline for a branch\n\nOne way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline.\nThe specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"ref_type\": \"branch\",\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\"\n        }\n      }'\n```\n\n## Trigger a pipeline for a commit on a branch or tag\n\nYou can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark).\nThe specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.\n\nThe following reference types are supported:\n\n* `branch`\n* `named_branch`\n* `bookmark`\n * `tag`\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"type\": \"commit\",\n            \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"\n          },\n          \"ref_type\": \"branch\",\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\"\n        }\n      }'\n```\n\n## Trigger a specific pipeline definition for a commit\n\nYou can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",\n            \"type\":\"commit\"\n          },\n          \"selector\": {\n            \"type\":\"custom\",\n            \"pattern\":\"Deploy to production\"\n          },\n          \"type\":\"pipeline_commit_target\"\n        }\n      }'\n```\n\n## Trigger a specific pipeline definition for a commit on a branch or tag\n\nYou can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",\n            \"type\":\"commit\"\n          },\n          \"selector\": {\n            \"type\": \"custom\",\n            \"pattern\": \"Deploy to production\"\n          },\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\",\n          \"ref_type\": \"branch\"\n        }\n      }'\n```\n\n## Trigger a custom pipeline with variables\n\nIn addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"type\": \"pipeline_ref_target\",\n          \"ref_type\": \"branch\",\n          \"ref_name\": \"master\",\n          \"selector\": {\n            \"type\": \"custom\",\n            \"pattern\": \"Deploy to production\"\n          }\n        },\n        \"variables\": [\n          {\n            \"key\": \"var1key\",\n            \"value\": \"var1value\",\n            \"secured\": true\n          },\n          {\n            \"key\": \"var2key\",\n            \"value\": \"var2value\"\n          }\n        ]\n      }'\n```\n\n## Trigger a pull request pipeline\n\nYou can also initiate a pipeline for a specific pull request.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"type\": \"pipeline_pullrequest_target\",\n          \"source\": \"pull-request-branch\",\n          \"destination\": \"master\",\n          \"destination_commit\": {\n            \"hash\": \"9f848b7\"\n          },\n          \"commit\": {\n            \"hash\": \"1a372fc\"\n          },\n          \"pullrequest\": {\n            \"id\": \"3\"\n          },\n          \"selector\": {\n            \"type\": \"pull-requests\",\n            \"pattern\": \"**\"\n          }\n        }\n      }'\n```\n\n# On-demand pipeline\n\nBy default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file.\nWith an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only\nto that run and overrides the YAML in `bitbucket-pipelines.yml`.\n\nJust like with regular pipelines, there is a number of different options to initiate an on-demand pipeline.\nHowever, since the payload contains YAML configuration in this case, _query parameters_ are used to supply\nthe necessary metadata to determine which type of pipeline will be instantiated. These query parameters\nare derived from the JSON equivalent by turning each property into a key-value pair with the JSON path\nof the property as the new key.\n\n## Trigger on-demand pipeline for a branch\n\nYou can initiate an on-demand pipeline for a specific branch. This branch will be used to determine\nwhich pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline.\nThe pipeline will then do a clone of the repository and check out the latest revision of the specified branch.\n\nTo trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for\nthat branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\\n      -d '\npipelines:\n  default:\n    - step:\n        script:\n          - echo This is an on-demand pipeline'\n```\n\n## Trigger on-demand pipeline for a commit on a branch or tag\n\nYou can initiate an on-demand pipeline for a specific commit and in the context of a specified reference\n(branch or tag). The specified reference will be used to determine which pipeline definition from the supplied\nYAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and\ncheck out the specified reference.\n\nTo trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for\nthat branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\\n      -d '\npipelines:\n  default:\n    - step:\n        script:\n          - echo This is an on-demand pipeline'\n```\n\n## Trigger a specific on-demand pipeline definition for a commit\n\nYou can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies\nthe pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\\n      -d '\npipelines:\n  custom:\n    security-scan:\n      - step:\n          script:\n            - echo Run on-demand security scan\n```\n\n## Trigger a custom on-demand pipeline with variables\n\nIn addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration\nas shown in the examples above, you can specify variables that will be available for your build.\nIn the request, provide each variable as an indexed set of query parameters representing its key, value,\nand whether it should be secured or not (this field is optional and defaults to not secured).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\\n      -d '\npipelines:\n  custom:\n    security-scan:\n      - variables:\n          - name: var1key\n          - name: var2key\n      - step:\n          script:\n            - echo Run on-demand security scan'\n```\n\n## Trigger a pull request pipeline\n\nYou can also initiate an on-demand pipeline for a specific pull request.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\\n      -d '\npipelines:\n  pull-requests:\n    \"**\":\n      - step:\n          script:\n            - echo This is an on-demand pipeline'\n```\n",
+        "description": "Endpoint to create and initiate a pipeline.\nThere are a number of different options to initiate a pipeline, where the payload of the request will determine which type of pipeline will be instantiated.\n\n## Trigger a pipeline for a branch\n\nOne way to trigger pipelines is by specifying the branch for which you want to trigger a pipeline.\nThe specified branch will be used to determine which pipeline definition from the `bitbucket-pipelines.yml` file will be applied to initiate the pipeline. The pipeline will then do a clone of the repository and checkout the latest revision of the specified branch.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"ref_type\": \"branch\",\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\"\n        }\n      }'\n```\n\n## Trigger a pipeline for a commit on a branch or tag\n\nYou can initiate a pipeline for a specific commit and in the context of a specified reference (e.g. a branch, tag or bookmark).\nThe specified reference will be used to determine which pipeline definition from the bitbucket-pipelines.yml file will be applied to initiate the pipeline. The pipeline will clone the repository and then do a checkout the specified reference.\n\nThe following reference types are supported:\n\n* `branch`\n* `named_branch`\n* `bookmark`\n * `tag`\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"type\": \"commit\",\n            \"hash\": \"ce5b7431602f7cbba007062eeb55225c6e18e956\"\n          },\n          \"ref_type\": \"branch\",\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\"\n        }\n      }'\n```\n\n## Trigger a specific pipeline definition for a commit\n\nYou can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",\n            \"type\":\"commit\"\n          },\n          \"selector\": {\n            \"type\":\"custom\",\n            \"pattern\":\"Deploy to production\"\n          },\n          \"type\":\"pipeline_commit_target\"\n        }\n      }'\n```\n\n## Trigger a specific pipeline definition for a commit on a branch or tag\n\nYou can trigger a specific pipeline that is defined in your `bitbucket-pipelines.yml` file for a specific commit in the context of a specified reference.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies the pipeline definition, as well as the reference information. The resulting pipeline will then clone the repository a checkout the specified reference.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"commit\": {\n            \"hash\":\"a3c4e02c9a3755eccdc3764e6ea13facdf30f923\",\n            \"type\":\"commit\"\n          },\n          \"selector\": {\n            \"type\": \"custom\",\n            \"pattern\": \"Deploy to production\"\n          },\n          \"type\": \"pipeline_ref_target\",\n          \"ref_name\": \"master\",\n          \"ref_type\": \"branch\"\n        }\n      }'\n```\n\n## Trigger a custom pipeline with variables\n\nIn addition to triggering a custom pipeline that is defined in your `bitbucket-pipelines.yml` file as shown in the examples above, you can specify variables that will be available for your build. In the request, provide a list of variables, specifying the following for each variable: key, value, and whether it should be secured or not (this field is optional and defaults to not secured).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"type\": \"pipeline_ref_target\",\n          \"ref_type\": \"branch\",\n          \"ref_name\": \"master\",\n          \"selector\": {\n            \"type\": \"custom\",\n            \"pattern\": \"Deploy to production\"\n          }\n        },\n        \"variables\": [\n          {\n            \"key\": \"var1key\",\n            \"value\": \"var1value\",\n            \"secured\": true\n          },\n          {\n            \"key\": \"var2key\",\n            \"value\": \"var2value\"\n          }\n        ]\n      }'\n```\n\n## Trigger a pull request pipeline\n\nYou can also initiate a pipeline for a specific pull request.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/json' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines/ \\\n      -d '\n      {\n        \"target\": {\n          \"type\": \"pipeline_pullrequest_target\",\n          \"source\": \"pull-request-branch\",\n          \"destination\": \"master\",\n          \"destination_commit\": {\n            \"hash\": \"9f848b7\"\n          },\n          \"commit\": {\n            \"hash\": \"1a372fc\"\n          },\n          \"pullrequest\": {\n            \"id\": \"3\"\n          },\n          \"selector\": {\n            \"type\": \"pull-requests\",\n            \"pattern\": \"**\"\n          }\n        }\n      }'\n```\n\n# On-demand pipeline\n\nBy default, pipelines run using the YAML in the repository’s `bitbucket-pipelines.yml` configuration file.\nWith an _on-demand_ pipeline, you include the pipeline’s YAML in the request body. That YAML applies only\nto that run and overrides the YAML in `bitbucket-pipelines.yml`.\n\nJust like with regular pipelines, there is a number of different options to initiate an on-demand pipeline.\nHowever, since the payload contains YAML configuration in this case, _query parameters_ are used to supply\nthe necessary metadata to determine which type of pipeline will be instantiated. These query parameters\nare derived from the JSON equivalent by turning each property into a key-value pair with the JSON path\nof the property as the new key.\n\n## Optional on-demand query parameters\n\nUse `merge_defaults=true` to merge repository-level defaults into the supplied YAML. Pipelines merges\n`image`, `options`, `clone`, `export`, `labels`, and definitions. The supplied YAML still controls\npipeline steps.\n\nUse `target_branch_to_create` to create a branch from the requested branch or commit target before the\nrun starts. Pipelines then uses the new branch as the on-demand pipeline target.\n\n## Trigger on-demand pipeline for a branch\n\nYou can initiate an on-demand pipeline for a specific branch. This branch will be used to determine\nwhich pipeline definition from the supplied YAML configuration will be applied to initiate the pipeline.\nThe pipeline will then do a clone of the repository and check out the latest revision of the specified branch.\n\nTo trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for\nthat branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master \\\n      -d '\npipelines:\n  default:\n    - step:\n        script:\n          - echo This is an on-demand pipeline'\n```\n\n## Trigger on-demand pipeline for a commit on a branch or tag\n\nYou can initiate an on-demand pipeline for a specific commit and in the context of a specified reference\n(branch or tag). The specified reference will be used to determine which pipeline definition from the supplied\nYAML configuration will be applied to initiate the pipeline. The pipeline will clone the repository and\ncheck out the specified reference.\n\nTo trigger an on-demand pipeline for a _branch_ the requesting user must have **write permission** for\nthat branch (which can be limited by [branch restrictions](https://support.atlassian.com/bitbucket-cloud/docs/use-branch-permissions/)).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.commit.hash=ce5b7431602f7cbba007062eeb55225c6e18e956 \\\n      -d '\npipelines:\n  default:\n    - step:\n        script:\n          - echo This is an on-demand pipeline'\n```\n\n## Trigger a specific on-demand pipeline definition for a commit\n\nYou can trigger a specific pipeline that is defined in the supplied YAML configuration for a specific commit.\nIn addition to the commit revision, you specify the type and pattern of the selector that identifies\nthe pipeline definition. The resulting pipeline will then clone the repository and checkout the specified revision.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_commit_target&target.commit.hash=a3c4e02c9a3755eccdc3764e6ea13facdf30f923&target.selector.type=custom&target.selector.pattern=security-scan \\\n      -d '\npipelines:\n  custom:\n    security-scan:\n      - step:\n          script:\n            - echo Run on-demand security scan\n```\n\n## Trigger a custom on-demand pipeline with variables\n\nIn addition to triggering a custom on-demand pipeline that is defined in the supplied YAML configuration\nas shown in the examples above, you can specify variables that will be available for your build.\nIn the request, provide each variable as an indexed set of query parameters representing its key, value,\nand whether it should be secured or not (this field is optional and defaults to not secured).\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_ref_target&target.ref_type=branch&target.ref_name=master&target.selector.type=custom&target.selector.pattern=security-scan&variables[0].key=var1key&variables[0].value=var1value&variables[0].secured=true&variables[1].key=var2key&variables[1].value=var2value \\\n      -d '\npipelines:\n  custom:\n    security-scan:\n      - variables:\n          - name: var1key\n          - name: var2key\n      - step:\n          script:\n            - echo Run on-demand security scan'\n```\n\n## Trigger a pull request pipeline\n\nYou can also initiate an on-demand pipeline for a specific pull request.\n\n### Example\n\n```\n$ curl -X POST -is -u '{atlassian_account_email}:{api_token}' \\\n      -H 'Content-Type: application/yaml' \\\n      https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/pipelines?target.type=pipeline_pullrequest_target&target.source=pull-request-branch&target.destination=destination&target.destination_commit.hash=9f848b7&target.commit.hash=1a372fc&target.pullrequest.id=3&target.selector.type=pull-requests&target.selector.pattern=** \\\n      -d '\npipelines:\n  pull-requests:\n    \"**\":\n      - step:\n          script:\n            - echo This is an on-demand pipeline'\n```\n",
         "operationId": "createPipelineForRepository",
         "parameters": [
           {
@@ -7335,6 +5717,21 @@
             "description": "The pipeline to initiate.",
             "required": true,
             "schema": { "$ref": "#/definitions/pipeline" }
+          },
+          {
+            "name": "merge_defaults",
+            "description": "Whether to merge repository-level defaults into the supplied YAML. Defaults to false.",
+            "required": false,
+            "in": "query",
+            "type": "boolean",
+            "default": false
+          },
+          {
+            "name": "target_branch_to_create",
+            "description": "Optional branch name to create from the requested branch or commit target.",
+            "required": false,
+            "in": "query",
+            "type": "string"
           }
         ],
         "responses": {
@@ -10358,7 +8755,7 @@
             "schema": { "$ref": "#/definitions/comment_resolution" }
           },
           "403": {
-            "description": "If the authenticated user does not have access to the pull request,\nif the provided comment is not a top-level comment,\nor if the comment is not on the diff.",
+            "description": "If the authenticated user does not have access to the pull request,\nor if the provided comment is not a top-level comment.",
             "schema": { "$ref": "#/definitions/error" }
           },
           "404": {
@@ -12361,109 +10758,6 @@
         }
       ]
     },
-    "/repositories/{workspace}/{repo_slug}/versions": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the versions that have been defined in the issue tracker.\n\nThis resource is only available on repositories that have the issue\ntracker enabled.",
-        "summary": "List defined versions for issues",
-        "responses": {
-          "200": {
-            "description": "The versions that have been defined in the issue tracker.",
-            "schema": { "$ref": "#/definitions/paginated_versions" }
-          },
-          "404": {
-            "description": "The specified repository does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
-    "/repositories/{workspace}/{repo_slug}/versions/{version_id}": {
-      "get": {
-        "tags": ["Issue tracker"],
-        "description": "Returns the specified issue tracker version object.",
-        "summary": "Get a defined version for issues",
-        "responses": {
-          "200": {
-            "description": "The specified version object.",
-            "schema": { "$ref": "#/definitions/version" }
-          },
-          "404": {
-            "description": "The specified repository or version does not exist or does not have the issue tracker enabled.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [],
-        "security": [
-          { "oauth2": ["issue"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:issue:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": [
-        {
-          "name": "repo_slug",
-          "in": "path",
-          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
-          "required": true,
-          "type": "string"
-        },
-        {
-          "name": "version_id",
-          "in": "path",
-          "description": "The version's id",
-          "required": true,
-          "type": "integer"
-        },
-        {
-          "name": "workspace",
-          "in": "path",
-          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
-          "required": true,
-          "type": "string"
-        }
-      ]
-    },
     "/repositories/{workspace}/{repo_slug}/watchers": {
       "get": {
         "tags": ["Repositories"],
@@ -12508,45 +10802,6 @@
       ]
     },
     "/snippets": {
-      "get": {
-        "tags": ["Snippets"],
-        "description": "**This endpoint is deprecated. Please use the\n[workspace scoped alternative](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-get).**\n\nReturns all snippets. Like pull requests, repositories and workspaces, the\nfull set of snippets is defined by what the current user has access to.\n\nThis includes all snippets owned by any of the workspaces the user is a member of,\nor snippets by other users that the current user is either watching or has collaborated\non (for instance by commenting on it).\n\nTo limit the set of returned snippets, apply the\n`?role=[owner|contributor|member]` query parameter where the roles are\ndefined as follows:\n\n* `owner`: all snippets owned by the current user\n* `contributor`: all snippets owned by, or watched by the current user\n* `member`: created in a workspaces or watched by the current user\n\nWhen no role is specified, all public snippets are returned, as well as all\nprivately owned snippets watched or commented on.\n\nThe returned response is a normal paginated JSON list. This endpoint\nonly supports `application/json` responses and no\n`multipart/form-data` or `multipart/related`. As a result, it is not\npossible to include the file contents.",
-        "summary": "List snippets",
-        "responses": {
-          "200": {
-            "description": "A paginated list of snippets.",
-            "schema": { "$ref": "#/definitions/paginated_snippets" }
-          },
-          "404": {
-            "description": "If the snippet does not exist.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "role",
-            "in": "query",
-            "description": "Filter down the result based on the authenticated user's role (`owner`, `contributor`, or `member`).",
-            "required": false,
-            "type": "string",
-            "enum": ["owner", "contributor", "member"]
-          }
-        ],
-        "security": [
-          { "oauth2": ["snippet"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:snippet:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
       "post": {
         "tags": ["Snippets"],
         "description": "Creates a new snippet under the authenticated user's account.\n\nSnippets can contain multiple files. Both text and binary files are\nsupported.\n\nThe simplest way to create a new snippet from a local file:\n\n    $ curl -u username:password -X POST https://api.bitbucket.org/2.0/snippets               -F file=@image.png\n\nCreating snippets through curl has a few limitations and so let's look\nat a more complicated scenario.\n\nSnippets are created with a multipart POST. Both `multipart/form-data`\nand `multipart/related` are supported. Both allow the creation of\nsnippets with both meta data (title, etc), as well as multiple text\nand binary files.\n\nThe main difference is that `multipart/related` can use rich encoding\nfor the meta data (currently JSON).\n\n\nmultipart/related (RFC-2387)\n----------------------------\n\nThis is the most advanced and efficient way to create a paste.\n\n    POST /2.0/snippets/evzijst HTTP/1.1\n    Content-Length: 1188\n    Content-Type: multipart/related; start=\"snippet\"; boundary=\"===============1438169132528273974==\"\n    MIME-Version: 1.0\n\n    --===============1438169132528273974==\n    Content-Type: application/json; charset=\"utf-8\"\n    MIME-Version: 1.0\n    Content-ID: snippet\n\n    {\n      \"title\": \"My snippet\",\n      \"is_private\": true,\n      \"scm\": \"git\",\n      \"files\": {\n          \"foo.txt\": {},\n          \"image.png\": {}\n        }\n    }\n\n    --===============1438169132528273974==\n    Content-Type: text/plain; charset=\"us-ascii\"\n    MIME-Version: 1.0\n    Content-Transfer-Encoding: 7bit\n    Content-ID: \"foo.txt\"\n    Content-Disposition: attachment; filename=\"foo.txt\"\n\n    foo\n\n    --===============1438169132528273974==\n    Content-Type: image/png\n    MIME-Version: 1.0\n    Content-Transfer-Encoding: base64\n    Content-ID: \"image.png\"\n    Content-Disposition: attachment; filename=\"image.png\"\n\n    iVBORw0KGgoAAAANSUhEUgAAABQAAAAoCAYAAAD+MdrbAAABD0lEQVR4Ae3VMUoDQRTG8ccUaW2m\n    TKONFxArJYJamCvkCnZTaa+VnQdJSBFl2SMsLFrEWNjZBZs0JgiL/+KrhhVmJRbCLPx4O+/DT2TB\n    cbblJxf+UWFVVRNsEGAtgvJxnLm2H+A5RQ93uIl+3632PZyl/skjfOn9Gvdwmlcw5aPUwimG+NT5\n    EnNN036IaZePUuIcK533NVfal7/5yjWeot2z9ta1cAczHEf7I+3J0ws9Cgx0fsOFpmlfwKcWPuBQ\n    73Oc4FHzBaZ8llq4q1mr5B2mOUCt815qYR8eB1hG2VJ7j35q4RofaH7IG+Xrf/PfJhfmwtfFYoIN\n    AqxFUD6OMxcvkO+UfKfkOyXfKdsv/AYCHMLVkHAFWgAAAABJRU5ErkJggg==\n    --===============1438169132528273974==--\n\nThe request contains multiple parts and is structured as follows.\n\nThe first part is the JSON document that describes the snippet's\nproperties or meta data. It either has to be the first part, or the\nrequest's `Content-Type` header must contain the `start` parameter to\npoint to it.\n\nThe remaining parts are the files of which there can be zero or more.\nEach file part should contain the `Content-ID` MIME header through\nwhich the JSON meta data's `files` element addresses it. The value\nshould be the name of the file.\n\n`Content-Disposition` is an optional MIME header. The header's\noptional `filename` parameter can be used to specify the file name\nthat Bitbucket should use when writing the file to disk. When present,\n`filename` takes precedence over the value of `Content-ID`.\n\nWhen the JSON body omits the `files` element, the remaining parts are\nnot ignored. Instead, each file is added to the new snippet as if its\nname was explicitly linked (the use of the `files` elements is\nmandatory for some operations like deleting or renaming files).\n\n\nmultipart/form-data\n-------------------\n\nThe use of JSON for the snippet's meta data is optional. Meta data can\nalso be supplied as regular form fields in a more conventional\n`multipart/form-data` request:\n\n    $ curl -X POST -u credentials https://api.bitbucket.org/2.0/snippets               -F title=\"My snippet\"               -F file=@foo.txt -F file=@image.png\n\n    POST /2.0/snippets HTTP/1.1\n    Content-Length: 951\n    Content-Type: multipart/form-data; boundary=----------------------------63a4b224c59f\n\n    ------------------------------63a4b224c59f\n    Content-Disposition: form-data; name=\"file\"; filename=\"foo.txt\"\n    Content-Type: text/plain\n\n    foo\n\n    ------------------------------63a4b224c59f\n    Content-Disposition: form-data; name=\"file\"; filename=\"image.png\"\n    Content-Type: application/octet-stream\n\n    ?PNG\n\n    IHDR?1??I.....\n    ------------------------------63a4b224c59f\n    Content-Disposition: form-data; name=\"title\"\n\n    My snippet\n    ------------------------------63a4b224c59f--\n\nHere the meta data properties are included as flat, top-level form\nfields. The file attachments use the `file` field name. To attach\nmultiple files, simply repeat the field.\n\nThe advantage of `multipart/form-data` over `multipart/related` is\nthat it can be easier to build clients.\n\nEssentially all properties are optional, `title` and `files` included.\n\n\nSharing and Visibility\n----------------------\n\nSnippets can be either public (visible to anyone on Bitbucket, as well\nas anonymous users), or private (visible only to members of the workspace).\nThis is controlled through the snippet's `is_private` element:\n\n* **is_private=false** -- everyone, including anonymous users can view\n  the snippet\n* **is_private=true** -- only workspace members can view the snippet\n\nTo create the snippet under a workspace, just append the workspace ID\nto the URL. See [`/2.0/snippets/{workspace}`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-workspace-post).",
@@ -12595,7 +10850,7 @@
     "/snippets/{workspace}": {
       "get": {
         "tags": ["Snippets"],
-        "description": "Identical to [`/snippets`](/cloud/bitbucket/rest/api-group-snippets/#api-snippets-get), except that the result is further filtered\nby the snippet owner and only those that are owned by `{workspace}` are\nreturned.",
+        "description": "Returns a paginated list of snippets owned by `{workspace}`.\n\nTo limit the set of returned snippets, apply the\n`?role=[owner|contributor|member]` query parameter where the roles are\ndefined as follows:\n\n* `owner`: snippets owned by `{workspace}` that also belong to the current user\n    (only returns results when `{workspace}` is the current user's personal workspace)\n* `contributor`: snippets owned by `{workspace}` that the current user is watching,\n    plus any owned by `{workspace}` and the current user\n* `member`: all snippets owned by `{workspace}` if the current user is a member,\n    otherwise only those the current user is watching\n\nWhen no role is specified, all snippets owned by `{workspace}` are returned.\n\nIf the current user is not a member of `{workspace}`, only public snippets are\nreturned regardless of role.\n\nThe returned response is a normal paginated JSON list. This endpoint\nonly supports `application/json` responses and no\n`multipart/form-data` or `multipart/related`. As a result, it is not\npossible to include the file contents.",
         "summary": "List snippets in a workspace",
         "responses": {
           "200": {
@@ -14148,154 +12403,6 @@
         }
       ]
     },
-    "/user/permissions/repositories": {
-      "get": {
-        "tags": ["Repositories"],
-        "description": "**This endpoint is deprecated. Please use the\n[workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-user-workspaces-workspace-permissions-repositories-get).**\n\nReturns an object for each repository the caller has explicit access\nto and their effective permission — the highest level of permission the\ncaller has. This does not return public repositories that the user was\nnot granted any specific permission in, and does not distinguish between\nexplicit and implicit privileges.\n\nPermissions can be:\n\n* `admin`\n* `write`\n* `read`\n\nResults may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by\nrepository or permission by adding the following query string\nparameters:\n\n* `q=repository.name=\"geordi\"` or `q=permission>\"read\"`\n* `sort=repository.name`\n\nNote that the query parameter values need to be URL escaped so that `=`\nwould become `%3D`.",
-        "summary": "List repository permissions for a user",
-        "responses": {
-          "200": {
-            "description": "Repository permissions for the repositories a caller has explicit access to.",
-            "schema": {
-              "$ref": "#/definitions/paginated_repository_permissions"
-            },
-            "examples": {
-              "application/json": {
-                "pagelen": 10,
-                "values": [
-                  {
-                    "type": "repository_permission",
-                    "user": {
-                      "type": "user",
-                      "nickname": "evzijst",
-                      "display_name": "Erik van Zijst",
-                      "uuid": "{d301aafa-d676-4ee0-88be-962be7417567}"
-                    },
-                    "repository": {
-                      "type": "repository",
-                      "name": "geordi",
-                      "full_name": "bitbucket/geordi",
-                      "uuid": "{85d08b4e-571d-44e9-a507-fa476535aa98}"
-                    },
-                    "permission": "admin"
-                  }
-                ],
-                "page": 1,
-                "size": 1
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "description": "\nQuery string to narrow down the response as per\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "\nName of a response property sort the result by as per\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["account", "repository"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:repository:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": []
-    },
-    "/user/permissions/workspaces": {
-      "get": {
-        "tags": ["Workspaces"],
-        "description": "**This endpoint is deprecated. Please use the supported alternatives:**\n* [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get)\n* [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)\n\nReturns an object for each workspace the caller is a member of, and\ntheir effective role - the highest level of privilege the caller has.\nIf a user is a member of multiple groups with distinct roles, only the\nhighest level is returned.\n\nPermissions can be:\n\n* `owner`\n* `collaborator`\n* `member`\n\n**The `collaborator` role is being removed from the Bitbucket Cloud API. For more information,\nsee the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**\n\n**When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on\n`workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the\n[deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**\n\nResults may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by\nworkspace or permission by adding the following query string parameters:\n\n* `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"`\n* `sort=workspace.slug`\n\nNote that the query parameter values need to be URL escaped so that `=`\nwould become `%3D`.",
-        "summary": "List workspaces for the current user",
-        "responses": {
-          "200": {
-            "description": "All of the workspace memberships for the authenticated user.",
-            "schema": {
-              "$ref": "#/definitions/paginated_workspace_memberships"
-            },
-            "examples": {
-              "application/json": {
-                "pagelen": 10,
-                "page": 1,
-                "size": 1,
-                "values": [
-                  {
-                    "type": "workspace_membership",
-                    "permission": "owner",
-                    "last_accessed": "2019-03-07T12:35:02.900024+00:00",
-                    "added_on": "2018-10-11T17:42:02.961424+00:00",
-                    "user": {
-                      "type": "user",
-                      "uuid": "{470c176d-3574-44ea-bb41-89e8638bcca4}",
-                      "nickname": "evzijst",
-                      "display_name": "Erik van Zijst"
-                    },
-                    "workspace": {
-                      "type": "workspace",
-                      "uuid": "{a15fb181-db1f-48f7-b41f-e1eff06929d6}",
-                      "slug": "bbworkspace1",
-                      "name": "Atlassian Bitbucket"
-                    }
-                  }
-                ]
-              }
-            }
-          },
-          "401": {
-            "description": "The request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "q",
-            "in": "query",
-            "description": "\nQuery string to narrow down the response. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "\nName of a response property to sort results. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results)\nfor details.\n",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["account"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:workspace:bitbucket", "read:user:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": []
-    },
     "/user/workspaces": {
       "get": {
         "tags": ["Workspaces"],
@@ -15624,103 +13731,6 @@
           "type": "string"
         }
       ]
-    },
-    "/workspaces": {
-      "get": {
-        "tags": ["Workspaces"],
-        "description": "**This endpoint is deprecated. Please use the\n[supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**\n\nReturns a list of workspaces accessible by the authenticated user.\n\nResults may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by\nworkspace or permission by adding the following query string parameters:\n\n* `q=slug=\"bbworkspace1\"` or `q=is_private=true`\n* `sort=created_on`\n\nNote that the query parameter values need to be URL escaped so that `=`\nwould become `%3D`.\n\n**The `collaborator` role is being removed from the Bitbucket Cloud API. For more information,\nsee the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**",
-        "summary": "List workspaces for user",
-        "responses": {
-          "200": {
-            "description": "The list of workspaces accessible by the authenticated user.",
-            "schema": { "$ref": "#/definitions/paginated_workspaces" },
-            "examples": {
-              "application/json": {
-                "pagelen": 10,
-                "page": 1,
-                "size": 1,
-                "values": [
-                  {
-                    "uuid": "{a15fb181-db1f-48f7-b41f-e1eff06929d6}",
-                    "links": {
-                      "owners": {
-                        "href": "https://api.bitbucket.org/2.0/workspaces/bbworkspace1/members?q=permission%3D%22owner%22"
-                      },
-                      "self": {
-                        "href": "https://api.bitbucket.org/2.0/workspaces/bbworkspace1"
-                      },
-                      "repositories": {
-                        "href": "https://api.bitbucket.org/2.0/repositories/bbworkspace1"
-                      },
-                      "snippets": {
-                        "href": "https://api.bitbucket.org/2.0/snippets/bbworkspace1"
-                      },
-                      "html": { "href": "https://bitbucket.org/bbworkspace1/" },
-                      "avatar": {
-                        "href": "https://bitbucket.org/workspaces/bbworkspace1/avatar/?ts=1543465801"
-                      },
-                      "members": {
-                        "href": "https://api.bitbucket.org/2.0/workspaces/bbworkspace1/members"
-                      },
-                      "projects": {
-                        "href": "https://api.bitbucket.org/2.0/workspaces/bbworkspace1/projects"
-                      }
-                    },
-                    "created_on": "2018-11-14T19:15:05.058566+00:00",
-                    "type": "workspace",
-                    "slug": "bbworkspace1",
-                    "is_private": true,
-                    "name": "Atlassian Bitbucket"
-                  }
-                ]
-              }
-            }
-          },
-          "401": {
-            "description": "The request wasn't authenticated.",
-            "schema": { "$ref": "#/definitions/error" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "role",
-            "in": "query",
-            "description": "\n            Filters the workspaces based on the authenticated user's role on each workspace.\n\n            * **member**: returns a list of all the workspaces which the caller is a member of\n                at least one workspace group or repository\n            * **collaborator**: returns a list of workspaces which the caller has write access\n                to at least one repository in the workspace\n            * **owner**: returns a list of workspaces which the caller has administrator access\n            ",
-            "required": false,
-            "type": "string",
-            "enum": ["owner", "collaborator", "member"]
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "\nQuery string to narrow down the response. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details.",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "\nName of a response property to sort results. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results)\nfor details.\n",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["account"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:user:bitbucket", "read:workspace:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": []
     },
     "/workspaces/{workspace}": {
       "get": {
@@ -18634,6 +16644,260 @@
     }
   },
   "definitions": {
+    "webhook_subscription": {
+      "allOf": [
+        { "$ref": "#/definitions/object" },
+        {
+          "type": "object",
+          "title": "Webhook Subscription",
+          "description": "A Webhook subscription.",
+          "properties": {
+            "uuid": { "type": "string", "description": "The webhook's id" },
+            "url": {
+              "type": "string",
+              "description": "The URL events get delivered to.",
+              "format": "uri"
+            },
+            "description": {
+              "type": "string",
+              "description": "A user-defined description of the webhook."
+            },
+            "subject_type": {
+              "type": "string",
+              "description": "The type of entity. Set to either `repository` or `workspace` based on where the subscription is defined.",
+              "enum": ["repository", "workspace"]
+            },
+            "subject": { "$ref": "#/definitions/object" },
+            "active": { "type": "boolean" },
+            "created_at": { "type": "string", "format": "date-time" },
+            "events": {
+              "type": "array",
+              "description": "The events this webhook is subscribed to.",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "issue:comment_created",
+                  "issue:created",
+                  "issue:updated",
+                  "pipeline:span_created",
+                  "project:updated",
+                  "pullrequest:approved",
+                  "pullrequest:changes_request_created",
+                  "pullrequest:changes_request_removed",
+                  "pullrequest:comment_created",
+                  "pullrequest:comment_deleted",
+                  "pullrequest:comment_reopened",
+                  "pullrequest:comment_resolved",
+                  "pullrequest:comment_updated",
+                  "pullrequest:created",
+                  "pullrequest:fulfilled",
+                  "pullrequest:push",
+                  "pullrequest:rejected",
+                  "pullrequest:unapproved",
+                  "pullrequest:updated",
+                  "repo:commit_comment_created",
+                  "repo:commit_status_created",
+                  "repo:commit_status_updated",
+                  "repo:created",
+                  "repo:deleted",
+                  "repo:fork",
+                  "repo:imported",
+                  "repo:push",
+                  "repo:transfer",
+                  "repo:updated"
+                ]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "secret_set": {
+              "type": "boolean",
+              "description": "Indicates whether or not the hook has an associated secret. It is not possible to see the hook's secret. This field is ignored during updates."
+            },
+            "secret": {
+              "type": "string",
+              "description": "The secret to associate with the hook. The secret is never returned via the API. As such, this field is only used during updates. The secret can be set to `null` or \"\" to remove the secret (or create a hook with no secret). Leaving out the secret field during updates will leave the secret unchanged. Leaving out the secret during creation will create a hook with no secret.",
+              "minLength": 0,
+              "maxLength": 128
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "paginated_webhook_subscriptions": {
+      "type": "object",
+      "title": "Paginated Webhook Subscriptions",
+      "description": "A paginated list of webhook subscriptions",
+      "properties": {
+        "size": {
+          "type": "integer",
+          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
+          "minimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
+          "minimum": 1
+        },
+        "pagelen": {
+          "type": "integer",
+          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
+          "minimum": 1
+        },
+        "next": {
+          "type": "string",
+          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
+          "format": "uri"
+        },
+        "previous": {
+          "type": "string",
+          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
+          "format": "uri"
+        },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/webhook_subscription" },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "subject_types": {
+      "type": "object",
+      "title": "Subject Types",
+      "description": "The mapping of resource/subject types pointing to their individual event types.",
+      "properties": {
+        "repository": {
+          "type": "object",
+          "properties": {
+            "events": {
+              "type": "object",
+              "title": "Link",
+              "description": "A link to a resource related to this object.",
+              "properties": {
+                "href": { "type": "string", "format": "uri" },
+                "name": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "workspace": {
+          "type": "object",
+          "properties": {
+            "events": {
+              "type": "object",
+              "title": "Link",
+              "description": "A link to a resource related to this object.",
+              "properties": {
+                "href": { "type": "string", "format": "uri" },
+                "name": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "hook_event": {
+      "type": "object",
+      "title": "Hook Event",
+      "description": "An event, associated with a resource or subject type.",
+      "properties": {
+        "event": {
+          "type": "string",
+          "description": "The event identifier.",
+          "enum": [
+            "issue:comment_created",
+            "issue:created",
+            "issue:updated",
+            "pipeline:span_created",
+            "project:updated",
+            "pullrequest:approved",
+            "pullrequest:changes_request_created",
+            "pullrequest:changes_request_removed",
+            "pullrequest:comment_created",
+            "pullrequest:comment_deleted",
+            "pullrequest:comment_reopened",
+            "pullrequest:comment_resolved",
+            "pullrequest:comment_updated",
+            "pullrequest:created",
+            "pullrequest:fulfilled",
+            "pullrequest:push",
+            "pullrequest:rejected",
+            "pullrequest:unapproved",
+            "pullrequest:updated",
+            "repo:commit_comment_created",
+            "repo:commit_status_created",
+            "repo:commit_status_updated",
+            "repo:created",
+            "repo:deleted",
+            "repo:fork",
+            "repo:imported",
+            "repo:push",
+            "repo:transfer",
+            "repo:updated"
+          ]
+        },
+        "category": {
+          "type": "string",
+          "description": "The category this event belongs to."
+        },
+        "label": {
+          "type": "string",
+          "description": "Summary of the webhook event type."
+        },
+        "description": {
+          "type": "string",
+          "description": "More detailed description of the webhook event type."
+        }
+      },
+      "additionalProperties": false
+    },
+    "paginated_hook_events": {
+      "type": "object",
+      "title": "Paginated Hook Events",
+      "description": "A paginated list of webhook types available to subscribe on.",
+      "properties": {
+        "size": {
+          "type": "integer",
+          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
+          "minimum": 0
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
+          "minimum": 1
+        },
+        "pagelen": {
+          "type": "integer",
+          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
+          "minimum": 1
+        },
+        "next": {
+          "type": "string",
+          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
+          "format": "uri"
+        },
+        "previous": {
+          "type": "string",
+          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
+          "format": "uri"
+        },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/hook_event" },
+          "minItems": 0,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
     "application_property": {
       "additionalProperties": true,
       "type": "object",
@@ -20897,38 +19161,6 @@
       "additionalProperties": true,
       "discriminator": "type"
     },
-    "issue_job_status": {
-      "type": "object",
-      "title": "Issue Job Status",
-      "description": "The status of an import or export job",
-      "properties": {
-        "type": { "type": "string" },
-        "status": {
-          "type": "string",
-          "description": "The status of the import/export job",
-          "enum": ["ACCEPTED", "STARTED", "RUNNING", "FAILURE"]
-        },
-        "phase": {
-          "type": "string",
-          "description": "The phase of the import/export job"
-        },
-        "total": {
-          "type": "integer",
-          "description": "The total number of issues being imported/exported"
-        },
-        "count": {
-          "type": "integer",
-          "description": "The total number of issues already imported/exported"
-        },
-        "pct": {
-          "type": "number",
-          "description": "The percentage of issues already imported/exported",
-          "minimum": 0,
-          "maximum": 100
-        }
-      },
-      "additionalProperties": false
-    },
     "bitbucket.apps.permissions.serializers.ProjectPermissionUpdateSchema": {
       "type": "object",
       "properties": {
@@ -21026,46 +19258,6 @@
         "resolved_by": { "$ref": "#/definitions/account" }
       },
       "required": ["created_on", "updated_on", "state", "content", "creator"],
-      "additionalProperties": false
-    },
-    "subject_types": {
-      "type": "object",
-      "title": "Subject Types",
-      "description": "The mapping of resource/subject types pointing to their individual event types.",
-      "properties": {
-        "repository": {
-          "type": "object",
-          "properties": {
-            "events": {
-              "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
-              "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "workspace": {
-          "type": "object",
-          "properties": {
-            "events": {
-              "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
-              "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        }
-      },
       "additionalProperties": false
     },
     "error": {
@@ -21912,590 +20104,6 @@
         "values": {
           "type": "array",
           "items": { "$ref": "#/definitions/commitstatus" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "export_options": {
-      "type": "object",
-      "title": "Export Options",
-      "description": "Options for issue export.",
-      "properties": {
-        "type": { "type": "string" },
-        "project_key": { "type": "string" },
-        "project_name": { "type": "string" },
-        "send_email": { "type": "boolean" },
-        "include_attachments": { "type": "boolean" }
-      },
-      "required": ["type"],
-      "additionalProperties": true
-    },
-    "issue_change": {
-      "type": "object",
-      "title": "Issue Change",
-      "description": "An issue change.",
-      "properties": {
-        "type": { "type": "string" },
-        "links": {
-          "type": "object",
-          "properties": {
-            "self": {
-              "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
-              "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "issue": {
-              "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
-              "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "name": { "type": "string" },
-        "created_on": { "type": "string", "format": "date-time" },
-        "user": { "$ref": "#/definitions/account" },
-        "issue": { "$ref": "#/definitions/issue" },
-        "changes": {
-          "type": "object",
-          "properties": {
-            "assignee": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "state": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "title": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "kind": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "milestone": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "component": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "priority": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "version": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            },
-            "content": {
-              "type": "object",
-              "properties": {
-                "old": { "type": "string" },
-                "new": { "type": "string" }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": false
-        },
-        "message": {
-          "type": "object",
-          "properties": {
-            "raw": {
-              "type": "string",
-              "description": "The text as it was typed by a user."
-            },
-            "markup": {
-              "type": "string",
-              "description": "The type of markup language the raw content is to be interpreted in.",
-              "enum": ["markdown", "creole", "plaintext"]
-            },
-            "html": {
-              "type": "string",
-              "description": "The user's content rendered as HTML."
-            }
-          },
-          "additionalProperties": false
-        }
-      },
-      "required": ["type"],
-      "additionalProperties": true
-    },
-    "issue": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Issue",
-          "description": "An issue.",
-          "properties": {
-            "links": {
-              "type": "object",
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                },
-                "html": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                },
-                "comments": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                },
-                "attachments": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                },
-                "watch": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                },
-                "vote": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            },
-            "id": { "type": "integer" },
-            "repository": { "$ref": "#/definitions/repository" },
-            "title": { "type": "string" },
-            "reporter": { "$ref": "#/definitions/account" },
-            "assignee": { "$ref": "#/definitions/account" },
-            "created_on": { "type": "string", "format": "date-time" },
-            "updated_on": { "type": "string", "format": "date-time" },
-            "edited_on": { "type": "string", "format": "date-time" },
-            "state": {
-              "type": "string",
-              "enum": [
-                "submitted",
-                "new",
-                "open",
-                "resolved",
-                "on hold",
-                "invalid",
-                "duplicate",
-                "wontfix",
-                "closed"
-              ]
-            },
-            "kind": {
-              "type": "string",
-              "enum": ["bug", "enhancement", "proposal", "task"]
-            },
-            "priority": {
-              "type": "string",
-              "enum": ["trivial", "minor", "major", "critical", "blocker"]
-            },
-            "milestone": { "$ref": "#/definitions/milestone" },
-            "version": { "$ref": "#/definitions/version" },
-            "component": { "$ref": "#/definitions/component" },
-            "votes": { "type": "integer" },
-            "content": {
-              "type": "object",
-              "properties": {
-                "raw": {
-                  "type": "string",
-                  "description": "The text as it was typed by a user."
-                },
-                "markup": {
-                  "type": "string",
-                  "description": "The type of markup language the raw content is to be interpreted in.",
-                  "enum": ["markdown", "creole", "plaintext"]
-                },
-                "html": {
-                  "type": "string",
-                  "description": "The user's content rendered as HTML."
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "paginated_components": {
-      "type": "object",
-      "title": "Paginated Components",
-      "description": "A paginated list of issue tracker components.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/component" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "issue_attachment": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Issue Attachment",
-          "description": "An issue file attachment's meta data. Note this does not contain the file's actual contents.",
-          "properties": {
-            "links": {
-              "type": "object",
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            },
-            "name": { "type": "string" }
-          },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "paginated_issue_attachments": {
-      "type": "object",
-      "title": "Paginated Issue Attachment",
-      "description": "A paginated list of issue attachments.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/issue_attachment" },
-          "minItems": 0
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_log_entries": {
-      "type": "object",
-      "title": "Paginated Log Entries",
-      "description": "A paginated list of issue changes.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/issue_change" },
-          "minItems": 0
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_issue_comments": {
-      "type": "object",
-      "title": "Paginated Issue Comments",
-      "description": "A paginated list of issue comments.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/issue_comment" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_issues": {
-      "type": "object",
-      "title": "Paginated Issues",
-      "description": "A paginated list of issues.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/issue" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_milestones": {
-      "type": "object",
-      "title": "Paginated Milestones",
-      "description": "A paginated list of issue tracker milestones.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/milestone" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_versions": {
-      "type": "object",
-      "title": "Paginated Versions",
-      "description": "A paginated list of issue tracker versions.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/version" },
           "minItems": 0,
           "uniqueItems": true
         }
@@ -24562,220 +22170,6 @@
         }
       ]
     },
-    "hook_event": {
-      "type": "object",
-      "title": "Hook Event",
-      "description": "An event, associated with a resource or subject type.",
-      "properties": {
-        "event": {
-          "type": "string",
-          "description": "The event identifier.",
-          "enum": [
-            "issue:comment_created",
-            "issue:created",
-            "issue:updated",
-            "pipeline:span_created",
-            "project:updated",
-            "pullrequest:approved",
-            "pullrequest:changes_request_created",
-            "pullrequest:changes_request_removed",
-            "pullrequest:comment_created",
-            "pullrequest:comment_deleted",
-            "pullrequest:comment_reopened",
-            "pullrequest:comment_resolved",
-            "pullrequest:comment_updated",
-            "pullrequest:created",
-            "pullrequest:fulfilled",
-            "pullrequest:push",
-            "pullrequest:rejected",
-            "pullrequest:unapproved",
-            "pullrequest:updated",
-            "repo:commit_comment_created",
-            "repo:commit_status_created",
-            "repo:commit_status_updated",
-            "repo:created",
-            "repo:deleted",
-            "repo:fork",
-            "repo:imported",
-            "repo:push",
-            "repo:transfer",
-            "repo:updated"
-          ]
-        },
-        "category": {
-          "type": "string",
-          "description": "The category this event belongs to."
-        },
-        "label": {
-          "type": "string",
-          "description": "Summary of the webhook event type."
-        },
-        "description": {
-          "type": "string",
-          "description": "More detailed description of the webhook event type."
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_hook_events": {
-      "type": "object",
-      "title": "Paginated Hook Events",
-      "description": "A paginated list of webhook types available to subscribe on.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/hook_event" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "webhook_subscription": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Webhook Subscription",
-          "description": "A Webhook subscription.",
-          "properties": {
-            "uuid": { "type": "string", "description": "The webhook's id" },
-            "url": {
-              "type": "string",
-              "description": "The URL events get delivered to.",
-              "format": "uri"
-            },
-            "description": {
-              "type": "string",
-              "description": "A user-defined description of the webhook."
-            },
-            "subject_type": {
-              "type": "string",
-              "description": "The type of entity. Set to either `repository` or `workspace` based on where the subscription is defined.",
-              "enum": ["repository", "workspace"]
-            },
-            "subject": { "$ref": "#/definitions/object" },
-            "active": { "type": "boolean" },
-            "created_at": { "type": "string", "format": "date-time" },
-            "events": {
-              "type": "array",
-              "description": "The events this webhook is subscribed to.",
-              "items": {
-                "type": "string",
-                "enum": [
-                  "issue:comment_created",
-                  "issue:created",
-                  "issue:updated",
-                  "pipeline:span_created",
-                  "project:updated",
-                  "pullrequest:approved",
-                  "pullrequest:changes_request_created",
-                  "pullrequest:changes_request_removed",
-                  "pullrequest:comment_created",
-                  "pullrequest:comment_deleted",
-                  "pullrequest:comment_reopened",
-                  "pullrequest:comment_resolved",
-                  "pullrequest:comment_updated",
-                  "pullrequest:created",
-                  "pullrequest:fulfilled",
-                  "pullrequest:push",
-                  "pullrequest:rejected",
-                  "pullrequest:unapproved",
-                  "pullrequest:updated",
-                  "repo:commit_comment_created",
-                  "repo:commit_status_created",
-                  "repo:commit_status_updated",
-                  "repo:created",
-                  "repo:deleted",
-                  "repo:fork",
-                  "repo:imported",
-                  "repo:push",
-                  "repo:transfer",
-                  "repo:updated"
-                ]
-              },
-              "minItems": 1,
-              "uniqueItems": true
-            },
-            "secret_set": {
-              "type": "boolean",
-              "description": "Indicates whether or not the hook has an associated secret. It is not possible to see the hook's secret. This field is ignored during updates."
-            },
-            "secret": {
-              "type": "string",
-              "description": "The secret to associate with the hook. The secret is never returned via the API. As such, this field is only used during updates. The secret can be set to `null` or \"\" to remove the secret (or create a hook with no secret). Leaving out the secret field during updates will leave the secret unchanged. Leaving out the secret during creation will create a hook with no secret.",
-              "minLength": 0,
-              "maxLength": 128
-            }
-          },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "paginated_webhook_subscriptions": {
-      "type": "object",
-      "title": "Paginated Webhook Subscriptions",
-      "description": "A paginated list of webhook subscriptions",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/webhook_subscription" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
     "workspace_access": {
       "allOf": [
         { "$ref": "#/definitions/object" },
@@ -24913,45 +22307,6 @@
         "values": {
           "type": "array",
           "items": { "$ref": "#/definitions/workspace_membership" },
-          "minItems": 0,
-          "uniqueItems": true
-        }
-      },
-      "additionalProperties": false
-    },
-    "paginated_workspaces": {
-      "type": "object",
-      "title": "Paginated Workspaces",
-      "description": "A paginated list of workspaces.",
-      "properties": {
-        "size": {
-          "type": "integer",
-          "description": "Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.",
-          "minimum": 0
-        },
-        "page": {
-          "type": "integer",
-          "description": "Page number of the current results. This is an optional element that is not provided in all responses.",
-          "minimum": 1
-        },
-        "pagelen": {
-          "type": "integer",
-          "description": "Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.",
-          "minimum": 1
-        },
-        "next": {
-          "type": "string",
-          "description": "Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "previous": {
-          "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
-          "format": "uri"
-        },
-        "values": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/workspace" },
           "minItems": 0,
           "uniqueItems": true
         }
@@ -25258,6 +22613,11 @@
               "type": "string",
               "description": "Apply the restriction to branches that match this pattern. Active when `branch_match_kind` is `glob`. Will be empty when `branch_match_kind` is `branching_model`."
             },
+            "pipelines_source_branches": {
+              "type": "array",
+              "description": "List of source branch names allowed to push back to the restricted branch. Used in conjunction with pipeline-based restrictions.",
+              "items": { "type": "string" }
+            },
             "value": {
               "type": "integer",
               "description": "Value with kind-specific semantics:\n\n* `require_approvals_to_merge` uses it to require a minimum number of approvals on a PR.\n\n* `require_default_reviewer_approvals_to_merge` uses it to require a minimum number of approvals from default reviewers on a PR.\n\n* `require_passing_builds_to_merge` uses it to require a minimum number of passing builds.\n\n* `require_commits_behind` uses it to require the current branch is up to a maximum number of commits behind it destination."
@@ -25274,111 +22634,6 @@
             }
           },
           "required": ["kind", "branch_match_kind", "pattern"],
-          "additionalProperties": true
-        }
-      ]
-    },
-    "component": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Component",
-          "description": "A component as defined in a repository's issue tracker.",
-          "properties": {
-            "links": {
-              "type": "object",
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            },
-            "name": { "type": "string" },
-            "id": { "type": "integer" }
-          },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "issue_comment": {
-      "allOf": [
-        { "$ref": "#/definitions/comment" },
-        {
-          "type": "object",
-          "title": "Issue Comment",
-          "description": "A issue comment.",
-          "properties": { "issue": { "$ref": "#/definitions/issue" } },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "milestone": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Milestone",
-          "description": "A milestone as defined in a repository's issue tracker.",
-          "properties": {
-            "links": {
-              "type": "object",
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            },
-            "name": { "type": "string" },
-            "id": { "type": "integer" }
-          },
-          "additionalProperties": true
-        }
-      ]
-    },
-    "version": {
-      "allOf": [
-        { "$ref": "#/definitions/object" },
-        {
-          "type": "object",
-          "title": "Version",
-          "description": "A version as defined in a repository's issue tracker.",
-          "properties": {
-            "links": {
-              "type": "object",
-              "properties": {
-                "self": {
-                  "type": "object",
-                  "title": "Link",
-                  "description": "A link to a resource related to this object.",
-                  "properties": {
-                    "href": { "type": "string", "format": "uri" },
-                    "name": { "type": "string" }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false
-            },
-            "name": { "type": "string" },
-            "id": { "type": "integer" }
-          },
           "additionalProperties": true
         }
       ]
@@ -25771,7 +23026,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "d1081e474f57",
+  "x-revision": "ac2b0aabebb5",
   "x-atlassian-narrative": {
     "documents": [
       {

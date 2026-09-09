@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'bun:test';
 import { suggestSimilar, didYouMeanSuffix } from '../../src/core/suggest.js';
 import { PR_STATES } from '../../src/types/pr.js';
-import { ISSUE_STATES } from '../../src/commands/issue/shared.js';
+import { COLOR_WHENS } from '../../src/commands/pr/diff.command.js';
 
 const CONFIG_KEYS = [
   'username',
@@ -41,7 +41,7 @@ describe('suggestSimilar', () => {
 
     it('suggests a lowercase candidate for an UPPERCASE typo', () => {
       expect(suggestSimilar('OPNE', PR_STATES)).toEqual(['OPEN']);
-      expect(suggestSimilar('OPNE', ISSUE_STATES)).toEqual(['open']);
+      expect(suggestSimilar('ALWASY', COLOR_WHENS)).toEqual(['always']);
     });
 
     it('returns the candidate spelling, never the user input', () => {
@@ -58,13 +58,7 @@ describe('suggestSimilar', () => {
 
   describe('real CLI enum sets', () => {
     it('matches within a lowercase set', () => {
-      expect(suggestSimilar('opne', ISSUE_STATES)).toEqual(['open']);
-    });
-
-    it('returns the CLI dash spelling of on-hold, not the API space form', () => {
-      // ISSUE_STATES rewrites the API's "on hold" to "on-hold" so it works
-      // unquoted in a shell; the suggestion must follow.
-      expect(suggestSimilar('onhold', ISSUE_STATES)).toEqual(['on-hold']);
+      expect(suggestSimilar('autoo', COLOR_WHENS)).toEqual(['auto']);
     });
 
     it('suggests merge strategies, methods, activity types and colors', () => {
@@ -158,7 +152,7 @@ describe('suggestSimilar', () => {
 
     it('returns nothing when no candidate is close enough', () => {
       expect(suggestSimilar('xyz', PR_STATES)).toEqual([]);
-      expect(suggestSimilar('zzzzzzzzzz', ISSUE_STATES)).toEqual([]);
+      expect(suggestSimilar('zzzzzzzzzz', COLOR_WHENS)).toEqual([]);
     });
 
     it('handles an empty candidate list and an empty value', () => {
@@ -169,7 +163,7 @@ describe('suggestSimilar', () => {
     it('exercises the transposition branch', () => {
       // Adjacent swap is distance 1, closer than the two substitutions a
       // plain Levenshtein matrix would charge.
-      expect(suggestSimilar('sumbitted', ISSUE_STATES)).toEqual(['submitted']);
+      expect(suggestSimilar('alwasy', COLOR_WHENS)).toEqual(['always']);
     });
 
     it('returns every candidate tied at the best distance, sorted', () => {

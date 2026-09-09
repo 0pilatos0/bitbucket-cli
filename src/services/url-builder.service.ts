@@ -20,9 +20,6 @@ export interface IUrlBuilderService {
   pipelinesHome(ctx: RepoContext): string;
   pipelineRun(ctx: RepoContext, idOrUuid: string): string;
   downloads(ctx: RepoContext): string;
-  issue(ctx: RepoContext, id: number): string;
-  issueList(ctx: RepoContext): string;
-  wiki(ctx: RepoContext): string;
   settings(ctx: RepoContext): string;
 }
 
@@ -90,18 +87,6 @@ export class UrlBuilderService implements IUrlBuilderService {
 
   public downloads(ctx: RepoContext): string {
     return `${this.repoBase(ctx)}/downloads/`;
-  }
-
-  public issue(ctx: RepoContext, id: number): string {
-    return `${this.repoBase(ctx)}/issues/${id}`;
-  }
-
-  public issueList(ctx: RepoContext): string {
-    return `${this.repoBase(ctx)}/issues`;
-  }
-
-  public wiki(ctx: RepoContext): string {
-    return `${this.repoBase(ctx)}/wiki`;
   }
 
   public settings(ctx: RepoContext): string {

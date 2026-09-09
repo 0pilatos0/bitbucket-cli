@@ -329,7 +329,7 @@ bb pr list --state open
 **Message:** File not found: `<path>`
 
 **Cause:** A file referenced by an option (`--file` on `bb snippet create`/`edit`,
-`--body-file` on `bb pr edit`/`bb issue create`, `-F key=@file` or `--input` on
+`--body-file` on `bb pr edit`, `-F key=@file` or `--input` on
 `bb api`) doesn't exist on disk, or a named file isn't present inside a snippet.
 
 **Solution:**
@@ -341,7 +341,7 @@ from a generic `VALIDATION_INVALID`. The key depends on the command:
 
 | Key | Set by |
 |-----|--------|
-| `file` | `bb snippet create/edit/view`, `bb issue create --body-file` |
+| `file` | `bb snippet create/edit/view` |
 | `bodyFile` | `bb pr edit --body-file` only |
 | `path` | `bb api -F key=@file`, `bb api --input <file>` |
 

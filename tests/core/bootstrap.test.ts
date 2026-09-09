@@ -193,7 +193,6 @@ describe('bootstrap()', () => {
       ServiceTokens.SnippetsApi,
       ServiceTokens.CommitsApi,
       ServiceTokens.PipelinesApi,
-      ServiceTokens.IssueTrackerApi,
       ServiceTokens.WorkspacesApi,
       ServiceTokens.ProjectsApi,
     ];

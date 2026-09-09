@@ -5,16 +5,10 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
-import type { Workspace, WorkspacesApi } from '../../generated/api.js';
-import { WorkspacesGetRoleEnum } from '../../generated/api.js';
+import type { WorkspaceAccess, WorkspacesApi } from '../../generated/api.js';
 import { resolveLimit } from '../../services/pagination.js';
 
-export const WORKSPACE_ROLES = Object.values(
-  WorkspacesGetRoleEnum
-) as readonly ('owner' | 'collaborator' | 'member')[];
-
 export interface ListWorkspacesOptions {
-  role?: string;
   limit?: string;
   all?: boolean;
 }
@@ -24,7 +18,7 @@ export class ListWorkspacesCommand extends BaseCommand<
   void
 > {
   public readonly name = 'list';
-  public readonly description = 'List workspaces you have access to';
+  public readonly description = 'List workspaces you are a member of';
 
   constructor(
     private readonly workspacesApi: WorkspacesApi,
@@ -37,40 +31,30 @@ export class ListWorkspacesCommand extends BaseCommand<
     options: ListWorkspacesOptions,
     context: CommandContext
   ): Promise<void> {
-    // Validate --limit before --role to keep validation error precedence
-    // consistent with the other list commands; runList re-resolves the value.
     resolveLimit(options);
 
-    const role = options.role
-      ? this.parseEnumOption(options.role, 'role', WORKSPACE_ROLES)
-      : undefined;
-
-    await this.runList<Workspace>(
+    await this.runList<WorkspaceAccess>(
       {
         options,
         fetchPage: async (page, pagelen) => {
-          // The generated request interface models role/q/sort, while page
-          // and pagelen go through raw axios params.
-          const response = await this.workspacesApi.workspacesGet(
-            { role },
+          // GET /workspaces (list all workspaces) was removed upstream along
+          // with the native issue tracker; /user/workspaces lists the
+          // workspaces the authenticated user is a member of. page and
+          // pagelen go through raw axios params — the typed request
+          // interface only models sort/administrator.
+          const response = await this.workspacesApi.userWorkspacesGet(
+            {},
             { params: { page, pagelen } }
           );
           return response.data;
         },
         wrapperKey: 'workspaces',
-        jsonMetadata: {
-          filters: { ...(role ? { role } : {}) },
-        },
-        emptyMessage: () =>
-          role
-            ? `No workspaces found for role "${role}"`
-            : 'No workspaces found',
-        tableHeaders: ['SLUG', 'NAME', 'PRIVACY', 'UUID'],
-        mapRow: (workspace) => [
-          this.output.bold(workspace.slug ?? ''),
-          workspace.name ?? '',
-          workspace.is_private ? 'private' : 'public',
-          workspace.uuid ?? '',
+        emptyMessage: 'No workspaces found (you are not a member of any)',
+        tableHeaders: ['SLUG', 'UUID', 'ADMIN'],
+        mapRow: (access) => [
+          this.output.bold(access.workspace?.slug ?? ''),
+          access.workspace?.uuid ?? '',
+          access.administrator ? 'yes' : 'no',
         ],
         noun: 'workspaces',
       },

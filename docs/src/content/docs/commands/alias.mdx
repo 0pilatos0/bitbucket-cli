@@ -50,8 +50,8 @@ positional parameters (`$1`, `$@`), so pipes, `xargs`, and other shell
 constructs work:
 
 ```bash
-bb alias set igrep '!bb issue list --all --json | grep "$1"'
-bb igrep login                # → sh -c 'bb issue list --all --json | grep "$1"' bb-alias login
+bb alias set igrep '!bb pipeline list --all --json | grep "$1"'
+bb igrep deploy               # → sh -c 'bb pipeline list --all --json | grep "$1"' bb-alias deploy
 ```
 
 :::caution

@@ -15,7 +15,7 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 
 ### How does this compare to GitHub CLI (gh)?
 
-`bb` follows `gh`'s command shapes for Bitbucket Cloud. It covers authentication, repositories, pull requests, issues, pipelines, commits and build statuses, snippets, workspaces and projects, browsing, configuration, and shell completion. Anything without a typed command — branch permissions, webhooks — is reachable through `bb api`, the analog of `gh api`.
+`bb` follows `gh`'s command shapes for Bitbucket Cloud. It covers authentication, repositories, pull requests, pipelines, commits and build statuses, snippets, workspaces and projects, browsing, configuration, and shell completion. Anything without a typed command — branch permissions, webhooks — is reachable through `bb api`, the analog of `gh api`.
 
 ---
 
@@ -24,7 +24,6 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 - **Authentication** - Login, logout, status, token display
 - **Repositories** - Clone, create, list, view, delete, default reviewers (list/add/remove)
 - **Pull requests** - Create (with optional default-reviewer attachment), list, view, edit, merge, approve, decline, ready (mark draft ready), checkout, diff, activity log, CI/CD checks, comments (list/add/edit/delete/view/reply/resolve/unresolve, with `--resolved`/`--unresolved` filters on list), reviewers (list/add/remove)
-- **Issues** - List, view, create, edit, close, comment
 - **Pipelines** - List, view, run (with `--var key=value`), stop, logs (`--step`)
 - **Commits & build statuses** - `bb commit list/view`, `bb status list/set`
 - **Workspaces & projects** - `bb workspace list/view`, `bb project list/view/create`
@@ -106,7 +105,7 @@ Each login overwrites the credentials in the config file, so parallel shells can
 
 ### What scopes does my token need?
 
-**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, and pull requests, but **not** `bb repo delete`, `bb pipeline *`, `bb issue *`, `bb snippet *`, or `bb project *` — for those, log in with an API token carrying the scopes below.
+**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, and pull requests, but **not** `bb repo delete`, `bb pipeline *`, `bb snippet *`, or `bb project *` — for those, log in with an API token carrying the scopes below.
 
 **API token scopes:**
 
@@ -121,8 +120,6 @@ Each login overwrites the credentials in the config file, so parallel shells can
 | `write:pullrequest:bitbucket` | `bb pr create`, `bb pr edit`, `bb pr merge`, `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr reviewers add/remove` |
 | `read:pipeline:bitbucket` | `bb pipeline list/view/logs` |
 | `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` |
-| `read:issue:bitbucket` | `bb issue list`, `bb issue view` |
-| `write:issue:bitbucket` | `bb issue create/edit/close/comment` |
 | `read:snippet:bitbucket` | `bb snippet list`, `bb snippet view`, all `bb snippet comments` subcommands |
 | `write:snippet:bitbucket` | `bb snippet create/edit/watch/unwatch` |
 | `delete:snippet:bitbucket` | `bb snippet delete` |

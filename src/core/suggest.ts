@@ -13,7 +13,7 @@
  *
  * 1. **Case-folded comparison, canonical output.** Upstream compares
  *    case-sensitively, which makes the common case unfixable: our enum sets
- *    are single-case (`PR_STATES` is UPPERCASE, `ISSUE_STATES` is
+ *    are single-case (`PR_STATES` is UPPERCASE, `COLOR_WHENS` is
  *    lowercase), so `--state opne` finds nothing against
  *    `['OPEN', ...]`. We match on lowercase and return the candidate's own
  *    spelling, so the suggestion is always a value the user can paste back.
