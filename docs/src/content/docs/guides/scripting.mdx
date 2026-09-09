@@ -34,7 +34,7 @@ bb pr list --json --all
 bb pr list --json --limit 100
 ```
 
-Twelve commands take `--limit` and `--all`: `repo list`, `pr list`,
+Eleven commands take `--limit` and `--all`: `repo list`, `pr list`,
 `pr activity`, `pr comments list`, `snippet list`, `snippet comments list`,
 `pipeline list`, `commit list`, `status list`, `workspace list`,
 `project list`. Other list-style commands return their full result set and
@@ -124,7 +124,7 @@ bb api /repositories/myworkspace/myrepo/pullrequests --paginate \
   --jq '.values[].title'
 
 # Create resources that have no typed command yet
-bb api POST /repositories/myworkspace/myrepo/downloads -F file=@archive.zip
+bb api POST /repositories/{workspace}/{repo}/branch-restrictions --input body.json
 ```
 
 `{workspace}` and `{repo}` placeholders resolve from `-w`/`-r` or the current

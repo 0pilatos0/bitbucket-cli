@@ -39,7 +39,7 @@ bb workspace list
 bb workspace list --all
 
 # Only the columns you need — a flat array, not the envelope
-bb workspace list --json slug,administrator
+bb workspace list --json workspace.slug,administrator
 
 # Slugs, one per line (JSON-quoted — the embedded jq has no -r)
 bb workspace list --json --jq '.workspaces[].slug'

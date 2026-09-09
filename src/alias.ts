@@ -10,7 +10,7 @@
  *  - Command alias: `co` → `pr checkout $1`. The expansion is split into
  *    shell-style words; `$1`–`$9` placeholders are filled from the arguments
  *    following the alias, and any leftover arguments are appended.
- *  - Shell alias: a `!` prefix (`igrep` → `!bb issue list --json | grep $1`)
+ *  - Shell alias: a `!` prefix (`igrep` → `!bb pr list --json | grep $1`)
  *    runs the body via `sh -c` with the remaining argv as shell positional
  *    parameters, so `$1`/`$@` behave exactly as in a shell script.
  *
