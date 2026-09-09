@@ -59,8 +59,8 @@ bb pr list --json id,title,author.display_name
 
   ```text
   pullRequests  repositories  snippets  comments  reviewers  activities
-  statuses      files         pipelines commits   issues     workspaces
-  projects      values
+  statuses      files         pipelines commits   workspaces projects
+  values
   ```
 
 - If no key in that list holds an array, the envelope object itself is
@@ -237,7 +237,7 @@ filesystem-dependent features are not supported.
 
 Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`,
 `snippet list`, `snippet comments list`, `pipeline list`, `commit list`,
-`status list`, `issue list`, `workspace list`, `project list`
+`status list`, `workspace list`, `project list`
 
 Returns an envelope with metadata, a `count`, and a named array:
 
@@ -257,10 +257,10 @@ Returns an envelope with metadata, a `count`, and a named array:
 | Field | Type | Present in |
 |-------|------|-----------|
 | `workspace` | string | All collections except `workspace list` (whose slugs live in the items) |
-| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `issue list` |
+| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list` |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
-| `filters` | object | `pr list`, `pr activity`, `pr comments list`, `issue list`, `workspace list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
+| `filters` | object | `pr list`, `pr activity`, `pr comments list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
 | `commit` | string | `status list` |
 | `sort` | string | `pipeline list` |
 
@@ -275,7 +275,6 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `pipeline list` | `pipelines` |
 | `commit list` | `commits` |
 | `status list` | `statuses` |
-| `issue list` | `issues` |
 | `workspace list` | `workspaces` |
 | `project list` | `projects` |
 | `snippet list` | `snippets` |
@@ -380,7 +379,6 @@ envelope. Read the resource from the named key, not from the root:
 | Command | Shape |
 |---------|-------|
 | `commit view` | `{ workspace, repoSlug, commit }` |
-| `issue view`, `issue create`, `issue edit`, `issue close` | `{ workspace, repoSlug, issue }` |
 | `project view`, `project create` | `{ workspace, project }` |
 | `workspace view` | `{ workspace }` (the workspace object) |
 | `status set` | `{ workspace, repoSlug, commit, status }` |
@@ -652,7 +650,7 @@ present, the shape is:
 | `4003` CONFIG_INVALID_KEY | `key` |
 | `5001` VALIDATION_REQUIRED | `field` (when thrown by `ValidationError`) |
 | `5002` VALIDATION_INVALID | varies — usually `{ key, value }`, the offending option name, or the rejected ID |
-| `5003` FILE_NOT_FOUND | `file` (`snippet create/edit/view`, `issue create --body-file`), `bodyFile` (`pr edit --body-file`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet |
+| `5003` FILE_NOT_FOUND | `file` (`snippet create/edit/view`), `bodyFile` (`pr edit --body-file`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet |
 | `6001` CONTEXT_REPO_NOT_FOUND | _(none)_ |
 | `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_ |
 | `7001` NETWORK_ERROR | _(usually none; OAuth revoke failures include `status`, `body`)_ |

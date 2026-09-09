@@ -43,9 +43,6 @@ that pairs with a path target).
 | `--pipelines` | The pipelines page |
 | `--pipeline <id>` | A specific pipeline run |
 | `--downloads` | The downloads page |
-| `--issue <id>` | A specific issue |
-| `--issues` | The issue tracker |
-| `--wiki` | The wiki |
 | `--settings` | Repository admin / settings |
 
 ### Behavior flags
@@ -104,8 +101,7 @@ bb browse --pr 217 --json url
 ### Notes
 
 - **Positional disambiguation.** A bare `<number>` is treated as a pull
-  request id (the most common case). Use `--issue <id>` to open an issue
-  with the same number.
+  request id (the most common case).
 - **Branch defaulting.** When you give a path target without `--branch`,
   the CLI uses your current git branch (`git rev-parse --abbrev-ref HEAD`).
   Outside a git checkout (when using `--workspace`/`--repo` overrides), it

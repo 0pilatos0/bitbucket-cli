@@ -36,7 +36,6 @@ describe('CLI completion drift (issue #255)', () => {
       'files',
       'pipelines',
       'commits',
-      'issues',
       'workspaces',
       'projects',
       'values',
@@ -60,7 +59,6 @@ describe('CLI completion drift (issue #255)', () => {
       'pipeline list': 'pipelines',
       'commit list': 'commits',
       'status list': 'statuses',
-      'issue list': 'issues',
       'workspace list': 'workspaces',
       'project list': 'projects',
     };

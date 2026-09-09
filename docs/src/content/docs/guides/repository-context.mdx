@@ -84,7 +84,7 @@ The two classes fail differently when context is missing.
 | Class | Commands | Error when unresolved |
 |-------|----------|-----------------------|
 | Workspace-only | `bb repo list`, `bb repo create`, `bb repo clone`, `bb project *`, `bb snippet *`, `bb workspace view` | `6002 CONTEXT_WORKSPACE_NOT_FOUND` |
-| Repository-scoped | `bb pr *`, `bb pipeline *`, `bb issue *`, `bb commit *`, `bb status *`, `bb browse`, `bb repo view`, `bb repo delete`, `bb repo default-reviewers *` | `6001 CONTEXT_REPO_NOT_FOUND` |
+| Repository-scoped | `bb pr *`, `bb pipeline *`, `bb commit *`, `bb status *`, `bb browse`, `bb repo view`, `bb repo delete`, `bb repo default-reviewers *` | `6001 CONTEXT_REPO_NOT_FOUND` |
 
 `bb api` falls in either class depending on the endpoint: it resolves a workspace only if the endpoint contains `{workspace}`, and a repository only if it contains `{repo}`.
 

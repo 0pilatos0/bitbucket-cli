@@ -36,7 +36,6 @@ export const RESERVED_COMMAND_NAMES = [
   'pipeline',
   'commit',
   'status',
-  'issue',
   'workspace',
   'project',
   'browse',

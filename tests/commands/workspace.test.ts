@@ -7,7 +7,11 @@ import { ListWorkspacesCommand } from '../../src/commands/workspace/list.command
 import { ViewWorkspaceCommand } from '../../src/commands/workspace/view.command.js';
 import { createMockContextService, createMockOutputService } from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
-import type { Workspace, WorkspacesApi } from '../../src/generated/api.js';
+import type {
+  Workspace,
+  WorkspaceAccess,
+  WorkspacesApi,
+} from '../../src/generated/api.js';
 
 const mockWorkspace: Workspace = {
   type: 'workspace',
@@ -23,6 +27,19 @@ const mockWorkspace: Workspace = {
     html: { href: 'https://bitbucket.org/acme/' },
   },
 };
+
+// /user/workspaces returns workspace *memberships*: each value pairs the
+// workspace (reduced to slug/uuid) with whether the caller is an admin.
+// name/is_private are not available on this endpoint.
+const mockAccess = (
+  slug: string,
+  uuid: string,
+  administrator: boolean
+): WorkspaceAccess => ({
+  type: 'workspace_access',
+  administrator,
+  workspace: { type: 'workspace', slug, uuid },
+});
 
 function getTableRows(logs: string[]): string[][] {
   const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
@@ -43,16 +60,16 @@ function getJsonPayload(logs: string[]): Record<string, unknown> {
 
 function createMockWorkspacesApi(
   options: {
-    workspaces?: Workspace[];
+    access?: WorkspaceAccess[];
     workspaceNotFound?: boolean;
     onListCall?: (request: unknown, axiosOptions?: unknown) => void;
     onViewCall?: (request: unknown) => void;
   } = {}
 ): WorkspacesApi {
-  const workspaces = options.workspaces ?? [mockWorkspace];
+  const access = options.access ?? [mockAccess('acme', '{ws-uuid}', true)];
 
   return {
-    workspacesGet: async (request: unknown, axiosOptions?: unknown) => {
+    userWorkspacesGet: async (request: unknown, axiosOptions?: unknown) => {
       options.onListCall?.(request, axiosOptions);
       const params = (
         axiosOptions as { params?: { page?: number; pagelen?: number } }
@@ -63,13 +80,13 @@ function createMockWorkspacesApi(
       const end = start + pagelen;
       return {
         data: {
-          values: workspaces.slice(start, end),
+          values: access.slice(start, end),
           page,
           pagelen,
-          size: workspaces.length,
+          size: access.length,
           next:
-            end < workspaces.length
-              ? `https://api.bitbucket.org/2.0/workspaces?page=${page + 1}`
+            end < access.length
+              ? `https://api.bitbucket.org/2.0/user/workspaces?page=${page + 1}`
               : undefined,
         },
       };
@@ -85,21 +102,27 @@ function createMockWorkspacesApi(
 }
 
 describe('ListWorkspacesCommand', () => {
-  it('should render the workspaces table with slug, name, privacy, and uuid', async () => {
+  it('should render the membership table with slug, uuid, and admin flag', async () => {
     const output = createMockOutputService();
     const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi(),
+      createMockWorkspacesApi({
+        access: [
+          mockAccess('acme', '{ws-uuid}', true),
+          mockAccess('other', '{other-uuid}', false),
+        ],
+      }),
       output
     );
 
     await command.execute({}, { globalOptions: {} });
 
     expect(
-      output.logs.some((log) => log.startsWith('table:SLUG,NAME,PRIVACY,UUID'))
+      output.logs.some((log) => log.startsWith('table:SLUG,UUID,ADMIN'))
     ).toBe(true);
     const rows = getTableRows(output.logs);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toEqual(['acme', 'Acme Inc', 'private', '{ws-uuid}']);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toEqual(['acme', '{ws-uuid}', 'yes']);
+    expect(rows[1]).toEqual(['other', '{other-uuid}', 'no']);
   });
 
   it('should print a defaultWorkspace hint after the table', async () => {
@@ -118,7 +141,7 @@ describe('ListWorkspacesCommand', () => {
     ).toBe(true);
   });
 
-  it('should emit the JSON envelope with filters, count, and workspaces (and no hint)', async () => {
+  it('should emit the JSON envelope with count and workspaces (and no hint)', async () => {
     const output = createMockOutputService();
     const command = new ListWorkspacesCommand(
       createMockWorkspacesApi(),
@@ -128,81 +151,37 @@ describe('ListWorkspacesCommand', () => {
     await command.execute({}, { globalOptions: { json: true } });
 
     const payload = getJsonPayload(output.logs);
-    expect(Object.keys(payload)).toEqual(['filters', 'count', 'workspaces']);
+    expect(Object.keys(payload)).toEqual(['count', 'workspaces']);
     expect(payload.count).toBe(1);
     expect(payload.workspaces).toEqual([
-      JSON.parse(JSON.stringify(mockWorkspace)),
+      JSON.parse(JSON.stringify(mockAccess('acme', '{ws-uuid}', true))),
     ]);
     expect(output.logs.some((log) => log.includes('defaultWorkspace'))).toBe(
       false
     );
   });
 
-  it('should pass --role through to the API and into the JSON filters', async () => {
-    let captured: { role?: string } | undefined;
+  it('should show the empty state when the user has no workspace memberships', async () => {
     const output = createMockOutputService();
     const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi({
-        onListCall: (request) => {
-          captured = request as { role?: string };
-        },
-      }),
-      output
-    );
-
-    await command.execute({ role: 'owner' }, { globalOptions: { json: true } });
-
-    expect(captured?.role).toBe('owner');
-    const payload = getJsonPayload(output.logs);
-    expect(payload.filters).toEqual({ role: 'owner' });
-  });
-
-  it('should reject an invalid --role', async () => {
-    const output = createMockOutputService();
-    const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi(),
-      output
-    );
-
-    await expect(
-      command.execute({ role: 'admin' }, { globalOptions: {} })
-    ).rejects.toThrow('--role must be one of: owner, collaborator, member');
-  });
-
-  it('should show the empty state when no workspaces exist', async () => {
-    const output = createMockOutputService();
-    const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi({ workspaces: [] }),
+      createMockWorkspacesApi({ access: [] }),
       output
     );
 
     await command.execute({}, { globalOptions: {} });
 
-    expect(output.logs).toContain('info:No workspaces found');
-  });
-
-  it('should mention the role in the empty state when --role filtered', async () => {
-    const output = createMockOutputService();
-    const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi({ workspaces: [] }),
-      output
-    );
-
-    await command.execute({ role: 'collaborator' }, { globalOptions: {} });
-
     expect(output.logs).toContain(
-      'info:No workspaces found for role "collaborator"'
+      'info:No workspaces found (you are not a member of any)'
     );
   });
 
   it('should cap results at --limit and print the more-results hint', async () => {
-    const many = Array.from({ length: 5 }, (_, i) => ({
-      ...mockWorkspace,
-      slug: `ws-${i + 1}`,
-    }));
+    const many = Array.from({ length: 5 }, (_, i) =>
+      mockAccess(`ws-${i + 1}`, `{ws-${i + 1}-uuid}`, false)
+    );
     const output = createMockOutputService();
     const command = new ListWorkspacesCommand(
-      createMockWorkspacesApi({ workspaces: many }),
+      createMockWorkspacesApi({ access: many }),
       output
     );
 

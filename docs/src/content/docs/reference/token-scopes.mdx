@@ -17,7 +17,7 @@ a hardcoded scope set — `account repository repository:admin pullrequest
 pullrequest:write` (legacy scope names, not the `<action>:<resource>:bitbucket`
 names used below) — and you cannot widen it, not even with a custom consumer.
 That covers repository, pull request, commit, build-status and workspace
-commands. It does **not** cover `bb pipeline`, `bb issue`, `bb snippet`,
+commands. It does **not** cover `bb pipeline`, `bb snippet`,
 `bb project`, or `bb repo delete`. Use an API token for those.
 </Aside>
 
@@ -37,8 +37,6 @@ The CLI uses these scopes:
 | `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark pull requests ready; add/remove reviewers; add, edit, and delete comments |
 | `read:pipeline:bitbucket` | List and view pipelines and their steps, read step logs |
 | `write:pipeline:bitbucket` | Trigger and stop pipelines |
-| `read:issue:bitbucket` | List and view issues |
-| `write:issue:bitbucket` | Create, edit, comment on, and close issues |
 | `read:workspace:bitbucket` | List and view workspaces |
 | `read:project:bitbucket` | List and view projects |
 | `admin:project:bitbucket` | Create projects |
@@ -121,17 +119,6 @@ from the API.
 | `bb commit view` | `read:repository:bitbucket` |
 | `bb status list` | `read:repository:bitbucket` |
 | `bb status set` | `write:repository:bitbucket` |
-
-### Issues (`bb issue …`)
-
-| Command | Required scopes |
-|---------|-----------------|
-| `bb issue list` | `read:issue:bitbucket` |
-| `bb issue view` | `read:issue:bitbucket` |
-| `bb issue create` | `write:issue:bitbucket` |
-| `bb issue edit` | `write:issue:bitbucket` |
-| `bb issue close` | `write:issue:bitbucket` |
-| `bb issue comment` | `write:issue:bitbucket` |
 
 ### Workspaces (`bb workspace …`)
 
@@ -234,13 +221,12 @@ read:pipeline:bitbucket
 write:pipeline:bitbucket
 ```
 
-### Issue triage bot
+### CI monitor bot
 
 ```text
 read:user:bitbucket
 read:repository:bitbucket
-read:issue:bitbucket
-write:issue:bitbucket
+read:pipeline:bitbucket
 ```
 
 ## Troubleshooting

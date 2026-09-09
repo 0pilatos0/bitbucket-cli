@@ -139,7 +139,6 @@ describe('OutputService', () => {
       ['files', 'pr diff --stat / --name-only'],
       ['pipelines', 'pipeline list'],
       ['commits', 'commit list'],
-      ['issues', 'issue list'],
       ['workspaces', 'workspace list'],
       ['projects', 'project list'],
       ['values', 'generic paginated payloads'],

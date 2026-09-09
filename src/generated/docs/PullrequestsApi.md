@@ -1056,7 +1056,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequ
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**200** | The comment resolution details. |  -  |
-|**403** | If the authenticated user does not have access to the pull request, if the provided comment is not a top-level comment, or if the comment is not on the diff. |  -  |
+|**403** | If the authenticated user does not have access to the pull request, or if the provided comment is not a top-level comment. |  -  |
 |**404** | If the comment does not exist. |  -  |
 |**409** | If the comment has already been resolved. |  -  |
 

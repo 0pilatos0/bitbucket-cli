@@ -485,7 +485,6 @@ describe('CLI command registration', () => {
       'commit',
       'completion',
       'config',
-      'issue',
       'pipeline',
       'pr',
       'project',
@@ -629,18 +628,6 @@ describe('CLI command registration', () => {
     expect(statusCmd.commands.map((c) => c.name()).sort()).toEqual([
       'list',
       'set',
-    ]);
-  });
-
-  it('should register all issue subcommands', () => {
-    const issueCmd = requireCommand('issue');
-    expect(issueCmd.commands.map((c) => c.name()).sort()).toEqual([
-      'close',
-      'comment',
-      'create',
-      'edit',
-      'list',
-      'view',
     ]);
   });
 

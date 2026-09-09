@@ -1,6 +1,6 @@
 ---
 title: Workspace Commands - Discover Bitbucket Workspaces
-description: Reference for Bitbucket CLI workspace commands. List the workspaces you have access to and view workspace details from the command line.
+description: Reference for Bitbucket CLI workspace commands. List your workspace memberships and view workspace details from the command line.
 ---
 
 Find the workspace slugs you pass to `-w, --workspace`, to
@@ -8,8 +8,8 @@ Find the workspace slugs you pass to `-w, --workspace`, to
 `bb repo create`.
 
 Workspace commands run at **account** scope. `bb workspace list` needs no
-context at all — it lists your own workspaces. `bb workspace view` falls back
-to the resolved workspace context when you pass no slug.
+context at all — it lists your workspace memberships. `bb workspace view`
+falls back to the resolved workspace context when you pass no slug.
 
 Both accept the [global flags](/reference/global-flags/), including
 `--json [fields]`, `--jq <expression>`, and `-w, --workspace`.
@@ -18,7 +18,7 @@ Both accept the [global flags](/reference/global-flags/), including
 
 ## `bb workspace list`
 
-List the workspaces the authenticated user has access to.
+List the workspaces the authenticated user is a member of.
 
 ```bash
 bb workspace list [options]
@@ -28,7 +28,6 @@ bb workspace list [options]
 
 | Option | Description |
 |--------|-------------|
-| `--role <role>` | Filter by your role: `owner`, `collaborator`, or `member` |
 | `--limit <number>` | Maximum number of workspaces (default: 25) |
 | `--all` | List all workspaces (overrides `--limit`) |
 | `--json` | Output as JSON |
@@ -37,11 +36,10 @@ bb workspace list [options]
 
 ```bash
 bb workspace list
-bb workspace list --role owner
 bb workspace list --all
 
 # Only the columns you need — a flat array, not the envelope
-bb workspace list --json slug,name
+bb workspace list --json slug,administrator
 
 # Slugs, one per line (JSON-quoted — the embedded jq has no -r)
 bb workspace list --json --jq '.workspaces[].slug'
@@ -53,10 +51,10 @@ bb workspace list --json | jq -r '.workspaces[].slug'
 ### Output
 
 ```text
-SLUG           NAME           PRIVACY  UUID
--------------  -------------  -------  --------------------------------------
-acme-corp      Acme Corp      private  {6f1e8a2c-9d34-4b7e-8f21-0c5a7d3e1b90}
-side-projects  Side Projects  public   {b2c9e740-15af-4d63-9a08-3e6f2c81d475}
+SLUG           UUID                                    ADMIN
+-------------  --------------------------------------  -----
+acme-corp      {6f1e8a2c-9d34-4b7e-8f21-0c5a7d3e1b90}  yes
+side-projects  {b2c9e740-15af-4d63-9a08-3e6f2c81d475}  no
 Use a slug with -w <slug> or set a default: bb config set defaultWorkspace <slug>
 ```
 
@@ -64,14 +62,16 @@ That last line prints after every non-JSON `bb workspace list`.
 
 ### JSON output
 
-The envelope is `{ filters, count, workspaces }`. `workspaces` holds the
-workspace objects; `filters` echoes the active `--role` filter, and is an empty
-object when unfiltered.
+The envelope is `{ count, workspaces }`. Each `workspaces` entry is a
+membership record: `{ administrator, workspace: { slug, uuid, ... } }`.
 
 ### Notes
 
-- Role semantics: `owner` = admin access, `collaborator` = write access to at
-  least one repository, `member` = member of at least one group or repository.
+- The list comes from `GET /2.0/user/workspaces`, so it shows the workspaces
+  you are a member of (with an `ADMIN` column for admin access), not every
+  workspace that exists.
+- Workspace `name` and privacy are not part of the membership payload; use
+  `bb workspace view <slug>` for the full workspace object.
 - When more results exist than `--limit` returned, the table is followed by
   `Showing 25 workspaces. Use --limit <n> or --all to see more.` This footer is
   never printed under `--json`.

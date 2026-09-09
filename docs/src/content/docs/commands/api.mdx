@@ -75,8 +75,8 @@ bb api GET /user
 # List every pull request, following pagination, using the current repository
 bb api /repositories/{workspace}/{repo}/pullrequests --paginate
 
-# Create an issue (method inferred as POST because fields are present)
-bb api /repositories/my-ws/my-repo/issues -f title=Bug -f priority=major
+# Trigger a pipeline (method inferred as POST because fields are present)
+bb api /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234
 
 # -F applies gh-style magic typing: true/false/null and numbers become JSON literals
 bb api PUT /repositories/my-ws/my-repo -F is_private=true

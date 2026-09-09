@@ -47,7 +47,6 @@ Pick your editor and paste the command:
     **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`
     **CI/CD:** `bb pipeline list`, `bb pipeline run --branch main`, `bb pipeline view/logs/stop <id>`
     **Commits:** `bb commit list`, `bb commit view <sha>`; build statuses: `bb status list <sha>`, `bb status set <sha> --key CI --state SUCCESSFUL`
-    **Issues:** `bb issue list`, `bb issue view <id>`, `bb issue create -t "title"`, `bb issue edit/comment/close <id>`
     **Snippets:** `bb snippet list/view/create/edit/delete/watch/unwatch`, plus `bb snippet comments`
     **Workspaces & projects:** `bb workspace list/view`, `bb project list/view/create`
     **Browser URLs:** `bb browse --pr <id> -n` prints the URL instead of opening it (`--json` does the same and returns `{"url": …}`)
@@ -113,10 +112,6 @@ Pick your editor and paste the command:
     - `bb commit list` / `bb commit view <sha>`
     - `bb status list <sha>` / `bb status set <sha> --key CI --state SUCCESSFUL`
 
-    **Issues:**
-    - `bb issue list` / `bb issue view <id>` / `bb issue create -t "title"`
-    - `bb issue edit <id>` / `bb issue comment <id> -b "text"` / `bb issue close <id>`
-
     **Workspaces & projects:**
     - `bb workspace list` / `bb workspace view [slug]`
     - `bb project list` / `bb project view <key>` / `bb project create`
@@ -179,7 +174,6 @@ Pick your editor and paste the command:
     - `bb repo list/view/clone` - Repository operations
     - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
     - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
-    - `bb issue list/view/create/edit/comment/close` - Issue tracker
     - `bb snippet list/view/create/edit/delete/watch/unwatch` + `bb snippet comments` - Snippets
     - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
     - `bb browse --pr <id> -n` - Print a Bitbucket URL instead of opening a browser
@@ -218,7 +212,6 @@ Pick your editor and paste the command:
     - `bb repo list/view/clone` - Repository operations
     - `bb pipeline list/view/run/stop/logs` - CI/CD pipelines
     - `bb commit list/view` + `bb status list/set <sha>` - Commits and build statuses
-    - `bb issue list/view/create/edit/comment/close` - Issue tracker
     - `bb snippet list/view/create/edit/delete/watch/unwatch` + `bb snippet comments` - Snippets
     - `bb workspace list/view` + `bb project list/view/create` - Workspaces and projects
     - `bb browse --pr <id> -n` - Print a Bitbucket URL instead of opening a browser
@@ -364,8 +357,6 @@ command-to-scope map, see [Token Scopes](/reference/token-scopes/).
 | `write:pullrequest:bitbucket` | `bb pr create`, `bb pr merge`, `bb pr approve`, `bb pr comments add/reply/resolve` — manage PRs |
 | `read:pipeline:bitbucket` | `bb pipeline list`, `bb pipeline view`, `bb pipeline logs` — inspect CI/CD |
 | `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` — control CI/CD |
-| `read:issue:bitbucket` | `bb issue list`, `bb issue view` — browse issues |
-| `write:issue:bitbucket` | `bb issue create`, `bb issue edit`, `bb issue close` — manage issues |
 | `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` — discover workspaces |
 | `read:project:bitbucket` | `bb project list`, `bb project view` — browse projects |
 | `admin:project:bitbucket` | `bb project create` — create projects |
@@ -384,7 +375,7 @@ account repository repository:admin pullrequest pullrequest:write
 ```
 
 That covers repository and pull request work, including `bb repo create` and
-`bb repo default-reviewers`. It does **not** cover `bb pipeline`, `bb issue`,
+`bb repo default-reviewers`. It does **not** cover `bb pipeline`,
 `bb project`, `bb snippet`, or `bb repo delete` — those return 403 under OAuth.
 Use an API token with the scopes above if your agent needs them.
 

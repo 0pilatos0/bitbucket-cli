@@ -29,9 +29,6 @@ export interface BrowseOptions extends GlobalOptions {
   pipelines?: boolean;
   pipeline?: string;
   downloads?: boolean;
-  issue?: string;
-  issues?: boolean;
-  wiki?: boolean;
   settings?: boolean;
   /**
    * Commander coerces `-n, --no-browser` into `browser: false`. Treat any
@@ -134,18 +131,6 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
     if (options.downloads) {
       return this.urlBuilder.downloads(ctx);
     }
-    if (options.issue !== undefined) {
-      return this.urlBuilder.issue(
-        ctx,
-        this.parsePositiveInt(options.issue, 'issue')
-      );
-    }
-    if (options.issues) {
-      return this.urlBuilder.issueList(ctx);
-    }
-    if (options.wiki) {
-      return this.urlBuilder.wiki(ctx);
-    }
     if (options.settings) {
       return this.urlBuilder.settings(ctx);
     }
@@ -189,9 +174,6 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
     if (options.pipelines) setFlags.push('--pipelines');
     if (options.pipeline !== undefined) setFlags.push('--pipeline');
     if (options.downloads) setFlags.push('--downloads');
-    if (options.issue !== undefined) setFlags.push('--issue');
-    if (options.issues) setFlags.push('--issues');
-    if (options.wiki) setFlags.push('--wiki');
     if (options.settings) setFlags.push('--settings');
 
     if (setFlags.length > 1) {

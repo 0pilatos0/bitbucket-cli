@@ -4,10 +4,8 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
-|[**userPermissionsWorkspacesGet**](#userpermissionsworkspacesget) | **GET** /user/permissions/workspaces | List workspaces for the current user|
 |[**userWorkspacesGet**](#userworkspacesget) | **GET** /user/workspaces | List workspaces for the current user|
 |[**userWorkspacesWorkspacePermissionGet**](#userworkspacesworkspacepermissionget) | **GET** /user/workspaces/{workspace}/permission | Get user permission on a workspace|
-|[**workspacesGet**](#workspacesget) | **GET** /workspaces | List workspaces for user|
 |[**workspacesWorkspaceGet**](#workspacesworkspaceget) | **GET** /workspaces/{workspace} | Get a workspace|
 |[**workspacesWorkspaceHooksGet**](#workspacesworkspacehooksget) | **GET** /workspaces/{workspace}/hooks | List webhooks for a workspace|
 |[**workspacesWorkspaceHooksPost**](#workspacesworkspacehookspost) | **POST** /workspaces/{workspace}/hooks | Create a webhook for a workspace|
@@ -23,61 +21,6 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**workspacesWorkspaceProjectsProjectKeyGet**](#workspacesworkspaceprojectsprojectkeyget) | **GET** /workspaces/{workspace}/projects/{project_key} | Get a project for a workspace|
 |[**workspacesWorkspacePullrequestsSelectedUserGet**](#workspacesworkspacepullrequestsselecteduserget) | **GET** /workspaces/{workspace}/pullrequests/{selected_user} | List workspace pull requests for a user|
 |[**workspacesWorkspaceSettingsGpgPublicKeyGet**](#workspacesworkspacesettingsgpgpublickeyget) | **GET** /workspaces/{workspace}/settings/gpg/public-key | Get the workspace system GPG public key(s)|
-
-# **userPermissionsWorkspacesGet**
-> PaginatedWorkspaceMemberships userPermissionsWorkspacesGet()
-
-**This endpoint is deprecated. Please use the supported alternatives:** * [List workspaces for user](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get) * [Get user permission on a workspace](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-workspace-permission-get)  Returns an object for each workspace the caller is a member of, and their effective role - the highest level of privilege the caller has. If a user is a member of multiple groups with distinct roles, only the highest level is returned.  Permissions can be:  * `owner` * `collaborator` * `member`  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**  **When you move your administration from Bitbucket Cloud to admin.atlassian.com, the following fields on `workspace_membership` will no longer be present: `last_accessed` and `added_on`. See the [deprecation announcement](/cloud/bitbucket/announcement-breaking-change-workspace-membership/).**  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=workspace.slug=\"bbworkspace1\"` or `q=permission=\"owner\"` * `sort=workspace.slug`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
-
-### Example
-
-```typescript
-import {
-    WorkspacesApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new WorkspacesApi(configuration);
-
-let q: string; // Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details. (optional) (default to undefined)
-let sort: string; // Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details.  (optional) (default to undefined)
-
-const { status, data } = await apiInstance.userPermissionsWorkspacesGet(
-    q,
-    sort
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **q** | [**string**] |  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details. | (optional) defaults to undefined|
-| **sort** | [**string**] |  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details.  | (optional) defaults to undefined|
-
-
-### Return type
-
-**PaginatedWorkspaceMemberships**
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | All of the workspace memberships for the authenticated user. |  -  |
-|**401** | The request wasn\&#39;t authenticated. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **userWorkspacesGet**
 > PaginatedWorkspaceAccess userWorkspacesGet()
@@ -185,64 +128,6 @@ const { status, data } = await apiInstance.userWorkspacesWorkspacePermissionGet(
 |**200** | The user that is part of a workspace. |  -  |
 |**401** | The request wasn\&#39;t authenticated. |  -  |
 |**403** | The requesting user does not have access to the workspace. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **workspacesGet**
-> PaginatedWorkspaces workspacesGet()
-
-**This endpoint is deprecated. Please use the [supported alternative](/cloud/bitbucket/rest/api-group-workspaces/#api-user-workspaces-get).**  Returns a list of workspaces accessible by the authenticated user.  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by workspace or permission by adding the following query string parameters:  * `q=slug=\"bbworkspace1\"` or `q=is_private=true` * `sort=created_on`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.  **The `collaborator` role is being removed from the Bitbucket Cloud API. For more information, see the [deprecation announcement](/cloud/bitbucket/deprecation-notice-collaborator-role/).**
-
-### Example
-
-```typescript
-import {
-    WorkspacesApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new WorkspacesApi(configuration);
-
-let role: 'owner' | 'collaborator' | 'member'; //             Filters the workspaces based on the authenticated user\'s role on each workspace.              * **member**: returns a list of all the workspaces which the caller is a member of                 at least one workspace group or repository             * **collaborator**: returns a list of workspaces which the caller has write access                 to at least one repository in the workspace             * **owner**: returns a list of workspaces which the caller has administrator access              (optional) (default to undefined)
-let q: string; // Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details. (optional) (default to undefined)
-let sort: string; // Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details.  (optional) (default to undefined)
-
-const { status, data } = await apiInstance.workspacesGet(
-    role,
-    q,
-    sort
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **role** | [**&#39;owner&#39; | &#39;collaborator&#39; | &#39;member&#39;**]**Array<&#39;owner&#39; &#124; &#39;collaborator&#39; &#124; &#39;member&#39;>** |              Filters the workspaces based on the authenticated user\&#39;s role on each workspace.              * **member**: returns a list of all the workspaces which the caller is a member of                 at least one workspace group or repository             * **collaborator**: returns a list of workspaces which the caller has write access                 to at least one repository in the workspace             * **owner**: returns a list of workspaces which the caller has administrator access              | (optional) defaults to undefined|
-| **q** | [**string**] |  Query string to narrow down the response. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for details. | (optional) defaults to undefined|
-| **sort** | [**string**] |  Name of a response property to sort results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) for details.  | (optional) defaults to undefined|
-
-
-### Return type
-
-**PaginatedWorkspaces**
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | The list of workspaces accessible by the authenticated user. |  -  |
-|**401** | The request wasn\&#39;t authenticated. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

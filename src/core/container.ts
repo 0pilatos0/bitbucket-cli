@@ -140,7 +140,6 @@ export const ServiceTokens = {
   CommitStatusesApi: 'CommitStatusesApi',
   CommitsApi: 'CommitsApi',
   PipelinesApi: 'PipelinesApi',
-  IssueTrackerApi: 'IssueTrackerApi',
   WorkspacesApi: 'WorkspacesApi',
   ProjectsApi: 'ProjectsApi',
 
@@ -226,14 +225,6 @@ export const ServiceTokens = {
   // Commands - Status (commit build statuses)
   ListCommitStatusesCommand: 'ListCommitStatusesCommand',
   SetCommitStatusCommand: 'SetCommitStatusCommand',
-
-  // Commands - Issue
-  ListIssuesCommand: 'ListIssuesCommand',
-  ViewIssueCommand: 'ViewIssueCommand',
-  CreateIssueCommand: 'CreateIssueCommand',
-  EditIssueCommand: 'EditIssueCommand',
-  CloseIssueCommand: 'CloseIssueCommand',
-  CommentIssueCommand: 'CommentIssueCommand',
 
   // Commands - Workspace
   ListWorkspacesCommand: 'ListWorkspacesCommand',
