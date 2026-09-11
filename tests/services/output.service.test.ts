@@ -355,6 +355,21 @@ describe('OutputService', () => {
     });
   });
 
+  describe('stderr', () => {
+    it('writes raw text to stderr with no symbol prefix', () => {
+      output.stderr('Bad Request');
+
+      expect(consoleErrors[0]).toBe('Bad Request');
+      expect(consoleLogs).toHaveLength(0);
+    });
+
+    it('strips terminal control sequences', () => {
+      output.stderr('ok\x1b]0;pwned\x07after');
+
+      expect(consoleErrors[0]).toBe('okafter');
+    });
+  });
+
   describe('separator', () => {
     it('should render a 60-character Unicode line by default', () => {
       output.separator();

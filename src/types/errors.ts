@@ -91,21 +91,49 @@ export class AuthError extends BBError {
   }
 }
 
+/**
+ * Raw upstream response metadata carried alongside an {@link APIError} for
+ * command-specific diagnostics (notably `bb api`).
+ *
+ * Deliberately NOT serialized by `APIError.toJSON()`: these fields are an
+ * opt-in enrichment for commands that show the upstream exchange (e.g. via a
+ * `BaseCommand.handleError` hook), not part of the global `--json` error
+ * contract. Keeping them off the wire also avoids widening the header
+ * disclosure surface for commands that never asked for it.
+ */
+export interface APIErrorMeta {
+  /** Upstream response headers (never request headers). */
+  headers?: Record<string, unknown>;
+  /** Upstream HTTP reason phrase, when the transport provides one. */
+  statusText?: string;
+}
+
 export class APIError extends BBError {
   public readonly statusCode: number;
   public readonly response?: unknown;
+  /** Upstream response headers; see {@link APIErrorMeta}. */
+  public readonly headers?: Record<string, unknown>;
+  /** Upstream reason phrase; see {@link APIErrorMeta}. */
+  public readonly statusText?: string;
 
   constructor(
     message: string,
     statusCode: number,
     response?: unknown,
-    context?: Record<string, unknown>
+    context?: Record<string, unknown>,
+    meta?: APIErrorMeta
   ) {
     const code = APIError.statusToErrorCode(statusCode);
     super({ code, message, context });
     this.name = 'APIError';
     this.statusCode = statusCode;
     this.response = response;
+    if (meta?.headers !== undefined) {
+      this.headers = meta.headers;
+    }
+    if (meta?.statusText !== undefined) {
+      this.statusText = meta.statusText;
+    }
   }
 
   public toJSON(): Record<string, unknown> {
@@ -164,7 +192,8 @@ export function rethrowWithNotFoundContext(
       notFoundMessage,
       404,
       error.response,
-      error.context
+      error.context,
+      { headers: error.headers, statusText: error.statusText }
     );
   }
   throw error;

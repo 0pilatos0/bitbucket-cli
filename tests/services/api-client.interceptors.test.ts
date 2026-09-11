@@ -289,6 +289,56 @@ describe('createApiClient - APIError shape', () => {
     }
   });
 
+  it('captures upstream headers and statusText off the --json contract', async () => {
+    const mockAdapter = createMockAdapter([
+      {
+        status: 400,
+        data: { error: { message: 'Nope' } },
+        headers: { 'x-request-id': 'abc', 'content-type': 'application/json' },
+      },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      const apiErr = err as APIError;
+      expect(apiErr.headers).toEqual({
+        'x-request-id': 'abc',
+        'content-type': 'application/json',
+      });
+      expect(apiErr.statusText).toBe('400');
+      // Meta is command-specific (`bb api`); the global envelope is unchanged.
+      expect(apiErr.toJSON()).not.toHaveProperty('headers');
+      expect(apiErr.toJSON()).not.toHaveProperty('statusText');
+    }
+  });
+
+  it('falls back to a plain-text body when no structured message exists', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 400, data: 'Bad Request' },
+    ]);
+    const client = createApiClient(
+      mockConfigService(),
+      createMockOutputService()
+    );
+    client.defaults.adapter = mockAdapter.adapter;
+
+    try {
+      await client.get('/test');
+      expect(true).toBe(false);
+    } catch (err) {
+      // Previously this surfaced axios's generic
+      // "Request failed with status code 400".
+      expect((err as APIError).message).toBe('Bad Request');
+    }
+  });
+
   it('maps errors with neither response nor request to UNKNOWN with cause', async () => {
     const adapter = () => {
       const error = new Error('mystery failure');

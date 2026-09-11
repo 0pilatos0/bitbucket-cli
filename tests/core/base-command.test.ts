@@ -82,6 +82,37 @@ class TestCommandThrowing extends BaseCommand<{ option?: string }, void> {
   }
 }
 
+/** Overrides the error hooks to prove they fire in the right mode/order. */
+class TestCommandWithErrorDetails extends BaseCommand<
+  { option?: string },
+  void
+> {
+  public readonly name = 'test-error-details';
+  public readonly description = 'Test command with error hooks';
+
+  constructor(
+    output: IOutputService,
+    private readonly toThrow: unknown
+  ) {
+    super(output);
+  }
+
+  async execute(
+    _options: { option?: string },
+    _context: CommandContext
+  ): Promise<void> {
+    throw this.toThrow;
+  }
+
+  protected override errorJsonDetails(): Record<string, unknown> {
+    return { extra: 'json-detail' };
+  }
+
+  protected override renderErrorDetails(): void {
+    this.output.stderr('text-detail');
+  }
+}
+
 class TestCommandWithUnknownError extends BaseCommand<
   { option?: string },
   void
@@ -308,6 +339,43 @@ describe('BaseCommand', () => {
       expect(output.logs).toContain(
         'jsonError:{"name":"Error","code":9999,"message":"Test error"}'
       );
+    });
+
+    it('calls renderErrorDetails after the primary error line in text mode', async () => {
+      const command = new TestCommandWithErrorDetails(
+        output,
+        new Error('boom')
+      );
+
+      await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+        'boom'
+      );
+
+      const errorIdx = output.logs.indexOf('error:boom');
+      const detailIdx = output.logs.indexOf('stderr:text-detail');
+      expect(errorIdx).toBeGreaterThanOrEqual(0);
+      expect(detailIdx).toBeGreaterThan(errorIdx);
+    });
+
+    it('merges errorJsonDetails and skips text details in JSON mode', async () => {
+      const command = new TestCommandWithErrorDetails(
+        output,
+        new Error('boom')
+      );
+
+      await expect(
+        command.run({}, { globalOptions: { json: true } })
+      ).rejects.toThrow('boom');
+
+      const entry = output.logs.find((l) => l.startsWith('jsonError:'));
+      expect(entry).toBeDefined();
+      const payload = JSON.parse(entry!.slice('jsonError:'.length)) as Record<
+        string,
+        unknown
+      >;
+      expect(payload.extra).toBe('json-detail');
+      expect(payload.message).toBe('boom');
+      expect(output.logs.some((l) => l.startsWith('stderr:'))).toBe(false);
     });
 
     describe('remediation hints', () => {

@@ -65,6 +65,14 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
    * 404 would be misleading. */
   protected override readonly suppressNotFoundHint = true;
 
+  /**
+   * `-i/--include`, captured so {@link renderErrorDetails} (which cannot see
+   * the per-invocation options) knows whether to print the status line and
+   * headers. Safe as instance state because the CLI runs one command per
+   * process — the same rationale as `BaseCommand.commandPath`.
+   */
+  private include = false;
+
   constructor(
     private readonly axios: AxiosInstance,
     private readonly contextService: IContextService,
@@ -77,6 +85,7 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     options: ApiCommandOptions,
     context: CommandContext
   ): Promise<void> {
+    this.include = options.include === true;
     const { positionalMethod, endpointArg } = this.splitPositionals(options);
 
     const rawFields = options.rawField ?? [];
@@ -143,31 +152,71 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
       );
     }
 
-    try {
-      const response =
-        options.paginate && isGetLike
-          ? await this.fetchAllPages(config, headers)
-          : await this.axios.request(config);
-      if (options.include && !context.globalOptions.json) {
-        this.printResponseMeta(response);
-      }
-      await this.renderBody(
-        response.data,
-        context,
-        this.getContentType(response)
+    const response =
+      options.paginate && isGetLike
+        ? await this.fetchAllPages(config, headers)
+        : await this.axios.request(config);
+    if (options.include && !context.globalOptions.json) {
+      this.printResponseMeta(response);
+    }
+    await this.renderBody(
+      response.data,
+      context,
+      this.getContentType(response)
+    );
+  }
+
+  /**
+   * `bb api` surfaces the upstream error exchange. In `--json` mode the body
+   * already rides on `APIError.toJSON()` as `response`; add the upstream status
+   * text and response headers so scripts can inspect the full reply. The body/
+   * status-line text rendering (text mode) lives in {@link renderErrorDetails}.
+   */
+  protected override errorJsonDetails(
+    error: unknown,
+    _context: CommandContext
+  ): Record<string, unknown> {
+    if (!(error instanceof APIError)) {
+      return {};
+    }
+    return {
+      ...(error.headers !== undefined ? { headers: error.headers } : {}),
+      ...(error.statusText !== undefined
+        ? { statusText: error.statusText }
+        : {}),
+    };
+  }
+
+  /**
+   * Print the upstream response after the `✗` line, all on stderr so stdout
+   * stays parseable: the status line and headers with `-i/--include` (matching
+   * the success path), then the error body. No-op for failures that carry no
+   * upstream response (network/validation errors).
+   */
+  protected override renderErrorDetails(
+    error: unknown,
+    _context: CommandContext
+  ): void {
+    if (!(error instanceof APIError)) {
+      return;
+    }
+
+    const lines: string[] = [];
+    if (this.include) {
+      lines.push(
+        ...responseMetaLines(error.statusCode, error.statusText, error.headers)
       );
-    } catch (error) {
-      // Surface the API's error response body to stdout (like gh) in text mode;
-      // in JSON mode the body rides along on APIError.toJSON() via the standard
-      // error path, so avoid double-printing.
-      if (
-        error instanceof APIError &&
-        error.response !== undefined &&
-        !context.globalOptions.json
-      ) {
-        await this.renderBody(error.response, context);
-      }
-      throw error;
+    }
+
+    const body = errorBodyLines(error.response);
+    // Skip a body that merely repeats the message (a plain-text body such as
+    // `Bad Request` becomes both, since the message falls back to the body).
+    if (body.length > 0 && !(body.length === 1 && body[0] === error.message)) {
+      lines.push(...body);
+    }
+
+    for (const line of lines) {
+      this.output.stderr(line);
     }
   }
 
@@ -331,17 +380,17 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
 
   /**
    * Print the HTTP status line and response headers (`-i/--include`), followed
-   * by a blank line, ahead of the body. Text mode only — callers guard on
-   * `!json` so the structured stream is never corrupted.
+   * by a blank line, ahead of the body. Success output goes to stdout; error
+   * output (see {@link renderErrorDetails}) writes the same lines to stderr.
    */
   private printResponseMeta(response: AxiosResponse): void {
-    const statusText = response.statusText ? ` ${response.statusText}` : '';
-    this.output.text(`HTTP/1.1 ${response.status}${statusText}`);
-    const headers = (response.headers ?? {}) as Record<string, unknown>;
-    for (const [name, value] of Object.entries(headers)) {
-      this.output.text(`${name}: ${String(value)}`);
+    for (const line of responseMetaLines(
+      response.status,
+      response.statusText,
+      response.headers as Record<string, unknown> | undefined
+    )) {
+      this.output.text(line);
     }
-    this.output.text('');
   }
 
   private getContentType(response: AxiosResponse): string | undefined {
@@ -352,10 +401,13 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
   }
 
   /**
-   * Render a response (or error) body. JSON payloads route through
+   * Render a successful response body. JSON payloads route through
    * `output.json()` so `--json` field projection and `--jq` apply; genuinely
    * non-JSON (string) bodies pass through verbatim. An empty body still emits
    * `{}` in JSON mode so a downstream `jq` never receives zero bytes.
+   *
+   * Error bodies do NOT use this path — {@link renderErrorDetails} writes them
+   * raw to stderr so they can't be projected or mixed into stdout.
    */
   private async renderBody(
     data: unknown,
@@ -407,4 +459,41 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
   protected async readStdin(): Promise<string> {
     return Bun.stdin.text();
   }
+}
+
+/**
+ * Format an HTTP status line plus response headers and a trailing blank line
+ * for `-i/--include`. Shares one implementation between the success path
+ * (stdout) and the error path (stderr) so the two can't drift.
+ *
+ * HTTP/2 has no reason phrase and some transports/mocks report `statusText`
+ * equal to the numeric status; such a phrase is omitted to avoid `400 400`.
+ */
+function responseMetaLines(
+  status: number,
+  statusText: string | undefined,
+  headers: Record<string, unknown> | undefined
+): string[] {
+  const phrase = statusText?.trim();
+  const suffix = phrase && phrase !== String(status) ? ` ${phrase}` : '';
+  const lines = [`HTTP/1.1 ${status}${suffix}`];
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    lines.push(`${name}: ${String(value)}`);
+  }
+  lines.push('');
+  return lines;
+}
+
+/**
+ * Render an upstream error body for stderr. Deliberately does NOT route through
+ * `renderBody`/`output.json()`: error output must not be field-projected,
+ * `--jq`-filtered, or written to stdout. JSON payloads are pretty-printed;
+ * string bodies are passed through line by line.
+ */
+function errorBodyLines(data: unknown): string[] {
+  if (data === undefined || data === null || data === '') {
+    return [];
+  }
+  const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  return text === undefined ? [] : text.split('\n');
 }

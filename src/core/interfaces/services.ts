@@ -172,6 +172,13 @@ export interface IOutputService {
   info(message: string): void;
   text(message: string): void;
   /**
+   * Write raw text to stderr with no symbol prefix (unlike `error`, which
+   * prepends `✗`). Used for upstream payloads — e.g. `bb api`'s error body —
+   * where a decorative prefix would corrupt the content. Control characters
+   * are stripped like every other text channel.
+   */
+  stderr(message: string): void;
+  /**
    * Render a horizontal visual section divider. Used for framing rich
    * command output (e.g. `pr view`). Centralizing this keeps the separator
    * style consistent across commands and lets callers avoid raw repeat

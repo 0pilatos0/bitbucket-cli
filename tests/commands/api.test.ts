@@ -6,7 +6,7 @@ import { describe, it, expect } from 'bun:test';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { ApiCommand } from '../../src/commands/api.command.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
-import { APIError, BBError } from '../../src/types/errors.js';
+import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import { createMockContextService, createMockOutputService } from '../setup.js';
 
 interface MockAxios {
@@ -236,7 +236,7 @@ describe('ApiCommand', () => {
     ).rejects.toThrow(BBError);
   });
 
-  it('surfaces the API error body to stdout in text mode, then rethrows', async () => {
+  it('prints the error line, then the upstream body to stderr (text mode)', async () => {
     const { command, output } = makeCommand(() => {
       throw new APIError('Not found', 404, {
         type: 'error',
@@ -245,26 +245,105 @@ describe('ApiCommand', () => {
     });
 
     await expect(
-      command.execute({ methodOrEndpoint: '/repositories/ws/missing' }, ctx)
+      command.run({ methodOrEndpoint: '/repositories/ws/missing' }, ctx)
     ).rejects.toThrow(APIError);
 
-    expect(
-      output.logs.some(
-        (l) => l.startsWith('json:') && l.includes('Repository not found')
-      )
-    ).toBe(true);
+    const errorIdx = output.logs.findIndex((l) => l.startsWith('error:'));
+    const firstStderrIdx = output.logs.findIndex((l) =>
+      l.startsWith('stderr:')
+    );
+    expect(errorIdx).toBeGreaterThanOrEqual(0);
+    expect(firstStderrIdx).toBeGreaterThan(errorIdx);
+    expect(output.logs.join('\n')).toContain('Repository not found');
+    // The upstream body must never land on stdout.
+    expect(output.logs.some((l) => l.startsWith('json:'))).toBe(false);
   });
 
-  it('does not pre-print the error body in JSON mode', async () => {
+  it('prints the status line and headers on failure with -i/--include', async () => {
     const { command, output } = makeCommand(() => {
-      throw new APIError('Not found', 404, { error: { message: 'nope' } });
+      throw new APIError(
+        'Bad Request',
+        400,
+        'Bad Request',
+        { status: 400 },
+        {
+          statusText: 'Bad Request',
+          headers: { 'content-type': 'text/plain', 'x-request-id': 'abc' },
+        }
+      );
     });
 
     await expect(
-      command.execute({ methodOrEndpoint: '/repositories/ws/missing' }, jsonCtx)
+      command.run({ methodOrEndpoint: '/x', include: true }, ctx)
     ).rejects.toThrow(APIError);
 
+    expect(output.logs).toContain('stderr:HTTP/1.1 400 Bad Request');
+    expect(output.logs).toContain('stderr:content-type: text/plain');
+    expect(output.logs).toContain('stderr:x-request-id: abc');
+    const errorIdx = output.logs.findIndex((l) => l.startsWith('error:'));
+    expect(
+      output.logs.indexOf('stderr:HTTP/1.1 400 Bad Request')
+    ).toBeGreaterThan(errorIdx);
+    // A body that merely repeats the message is not echoed a second time.
+    expect(output.logs).not.toContain('stderr:Bad Request');
+  });
+
+  it('prints only the body on failure without -i', async () => {
+    const { command, output } = makeCommand(() => {
+      throw new APIError('Boom', 500, 'server exploded');
+    });
+
+    await expect(command.run({ methodOrEndpoint: '/x' }, ctx)).rejects.toThrow(
+      APIError
+    );
+
+    expect(output.logs).not.toContain('stderr:HTTP/1.1 500');
+    expect(output.logs).toContain('stderr:server exploded');
+  });
+
+  it('emits a structured error with headers/statusText in JSON mode', async () => {
+    const { command, output } = makeCommand(() => {
+      throw new APIError(
+        'Not found',
+        404,
+        { error: { message: 'nope' } },
+        { status: 404 },
+        { statusText: 'Not Found', headers: { 'x-test': '1' } }
+      );
+    });
+
+    await expect(
+      command.run({ methodOrEndpoint: '/repositories/ws/missing' }, jsonCtx)
+    ).rejects.toThrow(APIError);
+
+    const entry = output.logs.find((l) => l.startsWith('jsonError:'));
+    expect(entry).toBeDefined();
+    const payload = JSON.parse(entry!.slice('jsonError:'.length)) as Record<
+      string,
+      unknown
+    >;
+    expect(payload.statusCode).toBe(404);
+    expect(payload.response).toEqual({ error: { message: 'nope' } });
+    expect(payload.headers).toEqual({ 'x-test': '1' });
+    expect(payload.statusText).toBe('Not Found');
+    // No body pre-printed to stdout.
     expect(output.logs.some((l) => l.startsWith('json:'))).toBe(false);
+  });
+
+  it('leaves non-APIError failures to the base handler', async () => {
+    const { command, output } = makeCommand(() => {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: 'validation blew up',
+      });
+    });
+
+    await expect(command.run({ methodOrEndpoint: '/x' }, ctx)).rejects.toThrow(
+      BBError
+    );
+
+    expect(output.logs.some((l) => l.startsWith('error:'))).toBe(true);
+    expect(output.logs.some((l) => l.startsWith('stderr:'))).toBe(false);
   });
 
   it('rejects two positionals when the first is not an HTTP verb', async () => {

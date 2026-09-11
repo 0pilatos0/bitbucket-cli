@@ -129,6 +129,7 @@ export abstract class BaseCommand<
     if (context.globalOptions.json) {
       this.output.jsonError({
         ...this.normalizeErrorForJson(error),
+        ...this.errorJsonDetails(error, context),
         ...(hints.length > 0 ? { hint: hints.join(' ') } : {}),
       });
     } else if (error instanceof Error) {
@@ -136,8 +137,10 @@ export abstract class BaseCommand<
         error.message +
           hints.map((hint) => `\n${this.output.dim(hint)}`).join('')
       );
+      this.renderErrorDetails(error, context);
     } else {
       this.output.error(String(error));
+      this.renderErrorDetails(error, context);
     }
 
     // Only set exit code in production - during tests this causes false failures
@@ -166,6 +169,30 @@ export abstract class BaseCommand<
       message: String(error),
     };
   }
+
+  /**
+   * Extra keys merged into the `--json` error envelope, immediately before the
+   * remediation `hint`. Override to attach command-specific diagnostics — e.g.
+   * `bb api` includes the upstream response `headers`/`statusText`. The default
+   * is empty so the global `--json` error contract is unchanged.
+   */
+  protected errorJsonDetails(
+    _error: unknown,
+    _context: CommandContext
+  ): Record<string, unknown> {
+    return {};
+  }
+
+  /**
+   * Emit command-specific diagnostics after the primary error line in text
+   * mode — e.g. `bb api` prints the upstream response body to stderr. Never
+   * called in `--json` mode; use {@link errorJsonDetails} for that. The default
+   * is a no-op.
+   */
+  protected renderErrorDetails(
+    _error: unknown,
+    _context: CommandContext
+  ): void {}
 
   /**
    * Validate required option
