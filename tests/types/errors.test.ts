@@ -300,6 +300,51 @@ describe('APIError.statusToErrorCode mapping', () => {
     expect(json.response).toEqual(payload);
   });
 
+  it('carries upstream headers/statusText without serializing them', () => {
+    const error = new APIError('Bad Request', 400, 'Bad Request', undefined, {
+      statusText: 'Bad Request',
+      headers: { 'x-request-id': 'abc' },
+    });
+
+    expect(error.statusText).toBe('Bad Request');
+    expect(error.headers).toEqual({ 'x-request-id': 'abc' });
+
+    // Meta is for command-specific diagnostics (`bb api`), not the global
+    // `--json` error contract.
+    const json = error.toJSON();
+    expect(json).not.toHaveProperty('headers');
+    expect(json).not.toHaveProperty('statusText');
+  });
+
+  it('omits meta fields when none are provided', () => {
+    const error = new APIError('boom', 500);
+    expect(error.headers).toBeUndefined();
+    expect(error.statusText).toBeUndefined();
+  });
+
+  it('forwards meta through rethrowWithNotFoundContext', () => {
+    const meta = {
+      statusText: 'Not Found',
+      headers: { 'x-request-id': 'abc' },
+    };
+    const original = new APIError(
+      'boom',
+      404,
+      { error: {} },
+      { url: '/x' },
+      meta
+    );
+
+    try {
+      rethrowWithNotFoundContext(original, 'PR not found');
+      throw new Error('expected a rethrow');
+    } catch (error) {
+      expect(error).toBeInstanceOf(ContextualizedAPIError);
+      expect((error as APIError).statusText).toBe('Not Found');
+      expect((error as APIError).headers).toEqual({ 'x-request-id': 'abc' });
+    }
+  });
+
   describe('ContextualizedAPIError', () => {
     it('is only produced by rethrowWithNotFoundContext', () => {
       expect(new APIError('boom', 404)).not.toBeInstanceOf(

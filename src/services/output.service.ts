@@ -228,6 +228,11 @@ export class OutputService implements IOutputService {
     console.log(stripControl(message));
   }
 
+  public stderr(message: string): void {
+    this.stopActiveSpinner();
+    console.error(stripControl(message));
+  }
+
   public separator(width = 60): void {
     this.stopActiveSpinner();
     if (width <= 0) {

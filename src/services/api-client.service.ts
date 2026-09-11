@@ -389,15 +389,32 @@ export function createApiClient(
 
       // Transform non-retryable errors (or exhausted retries) into BBError
       if (error.response) {
-        const { status, data } = error.response;
-        const message = extractErrorMessage(data) || error.message;
+        const { status, data, headers, statusText } = error.response;
+        // Bitbucket's request parser rejects some malformed requests with a
+        // bare plain-text body (e.g. `Bad Request`) that has no structured
+        // `error.message`; surface that text instead of axios's generic
+        // "Request failed with status code N" so the failure mode is legible.
+        const message =
+          extractErrorMessage(data) ?? errorBodySummary(data) ?? error.message;
         const method = error.config?.method?.toUpperCase();
         const url = error.config?.url;
-        throw new APIError(message, status, data, {
+        const normalizedHeaders = normalizeResponseHeaders(headers);
+        throw new APIError(
+          message,
           status,
-          ...(method ? { method } : {}),
-          ...(url ? { url } : {}),
-        });
+          data,
+          {
+            status,
+            ...(method ? { method } : {}),
+            ...(url ? { url } : {}),
+          },
+          {
+            ...(normalizedHeaders ? { headers: normalizedHeaders } : {}),
+            ...(typeof statusText === 'string' && statusText.trim() !== ''
+              ? { statusText }
+              : {}),
+          }
+        );
       } else if (error.request) {
         // Axios reports request timeouts with `code` 'ECONNABORTED' (default)
         // or 'ETIMEDOUT' (when transitional.clarifyTimeoutError is enabled) and
@@ -472,4 +489,55 @@ export function extractErrorMessage(data: unknown): string | undefined {
     }
   }
   return undefined;
+}
+
+/** Maximum length of a raw-body fallback message before truncation. */
+const ERROR_BODY_MESSAGE_MAX_LENGTH = 200;
+
+/**
+ * Summarize a non-JSON error body for use as an error message when
+ * `extractErrorMessage()` finds no structured `error.message`/`message`.
+ *
+ * Bitbucket's request parser returns a bare plain-text body (e.g. `Bad
+ * Request`) for some malformed requests, which previously fell through to
+ * axios's generic "Request failed with status code N". Returning the body text
+ * preserves the useful signal that the request never reached the endpoint.
+ *
+ * Only string bodies qualify: JSON objects/arrays are left to
+ * `extractErrorMessage()` so we never stringify an arbitrary payload into the
+ * `✗` line. Whitespace is collapsed and long bodies are truncated. Exported
+ * for direct unit tests.
+ */
+export function errorBodySummary(data: unknown): string | undefined {
+  if (typeof data !== 'string') {
+    return undefined;
+  }
+  const collapsed = data.trim().replace(/\s+/g, ' ');
+  if (collapsed === '') {
+    return undefined;
+  }
+  return collapsed.length > ERROR_BODY_MESSAGE_MAX_LENGTH
+    ? `${collapsed.slice(0, ERROR_BODY_MESSAGE_MAX_LENGTH - 3)}...`
+    : collapsed;
+}
+
+/**
+ * Normalize an axios response-headers object into a plain record. `AxiosHeaders`
+ * exposes its values via `toJSON()` and own enumeration; a defensive copy keeps
+ * the captured metadata independent of the live response object.
+ */
+function normalizeResponseHeaders(
+  headers: unknown
+): Record<string, unknown> | undefined {
+  if (typeof headers !== 'object' || headers === null) {
+    return undefined;
+  }
+  const candidate = headers as { toJSON?: () => unknown };
+  if (typeof candidate.toJSON === 'function') {
+    const json = candidate.toJSON();
+    if (typeof json === 'object' && json !== null) {
+      return { ...(json as Record<string, unknown>) };
+    }
+  }
+  return { ...(headers as Record<string, unknown>) };
 }

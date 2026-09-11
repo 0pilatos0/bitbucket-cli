@@ -79,12 +79,19 @@ isn't 401/403/404/429 — typically 400 (malformed request body) or 409
 respond, so this is not a connectivity problem.
 
 **Solution:** Read `message` and `response` in the JSON error payload; they
-carry Bitbucket's own explanation.
+carry Bitbucket's own explanation. When Bitbucket returns a bare plain-text body
+(e.g. `Bad Request` from the request parser before the endpoint runs), the body
+text becomes `message` instead of axios's generic "Request failed with status
+code 400".
 
 ```bash
 bb pr merge 42 --json 2> err.json
 jq '.statusCode, .message, .response' err.json
 ```
+
+`bb api` goes further: its `--json` error object also includes `headers` and the
+transport's `statusText`, and `bb api -i` prints the status line and headers to
+stderr on failure. See [API Command](/commands/api/#notes).
 
 Connection failures are [7001](#7001---network_error); server faults are
 [2005](#2005---api_server_error).

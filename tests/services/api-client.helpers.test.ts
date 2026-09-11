@@ -7,6 +7,7 @@
 
 import { describe, it, expect, afterEach } from 'bun:test';
 import {
+  errorBodySummary,
   extractErrorMessage,
   formatErrorFields,
   getRetryDelay,
@@ -200,6 +201,34 @@ describe('extractErrorMessage', () => {
     expect(extractErrorMessage({ message: 42 })).toBeUndefined();
     expect(extractErrorMessage('plain text')).toBeUndefined();
     expect(extractErrorMessage(null)).toBeUndefined();
+  });
+});
+
+describe('errorBodySummary', () => {
+  it('returns a non-empty string body as-is after trimming', () => {
+    expect(errorBodySummary('  Bad Request  ')).toBe('Bad Request');
+  });
+
+  it('collapses internal whitespace so the message stays one line', () => {
+    expect(errorBodySummary('Bad\n  Request\there')).toBe('Bad Request here');
+  });
+
+  it('returns undefined for empty/whitespace-only strings', () => {
+    expect(errorBodySummary('')).toBeUndefined();
+    expect(errorBodySummary('   \n ')).toBeUndefined();
+  });
+
+  it('ignores non-string bodies (left to extractErrorMessage)', () => {
+    expect(errorBodySummary({ error: { message: 'x' } })).toBeUndefined();
+    expect(errorBodySummary(null)).toBeUndefined();
+    expect(errorBodySummary(undefined)).toBeUndefined();
+  });
+
+  it('truncates long bodies with an ellipsis', () => {
+    const summary = errorBodySummary('x'.repeat(300));
+    expect(summary).toBeDefined();
+    expect(summary!.length).toBe(200);
+    expect(summary!.endsWith('...')).toBe(true);
   });
 });
 

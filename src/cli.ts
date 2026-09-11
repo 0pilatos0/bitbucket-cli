@@ -2252,7 +2252,7 @@ cli
   )
   .option(
     '-i, --include',
-    'Print the HTTP status line and response headers before the body (text mode only)'
+    'Print the HTTP status line and response headers before the body, on success and failure (text mode only)'
   )
   .option(
     '--paginate',

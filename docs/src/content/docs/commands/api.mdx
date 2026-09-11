@@ -36,7 +36,7 @@ bb api [options] [method] <endpoint>
 | `-F, --field <key=value>` | Add a typed parameter: `true`/`false`/`null` and numbers are converted; `@file` reads a file and `@-` reads stdin. Repeatable. |
 | `--input <file>` | Read the raw request body from a file, or `-` for stdin. Sent as `application/json` (override with `-H 'Content-Type: ...'`). Mutually exclusive with `-f`/`-F`. |
 | `-H, --header <key:value>` | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here. |
-| `-i, --include` | Print the HTTP status line and response headers before the body (text mode only — suppressed under `--json`). |
+| `-i, --include` | Print the HTTP status line and response headers before the body, on success and failure (text mode only — suppressed under `--json`). |
 | `--paginate` | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only). |
 
 ### Argument errors
@@ -170,14 +170,26 @@ bb api /repositories/my-ws --json name --jq '.[].name'
   `--paginate: response has no "values" array; returning the first page only.`
   and returns page 1. Both warnings are suppressed under `--json`. Combined
   with `-i`, the status line and headers printed are the first page's.
-- **Errors surface the API response.** On a non-2xx status, the API's error
-  body is printed and the command exits non-zero. With `--json`, the error
-  payload (including `statusCode` and `response`) is emitted as structured JSON.
-  A `401` or `403` also carries a `hint` with the next step to take. The generic
-  `404` hint is deliberately suppressed here — you supplied the URL yourself, so
-  advice about `--workspace`/`--repo` would not apply. Note the API error body
-  prints to **stdout** while the error line and its hint go to **stderr**, so in
-  a terminal the hint appears after the body.
+- **Errors surface the API response.** On a non-2xx status the command exits
+  non-zero and prints the upstream exchange to **stderr**, after the `✗` line:
+  by default just the error body; with `-i/--include`, the status line and
+  response headers first. A body that merely repeats the message (a plain-text
+  `Bad Request`) is not echoed twice. With `--json`, a single compact error
+  object is emitted on stderr carrying `statusCode`, `response` (the body),
+  `headers`, and `statusText` when the transport provides one. A `401` or `403`
+  also carries a `hint` with the next step to take. The generic `404` hint is
+  deliberately suppressed here — you supplied the URL yourself, so advice about
+  `--workspace`/`--repo` would not apply. Unlike success output, error bodies
+  are **not** field-projected or `--jq`-filtered.
+
+```bash
+# The failing request's status line, headers and body all land on stderr
+bb api -i POST /repositories/my-ws/my-repo/pullrequests/42/decline
+
+# Structured error (status + headers + body) for scripts
+bb api --json POST /repositories/my-ws/my-repo/pullrequests/42/decline 2> err.json
+jq '.statusCode, .response, .headers' err.json
+```
 - **Retries and redaction are inherited** from the shared API client — rate
   limits (`429`) and the transient gateway errors `502`/`503`/`504` are retried
   with backoff, and sensitive values are redacted from `DEBUG` logs.
