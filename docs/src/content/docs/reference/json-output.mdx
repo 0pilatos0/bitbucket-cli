@@ -624,7 +624,7 @@ Error JSON fields:
 | `context` | object | Optional structured metadata. Shape depends on `code` — see the table below |
 | `hint` | string | Optional. A single actionable next step, present only for `401`, `403`, and `404` failures where the CLI has advice to give. In human-readable mode the same text prints as a dimmed continuation line beneath the message. |
 | `statusCode` | number | `APIError` only. The upstream HTTP status. |
-| `response` | object | `APIError` only, and only when the upstream response had a body. The raw Bitbucket error payload. |
+| `response` | object \| string | `APIError` only, and only when the upstream response had a body. The raw Bitbucket error payload — usually a JSON object, but a plain-text body (e.g. a request-parser `Bad Request`) is passed through as a string. |
 | `headers` | object | `bb api` only. The upstream response headers, so scripts can inspect rate-limit or request-id headers on failure. |
 | `statusText` | string | `bb api` only, and only when the transport provides a reason phrase (HTTP/2 omits it). |
 
