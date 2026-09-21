@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.1
+
+### Patch Changes
+
+- [#329](https://github.com/0pilatos0/bitbucket-cli/pull/329) [`98db5a3`](https://github.com/0pilatos0/bitbucket-cli/commit/98db5a349a77a9d146e3df7f0286e3d52b7f4eaf) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the pinned Bitbucket Cloud spec and regenerate the API client
+
+  - Update `specs/bitbucket-cloud.json` to upstream revision `bfe4e1ee8053`
+  - Drop the deprecated `GET /repositories` operation (and its `RepositoriesGetRoleEnum`) from `src/generated/`; the CLI never exposed it
+  - Track the addon client-key endpoint's OAuth scope change to `read:workspace:bitbucket`
+
 ## 2.1.0
 
 ### Minor Changes
