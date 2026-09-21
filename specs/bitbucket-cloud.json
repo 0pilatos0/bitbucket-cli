@@ -92,7 +92,7 @@
           {
             "state": "Current",
             "scheme": "oauth2",
-            "scopes": ["admin:workspace:bitbucket"]
+            "scopes": ["read:workspace:bitbucket"]
           }
         ],
         "x-atlassian-auth-types": ["forge-oauth2"]
@@ -202,65 +202,6 @@
           "enum": ["repository", "workspace"]
         }
       ]
-    },
-    "/repositories": {
-      "get": {
-        "tags": ["Repositories"],
-        "description": "**This endpoint is deprecated. Please use the\n[workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**\n\nReturns a paginated list of all public repositories.\n\nThis endpoint also supports filtering and sorting of the results. See\n[filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.",
-        "summary": "List public repositories",
-        "responses": {
-          "200": {
-            "description": "All public repositories.",
-            "schema": { "$ref": "#/definitions/paginated_repositories" }
-          }
-        },
-        "parameters": [
-          {
-            "name": "after",
-            "in": "query",
-            "description": "Filter the results to include only repositories created on or\nafter this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)\n timestamp. Example: `YYYY-MM-DDTHH:mm:ss.sssZ`",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "role",
-            "in": "query",
-            "description": "Filters the result based on the authenticated user's role on each repository.\n\n* **member**: returns repositories to which the user has explicit read access\n* **contributor**: returns repositories to which the user has explicit write access\n* **admin**: returns repositories to which the user has explicit administrator access\n* **owner**: returns all repositories owned by the current user\n",
-            "required": false,
-            "type": "string",
-            "enum": ["admin", "contributor", "member", "owner"]
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "description": "Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).\n`role` parameter must also be specified.\n",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "sort",
-            "in": "query",
-            "description": "Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).\n",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "security": [
-          { "oauth2": ["repository"] },
-          { "basic": [] },
-          { "api_key": [] }
-        ],
-        "deprecated": true,
-        "x-atlassian-oauth2-scopes": [
-          {
-            "state": "Current",
-            "scheme": "oauth2",
-            "scopes": ["read:repository:bitbucket"]
-          }
-        ],
-        "x-atlassian-auth-types": ["api-token"]
-      },
-      "parameters": []
     },
     "/repositories/{workspace}": {
       "get": {
@@ -23026,7 +22967,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "ac2b0aabebb5",
+  "x-revision": "bfe4e1ee8053",
   "x-atlassian-narrative": {
     "documents": [
       {

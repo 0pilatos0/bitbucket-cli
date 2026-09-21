@@ -31177,68 +31177,6 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
 export const RepositoriesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-         * @summary List public repositories
-         * @param {string} [after] Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
-         * @param {RepositoriesGetRoleEnum} [role] Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user 
-         * @param {string} [q] Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). &#x60;role&#x60; parameter must also be specified. 
-         * @param {string} [sort] Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). 
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        repositoriesGet: async (after?: string, role?: RepositoriesGetRoleEnum, q?: string, sort?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            const localVarPath = `/repositories`;
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["repository"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            if (after !== undefined) {
-                localVarQueryParameter['after'] = after;
-            }
-
-            if (role !== undefined) {
-                localVarQueryParameter['role'] = role;
-            }
-
-            if (q !== undefined) {
-                localVarQueryParameter['q'] = q;
-            }
-
-            if (sort !== undefined) {
-                localVarQueryParameter['sort'] = sort;
-            }
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
@@ -32793,23 +32731,6 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = RepositoriesApiAxiosParamCreator(configuration)
     return {
         /**
-         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-         * @summary List public repositories
-         * @param {string} [after] Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
-         * @param {RepositoriesGetRoleEnum} [role] Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user 
-         * @param {string} [q] Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). &#x60;role&#x60; parameter must also be specified. 
-         * @param {string} [sort] Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). 
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        async repositoriesGet(after?: string, role?: RepositoriesGetRoleEnum, q?: string, sort?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedRepositories>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesGet(after, role, q, sort, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
@@ -33249,17 +33170,6 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
     const localVarFp = RepositoriesApiFp(configuration)
     return {
         /**
-         * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-         * @summary List public repositories
-         * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @deprecated
-         * @throws {RequiredError}
-         */
-        repositoriesGet(requestParameters: RepositoriesApiRepositoriesGetRequest = {}, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositories> {
-            return localVarFp.repositoriesGet(requestParameters.after, requestParameters.role, requestParameters.q, requestParameters.sort, options).then((request) => request(axios, basePath));
-        },
-        /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
          * @param {RepositoriesApiRepositoriesWorkspaceGetRequest} requestParameters Request parameters.
@@ -33547,16 +33457,6 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
  */
 export interface RepositoriesApiInterface {
     /**
-     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-     * @summary List public repositories
-     * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @deprecated
-     * @throws {RequiredError}
-     */
-    repositoriesGet(requestParameters?: RepositoriesApiRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositories>;
-
-    /**
      * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List repositories in a workspace
      * @param {RepositoriesApiRepositoriesWorkspaceGetRequest} requestParameters Request parameters.
@@ -33808,31 +33708,6 @@ export interface RepositoriesApiInterface {
      */
     userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters: RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions>;
 
-}
-
-/**
- * Request parameters for repositoriesGet operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesGetRequest {
-    /**
-     * Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60;
-     */
-    readonly after?: string
-
-    /**
-     * Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user 
-     */
-    readonly role?: RepositoriesGetRoleEnum
-
-    /**
-     * Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). &#x60;role&#x60; parameter must also be specified. 
-     */
-    readonly q?: string
-
-    /**
-     * Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). 
-     */
-    readonly sort?: string
 }
 
 /**
@@ -34450,18 +34325,6 @@ export interface RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGe
  */
 export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface {
     /**
-     * **This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-     * @summary List public repositories
-     * @param {RepositoriesApiRepositoriesGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @deprecated
-     * @throws {RequiredError}
-     */
-    public repositoriesGet(requestParameters: RepositoriesApiRepositoriesGetRequest = {}, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesGet(requestParameters.after, requestParameters.role, requestParameters.q, requestParameters.sort, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
      * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List repositories in a workspace
      * @param {RepositoriesApiRepositoriesWorkspaceGetRequest} requestParameters Request parameters.
@@ -34770,13 +34633,6 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
     }
 }
 
-export const RepositoriesGetRoleEnum = {
-    Admin: 'admin',
-    Contributor: 'contributor',
-    Member: 'member',
-    Owner: 'owner'
-} as const;
-export type RepositoriesGetRoleEnum = typeof RepositoriesGetRoleEnum[keyof typeof RepositoriesGetRoleEnum];
 export const RepositoriesWorkspaceGetRoleEnum = {
     Admin: 'admin',
     Contributor: 'contributor',
