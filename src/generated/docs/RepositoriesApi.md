@@ -4,7 +4,6 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
-|[**repositoriesGet**](#repositoriesget) | **GET** /repositories | List public repositories|
 |[**repositoriesWorkspaceGet**](#repositoriesworkspaceget) | **GET** /repositories/{workspace} | List repositories in a workspace|
 |[**repositoriesWorkspaceRepoSlugDelete**](#repositoriesworkspacereposlugdelete) | **DELETE** /repositories/{workspace}/{repo_slug} | Delete a repository|
 |[**repositoriesWorkspaceRepoSlugFilehistoryCommitPathGet**](#repositoriesworkspacereposlugfilehistorycommitpathget) | **GET** /repositories/{workspace}/{repo_slug}/filehistory/{commit}/{path} | List commits that modified a file|
@@ -33,66 +32,6 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**repositoriesWorkspaceRepoSlugSrcPost**](#repositoriesworkspacereposlugsrcpost) | **POST** /repositories/{workspace}/{repo_slug}/src | Create a commit by uploading a file|
 |[**repositoriesWorkspaceRepoSlugWatchersGet**](#repositoriesworkspacereposlugwatchersget) | **GET** /repositories/{workspace}/{repo_slug}/watchers | List repositories watchers|
 |[**userWorkspacesWorkspacePermissionsRepositoriesGet**](#userworkspacesworkspacepermissionsrepositoriesget) | **GET** /user/workspaces/{workspace}/permissions/repositories | List repository permissions in a workspace for a user|
-
-# **repositoriesGet**
-> PaginatedRepositories repositoriesGet()
-
-**This endpoint is deprecated. Please use the [workspace scoped alternative](/cloud/bitbucket/rest/api-group-repositories/#api-repositories-workspace-get).**  Returns a paginated list of all public repositories.  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
-
-### Example
-
-```typescript
-import {
-    RepositoriesApi,
-    Configuration
-} from './api';
-
-const configuration = new Configuration();
-const apiInstance = new RepositoriesApi(configuration);
-
-let after: string; //Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: `YYYY-MM-DDTHH:mm:ss.sssZ` (optional) (default to undefined)
-let role: 'admin' | 'contributor' | 'member' | 'owner'; //Filters the result based on the authenticated user\'s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user  (optional) (default to undefined)
-let q: string; //Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). `role` parameter must also be specified.  (optional) (default to undefined)
-let sort: string; //Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).  (optional) (default to undefined)
-
-const { status, data } = await apiInstance.repositoriesGet(
-    after,
-    role,
-    q,
-    sort
-);
-```
-
-### Parameters
-
-|Name | Type | Description  | Notes|
-|------------- | ------------- | ------------- | -------------|
-| **after** | [**string**] | Filter the results to include only repositories created on or after this [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601)  timestamp. Example: &#x60;YYYY-MM-DDTHH:mm:ss.sssZ&#x60; | (optional) defaults to undefined|
-| **role** | [**&#39;admin&#39; | &#39;contributor&#39; | &#39;member&#39; | &#39;owner&#39;**]**Array<&#39;admin&#39; &#124; &#39;contributor&#39; &#124; &#39;member&#39; &#124; &#39;owner&#39;>** | Filters the result based on the authenticated user\&#39;s role on each repository.  * **member**: returns repositories to which the user has explicit read access * **contributor**: returns repositories to which the user has explicit write access * **admin**: returns repositories to which the user has explicit administrator access * **owner**: returns all repositories owned by the current user  | (optional) defaults to undefined|
-| **q** | [**string**] | Query string to narrow down the response as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering). &#x60;role&#x60; parameter must also be specified.  | (optional) defaults to undefined|
-| **sort** | [**string**] | Field by which the results should be sorted as per [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering).  | (optional) defaults to undefined|
-
-
-### Return type
-
-**PaginatedRepositories**
-
-### Authorization
-
-[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-|**200** | All public repositories. |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceGet**
 > PaginatedRepositories repositoriesWorkspaceGet()
