@@ -11,7 +11,10 @@ import {
   spyOn,
   mock,
 } from 'bun:test';
-import { createApiClient } from '../../src/services/api-client.service.js';
+import {
+  createApiClient,
+  resolveUploadTimeoutMs,
+} from '../../src/services/api-client.service.js';
 import { OAuthService } from '../../src/services/oauth.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import {
@@ -1162,6 +1165,33 @@ describe('createApiClient - request timeout (#249)', () => {
       // Original axios error preserved as cause for DEBUG/troubleshooting.
       expect(bbErr.cause).toBe(timeoutMock.getLastError());
     }
+  });
+
+  it('reports the per-request timeout rather than the instance default', async () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    const timeoutMock = createTimeoutErrorAdapter('ECONNABORTED');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter as never;
+
+    const error = await client
+      .post('/upload', undefined, { timeout: 90000 })
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).message).toContain('timed out after 90000ms');
+  });
+
+  it('adds a size-scaled transfer allowance to the upload timeout', () => {
+    delete process.env.BB_HTTP_TIMEOUT;
+    expect(resolveUploadTimeoutMs(0)).toBe(30000);
+    expect(resolveUploadTimeoutMs(32 * 1024 * 60)).toBe(90000);
+
+    process.env.BB_HTTP_TIMEOUT = '5000';
+    expect(resolveUploadTimeoutMs(32 * 1024 * 10)).toBe(15000);
+  });
+
+  it('keeps the upload timeout disabled when BB_HTTP_TIMEOUT=0', () => {
+    process.env.BB_HTTP_TIMEOUT = '0';
+    expect(resolveUploadTimeoutMs(100 * 1024 * 1024)).toBe(0);
   });
 
   it('keeps the generic network message for connection errors without a timeout code', async () => {

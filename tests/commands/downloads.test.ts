@@ -244,9 +244,12 @@ describe('UploadDownloadCommand', () => {
     const { api, recorded } = createMockDownloadsApi();
     const cmd = new UploadDownloadCommand(api, repoContextService(), output);
 
-    await expect(
-      cmd.run({ files: ['tests'] }, { globalOptions: {} })
-    ).rejects.toThrow('File not found: tests');
+    const error = await cmd
+      .run({ files: ['tests'] }, { globalOptions: {} })
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect((error as Error).message).toBe("'tests' is a directory, not a file");
     expect(recorded.upload).toBeUndefined();
   });
 });

@@ -427,9 +427,9 @@ bb repo downloads upload dist/app-1.0.0.tar.gz
 bb repo downloads upload build/*.zip
 ```
 
-`--json` emits `{ success, workspace, repoSlug, uploaded }`, where `uploaded` lists the artifact names. A missing file, or two files sharing a basename, fails before anything is sent.
+`--json` emits `{ success, workspace, repoSlug, uploaded }`, where `uploaded` lists the artifact names. A missing file, a directory, or two files sharing a basename fails before anything is sent.
 
-The whole upload must finish within the HTTP timeout (30 seconds by default). For large artifacts or slow links, raise it with [`BB_HTTP_TIMEOUT`](/reference/environment-variables/), for example `BB_HTTP_TIMEOUT=600000 bb repo downloads upload big.zip`.
+The upload gets the HTTP timeout (30 seconds by default, see [`BB_HTTP_TIMEOUT`](/reference/environment-variables/)) plus transfer time for the total file size at 32 KiB/s, so large artifacts do not need a raised timeout. `BB_HTTP_TIMEOUT=0` disables it.
 
 ### `bb repo downloads delete`
 
