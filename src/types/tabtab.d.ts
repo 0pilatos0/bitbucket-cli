@@ -32,3 +32,33 @@ declare module 'tabtab' {
   export { install, uninstall, parseEnv, log };
   export default { install, uninstall, parseEnv, log };
 }
+
+declare module 'tabtab/lib/prompt' {
+  interface PromptAnswers {
+    location: string;
+    shell?: string;
+  }
+
+  function prompt(): Promise<PromptAnswers>;
+  export default prompt;
+}
+
+declare module 'tabtab/lib/installer' {
+  function writeToShellConfig(options: {
+    location: string;
+    name: string;
+  }): Promise<void>;
+  function writeToTabtabScript(options: { name: string }): Promise<void>;
+
+  export { writeToShellConfig, writeToTabtabScript };
+}
+
+declare module 'tabtab/lib/utils/systemShell' {
+  function systemShell(): string;
+  export default systemShell;
+}
+
+declare module 'tabtab/lib/scripts/*.sh' {
+  const template: string;
+  export default template;
+}
