@@ -10,11 +10,9 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { WebhookSubscription, WebhooksApi } from '../../generated/api.js';
 import {
+  DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_SCOPES,
-  describeTarget,
-  resolveWebhookTarget,
-  targetMetadata,
-  webhookEndpoints,
+  resolveWebhooks,
   type WebhookScopeOptions,
 } from './shared.js';
 
@@ -42,24 +40,25 @@ export class ListWebhooksCommand extends BaseCommand<
     options: ListWebhooksOptions,
     context: CommandContext
   ): Promise<void> {
-    const target = await resolveWebhookTarget(
-      this.parseEnumOption(options.scope ?? 'repo', 'scope', WEBHOOK_SCOPES),
+    const hooks = await resolveWebhooks(
+      this.parseEnumOption(
+        options.scope ?? DEFAULT_WEBHOOK_SCOPE,
+        'scope',
+        WEBHOOK_SCOPES
+      ),
       options,
       context,
-      this.contextService
+      this.contextService,
+      this.webhooksApi
     );
-    const endpoints = webhookEndpoints(this.webhooksApi, target);
 
     await this.runList<WebhookSubscription>(
       {
         options,
-        fetchPage: async (page, pagelen) => {
-          const response = await endpoints.list({ params: { page, pagelen } });
-          return response.data;
-        },
+        fetchPage: (page, pagelen) => hooks.list(page, pagelen),
         wrapperKey: 'webhooks',
-        jsonMetadata: targetMetadata(target),
-        emptyMessage: `No webhooks found for ${describeTarget(target)}`,
+        jsonMetadata: hooks.metadata,
+        emptyMessage: `No webhooks found for ${hooks.label}`,
         tableHeaders: ['UUID', 'DESCRIPTION', 'URL', 'EVENTS', 'ACTIVE'],
         mapRow: (webhook) => [
           webhook.uuid ?? '',

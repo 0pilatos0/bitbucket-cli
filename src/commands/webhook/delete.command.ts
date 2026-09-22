@@ -11,12 +11,10 @@ import type {
 import type { WebhooksApi } from '../../generated/api.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
 import {
+  DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_SCOPES,
-  describeTarget,
   normalizeWebhookUid,
-  resolveWebhookTarget,
-  targetMetadata,
-  webhookEndpoints,
+  resolveWebhooks,
   type WebhookScopeOptions,
 } from './shared.js';
 
@@ -45,32 +43,36 @@ export class DeleteWebhookCommand extends BaseCommand<
     context: CommandContext
   ): Promise<void> {
     const uid = normalizeWebhookUid(this.requireOption(options.uid, 'uid'));
-    const target = await resolveWebhookTarget(
-      this.parseEnumOption(options.scope ?? 'repo', 'scope', WEBHOOK_SCOPES),
+    const hooks = await resolveWebhooks(
+      this.parseEnumOption(
+        options.scope ?? DEFAULT_WEBHOOK_SCOPE,
+        'scope',
+        WEBHOOK_SCOPES
+      ),
       options,
       context,
-      this.contextService
+      this.contextService,
+      this.webhooksApi
     );
-    const endpoints = webhookEndpoints(this.webhooksApi, target);
 
     this.requireConfirmation(
       options.yes,
-      `This will permanently delete webhook ${uid} from ${describeTarget(target)}.`
+      `This will permanently delete webhook ${uid} from ${hooks.label}.`
     );
 
-    await endpoints
+    await hooks
       .delete(uid)
       .catch((error: unknown) =>
         rethrowWithNotFoundContext(
           error,
-          `Webhook ${uid} not found for ${describeTarget(target)}.`
+          `Webhook ${uid} not found for ${hooks.label}.`
         )
       );
 
     if (context.globalOptions.json) {
       await this.output.json({
         success: true,
-        ...targetMetadata(target),
+        ...hooks.metadata,
         webhookId: uid,
       });
       return;

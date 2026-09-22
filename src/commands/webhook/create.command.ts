@@ -11,12 +11,10 @@ import type {
 import type { WebhooksApi } from '../../generated/api.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 import {
+  DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_EVENTS,
   WEBHOOK_SCOPES,
-  describeTarget,
-  resolveWebhookTarget,
-  targetMetadata,
-  webhookEndpoints,
+  resolveWebhooks,
   type WebhookScopeOptions,
 } from './shared.js';
 
@@ -65,15 +63,19 @@ export class CreateWebhookCommand extends BaseCommand<
       )
     );
 
-    const target = await resolveWebhookTarget(
-      this.parseEnumOption(options.scope ?? 'repo', 'scope', WEBHOOK_SCOPES),
+    const hooks = await resolveWebhooks(
+      this.parseEnumOption(
+        options.scope ?? DEFAULT_WEBHOOK_SCOPE,
+        'scope',
+        WEBHOOK_SCOPES
+      ),
       options,
       context,
-      this.contextService
+      this.contextService,
+      this.webhooksApi
     );
-    const endpoints = webhookEndpoints(this.webhooksApi, target);
 
-    const response = await endpoints.create({
+    const webhook = await hooks.create({
       type: 'webhook_subscription',
       url,
       events,
@@ -83,15 +85,14 @@ export class CreateWebhookCommand extends BaseCommand<
         : {}),
       ...(options.secret !== undefined ? { secret: options.secret } : {}),
     });
-    const webhook = response.data;
 
     if (context.globalOptions.json) {
-      await this.output.json({ ...targetMetadata(target), webhook });
+      await this.output.json({ ...hooks.metadata, webhook });
       return;
     }
 
     this.output.success(
-      `Created webhook ${webhook.uuid ?? url} for ${describeTarget(target)}`
+      `Created webhook ${webhook.uuid ?? url} for ${hooks.label}`
     );
   }
 }

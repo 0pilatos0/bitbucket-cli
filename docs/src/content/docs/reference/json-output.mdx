@@ -400,7 +400,7 @@ a projection wrapper key — see the trap above.
 
 ### Pattern 3: action (approve/merge/decline commands)
 
-Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `auth logout`
+Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `webhook delete`, `auth logout`
 
 Returns a success indicator plus resource identifiers:
 
@@ -420,6 +420,9 @@ Some action commands include the full resource in the response:
   "pullRequest": {...}
 }
 ```
+
+`webhook delete` returns `{ "success": true, "workspace": "...", "repoSlug": "...", "webhookId": "{...}" }`
+(no `repoSlug` with `--scope workspace`).
 
 Two action-style commands do **not** emit `success` — branch on their own key
 instead:

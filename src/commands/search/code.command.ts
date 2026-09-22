@@ -58,11 +58,10 @@ export class SearchCodeCommand extends BaseCommand<SearchCodeOptions, void> {
 
     const repo = options.repo ?? context.globalOptions.repo;
     const searchQuery = repo ? `${terms} repo:${repo}` : terms;
-    const workspace =
-      options.workspace ??
-      context.globalOptions.workspace ??
-      (await this.contextService.getRepoContextFromGit())?.workspace ??
-      (await this.contextService.requireWorkspace());
+    const workspace = await this.contextService.resolveWorkspaceFor(
+      options,
+      context
+    );
 
     await this.runList<SearchCodeSearchResult>(
       {

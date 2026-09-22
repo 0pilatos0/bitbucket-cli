@@ -140,8 +140,10 @@ bb webhook create --scope workspace -w my-workspace \
 ### Notes
 
 - Bitbucket rejects URLs that do not resolve or point at internal addresses.
-- A secret passed on the command line ends up in your shell history. Read it
-  from an environment variable, as in the last example.
+- Typing the secret on the command line puts it in your shell history. Reading
+  it from an environment variable, as in the last example, avoids that, but the
+  expanded value is still an argument of the `bb` process, so other users on a
+  shared machine can see it in `ps` while the command runs.
 - Only workspace owners can create workspace webhooks.
 - The JSON output is `{ workspace, repoSlug, webhook }` (no `repoSlug` with
   `--scope workspace`).

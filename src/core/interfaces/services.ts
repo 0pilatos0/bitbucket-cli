@@ -81,6 +81,14 @@ export interface IContextService {
     context: CommandContext
   ): Promise<RepoContext>;
   requireWorkspace(explicit?: string): Promise<string>;
+  /**
+   * Workspace for workspace-level commands run from anywhere: the -w flag,
+   * then the current repository's Bitbucket remote, then `requireWorkspace()`.
+   */
+  resolveWorkspaceFor(
+    options: Partial<GlobalOptions>,
+    context: CommandContext
+  ): Promise<string>;
 }
 
 /**

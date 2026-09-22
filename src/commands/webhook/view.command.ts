@@ -11,12 +11,10 @@ import type {
 import type { WebhookSubscription, WebhooksApi } from '../../generated/api.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
 import {
+  DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_SCOPES,
-  describeTarget,
   normalizeWebhookUid,
-  resolveWebhookTarget,
-  targetMetadata,
-  webhookEndpoints,
+  resolveWebhooks,
   type WebhookScopeOptions,
 } from './shared.js';
 
@@ -41,26 +39,29 @@ export class ViewWebhookCommand extends BaseCommand<ViewWebhookOptions, void> {
     context: CommandContext
   ): Promise<void> {
     const uid = normalizeWebhookUid(this.requireOption(options.uid, 'uid'));
-    const target = await resolveWebhookTarget(
-      this.parseEnumOption(options.scope ?? 'repo', 'scope', WEBHOOK_SCOPES),
+    const hooks = await resolveWebhooks(
+      this.parseEnumOption(
+        options.scope ?? DEFAULT_WEBHOOK_SCOPE,
+        'scope',
+        WEBHOOK_SCOPES
+      ),
       options,
       context,
-      this.contextService
+      this.contextService,
+      this.webhooksApi
     );
-    const endpoints = webhookEndpoints(this.webhooksApi, target);
 
-    const response = await endpoints
+    const webhook = await hooks
       .get(uid)
       .catch((error: unknown) =>
         rethrowWithNotFoundContext(
           error,
-          `Webhook ${uid} not found for ${describeTarget(target)}.`
+          `Webhook ${uid} not found for ${hooks.label}.`
         )
       );
-    const webhook = response.data;
 
     if (context.globalOptions.json) {
-      await this.output.json({ ...targetMetadata(target), webhook });
+      await this.output.json({ ...hooks.metadata, webhook });
       return;
     }
 

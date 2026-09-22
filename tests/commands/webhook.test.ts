@@ -13,7 +13,7 @@ import {
   createMockContextService,
   createMockOutputService,
 } from '../setup.js';
-import { APIError } from '../../src/types/errors.js';
+import { APIError, ErrorCode } from '../../src/types/errors.js';
 import {
   WebhooksApi,
   type WebhookSubscription,
@@ -454,6 +454,20 @@ describe('DeleteWebhookCommand', () => {
     await expect(
       command.execute({ uid: UID }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm.');
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects a blank uid before prompting or calling the API', async () => {
+    const calls: ApiCall[] = [];
+    const command = new DeleteWebhookCommand(
+      createMockWebhooksApi({ calls }),
+      repoContextService(),
+      createMockOutputService()
+    );
+
+    await expect(
+      command.execute({ uid: '  ', yes: true }, { globalOptions: {} })
+    ).rejects.toMatchObject({ code: ErrorCode.VALIDATION_REQUIRED });
     expect(calls).toEqual([]);
   });
 

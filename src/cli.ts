@@ -16,7 +16,11 @@ import {
   PIPELINE_STATUSES,
 } from './commands/pipeline/list.command.js';
 import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
-import { WEBHOOK_EVENTS, WEBHOOK_SCOPES } from './commands/webhook/shared.js';
+import {
+  DEFAULT_WEBHOOK_SCOPE,
+  WEBHOOK_EVENTS,
+  WEBHOOK_SCOPES,
+} from './commands/webhook/shared.js';
 import { COLOR_WHENS } from './commands/pr/diff.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
@@ -2226,7 +2230,7 @@ webhookCmd
         "bb webhook list --json --jq '.webhooks[].url'",
       ],
       validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
-      defaults: { scope: 'repo', limit: '25' },
+      defaults: { scope: DEFAULT_WEBHOOK_SCOPE, limit: '25' },
     })
   )
   .action(async (options) => {
@@ -2252,7 +2256,7 @@ webhookCmd
         "bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'",
       ],
       validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
-      defaults: { scope: 'repo' },
+      defaults: { scope: DEFAULT_WEBHOOK_SCOPE },
     })
   )
   .action(async (uid, options) => {
@@ -2297,7 +2301,7 @@ webhookCmd
         'Valid scopes': [...WEBHOOK_SCOPES],
         'Valid events': [...WEBHOOK_EVENTS],
       },
-      defaults: { scope: 'repo' },
+      defaults: { scope: DEFAULT_WEBHOOK_SCOPE },
     })
   )
   .action(async (options) => {
@@ -2323,7 +2327,7 @@ webhookCmd
         'bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes',
       ],
       validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
-      defaults: { scope: 'repo' },
+      defaults: { scope: DEFAULT_WEBHOOK_SCOPE },
     })
   )
   .action(async (uid, options) => {

@@ -238,4 +238,16 @@ export class ContextService implements IContextService {
         'No workspace specified. Use --workspace option or set a default workspace with `bb config set defaultWorkspace <name>`.',
     });
   }
+
+  public async resolveWorkspaceFor(
+    options: Partial<GlobalOptions>,
+    context: CommandContext
+  ): Promise<string> {
+    return (
+      options.workspace ??
+      context.globalOptions.workspace ??
+      (await this.getRepoContextFromGit())?.workspace ??
+      (await this.requireWorkspace())
+    );
+  }
 }

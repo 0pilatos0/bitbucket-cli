@@ -2,7 +2,6 @@
  * Shared helpers for webhook commands
  */
 
-import type { RawAxiosRequestConfig } from 'axios';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IContextService } from '../../core/interfaces/services.js';
 import type {
@@ -16,6 +15,7 @@ import { BBError, ErrorCode } from '../../types/errors.js';
 
 export const WEBHOOK_SCOPES = ['repo', 'workspace'] as const;
 export type WebhookScope = (typeof WEBHOOK_SCOPES)[number];
+export const DEFAULT_WEBHOOK_SCOPE: WebhookScope = 'repo';
 
 export const WEBHOOK_EVENTS = Object.values(
   WebhookSubscriptionEventsEnum
@@ -25,31 +25,67 @@ export interface WebhookScopeOptions extends GlobalOptions {
   scope?: string;
 }
 
-export type WebhookTarget =
-  | { scope: 'repo'; workspace: string; repoSlug: string }
-  | { scope: 'workspace'; workspace: string };
-
-export interface WebhookEndpoints {
-  list(
-    options: RawAxiosRequestConfig
-  ): Promise<{ data: PaginatedWebhookSubscriptions }>;
-  get(uid: string): Promise<{ data: WebhookSubscription }>;
-  create(body: WebhookSubscription): Promise<{ data: WebhookSubscription }>;
-  delete(uid: string): Promise<unknown>;
+/**
+ * The webhooks of one repository or one workspace. The two endpoint families
+ * mirror each other, so commands work against this and never branch on scope.
+ */
+export interface WebhookTarget {
+  /** Human-readable location, e.g. `ws/repo` or `workspace ws`. */
+  label: string;
+  /** JSON envelope fields identifying where the webhooks live. */
+  metadata: { workspace: string; repoSlug?: string };
+  list(page: number, pagelen: number): Promise<PaginatedWebhookSubscriptions>;
+  get(uid: string): Promise<WebhookSubscription>;
+  create(body: WebhookSubscription): Promise<WebhookSubscription>;
+  delete(uid: string): Promise<void>;
 }
 
-export async function resolveWebhookTarget(
+export async function resolveWebhooks(
   scope: WebhookScope,
   options: WebhookScopeOptions,
   context: CommandContext,
-  contextService: IContextService
+  contextService: IContextService,
+  api: WebhooksApi
 ): Promise<WebhookTarget> {
   if (scope === 'repo') {
-    const repoContext = await contextService.requireRepoContextFor(
+    const { workspace, repoSlug } = await contextService.requireRepoContextFor(
       options,
       context
     );
-    return { scope, ...repoContext };
+    return {
+      label: `${workspace}/${repoSlug}`,
+      metadata: { workspace, repoSlug },
+      list: async (page, pagelen) =>
+        (
+          await api.repositoriesWorkspaceRepoSlugHooksGet(
+            { workspace, repoSlug },
+            { params: { page, pagelen } }
+          )
+        ).data,
+      get: async (uid) =>
+        (
+          await api.repositoriesWorkspaceRepoSlugHooksUidGet({
+            workspace,
+            repoSlug,
+            uid,
+          })
+        ).data,
+      create: async (body) =>
+        (
+          await api.repositoriesWorkspaceRepoSlugHooksPost({
+            workspace,
+            repoSlug,
+            body,
+          })
+        ).data,
+      delete: async (uid) => {
+        await api.repositoriesWorkspaceRepoSlugHooksUidDelete({
+          workspace,
+          repoSlug,
+          uid,
+        });
+      },
+    };
   }
 
   if (options.repo ?? context.globalOptions.repo) {
@@ -60,75 +96,35 @@ export async function resolveWebhookTarget(
     });
   }
 
-  const workspace =
-    options.workspace ??
-    context.globalOptions.workspace ??
-    (await contextService.getRepoContextFromGit())?.workspace ??
-    (await contextService.requireWorkspace());
-  return { scope, workspace };
-}
-
-/**
- * The repository and workspace hook endpoints mirror each other; this is the
- * one place that picks between them, so each command stays scope-agnostic.
- */
-export function webhookEndpoints(
-  api: WebhooksApi,
-  target: WebhookTarget
-): WebhookEndpoints {
-  if (target.scope === 'repo') {
-    const { workspace, repoSlug } = target;
-    return {
-      list: (options) =>
-        api.repositoriesWorkspaceRepoSlugHooksGet(
-          { workspace, repoSlug },
-          options
-        ),
-      get: (uid) =>
-        api.repositoriesWorkspaceRepoSlugHooksUidGet({
-          workspace,
-          repoSlug,
-          uid,
-        }),
-      create: (body) =>
-        api.repositoriesWorkspaceRepoSlugHooksPost({
-          workspace,
-          repoSlug,
-          body,
-        }),
-      delete: (uid) =>
-        api.repositoriesWorkspaceRepoSlugHooksUidDelete({
-          workspace,
-          repoSlug,
-          uid,
-        }),
-    };
-  }
-
-  const { workspace } = target;
+  const workspace = await contextService.resolveWorkspaceFor(options, context);
   return {
-    list: (options) => api.workspacesWorkspaceHooksGet({ workspace }, options),
-    get: (uid) => api.workspacesWorkspaceHooksUidGet({ workspace, uid }),
-    create: (body) => api.workspacesWorkspaceHooksPost({ workspace, body }),
-    delete: (uid) => api.workspacesWorkspaceHooksUidDelete({ workspace, uid }),
+    label: `workspace ${workspace}`,
+    metadata: { workspace },
+    list: async (page, pagelen) =>
+      (
+        await api.workspacesWorkspaceHooksGet(
+          { workspace },
+          { params: { page, pagelen } }
+        )
+      ).data,
+    get: async (uid) =>
+      (await api.workspacesWorkspaceHooksUidGet({ workspace, uid })).data,
+    create: async (body) =>
+      (await api.workspacesWorkspaceHooksPost({ workspace, body })).data,
+    delete: async (uid) => {
+      await api.workspacesWorkspaceHooksUidDelete({ workspace, uid });
+    },
   };
-}
-
-/** JSON envelope metadata identifying where the webhook lives. */
-export function targetMetadata(target: WebhookTarget): Record<string, string> {
-  return target.scope === 'repo'
-    ? { workspace: target.workspace, repoSlug: target.repoSlug }
-    : { workspace: target.workspace };
-}
-
-export function describeTarget(target: WebhookTarget): string {
-  return target.scope === 'repo'
-    ? `${target.workspace}/${target.repoSlug}`
-    : `workspace ${target.workspace}`;
 }
 
 /** Webhook ids are brace-wrapped UUIDs; accept a bare UUID too. */
 export function normalizeWebhookUid(uid: string): string {
   const trimmed = uid.trim();
+  if (trimmed.length === 0) {
+    throw new BBError({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: 'A webhook UUID is required.',
+    });
+  }
   return trimmed.startsWith('{') ? trimmed : `{${trimmed}}`;
 }
