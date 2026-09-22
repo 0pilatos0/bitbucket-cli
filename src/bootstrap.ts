@@ -16,10 +16,7 @@ import {
   UrlBuilderService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json');
+import pkg from '../package.json' with { type: 'json' };
 
 // Import generated API classes
 import {

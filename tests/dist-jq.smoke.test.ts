@@ -159,13 +159,6 @@ beforeAll(async () => {
     throw new Error(`scripts/build.ts failed with exit code ${build.status}`);
   }
 
-  // The bundle resolves its own package.json via createRequire(import.meta.url)
-  // (`../package.json` relative to dist/) for the version string.
-  await writeFile(
-    join(tmpDir, 'package.json'),
-    JSON.stringify({ name: 'smoke', version: '0.0.0', type: 'module' })
-  );
-
   // Write the config in BOTH platform layouts so whichever leg CI runs on
   // finds the credentials: POSIX reads $HOME/.config/bb, win32 reads
   // %APPDATA%\bb first, then %USERPROFILE%\AppData\Roaming\bb. Modes are

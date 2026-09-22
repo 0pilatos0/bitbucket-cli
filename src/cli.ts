@@ -3,7 +3,7 @@
  */
 
 import { Command, Option } from 'commander';
-import { createRequire } from 'node:module';
+import pkg from '../package.json' with { type: 'json' };
 import { bootstrap } from './bootstrap.js';
 import { generateCompletions } from './completion.js';
 import {
@@ -35,9 +35,6 @@ import { resolveRootInvocation } from './root-dispatch.js';
 // Re-exported so `buildCommandPath` keeps its historical import path.
 export { buildCommandPath } from './core/command-tree.js';
 import { resolveLocale } from './services/locale.js';
-
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json');
 
 import tabtab from 'tabtab';
 
