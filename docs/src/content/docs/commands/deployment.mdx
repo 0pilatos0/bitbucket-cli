@@ -50,6 +50,10 @@ UUID                                    ENVIRONMENT  STATUS      RELEASE  COMMIT
 - `STATUS` is the completed result (`SUCCESSFUL`, `FAILED`, `STOPPED`) when
   there is one, otherwise the state (`IN_PROGRESS`, `UNDEPLOYED`).
 - `DATE` is when the deployment completed, else when it started.
+- Rows come in the order Bitbucket returns them: the deployments endpoint
+  documents no sort order and takes no sort parameter. On a repository with
+  more than 25 deployments, pass `--all` (or a higher `--limit`) before
+  concluding what is deployed where.
 
 ---
 

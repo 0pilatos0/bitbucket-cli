@@ -53,6 +53,48 @@ describe('readPublicKey', () => {
     await expect(readPublicKey(path, noStdin)).rejects.toThrow('is empty');
   });
 
+  it('rejects an OpenSSH private key file before any network call', async () => {
+    const path = join(dir, 'id_ed25519');
+    await writeFile(
+      path,
+      '-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXkt\n-----END OPENSSH PRIVATE KEY-----\n'
+    );
+
+    await expect(readPublicKey(path, noStdin)).rejects.toMatchObject({
+      code: 5002,
+      message: expect.stringContaining('holds a private key'),
+    });
+  });
+
+  it('rejects a PEM private key file', async () => {
+    const path = join(dir, 'id_rsa');
+    await writeFile(
+      path,
+      '-----BEGIN RSA PRIVATE KEY-----\nMIIE\n-----END RSA PRIVATE KEY-----\n'
+    );
+
+    await expect(readPublicKey(path, noStdin)).rejects.toThrow(
+      'holds a private key'
+    );
+  });
+
+  it('rejects a PGP private key block on stdin', async () => {
+    await expect(
+      readPublicKey(
+        '-',
+        async () =>
+          '-----BEGIN PGP PRIVATE KEY BLOCK-----\n\nlQdG\n-----END PGP PRIVATE KEY BLOCK-----\n'
+      )
+    ).rejects.toThrow('stdin holds a private key');
+  });
+
+  it('accepts a PGP public key block', async () => {
+    const block =
+      '-----BEGIN PGP PUBLIC KEY BLOCK-----\n\nmQIN\n-----END PGP PUBLIC KEY BLOCK-----';
+
+    expect(await readPublicKey('-', async () => block)).toBe(block);
+  });
+
   it('rejects empty stdin', async () => {
     await expect(readPublicKey('-', async () => '')).rejects.toThrow(
       'No key found on stdin.'

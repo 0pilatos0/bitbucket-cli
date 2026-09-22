@@ -55,7 +55,8 @@ cat ~/.ssh/id_ed25519.pub | bb ssh-key add -
 bb ssh-key add ~/.ssh/id_ed25519.pub --json --jq '.sshKey.uuid'
 ```
 
-Only ever pass the **public** key (`.pub`).
+Only ever pass the **public** key (`.pub`). A private key is refused before
+anything is sent to Bitbucket.
 
 ---
 

@@ -8,6 +8,8 @@ import * as fs from 'node:fs';
 import type { UsersApi } from '../generated/api.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 
+const PRIVATE_KEY_MARKER = /-----BEGIN [A-Z ]*PRIVATE KEY( BLOCK)?-----/;
+
 /**
  * Resolve the authenticated account's UUID for the `{selected_user}` path
  * segment. Bitbucket has no `me` alias there, so `GET /user` comes first.
@@ -28,8 +30,8 @@ export async function resolveCurrentUserUuid(
 
 /**
  * Read a public key from a file path, or from stdin when `source` is `-`.
- * Surrounding whitespace is trimmed; an empty key is rejected before any
- * network call.
+ * Surrounding whitespace is trimmed; an empty key or private key material is
+ * rejected before any network call.
  */
 export async function readPublicKey(
   source: string,
@@ -60,6 +62,12 @@ export async function readPublicKey(
         source === '-'
           ? 'No key found on stdin.'
           : `Key file '${source}' is empty.`,
+    });
+  }
+  if (PRIVATE_KEY_MARKER.test(key)) {
+    throw new BBError({
+      code: ErrorCode.VALIDATION_INVALID,
+      message: `${source === '-' ? 'stdin' : `'${source}'`} holds a private key. Pass the public key instead: the .pub file for SSH, or \`gpg --armor --export <key-id>\` output for GPG.`,
     });
   }
   return key;

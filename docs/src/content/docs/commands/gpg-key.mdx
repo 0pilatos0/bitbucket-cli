@@ -51,6 +51,9 @@ gpg --armor --export you@example.com | bb gpg-key add -
 bb gpg-key add key.asc --json --jq '.gpgKey.fingerprint'
 ```
 
+A private key block (`gpg --export-secret-keys` output) is refused before
+anything is sent to Bitbucket.
+
 ---
 
 ## `bb gpg-key delete`
