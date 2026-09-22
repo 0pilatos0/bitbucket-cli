@@ -67,12 +67,17 @@ function repoContextService() {
 }
 
 function createMockDeploymentsApi(
-  options: { deployments?: Deployment[]; notFound?: boolean } = {}
+  options: {
+    deployments?: Deployment[];
+    notFound?: boolean;
+    environmentsFail?: boolean;
+  } = {}
 ): { api: DeploymentsApi; calls: Record<string, unknown[]> } {
   const calls: Record<string, unknown[]> = {
     list: [],
     get: [],
     environments: [],
+    environment: [],
   };
   const api = {
     getDeploymentsForRepository: async (
@@ -94,7 +99,19 @@ function createMockDeploymentsApi(
       axiosOptions?: unknown
     ) => {
       calls.environments!.push({ request, axiosOptions });
+      if (options.environmentsFail) throw new APIError('Forbidden', 403);
       return { data: { values: environments } };
+    },
+    getEnvironmentForRepository: async (request: {
+      environmentUuid: string;
+    }) => {
+      calls.environment!.push(request);
+      if (options.environmentsFail) throw new APIError('Forbidden', 403);
+      const environment = environments.find(
+        (e) => e.uuid === request.environmentUuid
+      );
+      if (!environment) throw new APIError('Resource not found', 404);
+      return { data: environment };
     },
   } as unknown as DeploymentsApi;
   return { api, calls };
@@ -192,6 +209,25 @@ describe('ListDeploymentsCommand', () => {
     expect(payload.count).toBe(2);
   });
 
+  it('falls back to environment UUIDs when the name lookup fails', async () => {
+    const output = createMockOutputService();
+    const { api } = createMockDeploymentsApi({ environmentsFail: true });
+    const command = new ListDeploymentsCommand(
+      api,
+      repoContextService(),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    const rows = JSON.parse(
+      output.logs
+        .find((l) => l.startsWith('table-rows:'))!
+        .slice('table-rows:'.length)
+    ) as string[][];
+    expect(rows.map((row) => row[1])).toEqual(['{env-prod}', '{env-unknown}']);
+  });
+
   it('prints an empty-state message', async () => {
     const output = createMockOutputService();
     const { api } = createMockDeploymentsApi({ deployments: [] });
@@ -224,12 +260,30 @@ describe('ViewDeploymentCommand', () => {
       repoSlug: 'app',
       deploymentUuid: '{dep-1}',
     });
+    expect(calls.environments).toHaveLength(0);
+    expect(calls.environment).toEqual([
+      { workspace: 'acme', repoSlug: 'app', environmentUuid: '{env-prod}' },
+    ]);
     expect(output.logs).toContain('text:Production  SUCCESSFUL');
     expect(output.logs).toContain('text:Release:     #42');
     expect(output.logs).toContain('text:Deployer:    Ada');
     expect(output.logs).toContain(
       'text:https://bitbucket.org/acme/app/pipelines/results/42'
     );
+  });
+
+  it('shows the environment UUID when the name lookup fails', async () => {
+    const output = createMockOutputService();
+    const { api } = createMockDeploymentsApi({ environmentsFail: true });
+    const command = new ViewDeploymentCommand(
+      api,
+      repoContextService(),
+      output
+    );
+
+    await command.execute({ uuid: '{dep-1}' }, { globalOptions: {} });
+
+    expect(output.logs).toContain('text:{env-prod}  SUCCESSFUL');
   });
 
   it('wraps the deployment in a JSON envelope', async () => {
@@ -246,7 +300,7 @@ describe('ViewDeploymentCommand', () => {
       { globalOptions: { json: true } }
     );
 
-    expect(calls.environments).toHaveLength(0);
+    expect(calls.environment).toHaveLength(0);
     expect(Object.keys(getJsonPayload(output.logs))).toEqual([
       'workspace',
       'repoSlug',

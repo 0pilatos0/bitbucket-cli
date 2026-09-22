@@ -50,7 +50,7 @@ Pick your editor and paste the command:
     **Snippets:** `bb snippet list/view/create/edit/delete/watch/unwatch`, plus `bb snippet comments`
     **Workspaces & projects:** `bb workspace list/view`, `bb project list/view/create`
     **Browser URLs:** `bb browse --pr <id> -n` prints the URL instead of opening it (`--json` does the same and returns `{"url": …}`)
-    **Raw API:** `bb api <endpoint>` — any Bitbucket 2.0 endpoint not covered above (e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
+    **Raw API:** `bb api <endpoint>` — any Bitbucket 2.0 endpoint not covered above (e.g. `bb api /repositories/{workspace}/{repo}/hooks`; supports `--paginate` and `--jq`)
 
     ## Tips
 
@@ -124,7 +124,7 @@ Pick your editor and paste the command:
     - `bb browse --pr <id> -n` - Print the PR URL instead of opening a browser (`--json` returns `{"url": …}`)
 
     **Raw API access:**
-    - `bb api <endpoint>` - Authenticated call to any Bitbucket 2.0 endpoint (escape hatch for anything without a typed command; e.g. `bb api /repositories/{workspace}/{repo}/branch-restrictions`; supports `--paginate` and `--jq`)
+    - `bb api <endpoint>` - Authenticated call to any Bitbucket 2.0 endpoint (escape hatch for anything without a typed command; e.g. `bb api /repositories/{workspace}/{repo}/hooks`; supports `--paginate` and `--jq`)
 
     **Configuration:**
     - `bb config set defaultWorkspace myworkspace`
@@ -376,7 +376,8 @@ account repository repository:admin pullrequest pullrequest:write
 
 That covers repository and pull request work, including `bb repo create` and
 `bb repo default-reviewers`. It does **not** cover `bb pipeline`,
-`bb project`, `bb snippet`, or `bb repo delete` — those return 403 under OAuth.
+`bb deployment`, `bb project`, `bb snippet`, `bb repo delete`, or adding and
+deleting SSH/GPG keys — those return 403 under OAuth.
 Use an API token with the scopes above if your agent needs them.
 
 ---

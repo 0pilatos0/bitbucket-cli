@@ -39,7 +39,7 @@ To set up a custom OAuth consumer:
 Custom credentials are stored in your config file for subsequent logins.
 
 <Aside type="caution" title="OAuth cannot reach every command">
-The CLI requests a hardcoded OAuth scope set: `account repository repository:admin pullrequest pullrequest:write`. A custom consumer cannot widen it. `bb pipeline`, `bb snippet`, `bb project` and `bb repo delete` are not covered — use an API token for those. See [Token Scopes](/reference/token-scopes/).
+The CLI requests a hardcoded OAuth scope set: `account repository repository:admin pullrequest pullrequest:write`. A custom consumer cannot widen it. `bb pipeline`, `bb deployment`, `bb snippet`, `bb project`, `bb repo delete` and adding or deleting SSH/GPG keys are not covered — use an API token for those. See [Token Scopes](/reference/token-scopes/).
 </Aside>
 
 ---

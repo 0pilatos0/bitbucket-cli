@@ -11,12 +11,11 @@ import type {
 import type { Deployment, DeploymentsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
+import { colorPipelineStatus } from '../pipeline/shared.js';
 import {
-  colorDeploymentStatus,
-  fetchEnvironmentNames,
+  fetchEnvironmentName,
   getDeploymentState,
   getDeploymentStatus,
-  getEnvironmentName,
 } from './shared.js';
 
 export interface ViewDeploymentOptions extends GlobalOptions {
@@ -67,23 +66,21 @@ export class ViewDeploymentCommand extends BaseCommand<
       return;
     }
 
-    const environmentNames = await fetchEnvironmentNames(
+    const environmentName = await fetchEnvironmentName(
       this.deploymentsApi,
-      request
+      request,
+      deployment
     );
-    this.render(deployment, environmentNames);
+    this.render(deployment, environmentName);
   }
 
-  private render(
-    deployment: Deployment,
-    environmentNames: Map<string, string>
-  ): void {
+  private render(deployment: Deployment, environmentName: string): void {
     const state = getDeploymentState(deployment);
     const release = deployment.release;
 
     this.output.text('');
     this.output.text(
-      `${this.output.bold(getEnvironmentName(deployment, environmentNames))}  ${colorDeploymentStatus(this.output, getDeploymentStatus(deployment))}`
+      `${this.output.bold(environmentName)}  ${colorPipelineStatus(this.output, getDeploymentStatus(deployment))}`
     );
     this.output.separator();
     this.output.text(`UUID:        ${deployment.uuid ?? '-'}`);

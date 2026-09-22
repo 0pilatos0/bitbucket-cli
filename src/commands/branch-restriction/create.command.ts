@@ -15,7 +15,11 @@ import type {
   UsersApi,
 } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import {
+  BBError,
+  ErrorCode,
+  rethrowWithNotFoundContext,
+} from '../../types/errors.js';
 import {
   BRANCH_RESTRICTION_BRANCH_TYPES,
   BRANCH_RESTRICTION_KINDS,
@@ -83,15 +87,20 @@ export class CreateBranchRestrictionCommand extends BaseCommand<
       context
     );
 
+    // Bitbucket requires both lists on exemptable kinds; empty denies everybody.
+    const exemptions = EXEMPTABLE_KINDS.includes(kind)
+      ? {
+          users: await this.resolveUsers(users),
+          groups: groups.map((slug) => ({ type: 'group', slug })),
+        }
+      : {};
+
     const body: Branchrestriction = {
       type: 'branchrestriction',
       kind,
       ...match,
       ...(value === undefined ? {} : { value }),
-      ...(users.length > 0 ? { users: await this.resolveUsers(users) } : {}),
-      ...(groups.length > 0
-        ? { groups: groups.map((slug) => ({ type: 'group', slug })) }
-        : {}),
+      ...exemptions,
     };
 
     const response =
@@ -172,9 +181,14 @@ export class CreateBranchRestrictionCommand extends BaseCommand<
   private async resolveUsers(users: string[]): Promise<Account[]> {
     return Promise.all(
       users.map(async (selectedUser) => {
-        const response = await this.usersApi.usersSelectedUserGet({
-          selectedUser,
-        });
+        const response = await this.usersApi
+          .usersSelectedUserGet({ selectedUser })
+          .catch((error: unknown) =>
+            rethrowWithNotFoundContext(
+              error,
+              `User ${selectedUser} not found (from --user).`
+            )
+          );
         const uuid = response.data.uuid;
         if (!uuid) {
           throw new BBError({

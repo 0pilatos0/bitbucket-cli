@@ -102,6 +102,7 @@ export function colorPipelineStatus(
     case 'HALTED':
     case 'EXPIRED':
     case 'NOT_RUN':
+    case 'UNDEPLOYED':
       return output.gray(status);
     default:
       return status;

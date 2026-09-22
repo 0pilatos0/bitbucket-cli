@@ -11,8 +11,8 @@ import type {
 import type { Deployment, DeploymentsApi } from '../../generated/api.js';
 import { resolveLimit } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { colorPipelineStatus } from '../pipeline/shared.js';
 import {
-  colorDeploymentStatus,
   fetchEnvironmentNames,
   getDeploymentDate,
   getDeploymentStatus,
@@ -52,19 +52,24 @@ export class ListDeploymentsCommand extends BaseCommand<
       workspace: repoContext.workspace,
       repoSlug: repoContext.repoSlug,
     };
-    // JSON consumers get the raw payloads; names only feed the table.
-    const environmentNames = context.globalOptions.json
-      ? new Map<string, string>()
-      : await fetchEnvironmentNames(this.deploymentsApi, request);
+    // JSON consumers get the raw payloads; names only feed the table and are
+    // fetched alongside the first page.
+    const environmentNamesPromise = context.globalOptions.json
+      ? Promise.resolve(new Map<string, string>())
+      : fetchEnvironmentNames(this.deploymentsApi, request);
+    let environmentNames = new Map<string, string>();
 
     await this.runList<Deployment>(
       {
         options,
         fetchPage: async (page, pagelen) => {
-          const response =
-            await this.deploymentsApi.getDeploymentsForRepository(request, {
+          const [response, names] = await Promise.all([
+            this.deploymentsApi.getDeploymentsForRepository(request, {
               params: { page, pagelen },
-            });
+            }),
+            environmentNamesPromise,
+          ]);
+          environmentNames = names;
           return response.data;
         },
         wrapperKey: 'deployments',
@@ -83,7 +88,7 @@ export class ListDeploymentsCommand extends BaseCommand<
           return [
             deployment.uuid ?? '-',
             getEnvironmentName(deployment, environmentNames),
-            colorDeploymentStatus(this.output, getDeploymentStatus(deployment)),
+            colorPipelineStatus(this.output, getDeploymentStatus(deployment)),
             deployment.release?.name ?? '-',
             deployment.release?.commit?.hash?.slice(0, 12) ?? '-',
             date ? this.output.formatDate(date) : '-',

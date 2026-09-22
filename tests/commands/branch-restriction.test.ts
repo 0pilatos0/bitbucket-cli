@@ -380,6 +380,52 @@ describe('CreateBranchRestrictionCommand', () => {
     expect(body.groups).toEqual([{ type: 'group', slug: 'admins' }]);
   });
 
+  it('sends empty exemption lists for push with no --user/--group', async () => {
+    const { api, calls } = createMockApi();
+    const { command } = makeCommand(api);
+
+    await command.execute(
+      { kind: 'push', pattern: 'main' },
+      { globalOptions: {} }
+    );
+
+    const body = (calls.post[0] as { body: Branchrestriction }).body;
+    expect(body.users).toEqual([]);
+    expect(body.groups).toEqual([]);
+  });
+
+  it('sends an empty users list when only --group is given', async () => {
+    const { api, calls } = createMockApi();
+    const { command } = makeCommand(api);
+
+    await command.execute(
+      { kind: 'restrict_merges', branchType: 'production', group: ['rm'] },
+      { globalOptions: {} }
+    );
+
+    const body = (calls.post[0] as { body: Branchrestriction }).body;
+    expect(body.users).toEqual([]);
+    expect(body.groups).toEqual([{ type: 'group', slug: 'rm' }]);
+  });
+
+  it('names the --user value when the user is not found', async () => {
+    const { api, calls } = createMockApi();
+    const usersApi = {
+      usersSelectedUserGet: async () => {
+        throw new APIError('Resource not found', 404);
+      },
+    } as unknown as UsersApi;
+    const { command } = makeCommand(api, usersApi);
+
+    await expect(
+      command.execute(
+        { kind: 'push', pattern: 'main', user: ['ghost'] },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('User ghost not found (from --user).');
+    expect(calls.post).toHaveLength(0);
+  });
+
   it('emits the created rule as JSON', async () => {
     const { api } = createMockApi();
     const { command, output } = makeCommand(api);

@@ -1,32 +1,34 @@
 /**
  * Shared helpers for the `bb deployment` command group.
- *
- * The generated `DeploymentState` is an empty marker interface (the spec
- * models its variants as subtypes), and list responses carry only the
- * environment `uuid`, so payloads are narrowed structurally here.
  */
 
-import type { IOutputService } from '../../core/interfaces/services.js';
 import type {
   Deployment,
   DeploymentEnvironment,
+  DeploymentStateCompleted,
+  DeploymentStateInProgress,
+  DeploymentStateUndeployed,
   DeploymentsApi,
 } from '../../generated/api.js';
 import { collectPages } from '../../services/pagination.js';
 
-interface DeploymentStateLike {
-  name?: string;
+// In-progress fields are a subset of completed ones; undeployed adds only
+// `trigger_url`, which nothing here reads.
+type AnyDeploymentState = Omit<DeploymentStateCompleted, 'name' | 'status'> & {
+  name?:
+    | DeploymentStateCompleted['name']
+    | DeploymentStateInProgress['name']
+    | DeploymentStateUndeployed['name'];
+  // The generated status is an empty marker; its variants each carry `name`.
   status?: { name?: string };
-  url?: string;
-  deployer?: { display_name?: string };
-  start_date?: string;
-  completion_date?: string;
-}
+};
 
-export function getDeploymentState(
-  deployment: Deployment
-): DeploymentStateLike {
-  return (deployment.state ?? {}) as DeploymentStateLike;
+/**
+ * `Deployment.state` is typed as the empty `DeploymentState` base; the payload
+ * is one of its generated variants.
+ */
+export function getDeploymentState(deployment: Deployment): AnyDeploymentState {
+  return (deployment.state ?? {}) as AnyDeploymentState;
 }
 
 /**
@@ -38,25 +40,6 @@ export function getDeploymentStatus(deployment: Deployment): string {
   return state.status?.name ?? state.name ?? '-';
 }
 
-export function colorDeploymentStatus(
-  output: IOutputService,
-  status: string
-): string {
-  switch (status.toUpperCase()) {
-    case 'SUCCESSFUL':
-      return output.green(status);
-    case 'FAILED':
-      return output.red(status);
-    case 'IN_PROGRESS':
-      return output.yellow(status);
-    case 'STOPPED':
-    case 'UNDEPLOYED':
-      return output.gray(status);
-    default:
-      return status;
-  }
-}
-
 /** When the deployment finished, else when it started, else release time. */
 export function getDeploymentDate(deployment: Deployment): string | undefined {
   const state = getDeploymentState(deployment);
@@ -66,30 +49,55 @@ export function getDeploymentDate(deployment: Deployment): string | undefined {
 }
 
 /**
- * Map environment UUID to name. Deployment payloads reference environments
- * by UUID only, so names come from the environments collection.
+ * Map environment UUID to name, for the table only. Deployment payloads
+ * reference environments by UUID, so names come from the environments
+ * collection; a failed lookup falls back to showing UUIDs.
  */
 export async function fetchEnvironmentNames(
   deploymentsApi: DeploymentsApi,
   request: { workspace: string; repoSlug: string }
 ): Promise<Map<string, string>> {
-  const environments = await collectPages<DeploymentEnvironment>({
-    limit: Number.POSITIVE_INFINITY,
-    fetchPage: async (page, pagelen) => {
-      const response = await deploymentsApi.getEnvironmentsForRepository(
-        request,
-        { params: { page, pagelen } }
-      );
-      return response.data;
-    },
-  });
   const names = new Map<string, string>();
-  for (const environment of environments) {
-    if (environment.uuid && environment.name) {
-      names.set(environment.uuid, environment.name);
+  try {
+    const environments = await collectPages<DeploymentEnvironment>({
+      limit: Number.POSITIVE_INFINITY,
+      fetchPage: async (page, pagelen) => {
+        const response = await deploymentsApi.getEnvironmentsForRepository(
+          request,
+          { params: { page, pagelen } }
+        );
+        return response.data;
+      },
+    });
+    for (const environment of environments) {
+      if (environment.uuid && environment.name) {
+        names.set(environment.uuid, environment.name);
+      }
     }
+  } catch {
+    return new Map();
   }
   return names;
+}
+
+/** Name of one deployment's environment, falling back to its UUID. */
+export async function fetchEnvironmentName(
+  deploymentsApi: DeploymentsApi,
+  request: { workspace: string; repoSlug: string },
+  deployment: Deployment
+): Promise<string> {
+  const environment = deployment.environment;
+  if (environment?.name) return environment.name;
+  if (!environment?.uuid) return '-';
+  try {
+    const response = await deploymentsApi.getEnvironmentForRepository({
+      ...request,
+      environmentUuid: environment.uuid,
+    });
+    return response.data.name ?? environment.uuid;
+  } catch {
+    return environment.uuid;
+  }
 }
 
 export function getEnvironmentName(
