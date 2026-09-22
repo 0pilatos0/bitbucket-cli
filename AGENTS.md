@@ -129,10 +129,15 @@ bun run release
   `registrar.runWithGlobalOptions(token, options)` merges `--workspace` /
   `--repo`, `registrar.run(token, options)` passes options as-is
 - Create groups with `new Command(name)` and attach them with
-  `parent.addCommand()`; create top-level leaf commands with
-  `parent.command()` so they inherit the root's settings
+  `parent.addCommand()`; top-level leaf commands use `parent.command()`
+  (historical, keep it for consistency)
+- Never call `cli.allowExcessArguments()` before `registerCommands()`; see the
+  comment in `src/cli.ts`
 - Advertise enum values with `withCompletionChoices()` from
-  `src/core/command-registrar.ts`, not Commander's `.choices()`
+  `src/core/command-options.ts`, not Commander's `.choices()`; use its
+  `collectRepeated` for repeatable options
+- `tests/commands/__snapshots__/register.test.ts.snap` pins the command tree
+  and help text; review its diff and update it with `bun test --update-snapshots`
 - Register modules never import `src/cli.ts`
 
 ### Output and JSON

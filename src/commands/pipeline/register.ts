@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
-import { withCompletionChoices } from '../../core/command-registrar.js';
+import { withCompletionChoices } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import {
   DEFAULT_PIPELINE_SORT,

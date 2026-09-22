@@ -9,7 +9,7 @@
  * which hands each module a `CommandRegistrar`.
  */
 
-import type { Command, Option } from 'commander';
+import type { Command } from 'commander';
 import type { ServiceToken } from './container.js';
 import type { HelpTextBuilder } from '../help-text.js';
 
@@ -40,21 +40,3 @@ export type RegisterCommands = (
   parent: Command,
   registrar: CommandRegistrar
 ) => void;
-
-/**
- * Advertise an option's allowed values for shell completion (and `--help`)
- * WITHOUT Commander's parse-time enforcement. `generateCompletions` reads
- * `option.argChoices` to suggest enum values, but validation stays in the
- * command handlers (`parseEnumOption`), which raise `BBError` — so `--json`
- * error envelopes, the app's message style, and case-insensitive normalization
- * (e.g. `bb api -X get`) all keep working. Commander only enforces `argChoices`
- * via the `parseArg` that `.choices()` installs, so assigning it directly is
- * completion-only.
- */
-export function withCompletionChoices(
-  option: Option,
-  values: readonly string[]
-): Option {
-  option.argChoices = [...values];
-  return option;
-}

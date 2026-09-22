@@ -192,3 +192,57 @@ describe('registerCommands', () => {
     });
   });
 });
+
+function commandPaths(command: Command, prefix: string[] = []): string[][] {
+  return command.commands.flatMap((child) => {
+    const path = [...prefix, child.name()];
+    return [path, ...commandPaths(child, path)];
+  });
+}
+
+function renderHelp(command: Command): string {
+  let text = '';
+  command.configureOutput({
+    writeOut: (str) => {
+      text += str;
+    },
+    getOutHelpWidth: () => 80,
+    getOutHasColors: () => false,
+  });
+  command.outputHelp();
+  return text;
+}
+
+// Every positional filled and every option set, so the snapshot pins how each
+// leaf maps its parsed input onto the options object it dispatches.
+function fullInvocation(command: Command, path: string[]): string[] {
+  const argv = [...path];
+  for (const arg of command.registeredArguments) {
+    argv.push(`${arg.name()}-value`);
+  }
+  for (const option of command.options) {
+    if (option.negate) continue;
+    const flag = option.long ?? option.short;
+    if (!flag) continue;
+    argv.push(flag);
+    if (option.required || option.optional) {
+      argv.push(`${option.attributeName()}-value`);
+    }
+  }
+  return argv;
+}
+
+describe('command tree snapshot', () => {
+  const { program } = buildProgram();
+
+  for (const path of commandPaths(program)) {
+    it(`bb ${path.join(' ')}`, async () => {
+      const command = findCommand(program, path);
+      const snapshot: Record<string, unknown> = { help: renderHelp(command) };
+      if (!command.commands.length) {
+        snapshot.dispatch = await dispatch(fullInvocation(command, path));
+      }
+      expect(snapshot).toMatchSnapshot();
+    });
+  }
+});

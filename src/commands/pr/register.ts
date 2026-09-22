@@ -1,6 +1,9 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
-import { withCompletionChoices } from '../../core/command-registrar.js';
+import {
+  collectRepeated,
+  withCompletionChoices,
+} from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
 import { PR_STATES } from '../../types/pr.js';
@@ -34,7 +37,7 @@ export function registerPrCommands(
     .option(
       '--reviewer <user>',
       'Add a reviewer by account ID or {uuid} (repeatable)',
-      (value: string, previous: string[]) => previous.concat([value]),
+      collectRepeated,
       [] as string[]
     )
     .option('--default-reviewers', "Include the repository's default reviewers")

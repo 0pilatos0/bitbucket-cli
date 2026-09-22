@@ -1,7 +1,10 @@
 import { Option } from 'commander';
 import type { Command } from 'commander';
 import { ServiceTokens } from '../core/container.js';
-import { withCompletionChoices } from '../core/command-registrar.js';
+import {
+  collectRepeated,
+  withCompletionChoices,
+} from '../core/command-options.js';
 import type { CommandRegistrar } from '../core/command-registrar.js';
 import { HTTP_METHODS } from '../services/api-passthrough.js';
 
@@ -10,9 +13,6 @@ export function registerApiCommand(
   registrar: CommandRegistrar
 ): void {
   const { buildHelpText } = registrar;
-
-  const collectRepeated = (value: string, previous: string[]): string[] =>
-    previous.concat([value]);
 
   parent
     .command('api [methodOrEndpoint] [endpoint]')
