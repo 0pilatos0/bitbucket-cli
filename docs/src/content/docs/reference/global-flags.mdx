@@ -16,7 +16,7 @@ prints. `--limit` and `--all` look global but are not; see
 | `--no-color` | boolean | colors on | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`. |
 | `--no-unicode` | boolean | Unicode on | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`. |
 | `--no-truncate` | boolean | _off_ | Show full values in table output without truncating long cells. |
-| `--no-input` | boolean | _off_ | Never prompt, even in an interactive terminal. Also honoured: `BB_PROMPT_DISABLED`. |
+| `--no-input` | boolean | _off_ | Never prompt, even in an interactive terminal (except `bb completion install`, see [`--no-input`](#--no-input)). Also honoured: `BB_PROMPT_DISABLED`. |
 | `--locale <locale>` | BCP-47 | system | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. |
 | `-w, --workspace <workspace>` | string | git remote / env / config | Override the workspace. |
 | `-r, --repo <repo>` | string | git remote | Override the repository. |
@@ -148,6 +148,10 @@ redirected output, `--json`, `--no-input` and a non-empty `BB_PROMPT_DISABLED`
 each switch them off, and the command then behaves exactly as it does in a
 script: a missing `--yes` or `--title` is an error, and `bb auth login` with no
 flags goes straight to OAuth.
+
+`bb completion install` is the exception. Its shell question comes from the
+completion installer and ignores all of these switches; see
+[`bb completion install`](/commands/completion/#bb-completion-install).
 
 ```bash
 bb repo delete myworkspace/old-repo            # asks Continue? (y/N)

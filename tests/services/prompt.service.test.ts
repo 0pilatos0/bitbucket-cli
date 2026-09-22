@@ -176,6 +176,29 @@ describe('PromptService buffered input', () => {
     await terminal.type('a\rb\r');
     expect(await first).toBe('a');
     expect(await service.text('Description')).toBe('b');
+    expect(terminal.written()).toContain('Description: b\n');
+  });
+
+  it('never echoes a typed-ahead secret and still shows its question', async () => {
+    const { terminal, service } = createInteractive();
+    const user = service.text('User');
+    await terminal.type('alice\rhunter2\r');
+    expect(await user).toBe('alice');
+    expect(await service.secret('Token')).toBe('hunter2');
+    expect(terminal.written()).toContain('Token: \n');
+    expect(terminal.written()).not.toContain('hunter2');
+  });
+
+  it('hides a partly typed-ahead secret when its question opens', async () => {
+    const { terminal, service } = createInteractive();
+    const user = service.text('User');
+    await terminal.type('alice\rhun');
+    expect(await user).toBe('alice');
+    const token = service.secret('Token');
+    await terminal.type('ter2\r');
+    expect(await token).toBe('hunter2');
+    expect(terminal.written()).toContain('Token: ');
+    expect(terminal.written()).not.toContain('hun');
   });
 
   it('releases stdin once no question follows', async () => {

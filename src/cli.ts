@@ -342,7 +342,7 @@ cli
   )
   .option(
     '--no-input',
-    'Never prompt, even in an interactive terminal (also enabled by BB_PROMPT_DISABLED)'
+    'Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)'
   )
   .option(
     '--locale <locale>',
@@ -369,8 +369,7 @@ cli
         FORCE_COLOR: "Force color output when set (and not '0')",
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
-        BB_PROMPT_DISABLED:
-          'Never prompt when set (any non-empty value); same as --no-input',
+        BB_PROMPT_DISABLED: 'Same as --no-input when set (any non-empty value)',
         DEBUG: "Enable HTTP debug logging when exactly 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',

@@ -3,10 +3,12 @@
  *
  * Consecutive questions share one readline interface, and every line it reads
  * is queued, so a pasted or typed-ahead answer for the next question is kept
- * rather than dropped with a closed interface. The interface closes as soon as
- * the command stops asking (on the next event-loop turn), which restores the
- * terminal's raw mode so Ctrl+C interrupts network calls as usual and the
- * process can exit.
+ * rather than dropped with a closed interface. Echo is off between questions,
+ * so type-ahead never lands on screen before its question (a pasted token stays
+ * hidden); a queued answer is printed after its question when that is asked,
+ * except for a secret. The interface closes as soon as the command stops asking
+ * (on the next event-loop turn), which restores the terminal's raw mode so
+ * Ctrl+C interrupts network calls as usual and the process can exit.
  */
 
 import { createInterface, type Interface } from 'node:readline';
@@ -40,7 +42,7 @@ export class PromptService implements IPromptService {
   private idleClose?: NodeJS.Immediate;
   private pending?: PendingAnswer;
   private readonly queuedLines: string[] = [];
-  private muted = false;
+  private muted = true;
 
   constructor(options: PromptServiceOptions = {}) {
     this.input = options.input ?? process.stdin;
@@ -108,6 +110,7 @@ export class PromptService implements IPromptService {
   private ask(query: string, mask = false): Promise<string> {
     const queued = this.queuedLines.shift();
     if (queued !== undefined) {
+      this.output.write(`${query}${mask ? '' : queued}\n`);
       return Promise.resolve(queued);
     }
 
@@ -121,9 +124,11 @@ export class PromptService implements IPromptService {
         },
         reject,
       };
-      rl.setPrompt(query);
-      rl.prompt();
+      // Written directly for a secret, so the refresh cannot show type-ahead.
+      if (mask) this.output.write(query);
       this.muted = mask;
+      rl.setPrompt(query);
+      rl.prompt(true);
     });
   }
 
@@ -134,8 +139,8 @@ export class PromptService implements IPromptService {
     }
     if (this.rl) return this.rl;
 
-    // Readline echoes keystrokes through its output stream; a masked
-    // question mutes this sink after the query is written.
+    // Readline echoes keystrokes through its output stream; this sink is
+    // muted between questions and while a secret is asked.
     const output = new Writable({
       write: (chunk, _encoding, callback) => {
         if (!this.muted) this.output.write(chunk);
@@ -156,7 +161,7 @@ export class PromptService implements IPromptService {
         return;
       }
       this.pending = undefined;
-      this.muted = false;
+      this.muted = true;
       this.idleClose = setImmediate(() => this.closeInterface());
       pending.resolve(line);
     });
@@ -178,7 +183,7 @@ export class PromptService implements IPromptService {
   private cancel(interrupted: boolean): void {
     const pending = this.pending;
     this.pending = undefined;
-    this.muted = false;
+    this.muted = true;
     if (pending) {
       this.output.write('\n');
       pending.reject(

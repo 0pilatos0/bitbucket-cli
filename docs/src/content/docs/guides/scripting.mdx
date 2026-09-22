@@ -241,7 +241,8 @@ bb pr list --json
 ### Never rely on prompts
 
 `bb` only prompts when stdin and stdout are both terminals, so pipelines and CI
-jobs never block on a question. Scripts run inside a pseudo-terminal (`expect`,
+jobs never block on a question (`bb completion install` aside, which always
+asks for your shell). Scripts run inside a pseudo-terminal (`expect`,
 `script`, some IDE task runners) do look interactive, though. Set
 `BB_PROMPT_DISABLED=1` or pass `--no-input` there, and pass `--yes` and
 `--title` explicitly, so a missing flag fails fast instead of waiting for an

@@ -17,7 +17,7 @@ its footer.
 | `BB_WORKSPACE` | Default workspace. Overrides `config.defaultWorkspace`. `--workspace` always wins; the git remote wins too, but only on repository-scoped commands — see [Resolution order](#resolution-order). | `myworkspace` |
 | `BB_LOCALE` | BCP-47 locale tag for date/time formatting. `--locale` takes precedence; falls back to `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. | `de-DE` |
 | `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Same effect as the global `--no-unicode` flag, but it cannot be overridden per command: `--unicode` is accepted and does nothing while this is set. Unset the variable instead. | `1` |
-| `BB_PROMPT_DISABLED` | When set to any non-empty value, never prompt, even in an interactive terminal. Same effect as the global `--no-input` flag. See [`--no-input`](/reference/global-flags/#--no-input). | `1` |
+| `BB_PROMPT_DISABLED` | When set to any non-empty value, never prompt, even in an interactive terminal (`bb completion install` still asks for your shell). Same effect as the global `--no-input` flag. See [`--no-input`](/reference/global-flags/#--no-input). | `1` |
 | `NO_COLOR` | Disable color output globally. Triggers on any value, including the empty string. | `1` |
 | `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
 | `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
