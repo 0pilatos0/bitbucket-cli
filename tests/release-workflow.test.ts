@@ -7,9 +7,17 @@ interface Step {
   uses?: string;
 }
 
+interface Job {
+  needs?: string[];
+  if?: string;
+  permissions?: Record<string, string>;
+  outputs?: Record<string, string>;
+  steps: Step[];
+}
+
 interface Workflow {
-  on: Record<string, unknown>;
-  jobs: Record<string, { permissions?: Record<string, string>; steps: Step[] }>;
+  on: string | string[] | Record<string, unknown>;
+  jobs: Record<string, Job>;
 }
 
 const workflowsDir = `${import.meta.dir}/../.github/workflows`;
@@ -20,31 +28,42 @@ async function loadWorkflow(name: string): Promise<Workflow> {
   ) as Workflow;
 }
 
+function triggers(workflow: Workflow): string[] {
+  if (typeof workflow.on === 'string') return [workflow.on];
+  if (Array.isArray(workflow.on)) return workflow.on;
+  return Object.keys(workflow.on);
+}
+
 describe('release PR checks', () => {
   it('dispatches every pull_request workflow after opening the release PR', async () => {
-    const job = (await loadWorkflow('release.yml')).jobs.release!;
-    const openPr = job.steps.find((step) =>
+    const { jobs } = await loadWorkflow('release.yml');
+    const release = jobs.release!;
+    const checks = jobs['release-pr-checks']!;
+
+    const openPr = release.steps.find((step) =>
       step.uses?.startsWith('changesets/action@')
     );
-    const dispatch = job.steps.find((step) =>
+    expect(openPr?.id).toBeDefined();
+    expect(release.outputs?.release_pr_number).toBe(
+      `\${{ steps.${openPr!.id}.outputs.pullRequestNumber }}`
+    );
+    expect(release.permissions?.actions).toBeUndefined();
+
+    expect(checks.needs).toEqual(['release']);
+    expect(checks.if).toBe("needs.release.outputs.release_pr_number != ''");
+    expect(checks.permissions).toEqual({ actions: 'write' });
+
+    const dispatch = checks.steps.find((step) =>
       step.run?.includes('gh workflow run')
     );
-
-    expect(openPr?.id).toBeDefined();
-    expect(dispatch?.if).toContain(
-      `steps.${openPr!.id}.outputs.pullRequestNumber`
-    );
-    expect(job.steps.indexOf(dispatch!)).toBeGreaterThan(
-      job.steps.indexOf(openPr!)
-    );
-    expect(job.permissions?.actions).toBe('write');
+    expect(dispatch).toBeDefined();
 
     const prWorkflows: string[] = [];
-    for (const file of new Bun.Glob('*.yml').scanSync(workflowsDir)) {
-      const workflow = await loadWorkflow(file);
-      if (!('pull_request' in workflow.on)) continue;
+    for (const file of new Bun.Glob('*.{yml,yaml}').scanSync(workflowsDir)) {
+      const events = triggers(await loadWorkflow(file));
+      if (!events.includes('pull_request')) continue;
       prWorkflows.push(file);
-      expect(Object.keys(workflow.on)).toContain('workflow_dispatch');
+      expect(events).toContain('workflow_dispatch');
       expect(dispatch!.run).toContain(
         `gh workflow run ${file} --ref "changeset-release/`
       );

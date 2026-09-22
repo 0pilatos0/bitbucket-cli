@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: docs-lint-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 env:
   BUN_VERSION: 1.3.14

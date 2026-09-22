@@ -104,7 +104,10 @@ Releases are automated via Changesets:
 
 1. PRs with changesets merge to `main`.
 2. A "Version Packages" PR is opened automatically with the version bump
-   and CHANGELOG.
+   and CHANGELOG. Its checks come from CI and Docs lint runs that the Release
+   workflow dispatches (`workflow_dispatch`). The `pull_request` runs for that
+   PR show up in the Actions tab as awaiting approval and later expire as
+   failures; that is expected and can be ignored.
 3. Merging that PR publishes to npm + GitHub Packages and cuts a GitHub
    Release.
 
