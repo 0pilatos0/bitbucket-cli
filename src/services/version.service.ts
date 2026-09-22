@@ -9,6 +9,7 @@ import {
   coerceVersionCheckIntervalValue,
 } from '../types/config.js';
 import type { VersionCheckResult } from '../types/version.js';
+import { isDebugEnabled } from './http-debug.js';
 
 const NPM_REGISTRY_URL = 'https://registry.npmjs.org/@pilatos/bitbucket-cli';
 const PACKAGE_NAME = '@pilatos/bitbucket-cli';
@@ -70,9 +71,9 @@ export class VersionService {
       };
     } catch (error) {
       // The version check is opportunistic — never block the CLI on it.
-      // Surface the failure to DEBUG callers so a user who's diagnosing
+      // Surface the failure to debug callers so a user who's diagnosing
       // "why am I not seeing the update banner?" can see the cause.
-      if (process.env.DEBUG === 'true') {
+      if (isDebugEnabled()) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`[version-check] skipped: ${message}`);
       }

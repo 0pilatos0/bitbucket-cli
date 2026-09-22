@@ -9,6 +9,7 @@ import type {
   ICredentialStore,
 } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
+import { isDebugEnabled } from './http-debug.js';
 
 const BITBUCKET_AUTHORIZE_URL = 'https://bitbucket.org/site/oauth2/authorize';
 const BITBUCKET_TOKEN_URL = 'https://bitbucket.org/site/oauth2/access_token';
@@ -403,8 +404,8 @@ export class OAuthService {
           await open(authUrl);
         } catch (err) {
           // The CLI keeps working — the user can copy the printed URL — but
-          // tell DEBUG users why nothing opened.
-          if (process.env.DEBUG === 'true') {
+          // tell debug users why nothing opened.
+          if (isDebugEnabled()) {
             const message = err instanceof Error ? err.message : String(err);
             console.error(`[oauth] could not open browser: ${message}`);
           }

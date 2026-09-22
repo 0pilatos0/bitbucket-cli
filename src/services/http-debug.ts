@@ -4,7 +4,8 @@
  * `BB_DEBUG=http` logs one line per request and one per outcome (status or
  * network error code, plus elapsed milliseconds); `BB_DEBUG=verbose` adds the
  * redacted response bodies. `DEBUG=true` is kept as an alias for `verbose`,
- * which is what it always printed.
+ * which is what it always printed. The same level gates the CLI's other
+ * diagnostic lines through `isDebugEnabled()`.
  *
  * Every line carries a short correlation id so overlapping requests stay
  * matchable. The id lives on the axios config, so a retry or a 401 replay of
@@ -22,18 +23,27 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 export type HttpDebugLevel = 'off' | 'http' | 'verbose';
 
+const OFF_VALUES = new Set(['0', 'false', 'off', 'no', 'none']);
+
 /**
- * Resolve the trace level. A non-empty `BB_DEBUG` always wins, so any value
- * other than `http` or `verbose` (e.g. `off`) disables tracing even when
- * `DEBUG=true` is exported for some other tool. Matching is
+ * Resolve the trace level. A non-empty `BB_DEBUG` always wins over
+ * `DEBUG=true`, so `BB_DEBUG=off` silences a `DEBUG` exported for another
+ * tool. `verbose` selects bodies, an explicit off value (`0`, `false`, `off`,
+ * `no`, `none`) disables tracing, and anything else (`1`, `true`, a typo)
+ * means `http`, so a guessed value never silently prints nothing. Matching is
  * case-insensitive and ignores surrounding whitespace.
  */
 export function resolveHttpDebugLevel(): HttpDebugLevel {
   const raw = process.env.BB_DEBUG?.trim().toLowerCase();
   if (raw) {
-    return raw === 'http' || raw === 'verbose' ? raw : 'off';
+    if (raw === 'verbose') return 'verbose';
+    return OFF_VALUES.has(raw) ? 'off' : 'http';
   }
   return process.env.DEBUG === 'true' ? 'verbose' : 'off';
+}
+
+export function isDebugEnabled(): boolean {
+  return resolveHttpDebugLevel() !== 'off';
 }
 
 const SENSITIVE_KEYS = new Set([
@@ -116,10 +126,14 @@ export interface HttpDebugLogger {
   error(error: unknown): void;
 }
 
+interface Trace {
+  id: string;
+  attempt: number;
+  startedAt: number;
+}
+
 interface TracedConfig extends InternalAxiosRequestConfig {
-  __traceId?: string;
-  __traceAttempt?: number;
-  __traceStartedAt?: number;
+  __trace?: Trace;
 }
 
 const NOOP_LOGGER: HttpDebugLogger = {
@@ -132,7 +146,7 @@ function newTraceId(): string {
   return randomBytes(3).toString('hex');
 }
 
-function describeRequest(config: TracedConfig): string {
+function describeRequest(config: InternalAxiosRequestConfig): string {
   const method = config.method?.toUpperCase() ?? 'GET';
   return `${method} ${redactRequestUrl(config.url, config.baseURL)}`;
 }
@@ -150,57 +164,57 @@ export function createHttpDebugLogger(
   }
   const verbose = level === 'verbose';
 
-  const elapsed = (config: TracedConfig): string =>
-    `${Math.round(now() - (config.__traceStartedAt ?? now()))}ms`;
+  const outcome = (
+    config: TracedConfig,
+    result: string | number,
+    detail = ''
+  ): string => {
+    const trace = config.__trace;
+    const prefix = trace ? `[HTTP] ${trace.id}` : '[HTTP]';
+    const ms = trace ? ` ${Math.round(now() - trace.startedAt)}ms` : '';
+    console.debug(
+      `${prefix} ${result} ${describeRequest(config)}${ms}${detail}`
+    );
+    return prefix;
+  };
+
+  const logBody = (prefix: string, label: string, data: unknown): void => {
+    if (verbose) {
+      console.debug(`${prefix} ${label}:`, formatBody(data));
+    }
+  };
 
   return {
     request(config) {
       const traced = config as TracedConfig;
-      traced.__traceId ??= newTraceId();
-      traced.__traceAttempt = (traced.__traceAttempt ?? 0) + 1;
-      traced.__traceStartedAt = now();
-      const attempt =
-        traced.__traceAttempt > 1 ? ` (attempt ${traced.__traceAttempt})` : '';
-      console.debug(
-        `[HTTP] ${traced.__traceId} ${describeRequest(traced)}${attempt}`
-      );
+      const trace: Trace = {
+        id: traced.__trace?.id ?? newTraceId(),
+        attempt: (traced.__trace?.attempt ?? 0) + 1,
+        startedAt: now(),
+      };
+      traced.__trace = trace;
+      const attempt = trace.attempt > 1 ? ` (attempt ${trace.attempt})` : '';
+      console.debug(`[HTTP] ${trace.id} ${describeRequest(config)}${attempt}`);
     },
 
     response(response) {
-      const config = response.config as TracedConfig;
-      const id = config.__traceId ?? '-';
-      console.debug(
-        `[HTTP] ${id} ${response.status} ${describeRequest(config)} ${elapsed(config)}`
-      );
-      if (verbose) {
-        console.debug(`[HTTP] ${id} Response Body:`, formatBody(response.data));
-      }
+      const prefix = outcome(response.config, response.status);
+      logBody(prefix, 'Response Body', response.data);
     },
 
     error(error) {
-      const axiosError = isAxiosError(error) ? error : undefined;
-      const config = axiosError?.config as TracedConfig | undefined;
       const message = error instanceof Error ? error.message : String(error);
-      if (!config?.__traceId) {
+      if (!isAxiosError(error) || !error.config) {
         console.debug(`[HTTP] Error: ${message}`);
         return;
       }
-
-      const id = config.__traceId;
-      const line = `${describeRequest(config)} ${elapsed(config)}`;
-      const response = axiosError?.response;
+      const { config, response } = error;
       if (!response) {
-        const code = axiosError?.code ?? 'ERROR';
-        console.debug(`[HTTP] ${id} ${code} ${line}: ${message}`);
+        outcome(config, error.code ?? 'ERROR', `: ${message}`);
         return;
       }
-      console.debug(`[HTTP] ${id} ${response.status} ${line}`);
-      if (verbose) {
-        console.debug(
-          `[HTTP] ${id} Error Response Body:`,
-          formatBody(response.data)
-        );
-      }
+      const prefix = outcome(config, response.status);
+      logBody(prefix, 'Error Response Body', response.data);
     },
   };
 }

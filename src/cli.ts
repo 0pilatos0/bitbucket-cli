@@ -357,7 +357,7 @@ cli
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
         BB_DEBUG:
-          "HTTP debug tracing: 'http' (method, URL, status, timing) or 'verbose' (adds redacted bodies)",
+          "HTTP debug tracing: 'http' (method, URL, status, timing), 'verbose' (adds redacted bodies) or 'off'",
         DEBUG: "Alias for BB_DEBUG=verbose when exactly 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',

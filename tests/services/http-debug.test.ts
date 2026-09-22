@@ -6,6 +6,7 @@ import {
 } from 'axios';
 import {
   createHttpDebugLogger,
+  isDebugEnabled,
   redactRequestUrl,
   redactSensitive,
   resolveHttpDebugLevel,
@@ -68,7 +69,14 @@ describe('resolveHttpDebugLevel', () => {
     ['', 'true', 'verbose'],
     ['http', 'true', 'http'],
     ['off', 'true', 'off'],
-    ['nonsense', undefined, 'off'],
+    ['1', undefined, 'http'],
+    ['true', undefined, 'http'],
+    ['ON', undefined, 'http'],
+    ['nonsense', 'true', 'http'],
+    ['0', 'true', 'off'],
+    ['false', undefined, 'off'],
+    ['no', undefined, 'off'],
+    [' None ', 'true', 'off'],
   ];
 
   for (const [bbDebug, debug, expected] of cases) {
@@ -78,6 +86,15 @@ describe('resolveHttpDebugLevel', () => {
       });
     });
   }
+
+  it('reports isDebugEnabled for any level other than off', () => {
+    withEnv({ BB_DEBUG: 'http', DEBUG: undefined }, () => {
+      expect(isDebugEnabled()).toBe(true);
+    });
+    withEnv({ BB_DEBUG: 'off', DEBUG: 'true' }, () => {
+      expect(isDebugEnabled()).toBe(false);
+    });
+  });
 });
 
 describe('createHttpDebugLogger', () => {
@@ -201,6 +218,16 @@ describe('createHttpDebugLogger', () => {
     expect(lines()[1]).toMatch(
       /^\[HTTP\] [0-9a-f]{6} ECONNRESET GET \S+ 30ms: socket hang up$/
     );
+  });
+
+  it('omits id and timing for an outcome whose request was never traced', () => {
+    const logger = createHttpDebugLogger('http', now);
+
+    logger.response(makeResponse(makeConfig(), 204));
+
+    expect(lines()).toEqual([
+      '[HTTP] 204 GET https://api.bitbucket.org/2.0/repositories/ws/r',
+    ]);
   });
 
   it('logs a plain error line for failures before dispatch', () => {
