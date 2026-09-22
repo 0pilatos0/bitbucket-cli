@@ -33,6 +33,12 @@ export interface RunListSpec<TItem> {
   /** Optional client-side filter applied to each fetched item. */
   shouldInclude?: (item: TItem) => boolean;
   /**
+   * Max pages fetched in flight for `--all` (see `collectPagesWithMeta`).
+   * Set to 1 for cursor-paginated endpoints, where page N is only reachable
+   * through the `next` link of page N-1.
+   */
+  concurrency?: number;
+  /**
    * Key under which the collected items array is emitted in the JSON
    * envelope (e.g. `pullRequests`, `comments`). MUST be registered in
    * `WRAPPER_ARRAY_KEYS` (src/services/output.service.ts) so `--json
@@ -339,6 +345,7 @@ export abstract class BaseCommand<
       limit,
       fetchPage: spec.fetchPage,
       shouldInclude: spec.shouldInclude,
+      concurrency: spec.concurrency,
     });
 
     if (context.globalOptions.json) {

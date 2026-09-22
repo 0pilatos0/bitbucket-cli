@@ -339,6 +339,9 @@ export function createMockOutputService(
     stderr(message: string) {
       logs.push(`stderr:${message}`);
     },
+    raw(data: Uint8Array) {
+      logs.push(`raw:${new TextDecoder().decode(data)}`);
+    },
     separator(width = 60) {
       logs.push(`separator:${width}`);
     },

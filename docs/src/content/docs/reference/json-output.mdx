@@ -60,7 +60,7 @@ bb pr list --json id,title,author.display_name
   ```text
   pullRequests  repositories  snippets  comments  reviewers  activities
   statuses      files         pipelines commits   workspaces projects
-  values
+  entries       downloads     values
   ```
 
 - If no key in that list holds an array, the envelope object itself is
@@ -257,12 +257,13 @@ Returns an envelope with metadata, a `count`, and a named array:
 | Field | Type | Present in |
 |-------|------|-----------|
 | `workspace` | string | All collections except `workspace list` (whose slugs live in the items) |
-| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list` |
+| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list` |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
 | `filters` | object | `pr list`, `pr activity`, `pr comments list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
 | `commit` | string | `status list` |
 | `sort` | string | `pipeline list` |
+| `ref`, `path` | string | `repo ls` |
 
 **Collection key names:**
 
@@ -277,6 +278,8 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `status list` | `statuses` |
 | `workspace list` | `workspaces` |
 | `project list` | `projects` |
+| `repo ls` | `entries` |
+| `repo downloads list` | `downloads` |
 | `snippet list` | `snippets` |
 | `snippet comments list` | `comments` |
 

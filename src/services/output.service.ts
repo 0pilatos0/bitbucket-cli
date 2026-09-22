@@ -58,6 +58,8 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'commits', // commit list
   'workspaces', // workspace list
   'projects', // project list
+  'entries', // repo ls
+  'downloads', // repo downloads list
   'values', // generic fallback for paginated payloads
 ];
 
@@ -231,6 +233,15 @@ export class OutputService implements IOutputService {
   public stderr(message: string): void {
     this.stopActiveSpinner();
     console.error(stripControl(message));
+  }
+
+  public raw(data: Uint8Array): void {
+    this.stopActiveSpinner();
+    if (process.stdout.isTTY) {
+      process.stdout.write(stripControl(new TextDecoder().decode(data)));
+      return;
+    }
+    process.stdout.write(data);
   }
 
   public separator(width = 60): void {

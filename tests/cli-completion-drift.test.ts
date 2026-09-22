@@ -38,6 +38,8 @@ describe('CLI completion drift (issue #255)', () => {
       'commits',
       'workspaces',
       'projects',
+      'entries',
+      'downloads',
       'values',
     ];
 
@@ -61,6 +63,8 @@ describe('CLI completion drift (issue #255)', () => {
       'status list': 'statuses',
       'workspace list': 'workspaces',
       'project list': 'projects',
+      'repo ls': 'entries',
+      'repo downloads list': 'downloads',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

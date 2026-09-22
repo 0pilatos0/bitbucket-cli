@@ -84,6 +84,13 @@ describe('generateCompletions', () => {
       expect(names).toEqual(expect.arrayContaining(['list', 'add', 'remove']));
     });
 
+    it('suggests the downloads subcommands after "bb repo downloads "', () => {
+      const names = complete('bb repo downloads ');
+      expect(names).toEqual(
+        expect.arrayContaining(['list', 'upload', 'delete'])
+      );
+    });
+
     it('completes a partial subcommand token (returns the full set; the shell filters)', () => {
       // The word being typed is "mer"; navigation uses the tokens before it, so
       // the resolved node is still `pr` and `merge` is among the candidates.

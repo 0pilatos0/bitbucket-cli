@@ -671,6 +671,68 @@ repoCmd
     );
   });
 
+repoCmd
+  .command('cat <path>')
+  .description('Print the contents of a repository file without cloning')
+  .option(
+    '--ref <ref>',
+    'Branch, tag, or commit to read from (default: the repository main branch)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo cat README.md',
+        'bb repo cat src/index.ts --ref develop',
+        'bb repo cat package.json | jq .version',
+        'bb repo cat logo.png --ref v1.0.0 > logo.png',
+      ],
+      defaults: { ref: 'the repository main branch' },
+    })
+  )
+  .action(async (path, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CatRepoFileCommand,
+      withGlobalOptions({ path, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+repoCmd
+  .command('ls [path]')
+  .description(
+    'List a repository directory without cloning (default: the repository root)'
+  )
+  .option(
+    '--ref <ref>',
+    'Branch, tag, or commit to list (default: the repository main branch)'
+  )
+  .option('--limit <number>', 'Maximum number of entries to list', '25')
+  .option('--all', 'List all entries (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo ls',
+        'bb repo ls src --ref develop',
+        'bb repo ls docs --all',
+        "bb repo ls --json --jq '.entries[].path'",
+      ],
+      defaults: { ref: 'the repository main branch', limit: '25' },
+    })
+  )
+  .action(async (path, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListRepoFilesCommand,
+      withGlobalOptions({ path, ...options }, context),
+      cli,
+      context
+    );
+  });
+
 const repoDefaultReviewersCmd = new Command('default-reviewers').description(
   'Manage default reviewers for a repository'
 );
@@ -751,6 +813,82 @@ repoDefaultReviewersCmd
   });
 
 repoCmd.addCommand(repoDefaultReviewersCmd);
+
+const repoDownloadsCmd = new Command('downloads').description(
+  'Manage download artifacts of a repository'
+);
+
+repoDownloadsCmd
+  .command('list')
+  .description('List download artifacts of a repository')
+  .option('--limit <number>', 'Maximum number of downloads to list', '25')
+  .option('--all', 'List all downloads (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo downloads list',
+        'bb repo downloads list --all',
+        "bb repo downloads list --json --jq '.downloads[].name'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListDownloadsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+repoDownloadsCmd
+  .command('upload <files...>')
+  .description(
+    'Upload files as download artifacts (replaces artifacts with the same name)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb repo downloads upload dist/app-1.0.0.tar.gz',
+        'bb repo downloads upload build/*.zip',
+      ],
+    })
+  )
+  .action(async (files, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.UploadDownloadCommand,
+      withGlobalOptions({ files, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+repoDownloadsCmd
+  .command('delete <filename>')
+  .description('Delete a download artifact from a repository')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: ['bb repo downloads delete app-1.0.0.tar.gz --yes'],
+    })
+  )
+  .action(async (filename, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.DeleteDownloadCommand,
+      withGlobalOptions({ filename, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+repoCmd.addCommand(repoDownloadsCmd);
 
 cli.addCommand(repoCmd);
 
