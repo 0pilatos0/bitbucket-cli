@@ -2,7 +2,7 @@
  * CLI helper tests
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import type { Command } from 'commander';
 import {
   buildCommandPath,
@@ -15,6 +15,9 @@ import {
   withGlobalOptions,
 } from '../src/cli.js';
 import { cli } from '../src/cli.js';
+import { Container, ServiceTokens } from '../src/core/container.js';
+import { PromptService } from '../src/services/prompt.service.js';
+import { createMockPromptService } from './setup.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
 import type { VersionService } from '../src/services/version.service.js';
 import type { VersionCheckResult } from '../src/types/version.js';
@@ -38,17 +41,32 @@ describe('createContext --jq / --json validation', () => {
   });
 });
 
-describe('createContext --no-input', () => {
-  it('sets noInput when Commander negates the input option', () => {
-    expect(createContext(fakeProgram({ input: false })).globalOptions).toEqual(
-      expect.objectContaining({ noInput: true })
-    );
+describe('createContext prompt gating', () => {
+  const container = Container.getInstance();
+
+  function useFakePrompt(available: boolean): void {
+    container.registerInstance(ServiceTokens.PromptService, {
+      ...createMockPromptService(),
+      isAvailable: () => available,
+    });
+  }
+
+  afterEach(() => {
+    container.register(ServiceTokens.PromptService, () => new PromptService());
   });
 
-  it('leaves noInput false by default', () => {
-    expect(
-      createContext(fakeProgram({ input: true })).globalOptions.noInput
-    ).toBe(false);
+  it('sets the prompt in an interactive terminal', () => {
+    useFakePrompt(true);
+    expect(createContext(fakeProgram({ input: true })).prompt).toBeDefined();
+  });
+
+  it.each([
+    ['the terminal is not interactive', false, { input: true }],
+    ['--json is passed', true, { input: true, json: true }],
+    ['--no-input is passed', true, { input: false }],
+  ])('leaves the prompt unset when %s', (_label, available, opts) => {
+    useFakePrompt(available);
+    expect(createContext(fakeProgram(opts)).prompt).toBeUndefined();
   });
 });
 

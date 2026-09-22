@@ -67,8 +67,9 @@ bb pr create -t "Add new feature" --json --jq '.links.html.href'
 ### Interactive prompts
 
 Run `bb pr create` without `--title` in an interactive terminal and it asks
-for the title, then for an optional description (press Enter to skip it; a
-`--body` you passed is kept and not asked for). The questions come after the
+for the title, then for an optional one-line description (press Enter to skip
+it; a `--body` you passed is kept and not asked for). Use `--body` for a
+multi-line description. The questions come after the
 repository and source branch are resolved, so a bad context fails before you
 type anything.
 

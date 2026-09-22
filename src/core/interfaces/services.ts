@@ -157,15 +157,16 @@ export interface PromptChoice<T extends string> {
 }
 
 /**
- * Interactive terminal prompts. Commands must only call the prompting methods
- * after `isAvailable()` returned true (see `BaseCommand.interactivePrompt()`),
- * so scripts and CI keep the non-interactive, flag-driven contract.
+ * Interactive terminal prompts. Commands reach it through
+ * `CommandContext.prompt`, which is only set once `isAvailable()` and the
+ * per-invocation gates passed, so scripts and CI keep the non-interactive,
+ * flag-driven contract.
  */
 export interface IPromptService {
   /**
    * True only when stdin and stdout are both TTYs and `BB_PROMPT_DISABLED`
    * is unset or empty. Per-invocation gates (`--json`, `--no-input`) are
-   * applied by `BaseCommand`.
+   * applied in `createContext()`.
    */
   isAvailable(): boolean;
   /** Ask a yes/no question; anything but `y`/`yes` answers no. */

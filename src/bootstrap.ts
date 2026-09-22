@@ -288,7 +288,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.UsersApi,
     ServiceTokens.OAuthService,
     ServiceTokens.OutputService,
-    ServiceTokens.PromptService,
   ]);
   registerCommand(container, ServiceTokens.LogoutCommand, LogoutCommand, [
     ServiceTokens.CredentialStore,
@@ -341,7 +340,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.RepositoriesApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
-      ServiceTokens.PromptService,
     ]
   );
   registerCommand(
@@ -374,7 +372,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.UsersApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
-      ServiceTokens.PromptService,
     ]
   );
 
@@ -387,7 +384,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.DefaultReviewerService,
     ServiceTokens.ConfigService,
     ServiceTokens.OutputService,
-    ServiceTokens.PromptService,
   ]);
   registerCommand(container, ServiceTokens.ListPRsCommand, ListPRsCommand, [
     ServiceTokens.PullrequestsApi,
@@ -486,7 +482,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
-      ServiceTokens.PromptService,
     ]
   );
   registerCommand(
@@ -617,7 +612,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.SnippetsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
-      ServiceTokens.PromptService,
     ]
   );
   registerCommand(
@@ -678,7 +672,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.SnippetsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
-      ServiceTokens.PromptService,
     ]
   );
 

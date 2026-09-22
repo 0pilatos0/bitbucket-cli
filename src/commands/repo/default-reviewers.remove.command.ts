@@ -7,7 +7,6 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
-  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
@@ -29,10 +28,9 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
     private readonly defaultReviewerService: DefaultReviewerService,
     private readonly usersApi: UsersApi,
     private readonly contextService: IContextService,
-    output: IOutputService,
-    prompt: IPromptService
+    output: IOutputService
   ) {
-    super(output, prompt);
+    super(output);
   }
 
   public async execute(

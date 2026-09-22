@@ -20,8 +20,7 @@ function createTerminal(options: { inputTTY?: boolean; outputTTY?: boolean }) {
     input,
     output,
     written: () => written,
-    // Each question opens its own readline interface, so keystrokes must
-    // arrive after the previous answer resolved and the next question opened.
+    // Lets the pending question open before the keystrokes arrive.
     async type(keys: string) {
       await new Promise((resolve) => setImmediate(resolve));
       input.write(keys);
@@ -170,6 +169,37 @@ describe('PromptService.select', () => {
   });
 });
 
+describe('PromptService buffered input', () => {
+  it('keeps every line of a single chunk for the following questions', async () => {
+    const { terminal, service } = createInteractive();
+    const first = service.text('Title');
+    await terminal.type('a\rb\r');
+    expect(await first).toBe('a');
+    expect(await service.text('Description')).toBe('b');
+  });
+
+  it('releases stdin once no question follows', async () => {
+    const { terminal, service } = createInteractive();
+    const answer = service.text('Title');
+    await terminal.type('a\r');
+    expect(await answer).toBe('a');
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(terminal.input.listenerCount('keypress')).toBe(0);
+  });
+
+  it('opens a fresh interface for a later question', async () => {
+    const { terminal, service } = createInteractive();
+    const first = service.text('Title');
+    await terminal.type('a\r');
+    expect(await first).toBe('a');
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const second = service.text('Description');
+    await terminal.type('b\r');
+    expect(await second).toBe('b');
+  });
+});
+
 describe('PromptService cancellation', () => {
   async function expectCancelled(promise: Promise<unknown>): Promise<void> {
     const error = await promise.then(
@@ -180,11 +210,14 @@ describe('PromptService cancellation', () => {
     expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
   }
 
-  it('rejects with PROMPT_CANCELLED on Ctrl+C', async () => {
+  it('rejects with an interrupted PROMPT_CANCELLED on Ctrl+C', async () => {
     const { terminal, service } = createInteractive();
     const answer = service.text('Title', { required: true });
     await terminal.type('\x03');
     await expectCancelled(answer);
+    expect(
+      ((await answer.catch((e: unknown) => e)) as BBError).context
+    ).toEqual({ interrupted: true });
   });
 
   it('rejects with PROMPT_CANCELLED on Ctrl+D', async () => {
@@ -192,6 +225,9 @@ describe('PromptService cancellation', () => {
     const answer = service.confirm('Continue?');
     await terminal.type('\x04');
     await expectCancelled(answer);
+    expect(
+      ((await answer.catch((e: unknown) => e)) as BBError).context
+    ).toBeUndefined();
   });
 
   it('rejects with PROMPT_CANCELLED when stdin ends', async () => {

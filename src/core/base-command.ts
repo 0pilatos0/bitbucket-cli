@@ -3,7 +3,7 @@
  */
 
 import type { ICommand, CommandContext } from './interfaces/commands.js';
-import type { IOutputService, IPromptService } from './interfaces/services.js';
+import type { IOutputService } from './interfaces/services.js';
 import { WRAPPER_ARRAY_KEYS } from '../services/output.service.js';
 import {
   collectPagesWithMeta,
@@ -60,6 +60,15 @@ export interface RunListSpec<TItem> {
   noun: string;
 }
 
+/** Ctrl+C at a prompt; exits 130 like a SIGINT-terminated process. */
+function isInterrupt(error: unknown): boolean {
+  return (
+    error instanceof BBError &&
+    error.code === ErrorCode.PROMPT_CANCELLED &&
+    error.context?.interrupted === true
+  );
+}
+
 export abstract class BaseCommand<
   TOptions = unknown,
   TResult = void,
@@ -81,10 +90,7 @@ export abstract class BaseCommand<
    */
   protected readonly suppressNotFoundHint: boolean = false;
 
-  constructor(
-    protected readonly output: IOutputService,
-    private readonly prompt?: IPromptService
-  ) {}
+  constructor(protected readonly output: IOutputService) {}
 
   public abstract execute(
     options: TOptions,
@@ -149,7 +155,7 @@ export abstract class BaseCommand<
     // Only set exit code in production - during tests this causes false failures
     // because the exit code persists across test files
     if (process.env.NODE_ENV !== 'test') {
-      process.exitCode = 1;
+      process.exitCode = isInterrupt(error) ? 130 : 1;
     }
   }
 
@@ -301,22 +307,6 @@ export abstract class BaseCommand<
   }
 
   /**
-   * The prompt service when this invocation may ask questions: the command
-   * was given one, the terminal is interactive (see
-   * `IPromptService.isAvailable()`), and neither `--json` nor `--no-input`
-   * is set. Otherwise `undefined`, and callers keep the flag-only behavior.
-   */
-  protected interactivePrompt(
-    context: CommandContext
-  ): IPromptService | undefined {
-    const { json, noInput } = context.globalOptions;
-    if (!this.prompt || json || noInput || !this.prompt.isAvailable()) {
-      return undefined;
-    }
-    return this.prompt;
-  }
-
-  /**
    * Gate a destructive action on an explicit confirmation flag (typically
    * `--yes`). In an interactive terminal the user is asked instead; anywhere
    * else this throws a standard `BBError` so the warning and the
@@ -329,16 +319,14 @@ export abstract class BaseCommand<
   ): Promise<void> {
     if (confirmed) return;
 
-    const prompt = this.interactivePrompt(context);
-    if (!prompt) {
+    if (!context.prompt) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
         message: `${warning}\nUse --yes to confirm.`,
       });
     }
 
-    this.output.warning(warning);
-    if (!(await prompt.confirm('Continue?'))) {
+    if (!(await context.prompt.confirm(`${warning} Continue?`))) {
       throw new BBError({
         code: ErrorCode.PROMPT_CANCELLED,
         message: 'Cancelled.',

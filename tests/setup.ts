@@ -269,41 +269,64 @@ export function createMockContextService(
 }
 
 /**
- * Fake prompt service. Unavailable by default, which matches CI and every
- * non-TTY run. With `available: true`, each prompt consumes the next entry of
- * `answers` (booleans for `confirm`, strings otherwise) and records itself in
- * `calls`; running out of answers throws so an unexpected prompt fails loudly.
+ * Fake prompt service for `CommandContext.prompt` (setting it is what makes a
+ * command interactive). Each prompt consumes the next entry of `answers`
+ * (booleans for `confirm`, strings otherwise, a choice value for `select`) and
+ * records itself in `calls`; running out of answers, or an answer of the wrong
+ * kind, throws so an unexpected prompt fails loudly.
  */
 export function createMockPromptService(
-  options: { available?: boolean; answers?: Array<string | boolean> } = {}
+  answers: Array<string | boolean> = []
 ): IPromptService & { calls: string[] } {
   const calls: string[] = [];
-  const answers = [...(options.answers ?? [])];
+  const queue = [...answers];
 
   function next(kind: string, message: string): string | boolean {
     calls.push(`${kind}:${message}`);
-    if (answers.length === 0) {
+    const answer = queue.shift();
+    if (answer === undefined) {
       throw new Error(`Unexpected prompt: ${kind} "${message}"`);
     }
-    return answers.shift() as string | boolean;
+    return answer;
+  }
+
+  function nextString(kind: string, message: string): string {
+    const answer = next(kind, message);
+    if (typeof answer !== 'string') {
+      throw new Error(`Expected a string answer for ${kind} "${message}"`);
+    }
+    return answer;
   }
 
   return {
     calls,
-    isAvailable() {
-      return options.available ?? false;
-    },
+    isAvailable: () => true,
     async confirm(message) {
-      return next('confirm', message) as boolean;
+      const answer = next('confirm', message);
+      if (typeof answer !== 'boolean') {
+        throw new Error(`Expected a boolean answer for confirm "${message}"`);
+      }
+      return answer;
     },
-    async text(message) {
-      return next('text', message) as string;
+    async text(message, options) {
+      const answer = nextString('text', message);
+      if (options?.required && answer.trim() === '') {
+        throw new Error(`Empty answer for required text "${message}"`);
+      }
+      return answer;
     },
     async secret(message) {
-      return next('secret', message) as string;
+      return nextString('secret', message);
     },
-    async select<T extends string>(message: string) {
-      return next('select', message) as T;
+    async select(message, choices) {
+      const answer = nextString('select', message);
+      const choice = choices.find((c) => c.value === answer);
+      if (!choice) {
+        throw new Error(
+          `Answer "${answer}" is not a choice for select "${message}"`
+        );
+      }
+      return choice.value;
     },
   };
 }

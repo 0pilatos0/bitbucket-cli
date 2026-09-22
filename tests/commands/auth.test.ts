@@ -11,7 +11,6 @@ import {
   createMockConfigService,
   createMockOutputService,
   mockUser,
-  createMockPromptService,
 } from '../setup.js';
 import type { UsersApi } from '../../src/generated/api.js';
 import type { OAuthService } from '../../src/services/oauth.service.js';
@@ -74,8 +73,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
 
     await expect(
@@ -93,8 +91,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
 
     await expect(
@@ -115,8 +112,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute(
       { username: 'testuser', password: 'testpass' },
@@ -150,8 +146,7 @@ describe('LoginCommand', () => {
         configService,
         usersApi,
         oauthService,
-        output,
-        createMockPromptService()
+        output
       );
       await command.execute({}, { globalOptions: {} });
 
@@ -175,8 +170,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
 
     await expect(
@@ -208,8 +202,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute({}, { globalOptions: {} });
 
@@ -228,8 +221,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute(
       { appPassword: true, username: 'user', password: 'pass' },
@@ -251,8 +243,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
 
     // username without password should fail with API token validation
@@ -278,8 +269,7 @@ describe('LoginCommand', () => {
         configService,
         usersApi,
         oauthService,
-        output,
-        createMockPromptService()
+        output
       );
       await command.execute({}, { globalOptions: {} });
 
@@ -308,8 +298,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute(
       { username: 'newuser', password: 'newtoken' },
@@ -338,8 +327,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
 
     await expect(command.execute({}, { globalOptions: {} })).rejects.toThrow(
@@ -357,8 +345,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute({}, { globalOptions: { json: true } });
 
@@ -380,8 +367,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute(
       { username: 'user', password: 'pass' },
@@ -403,8 +389,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     stubStdin(command, 'piped-token');
 
@@ -428,8 +413,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     // A piped token typically arrives with a trailing newline from `echo`.
     stubStdin(command, '  piped-token\n');
@@ -453,8 +437,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     stubStdin(command, '\n');
 
@@ -476,8 +459,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     stubStdin(command, 'piped-token');
 
@@ -499,8 +481,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     stubStdin(command, 'piped-token');
 
@@ -535,8 +516,7 @@ describe('LoginCommand', () => {
       configService,
       usersApi,
       oauthService,
-      output,
-      createMockPromptService()
+      output
     );
     await command.execute(
       { clientId: 'my-id', clientSecret: 'my-secret' },
@@ -546,138 +526,6 @@ describe('LoginCommand', () => {
     expect(receivedClientId).toBe('my-id');
     expect(receivedClientSecret).toBe('my-secret');
   });
-});
-
-describe('LoginCommand interactive prompts', () => {
-  function buildLogin(prompt: ReturnType<typeof createMockPromptService>) {
-    const configService = createMockConfigService();
-    const output = createMockOutputService();
-    let oauthCalls = 0;
-    const oauthService = {
-      authorize: async () => {
-        oauthCalls++;
-        return {
-          username: 'oauthuser',
-          displayName: 'OAuth User',
-          accountId: 'oauth-123',
-        };
-      },
-    } as unknown as OAuthService;
-    const command = new LoginCommand(
-      configService,
-      createMockUsersApi(),
-      oauthService,
-      output,
-      prompt
-    );
-    return { command, configService, output, oauthCalls: () => oauthCalls };
-  }
-
-  it('asks for the method and uses OAuth when picked', async () => {
-    const prompt = createMockPromptService({
-      available: true,
-      answers: ['oauth'],
-    });
-    const { command, oauthCalls } = buildLogin(prompt);
-
-    await command.execute({}, { globalOptions: {} });
-
-    expect(prompt.calls).toEqual([
-      'select:How would you like to authenticate?',
-    ]);
-    expect(oauthCalls()).toBe(1);
-  });
-
-  it('asks for username and token when API token is picked', async () => {
-    const prompt = createMockPromptService({
-      available: true,
-      answers: ['api_token', 'promptuser', 'prompttoken'],
-    });
-    const { command, configService, oauthCalls } = buildLogin(prompt);
-
-    await command.execute({}, { globalOptions: {} });
-
-    expect(prompt.calls).toEqual([
-      'select:How would you like to authenticate?',
-      'text:Bitbucket username',
-      'secret:API token',
-    ]);
-    expect(oauthCalls()).toBe(0);
-    expect(await configService.getCredentials()).toEqual({
-      username: 'promptuser',
-      apiToken: 'prompttoken',
-    });
-  });
-
-  it('only asks for the token when --username is given', async () => {
-    const prompt = createMockPromptService({
-      available: true,
-      answers: ['prompttoken'],
-    });
-    const { command, configService } = buildLogin(prompt);
-
-    await command.execute({ username: 'flaguser' }, { globalOptions: {} });
-
-    expect(prompt.calls).toEqual(['secret:API token']);
-    expect(await configService.getCredentials()).toEqual({
-      username: 'flaguser',
-      apiToken: 'prompttoken',
-    });
-  });
-
-  it('still rejects an empty prompted token', async () => {
-    const prompt = createMockPromptService({
-      available: true,
-      answers: [''],
-    });
-    const { command } = buildLogin(prompt);
-
-    await expect(
-      command.execute({ username: 'flaguser' }, { globalOptions: {} })
-    ).rejects.toThrow('API token is required.');
-  });
-
-  it('does not ask for the method when an OAuth client flag is given', async () => {
-    const prompt = createMockPromptService({ available: true });
-    const { command, oauthCalls } = buildLogin(prompt);
-
-    await command.execute({ clientId: 'my-client' }, { globalOptions: {} });
-
-    expect(prompt.calls).toEqual([]);
-    expect(oauthCalls()).toBe(1);
-  });
-
-  it('does not prompt when username and password flags are given', async () => {
-    const prompt = createMockPromptService({ available: true });
-    const { command } = buildLogin(prompt);
-
-    await command.execute(
-      { username: 'flaguser', password: 'flagtoken' },
-      { globalOptions: {} }
-    );
-
-    expect(prompt.calls).toEqual([]);
-  });
-
-  it.each([
-    ['a non-interactive terminal', false, {}],
-    ['--json', true, { json: true }],
-    ['--no-input', true, { noInput: true }],
-  ])(
-    'keeps the flag-only behavior under %s',
-    async (_label, available, globalOptions) => {
-      const prompt = createMockPromptService({ available });
-      const { command, oauthCalls } = buildLogin(prompt);
-
-      await command.execute({}, { globalOptions });
-      await expect(
-        command.execute({ username: 'flaguser' }, { globalOptions })
-      ).rejects.toThrow('API token is required.');
-
-      expect(prompt.calls).toEqual([]);
-      expect(oauthCalls()).toBe(1);
-    }
-  );
 });
 
 describe('LogoutCommand', () => {

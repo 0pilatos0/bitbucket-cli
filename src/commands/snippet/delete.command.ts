@@ -7,7 +7,6 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
-  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { SnippetsApi } from '../../generated/api.js';
 
@@ -26,10 +25,9 @@ export class DeleteSnippetCommand extends BaseCommand<
   constructor(
     private readonly snippetsApi: SnippetsApi,
     private readonly contextService: IContextService,
-    output: IOutputService,
-    prompt: IPromptService
+    output: IOutputService
   ) {
-    super(output, prompt);
+    super(output);
   }
 
   public async execute(

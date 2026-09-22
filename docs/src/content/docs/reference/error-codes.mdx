@@ -369,6 +369,9 @@ an interactive prompt. Prompts only appear in an interactive terminal, so
 scripts and CI never see this code. See
 [`--no-input`](/reference/global-flags/#--no-input).
 
+The process exits with status 1, except after Ctrl+C, which exits with 130
+like any other interrupted command.
+
 **Solution:**
 - Run the command again and answer `y`, or pass `--yes` to skip the question
 

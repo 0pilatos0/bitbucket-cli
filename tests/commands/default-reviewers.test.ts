@@ -273,8 +273,7 @@ describe('RemoveDefaultReviewerCommand', () => {
       createMockService({ removeCalls }),
       createMockUsersApi(),
       createContextService(),
-      output,
-      createMockPromptService()
+      output
     );
 
     await expect(
@@ -290,8 +289,7 @@ describe('RemoveDefaultReviewerCommand', () => {
       createMockService({ removeCalls }),
       createMockUsersApi(),
       createContextService(),
-      output,
-      createMockPromptService()
+      output
     );
 
     await cmd.execute({ username: 'jdoe', yes: true }, { globalOptions: {} });
@@ -302,21 +300,19 @@ describe('RemoveDefaultReviewerCommand', () => {
 
   it('asks for confirmation in an interactive terminal', async () => {
     const removeCalls: string[] = [];
-    const prompt = createMockPromptService({
-      available: true,
-      answers: [true],
-    });
+    const prompt = createMockPromptService([true]);
     const cmd = new RemoveDefaultReviewerCommand(
       createMockService({ removeCalls }),
       createMockUsersApi(),
       createContextService(),
-      createMockOutputService(),
-      prompt
+      createMockOutputService()
     );
 
-    await cmd.execute({ username: 'jdoe' }, { globalOptions: {} });
+    await cmd.execute({ username: 'jdoe' }, { globalOptions: {}, prompt });
 
-    expect(prompt.calls).toEqual(['confirm:Continue?']);
+    expect(prompt.calls).toEqual([
+      'confirm:This will remove jdoe from the default reviewers of ws/repo. Continue?',
+    ]);
     expect(removeCalls).toEqual(['{jdoe-uuid}']);
   });
 });

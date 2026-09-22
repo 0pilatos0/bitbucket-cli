@@ -7,7 +7,6 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
-  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
@@ -26,10 +25,9 @@ export class DeleteCommentPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
-    output: IOutputService,
-    prompt: IPromptService
+    output: IOutputService
   ) {
-    super(output, prompt);
+    super(output);
   }
 
   public async execute(

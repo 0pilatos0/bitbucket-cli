@@ -878,15 +878,18 @@ describe('BaseCommand', () => {
     }
 
     it('resolves without prompting when confirmed is true', async () => {
-      const prompt = createMockPromptService({ available: true });
-      const command = new TestCommandWithParseHelpers(output, prompt);
+      const prompt = createMockPromptService();
+      const command = new TestCommandWithParseHelpers(output);
 
-      await command.callRequireConfirmation(true, warning);
+      await command.callRequireConfirmation(true, warning, {
+        globalOptions: {},
+        prompt,
+      });
 
       expect(prompt.calls).toEqual([]);
     });
 
-    it('throws the --yes error when the command has no prompt service', async () => {
+    it('throws the --yes error when the context has no prompt', async () => {
       const command = new TestCommandWithParseHelpers(output);
 
       await expectFlagError(command.callRequireConfirmation(false, warning));
@@ -895,62 +898,27 @@ describe('BaseCommand', () => {
       );
     });
 
-    it('throws the --yes error without prompting when the terminal is not interactive', async () => {
-      const prompt = createMockPromptService({ available: false });
-      const command = new TestCommandWithParseHelpers(output, prompt);
+    it('asks with the warning in the question and resolves on yes', async () => {
+      const prompt = createMockPromptService([true]);
+      const command = new TestCommandWithParseHelpers(output);
 
-      await expectFlagError(
-        command.callRequireConfirmation(undefined, warning)
-      );
-      expect(prompt.calls).toEqual([]);
-    });
-
-    it('throws the --yes error without prompting in --json mode', async () => {
-      const prompt = createMockPromptService({ available: true });
-      const command = new TestCommandWithParseHelpers(output, prompt);
-
-      await expectFlagError(
-        command.callRequireConfirmation(undefined, warning, {
-          globalOptions: { json: true },
-        })
-      );
-      expect(prompt.calls).toEqual([]);
-    });
-
-    it('throws the --yes error without prompting under --no-input', async () => {
-      const prompt = createMockPromptService({ available: true });
-      const command = new TestCommandWithParseHelpers(output, prompt);
-
-      await expectFlagError(
-        command.callRequireConfirmation(undefined, warning, {
-          globalOptions: { noInput: true },
-        })
-      );
-      expect(prompt.calls).toEqual([]);
-    });
-
-    it('prints the warning and resolves when the user confirms', async () => {
-      const prompt = createMockPromptService({
-        available: true,
-        answers: [true],
+      await command.callRequireConfirmation(undefined, warning, {
+        globalOptions: {},
+        prompt,
       });
-      const command = new TestCommandWithParseHelpers(output, prompt);
 
-      await command.callRequireConfirmation(undefined, warning);
-
-      expect(prompt.calls).toEqual(['confirm:Continue?']);
-      expect(output.logs).toContain(`warning:${warning}`);
+      expect(prompt.calls).toEqual([`confirm:${warning} Continue?`]);
     });
 
     it('throws PROMPT_CANCELLED when the user declines', async () => {
-      const prompt = createMockPromptService({
-        available: true,
-        answers: [false],
-      });
-      const command = new TestCommandWithParseHelpers(output, prompt);
+      const prompt = createMockPromptService([false]);
+      const command = new TestCommandWithParseHelpers(output);
 
       const error = await command
-        .callRequireConfirmation(undefined, warning)
+        .callRequireConfirmation(undefined, warning, {
+          globalOptions: {},
+          prompt,
+        })
         .catch((e: unknown) => e);
 
       expect(error).toBeInstanceOf(BBError);

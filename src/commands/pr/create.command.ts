@@ -48,25 +48,18 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     private readonly gitService: IGitService,
     private readonly defaultReviewerService: DefaultReviewerService,
     private readonly configService: IConfigService,
-    output: IOutputService,
-    prompt: IPromptService
+    output: IOutputService
   ) {
-    super(output, prompt);
+    super(output);
   }
 
   public async execute(
     options: CreatePROptions,
     context: CommandContext
   ): Promise<void> {
-    let { title, body } = options;
-    const prompt = title ? undefined : this.interactivePrompt(context);
-    if (!title && !prompt) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message: this.appendHelpHint(
-          'Pull request title is required. Use --title option.'
-        ),
-      });
+    // Fail before any git or API call when the title can't be asked for.
+    if (!options.title && !context.prompt) {
+      throw this.titleRequiredError();
     }
 
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -81,10 +74,10 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const destinationBranch = options.destination || 'main';
 
-    if (prompt) {
-      title = await prompt.text('Title', { required: true });
-      body ??= await prompt.text('Description (optional)');
-    }
+    const { title, body } = await this.resolveTitleAndBody(
+      options,
+      context.prompt
+    );
 
     const includeDefaults = await this.shouldIncludeDefaults(options);
     const explicitUsernames = options.reviewer ?? [];
@@ -152,6 +145,32 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       const labels = reviewers.map((r) => r.label).join(', ');
       this.output.text(`  ${this.output.dim('Reviewers:')} ${labels}`);
     }
+  }
+
+  /** `--title`/`--body` win; a missing title, then body, is asked for. */
+  private async resolveTitleAndBody(
+    options: CreatePROptions,
+    prompt: IPromptService | undefined
+  ): Promise<{ title: string; body?: string }> {
+    if (options.title) {
+      return { title: options.title, body: options.body };
+    }
+    if (!prompt) {
+      throw this.titleRequiredError();
+    }
+    return {
+      title: await prompt.text('Title', { required: true }),
+      body: options.body ?? (await prompt.text('Description (optional)')),
+    };
+  }
+
+  private titleRequiredError(): BBError {
+    return new BBError({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: this.appendHelpHint(
+        'Pull request title is required. Use --title option.'
+      ),
+    });
   }
 
   private async shouldIncludeDefaults(

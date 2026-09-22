@@ -23,7 +23,10 @@ import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
 import type { BaseCommand } from './core/base-command.js';
 import type { CommandContext } from './core/interfaces/commands.js';
-import type { IOutputService } from './core/interfaces/services.js';
+import type {
+  IOutputService,
+  IPromptService,
+} from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import type { IConfigService } from './core/interfaces/services.js';
@@ -208,13 +211,18 @@ export function createContext(
       noColor: opts.color === false,
       noUnicode: opts.unicode === false || noUnicode,
       noTruncate: opts.truncate === false,
-      noInput: opts.input === false,
       workspace: opts.workspace,
       repo: opts.repo,
     },
     validationError,
     commandPath: activeCommandPath || undefined,
+    prompt: json || opts.input === false ? undefined : availablePrompt(),
   };
+}
+
+function availablePrompt(): IPromptService | undefined {
+  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  return prompt.isAvailable() ? prompt : undefined;
 }
 
 async function runCommand<TOptions, TResult>(

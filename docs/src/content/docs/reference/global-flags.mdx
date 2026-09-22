@@ -136,7 +136,8 @@ terminal:
 
 - Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`,
   `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`)
-  ask `Continue? (y/N)` instead of failing without `--yes`.
+  name what they are about to change and ask `Continue? (y/N)` instead of
+  failing without `--yes`.
 - `bb pr create` asks for the title, and then an optional description, when
   `--title` is missing.
 - `bb auth login` asks whether to use the browser (OAuth) or an API token when
@@ -157,7 +158,7 @@ bb repo delete myworkspace/old-repo --no-input # fails: Use --yes to confirm.
 Answering anything other than `y` or `yes`, or pressing Ctrl+C or Ctrl+D at a
 prompt, stops the command with error
 [5004 PROMPT_CANCELLED](/reference/error-codes/#5004---prompt_cancelled) and
-nothing is changed.
+nothing is changed. Ctrl+C exits with status 130, the rest with 1.
 
 ## List-command flags
 

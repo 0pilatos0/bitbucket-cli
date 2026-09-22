@@ -30,49 +30,47 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     private readonly credentialStore: ICredentialStore,
     private readonly usersApi: UsersApi,
     private readonly oauthService: OAuthService,
-    output: IOutputService,
-    prompt: IPromptService
+    output: IOutputService
   ) {
-    super(output, prompt);
+    super(output);
   }
 
   public async execute(
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
-    const useAppPassword =
+    const method = await this.resolveMethod(options, context.prompt);
+    return method === 'api_token'
+      ? this.loginWithApiToken(options, context)
+      : this.loginWithOAuth(options, context);
+  }
+
+  /**
+   * Token flags or `BB_API_TOKEN` pick API token auth; OAuth client flags or
+   * a non-interactive terminal pick OAuth; otherwise the user chooses.
+   */
+  private async resolveMethod(
+    options: LoginOptions,
+    prompt: IPromptService | undefined
+  ): Promise<'oauth' | 'api_token'> {
+    if (
       options.appPassword ||
       options.withToken ||
       options.username !== undefined ||
       options.password !== undefined ||
-      process.env.BB_API_TOKEN !== undefined;
-
-    if (useAppPassword || (await this.promptForMethod(options, context))) {
-      return this.loginWithApiToken(options, context);
+      process.env.BB_API_TOKEN !== undefined
+    ) {
+      return 'api_token';
     }
 
-    return this.loginWithOAuth(options, context);
-  }
-
-  /**
-   * Resolves to true when the user picks API token auth at the interactive
-   * method prompt. No prompt (and so OAuth, the non-interactive default) when
-   * the terminal is not interactive or an OAuth client flag already chose it.
-   */
-  private async promptForMethod(
-    options: LoginOptions,
-    context: CommandContext
-  ): Promise<boolean> {
-    const prompt = this.interactivePrompt(context);
     if (!prompt || options.clientId || options.clientSecret) {
-      return false;
+      return 'oauth';
     }
 
-    const method = await prompt.select('How would you like to authenticate?', [
+    return prompt.select('How would you like to authenticate?', [
       { value: 'oauth', label: 'Log in with a web browser (OAuth)' },
       { value: 'api_token', label: 'Paste an API token' },
     ]);
-    return method === 'api_token';
   }
 
   private async loginWithOAuth(
@@ -113,7 +111,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
-    const prompt = this.interactivePrompt(context);
+    const { prompt } = context;
     const username =
       options.username ||
       process.env.BB_USERNAME ||
