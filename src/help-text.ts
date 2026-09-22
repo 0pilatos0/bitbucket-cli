@@ -20,13 +20,15 @@ export interface HelpTextConfig {
   seeAlso?: SeeAlsoEntry[];
 }
 
+export type HelpTextBuilder = (config: HelpTextConfig) => string;
+
 interface ColorFns {
   bold: (text: string) => string;
   dim: (text: string) => string;
   cyan: (text: string) => string;
 }
 
-export function createHelpTextBuilder(noColor: boolean) {
+export function createHelpTextBuilder(noColor: boolean): HelpTextBuilder {
   const passthrough = (t: string) => t;
   const chalk = new Chalk({ level: noColor ? 0 : 1 });
   const c: ColorFns = noColor

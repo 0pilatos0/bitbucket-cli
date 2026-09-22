@@ -42,7 +42,14 @@ bun run release
 ## Repository Layout
 
 - `src/index.ts` entrypoint (Bun shebang; runtime guard)
-- `src/cli.ts` Commander CLI wiring and option parsing
+- `src/cli.ts` composition root: global flags, root action, lifecycle hooks,
+  and the `CommandRegistrar` handed to every command group
+- `src/commands/register.ts` top-level command order (drives `bb --help` and
+  completion order)
+- `src/commands/<group>/register.ts` each group's Commander subtree (arguments,
+  options, help text); nested groups get their own module
+  (e.g. `pr/comments.register.ts`), top-level commands use
+  `src/commands/<name>.register.ts`
 - `src/bootstrap.ts` dependency injection registrations
 - `src/core/**` DI container, base command, interfaces
 - `src/commands/**` command implementations (`*.command.ts`)
@@ -110,8 +117,23 @@ bun run release
 - Implement `name`, `description`, and `execute()` returning `Promise<TResult>`
 - Inject dependencies via constructor; avoid service locators in commands
 - `CommandContext` carries `globalOptions` (workspace/repo/json)
-- Use `withGlobalOptions()` when merging per-command options
+- Merge per-command options with the global ones via
+  `registrar.runWithGlobalOptions()` (see Command Registration)
 - Prefer `ContextService.requireRepoContext()` for workspace/repo resolution
+
+### Command Registration
+
+- Wire a new subcommand in its group's `register.ts`; a new group gets its own
+  `register.ts` plus an entry in `src/commands/register.ts`
+- Map parsed arguments to options and dispatch through the `CommandRegistrar`:
+  `registrar.runWithGlobalOptions(token, options)` merges `--workspace` /
+  `--repo`, `registrar.run(token, options)` passes options as-is
+- Create groups with `new Command(name)` and attach them with
+  `parent.addCommand()`; create top-level leaf commands with
+  `parent.command()` so they inherit the root's settings
+- Advertise enum values with `withCompletionChoices()` from
+  `src/core/command-registrar.ts`, not Commander's `.choices()`
+- Register modules never import `src/cli.ts`
 
 ### Output and JSON
 
