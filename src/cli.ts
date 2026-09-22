@@ -16,6 +16,10 @@ import {
   PIPELINE_STATUSES,
 } from './commands/pipeline/list.command.js';
 import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
+import {
+  BRANCH_RESTRICTION_BRANCH_TYPES,
+  BRANCH_RESTRICTION_KINDS,
+} from './commands/branch-restriction/shared.js';
 import { COLOR_WHENS } from './commands/pr/diff.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
@@ -2155,6 +2159,367 @@ projectCmd
   });
 
 cli.addCommand(projectCmd);
+
+// Branch restriction commands
+const branchRestrictionCmd = new Command('branch-restriction').description(
+  'Manage branch restrictions (branch protection) on a repository'
+);
+
+branchRestrictionCmd
+  .command('list')
+  .description('List branch restrictions for a repository')
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Filter by restriction kind'),
+      BRANCH_RESTRICTION_KINDS
+    )
+  )
+  .option('--pattern <glob>', 'Filter by branch pattern')
+  .option('--limit <number>', 'Maximum number of restrictions to list', '25')
+  .option('--all', 'List all restrictions (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb branch-restriction list',
+        'bb branch-restriction list --kind push',
+        'bb branch-restriction list --pattern main',
+        "bb branch-restriction list --json --jq '.branchRestrictions[].kind'",
+      ],
+      validValues: { 'Valid kinds': [...BRANCH_RESTRICTION_KINDS] },
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListBranchRestrictionsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+branchRestrictionCmd
+  .command('view <id>')
+  .description('View a branch restriction rule')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb branch-restriction view 12',
+        "bb branch-restriction view 12 --json --jq '.branchRestriction.kind'",
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewBranchRestrictionCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+branchRestrictionCmd
+  .command('create')
+  .description('Create a branch restriction rule')
+  .addOption(
+    withCompletionChoices(
+      new Option('--kind <kind>', 'Restriction kind (required)'),
+      BRANCH_RESTRICTION_KINDS
+    )
+  )
+  .option('--pattern <glob>', 'Branch glob pattern, e.g. main or release/*')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '--branch-type <type>',
+        'Branching-model branch type (instead of --pattern)'
+      ),
+      BRANCH_RESTRICTION_BRANCH_TYPES
+    )
+  )
+  .option(
+    '--value <number>',
+    'Kind-specific count, e.g. minimum approvals or passing builds'
+  )
+  .option(
+    '--user <user>',
+    'Exempt a user by account ID or {uuid} (repeatable; push and restrict_merges only)',
+    (value: string, previous: string[]) => previous.concat([value]),
+    [] as string[]
+  )
+  .option(
+    '--group <slug>',
+    'Exempt a workspace group by slug (repeatable; push and restrict_merges only)',
+    (value: string, previous: string[]) => previous.concat([value]),
+    [] as string[]
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb branch-restriction create --kind force --pattern main',
+        'bb branch-restriction create --kind require_approvals_to_merge --pattern main --value 2',
+        'bb branch-restriction create --kind push --branch-type production --group release-managers',
+        "bb branch-restriction create --kind delete --pattern 'release/*' --json --jq '.branchRestriction.id'",
+      ],
+      validValues: {
+        'Valid kinds': [...BRANCH_RESTRICTION_KINDS],
+        'Valid branch types': [...BRANCH_RESTRICTION_BRANCH_TYPES],
+      },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateBranchRestrictionCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+branchRestrictionCmd
+  .command('delete <id>')
+  .description('Delete a branch restriction rule')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb branch-restriction delete 12',
+        'bb branch-restriction delete 12 --yes',
+      ],
+    })
+  )
+  .action(async (id, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.DeleteBranchRestrictionCommand,
+      withGlobalOptions({ id, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(branchRestrictionCmd);
+
+// SSH key commands
+const sshKeyCmd = new Command('ssh-key').description(
+  'Manage SSH keys on your Bitbucket account'
+);
+
+sshKeyCmd
+  .command('list')
+  .description('List SSH keys on your account')
+  .option('--limit <number>', 'Maximum number of keys to list', '25')
+  .option('--all', 'List all keys (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb ssh-key list',
+        "bb ssh-key list --json --jq '.sshKeys[].fingerprint'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    await runCommand(ServiceTokens.ListSshKeysCommand, options, cli);
+  });
+
+sshKeyCmd
+  .command('add <key-file>')
+  .description('Add an SSH public key to your account (- reads stdin)')
+  .option('--label <label>', 'Label for the key')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb ssh-key add ~/.ssh/id_ed25519.pub',
+        'bb ssh-key add ~/.ssh/id_ed25519.pub --label laptop',
+        'cat ~/.ssh/id_ed25519.pub | bb ssh-key add -',
+      ],
+    })
+  )
+  .action(async (keyFile, options) => {
+    await runCommand(
+      ServiceTokens.AddSshKeyCommand,
+      { keyFile, ...options },
+      cli
+    );
+  });
+
+sshKeyCmd
+  .command('delete <key-id>')
+  .description('Delete an SSH key from your account (key-id is its {uuid})')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}"',
+        'bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes',
+      ],
+    })
+  )
+  .action(async (keyId, options) => {
+    await runCommand(
+      ServiceTokens.DeleteSshKeyCommand,
+      { keyId, ...options },
+      cli
+    );
+  });
+
+cli.addCommand(sshKeyCmd);
+
+// GPG key commands
+const gpgKeyCmd = new Command('gpg-key').description(
+  'Manage GPG keys on your Bitbucket account'
+);
+
+gpgKeyCmd
+  .command('list')
+  .description('List GPG keys on your account')
+  .option('--limit <number>', 'Maximum number of keys to list', '25')
+  .option('--all', 'List all keys (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb gpg-key list',
+        "bb gpg-key list --json --jq '.gpgKeys[].fingerprint'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    await runCommand(ServiceTokens.ListGpgKeysCommand, options, cli);
+  });
+
+gpgKeyCmd
+  .command('add <key-file>')
+  .description(
+    'Add an ASCII-armored GPG public key to your account (- reads stdin)'
+  )
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb gpg-key add key.asc',
+        'gpg --armor --export you@example.com | bb gpg-key add -',
+      ],
+    })
+  )
+  .action(async (keyFile) => {
+    await runCommand(ServiceTokens.AddGpgKeyCommand, { keyFile }, cli);
+  });
+
+gpgKeyCmd
+  .command('delete <fingerprint>')
+  .description('Delete a GPG key from your account')
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B',
+        'bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes',
+      ],
+    })
+  )
+  .action(async (fingerprint, options) => {
+    await runCommand(
+      ServiceTokens.DeleteGpgKeyCommand,
+      { fingerprint, ...options },
+      cli
+    );
+  });
+
+cli.addCommand(gpgKeyCmd);
+
+// Deployment commands
+const deploymentCmd = new Command('deployment').description(
+  'Inspect Bitbucket Pipelines deployments'
+);
+
+deploymentCmd
+  .command('list')
+  .description('List deployments for a repository')
+  .option('--limit <number>', 'Maximum number of deployments to list', '25')
+  .option('--all', 'List all deployments (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb deployment list',
+        'bb deployment list --all',
+        "bb deployment list --json --jq '.deployments[].uuid'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListDeploymentsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+deploymentCmd
+  .command('view <uuid>')
+  .description('View deployment details')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}"',
+        'bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}" --json --jq \'.deployment.state.name\'',
+      ],
+    })
+  )
+  .action(async (uuid, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewDeploymentCommand,
+      withGlobalOptions({ uuid, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+deploymentCmd
+  .command('environments')
+  .description('List deployment environments for a repository')
+  .option('--limit <number>', 'Maximum number of environments to list', '25')
+  .option('--all', 'List all environments (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb deployment environments',
+        "bb deployment environments --json --jq '.environments[].name'",
+      ],
+      defaults: { limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListEnvironmentsCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(deploymentCmd);
 
 // Browse command (top-level)
 cli

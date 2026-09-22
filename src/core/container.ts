@@ -142,6 +142,10 @@ export const ServiceTokens = {
   PipelinesApi: 'PipelinesApi',
   WorkspacesApi: 'WorkspacesApi',
   ProjectsApi: 'ProjectsApi',
+  BranchRestrictionsApi: 'BranchRestrictionsApi',
+  SSHApi: 'SSHApi',
+  GPGApi: 'GPGApi',
+  DeploymentsApi: 'DeploymentsApi',
 
   // Commands - Auth
   LoginCommand: 'LoginCommand',
@@ -234,6 +238,27 @@ export const ServiceTokens = {
   ListProjectsCommand: 'ListProjectsCommand',
   ViewProjectCommand: 'ViewProjectCommand',
   CreateProjectCommand: 'CreateProjectCommand',
+
+  // Commands - Branch restriction
+  ListBranchRestrictionsCommand: 'ListBranchRestrictionsCommand',
+  ViewBranchRestrictionCommand: 'ViewBranchRestrictionCommand',
+  CreateBranchRestrictionCommand: 'CreateBranchRestrictionCommand',
+  DeleteBranchRestrictionCommand: 'DeleteBranchRestrictionCommand',
+
+  // Commands - SSH key
+  ListSshKeysCommand: 'ListSshKeysCommand',
+  AddSshKeyCommand: 'AddSshKeyCommand',
+  DeleteSshKeyCommand: 'DeleteSshKeyCommand',
+
+  // Commands - GPG key
+  ListGpgKeysCommand: 'ListGpgKeysCommand',
+  AddGpgKeyCommand: 'AddGpgKeyCommand',
+  DeleteGpgKeyCommand: 'DeleteGpgKeyCommand',
+
+  // Commands - Deployment
+  ListDeploymentsCommand: 'ListDeploymentsCommand',
+  ViewDeploymentCommand: 'ViewDeploymentCommand',
+  ListEnvironmentsCommand: 'ListEnvironmentsCommand',
 
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',

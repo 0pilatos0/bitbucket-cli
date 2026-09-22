@@ -481,15 +481,19 @@ describe('CLI command registration', () => {
       'alias',
       'api',
       'auth',
+      'branch-restriction',
       'browse',
       'commit',
       'completion',
       'config',
+      'deployment',
+      'gpg-key',
       'pipeline',
       'pr',
       'project',
       'repo',
       'snippet',
+      'ssh-key',
       'status',
       'workspace',
     ]);
@@ -643,6 +647,36 @@ describe('CLI command registration', () => {
     const projectCmd = requireCommand('project');
     expect(projectCmd.commands.map((c) => c.name()).sort()).toEqual([
       'create',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all branch-restriction subcommands', () => {
+    const branchRestrictionCmd = requireCommand('branch-restriction');
+    expect(branchRestrictionCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'create',
+      'delete',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all ssh-key and gpg-key subcommands', () => {
+    for (const group of ['ssh-key', 'gpg-key']) {
+      const cmd = requireCommand(group);
+      expect(cmd.commands.map((c) => c.name()).sort()).toEqual([
+        'add',
+        'delete',
+        'list',
+      ]);
+    }
+  });
+
+  it('should register all deployment subcommands', () => {
+    const deploymentCmd = requireCommand('deployment');
+    expect(deploymentCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'environments',
       'list',
       'view',
     ]);

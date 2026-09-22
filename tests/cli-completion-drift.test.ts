@@ -38,6 +38,11 @@ describe('CLI completion drift (issue #255)', () => {
       'commits',
       'workspaces',
       'projects',
+      'branchRestrictions',
+      'sshKeys',
+      'gpgKeys',
+      'deployments',
+      'environments',
       'values',
     ];
 
@@ -61,6 +66,11 @@ describe('CLI completion drift (issue #255)', () => {
       'status list': 'statuses',
       'workspace list': 'workspaces',
       'project list': 'projects',
+      'branch-restriction list': 'branchRestrictions',
+      'ssh-key list': 'sshKeys',
+      'gpg-key list': 'gpgKeys',
+      'deployment list': 'deployments',
+      'deployment environments': 'environments',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {
