@@ -33,6 +33,12 @@ function defaultOutfile(target: CompileTarget): string {
   return resolve(repoRoot, 'dist-bin', `${name}${suffix}`);
 }
 
+// Bun's default x64 runtime needs AVX2; baseline also runs on older CPUs and
+// on emulators and VMs that do not expose it.
+function bunTarget(target: CompileTarget): Bun.Build.CompileTarget {
+  return target.endsWith('-x64') ? `${target}-baseline` : target;
+}
+
 export function isCompileTarget(value: string): value is CompileTarget {
   return (COMPILE_TARGETS as readonly string[]).includes(value);
 }
@@ -61,7 +67,7 @@ if (import.meta.main) {
       resolve(repoRoot, 'src/index.ts'),
       Bun.resolveSync('jq-wasm/jq.wasm', repoRoot),
     ],
-    compile: { target, outfile },
+    compile: { target: bunTarget(target), outfile },
     minify: true,
     naming: { entry: '[name].[ext]', asset: 'build/[name].[ext]' },
   });

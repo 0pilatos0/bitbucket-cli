@@ -256,18 +256,23 @@ jobs:
   # matching the npmjs.com trusted-publisher configuration for this package.
   #
   # Triggers:
-  #   - automatic: after `release` creates the git tag and sets should_publish
+  #   - automatic: after `release` creates the git tag and sets should_publish,
+  #                and only once release-binaries has published the GitHub
+  #                Release, so npm never announces a version whose binaries
+  #                are missing. When a binary leg fails, the tag and the draft
+  #                release stay in place; "Re-run failed jobs" on the same run
+  #                finishes both the release and the npm publish.
   #   - manual:    `gh workflow run "Release" --ref main -f publish_only=true`
   #                (ships whatever version is currently in package.json; use
   #                 this to re-publish a version that already has a git tag)
   publish:
     name: Publish to npm
-    needs: [release]
+    needs: [release, release-binaries]
     if: |
       always() &&
       (needs.release.result == 'success' || needs.release.result == 'skipped') &&
       (
-        needs.release.outputs.should_publish == 'true' ||
+        (needs.release.outputs.should_publish == 'true' && needs.release-binaries.result == 'success') ||
         (github.event_name == 'workflow_dispatch' && inputs.publish_only == true)
       )
     runs-on: ubuntu-latest
