@@ -5,7 +5,11 @@
 import type { CommitsApi, SourceApi, Treeentry } from '../../generated/api.js';
 import { RepositoriesWorkspaceRepoSlugSrcCommitPathGetFormatEnum } from '../../generated/api.js';
 import type { RepoContext } from '../../types/config.js';
-import { rethrowWithNotFoundContext } from '../../types/errors.js';
+import {
+  BBError,
+  ErrorCode,
+  rethrowWithNotFoundContext,
+} from '../../types/errors.js';
 
 /** Bitbucket resolves `HEAD` to the repository's main branch. */
 export const DEFAULT_SOURCE_REF = 'HEAD';
@@ -43,14 +47,22 @@ export async function resolveSourceCommit(
       { params: { pagelen: 1 } }
     )
     .catch((error: unknown) =>
-      rethrowWithNotFoundContext(
-        error,
-        `Ref '${ref}' not found in ${repoContext.workspace}/${repoContext.repoSlug}.`
-      )
+      rethrowWithNotFoundContext(error, refNotFound(ref, repoContext))
     );
 
   const [head] = Array.from(response.data.values ?? []);
-  return head?.hash ?? ref;
+  if (!head?.hash) {
+    throw new BBError({
+      code: ErrorCode.API_NOT_FOUND,
+      message: refNotFound(ref, repoContext),
+      context: { ref },
+    });
+  }
+  return head.hash;
+}
+
+export function refNotFound(ref: string, repoContext: RepoContext): string {
+  return `Ref '${ref}' not found in ${repoContext.workspace}/${repoContext.repoSlug}.`;
 }
 
 /**

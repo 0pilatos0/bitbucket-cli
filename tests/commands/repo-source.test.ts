@@ -265,6 +265,32 @@ describe('CatRepoFileCommand', () => {
     ).rejects.toThrow("Ref 'nope/nope' not found in workspace/repo.");
   });
 
+  it('names the ref when a slashed --ref resolves to no commits', async () => {
+    const { api, calls } = createMockSourceApi();
+    const commitsApi = {
+      repositoriesWorkspaceRepoSlugCommitsRevisionGet: async () => ({
+        data: { values: [] },
+      }),
+    } as unknown as CommitsApi;
+    const cmd = new CatRepoFileCommand(
+      api,
+      commitsApi,
+      repoContextService(),
+      createMockOutputService()
+    );
+
+    const error = await cmd
+      .run({ path: 'README.md', ref: 'empty/branch' }, { globalOptions: {} })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.API_NOT_FOUND);
+    expect((error as BBError).message).toBe(
+      "Ref 'empty/branch' not found in workspace/repo."
+    );
+    expect(calls).toEqual([]);
+  });
+
   it('strips leading and trailing slashes from the path', async () => {
     const output = createMockOutputService();
     const { api, calls } = createMockSourceApi({

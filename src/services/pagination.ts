@@ -19,7 +19,16 @@ export interface PaginatedCollection<T> {
 export interface CollectPagesOptions<T> {
   limit: number;
   pageSize?: number;
-  fetchPage: (page: number, pagelen: number) => Promise<PaginatedCollection<T>>;
+  /**
+   * Fetch one page (1-based). On the sequential walk, `next` is the previous
+   * page's `next` link, for endpoints that paginate with an opaque cursor;
+   * the concurrent fast path never passes it.
+   */
+  fetchPage: (
+    page: number,
+    pagelen: number,
+    next?: string
+  ) => Promise<PaginatedCollection<T>>;
   shouldInclude?: (item: T) => boolean;
   /**
    * Max pages fetched in flight on the `--all` fast path. Finite limits never
@@ -231,7 +240,7 @@ export async function collectPagesWithMeta<T>(
     }
 
     page += 1;
-    data = await fetchPage(page, pagelen);
+    data = await fetchPage(page, pagelen, data.next);
   }
 
   return { items, hasMore: false };

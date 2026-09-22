@@ -44,7 +44,7 @@ Pick your editor and paste the command:
     **Draft:** `bb pr create -t "WIP" --draft` → later `bb pr ready <id>`
     **Comments:** `bb pr comments list <id>` (add `--unresolved` to see open threads), `bb pr comments add <id> "text"`, `bb pr comments view <pr-id> <comment-id>`
     **Review threads:** `bb pr comments reply <pr-id> <comment-id> "text"` → `bb pr comments resolve <pr-id> <comment-id>` (`unresolve` reopens); `bb pr comments edit <pr-id> <comment-id> "text"`, `bb pr comments delete <pr-id> <comment-id>`
-    **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`; read files without cloning: `bb repo ls [path]`, `bb repo cat <path> --ref <ref>`
+    **Repos:** `bb repo list`, `bb repo clone workspace/repo`, `bb repo view`; read files without cloning: `bb repo ls [path]`, `bb repo cat <path> --ref <ref>`; release artifacts: `bb repo downloads list/upload/delete`
     **CI/CD:** `bb pipeline list`, `bb pipeline run --branch main`, `bb pipeline view/logs/stop <id>`
     **Commits:** `bb commit list`, `bb commit view <sha>`; build statuses: `bb status list <sha>`, `bb status set <sha> --key CI --state SUCCESSFUL`
     **Snippets:** `bb snippet list/view/create/edit/delete/watch/unwatch`, plus `bb snippet comments`
@@ -103,6 +103,8 @@ Pick your editor and paste the command:
     **Repositories:**
     - `bb repo list` / `bb repo view` / `bb repo clone workspace/repo`
     - `bb repo default-reviewers list` / `add <uuid>` / `remove <uuid> --yes` - Manage repo default reviewers
+    - `bb repo ls [path]` / `bb repo cat <path> --ref <ref>` - Read files without cloning
+    - `bb repo downloads list` / `upload <files...>` / `delete <filename> --yes` - Manage download artifacts
 
     **Pipelines (CI/CD):**
     - `bb pipeline list` / `bb pipeline view <id>` / `bb pipeline logs <id> --step <n>`
@@ -349,8 +351,8 @@ command-to-scope map, see [Token Scopes](/reference/token-scopes/).
 | Scope | Required for |
 |-------|-------------|
 | `read:user:bitbucket` | Identity checks — `bb auth status`, plus resolving your own UUID for `bb pr create` and `bb pr list --mine` |
-| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb repo ls/cat`, `bb commit list/view`, `bb status list` — browse repos and commits |
-| `write:repository:bitbucket` | `bb status set` — set commit build statuses |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb repo ls/cat`, `bb repo downloads list`, `bb commit list/view`, `bb status list` — browse repos and commits |
+| `write:repository:bitbucket` | `bb status set`, `bb repo downloads upload/delete` — set commit build statuses, manage download artifacts |
 | `admin:repository:bitbucket` | `bb repo create`, `bb repo default-reviewers add/remove` |
 | `delete:repository:bitbucket` | `bb repo delete` — delete repos (optional) |
 | `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb pr diff`, `bb pr comments list` — browse PRs |

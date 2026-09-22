@@ -21,6 +21,7 @@ import {
   DEFAULT_SOURCE_REF,
   fetchSourceEntry,
   normalizeSourcePath,
+  refNotFound,
   resolveSourceCommit,
 } from './shared.js';
 
@@ -81,13 +82,12 @@ export class ListRepoFilesCommand extends BaseCommand<
 
     // Directory listings paginate with an opaque `page` cursor taken from the
     // previous page's `next` link; numeric page numbers are rejected.
-    let cursor: string | undefined;
-
     await this.runList<Treeentry>(
       {
         options,
         concurrency: 1,
-        fetchPage: async (page, pagelen) => {
+        fetchPage: async (_page, pagelen, next) => {
+          const cursor = nextPageCursor(next);
           const response = await this.sourceApi
             .repositoriesWorkspaceRepoSlugSrcCommitPathGet(
               {
@@ -96,15 +96,11 @@ export class ListRepoFilesCommand extends BaseCommand<
                 commit,
                 path,
               },
-              { params: page === 1 ? { pagelen } : { pagelen, page: cursor } }
+              { params: cursor ? { pagelen, page: cursor } : { pagelen } }
             )
             .catch((error: unknown) =>
-              rethrowWithNotFoundContext(
-                error,
-                `Ref '${ref}' not found in ${repoContext.workspace}/${repoContext.repoSlug}.`
-              )
+              rethrowWithNotFoundContext(error, refNotFound(ref, repoContext))
             );
-          cursor = nextPageCursor(response.data.next);
           return response.data;
         },
         wrapperKey: 'entries',
