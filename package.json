@@ -28,6 +28,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun scripts/build.ts",
+    "build:binary": "bun scripts/compile.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",

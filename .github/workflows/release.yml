@@ -128,6 +128,114 @@ jobs:
 
     outputs:
       should_publish: ${{ steps.publish.outputs.should_publish }}
+      version: ${{ steps.package.outputs.version }}
+
+  # Standalone executables with the Bun runtime embedded, for machines without
+  # Bun. Each target compiles and is smoke-tested on its native runner, so a
+  # binary that cannot start, load the embedded jq wasm or answer completion
+  # never reaches the release.
+  binaries:
+    name: Compile ${{ matrix.target }}
+    needs: [release]
+    if: needs.release.outputs.should_publish == 'true'
+    strategy:
+      matrix:
+        include:
+          - target: bun-linux-x64
+            runner: ubuntu-latest
+            asset: bb-linux-x64
+          - target: bun-linux-arm64
+            runner: ubuntu-24.04-arm
+            asset: bb-linux-arm64
+          - target: bun-darwin-x64
+            runner: macos-15-intel
+            asset: bb-darwin-x64
+          - target: bun-darwin-arm64
+            runner: macos-latest
+            asset: bb-darwin-arm64
+          - target: bun-windows-x64
+            runner: windows-latest
+            asset: bb-windows-x64.exe
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock*') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compile
+        run: bun scripts/compile.ts --target ${{ matrix.target }} --outfile dist-bin/${{ matrix.asset }}
+
+      # SHELL pins tabtab's bash output format (bare names, no descriptions).
+      - name: Smoke test
+        shell: bash
+        env:
+          BIN: dist-bin/${{ matrix.asset }}
+          VERSION: ${{ needs.release.outputs.version }}
+          CI: '1'
+          SHELL: /bin/bash
+        run: |
+          test "$("$BIN" --version | tr -d '\r')" = "$VERSION"
+          test "$("$BIN" config list --json --jq '.configPath | type' | tr -d '\r')" = '"string"'
+          COMP_LINE='bb pr ' COMP_POINT=6 COMP_CWORD=2 "$BIN" completion -- bb pr '' | tr -d '\r' | grep -x create >/dev/null
+
+      - name: Upload binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.asset }}
+          path: dist-bin/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # Checksums and Sigstore build-provenance attestations for the binaries, so
+  # installers and package formulas can pin and verify them.
+  release-binaries:
+    name: Attach binaries to release
+    needs: [release, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: bb-*
+          path: dist-bin
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist-bin
+        run: sha256sum bb-* > SHA256SUMS && cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist-bin/SHA256SUMS
+
+      - name: Upload to GitHub Release
+        run: gh release upload "v${{ needs.release.outputs.version }}" dist-bin/* --clobber --repo "${{ github.repository }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Single npm publish job. Runs inline (no workflow_call) so that npm's
   # Trusted Publisher OIDC check sees `release.yml` as job_workflow_ref —

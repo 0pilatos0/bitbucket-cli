@@ -48,7 +48,9 @@
 
 ## Install
 
-> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher. The CLI is installed via npm but runs on the Bun runtime — Node.js is not supported.
+> **No Bun?** Every [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) ships standalone `bb` binaries for Linux, macOS and Windows with a `SHA256SUMS` file. See [Installation](https://bitbucket-cli.paulvanderlei.com/getting-started/installation/#standalone-binary) to download and verify one.
+
+The npm package requires the [Bun](https://bun.sh) runtime 1.0 or higher. It is installed via npm but runs on Bun; Node.js is not supported.
 
 1. **Install Bun** (if `bun --version` fails):
 

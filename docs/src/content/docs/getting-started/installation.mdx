@@ -1,26 +1,92 @@
 ---
 title: Installation
-description: Install the Bitbucket CLI with npm, pnpm, or Bun, or build it from source. Requires the Bun runtime.
+description: Install the Bitbucket CLI as a standalone binary with no runtime needed, with npm, pnpm, or Bun, or build it from source.
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
-## Prerequisites
+There are two ways to install `bb`:
 
-- [Bun](https://bun.sh) runtime 1.0 or higher — the CLI runs on Bun, not Node.js
-- Git
+- **Standalone binary**: one self-contained executable per platform, attached to every [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases). Needs no Bun, Node.js or npm.
+- **Package manager**: the npm package, which runs on the [Bun](https://bun.sh) runtime.
 
-Install Bun if `bun --version` fails:
+Either way, `bb` needs Git to detect the workspace and repository of the current directory.
+
+## Standalone binary
+
+| Platform              | Asset                |
+| --------------------- | -------------------- |
+| Linux x64             | `bb-linux-x64`       |
+| Linux arm64           | `bb-linux-arm64`     |
+| macOS Intel           | `bb-darwin-x64`      |
+| macOS Apple silicon   | `bb-darwin-arm64`    |
+| Windows x64           | `bb-windows-x64.exe` |
+
+Each release also ships `SHA256SUMS`. Download the binary and the checksums, verify, then put the binary on your `PATH`:
+
+<Tabs>
+  <TabItem label="Linux">
+    ```bash
+    asset=bb-linux-x64  # or bb-linux-arm64
+    base=https://github.com/0pilatos0/bitbucket-cli/releases/latest/download
+    curl -fsSLO "$base/$asset"
+    curl -fsSLO "$base/SHA256SUMS"
+    sha256sum --check --ignore-missing SHA256SUMS
+    chmod +x "$asset"
+    sudo mv "$asset" /usr/local/bin/bb
+    ```
+  </TabItem>
+  <TabItem label="macOS">
+    ```bash
+    asset=bb-darwin-arm64  # or bb-darwin-x64
+    base=https://github.com/0pilatos0/bitbucket-cli/releases/latest/download
+    curl -fsSLO "$base/$asset"
+    curl -fsSLO "$base/SHA256SUMS"
+    shasum -a 256 --check --ignore-missing SHA256SUMS
+    chmod +x "$asset"
+    sudo mv "$asset" /usr/local/bin/bb
+    ```
+  </TabItem>
+  <TabItem label="Windows">
+    ```powershell
+    $base = "https://github.com/0pilatos0/bitbucket-cli/releases/latest/download"
+    Invoke-WebRequest "$base/bb-windows-x64.exe" -OutFile bb-windows-x64.exe
+    Invoke-WebRequest "$base/SHA256SUMS" -OutFile SHA256SUMS
+    $expected = (Select-String -Path SHA256SUMS -SimpleMatch "bb-windows-x64.exe").Line.Split(" ")[0]
+    if ((Get-FileHash bb-windows-x64.exe -Algorithm SHA256).Hash -ne $expected) { throw "checksum mismatch" }
+    Move-Item bb-windows-x64.exe bb.exe
+    ```
+
+    Move `bb.exe` to a folder on your `PATH`.
+
+  </TabItem>
+</Tabs>
+
+To pin a version, replace `latest/download` with `download/v<version>`.
+
+### Verify provenance
+
+Every binary carries a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations) that proves it was built by this repository's release workflow. Check it with the [GitHub CLI](https://cli.github.com):
+
+```bash
+gh attestation verify bb-linux-x64 --repo 0pilatos0/bitbucket-cli
+```
+
+<Aside>
+  The Linux binaries need glibc. On musl-based images such as Alpine, use the npm package with Bun instead.
+
+  The macOS binaries are not notarized. `curl` downloads run as-is; if you downloaded one through a browser, clear the quarantine flag first: `xattr -d com.apple.quarantine bb`.
+</Aside>
+
+## Package manager
+
+The npm package runs on the [Bun](https://bun.sh) runtime 1.0 or higher, not Node.js. Install Bun if `bun --version` fails:
 
 ```bash
 curl -fsSL https://bun.sh/install | bash
 ```
 
-For other platforms and install methods, see [bun.sh](https://bun.sh).
-
-## Install
-
-Any package manager works. Bun is still required to run `bb`.
+For other platforms and install methods, see [bun.sh](https://bun.sh). Then install the CLI with any package manager:
 
 <Tabs>
   <TabItem label="npm">
