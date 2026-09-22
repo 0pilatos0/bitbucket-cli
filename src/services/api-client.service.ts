@@ -13,6 +13,7 @@ import type {
 } from '../core/interfaces/services.js';
 import type { OAuthService } from './oauth.service.js';
 import { RateLimiter } from './rate-limiter.js';
+import { createHttpDebugLogger } from './http-debug.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
 const DEFAULT_BASE_URL = 'https://api.bitbucket.org/2.0';
@@ -105,51 +106,6 @@ const RETRYABLE_NETWORK_CODES = new Set([
  */
 const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
-const SENSITIVE_KEYS = new Set([
-  'access_token',
-  'refresh_token',
-  'token',
-  'id_token',
-  'client_secret',
-  'password',
-  'authorization',
-]);
-
-const REDACTED = '[REDACTED]';
-
-/**
- * Recursively replace values under case-insensitive sensitive keys
- * (tokens, passwords, authorization headers) with `[REDACTED]` and break
- * circular references. Exported for direct unit tests; used by the DEBUG
- * response/error body logging.
- */
-export function redactSensitive(
-  value: unknown,
-  seen = new WeakSet<object>()
-): unknown {
-  if (value === null || typeof value !== 'object') {
-    return value;
-  }
-  if (seen.has(value as object)) {
-    return '[Circular]';
-  }
-  seen.add(value as object);
-
-  if (Array.isArray(value)) {
-    return value.map((item) => redactSensitive(item, seen));
-  }
-
-  const result: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(value)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
-      result[key] = REDACTED;
-    } else {
-      result[key] = redactSensitive(val, seen);
-    }
-  }
-  return result;
-}
-
 interface RetryableConfig extends InternalAxiosRequestConfig {
   __retryCount?: number;
   __tokenRefreshed?: boolean;
@@ -179,47 +135,13 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Strip a request URL down to `origin + pathname`, replacing any query
- * string with `?[redacted]` so tokens in query params never reach DEBUG
- * output. Root-relative URLs (a leading `/`) are resolved against the base
- * so the base path survives and the log matches the actual wire URL. Falls
- * back to a manual query split when URL parsing fails. Exported for direct
- * unit tests.
- */
-export function redactRequestUrl(
-  requestUrl: string | undefined,
-  baseUrl: string | undefined
-): string {
-  const raw = requestUrl ?? '';
-  try {
-    // axios concatenates baseURL + url for relative paths; mirror that so
-    // the logged URL matches the actual wire request (base path preserved).
-    // Absolute and protocol-relative URLs are used as-is.
-    const full =
-      raw.startsWith('//') || /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw)
-        ? raw
-        : `${(baseUrl ?? '').replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
-    const parsed = new URL(full);
-    const query = parsed.search ? '?[redacted]' : '';
-    return `${parsed.origin}${parsed.pathname}${query}`;
-  } catch {
-    const queryIdx = raw.indexOf('?');
-    return queryIdx === -1 ? raw : `${raw.slice(0, queryIdx)}?[redacted]`;
-  }
-}
-
-// DEBUG=true logs (`[HTTP] ...`) intentionally use raw `console.debug` rather
-// than `IOutputService` because they are an opt-in developer-troubleshooting
-// channel: they bypass the user-facing output format (including --json) so the
-// payload remains readable when piped, and they should be visible regardless of
-// any future output-suppression flags. See issue #223 for the full discussion.
 export function createApiClient(
   credentialStore: ICredentialStore,
   output: IOutputService,
   oauthService?: OAuthService,
   rateLimiter: RateLimiter = new RateLimiter()
 ): AxiosInstance {
+  const httpDebug = createHttpDebugLogger();
   const instance = axios.create({
     baseURL: resolveBaseUrl(),
     timeout: resolveTimeoutMs(),
@@ -254,12 +176,6 @@ export function createApiClient(
       // under the rate-limit ceiling instead of reacting to 429s afterwards.
       await rateLimiter.acquire();
 
-      if (process.env.DEBUG === 'true') {
-        console.debug(
-          `[HTTP] ${config.method?.toUpperCase()} ${redactRequestUrl(config.url, config.baseURL)}`
-        );
-      }
-
       const authMethod = await credentialStore.getAuthMethod();
 
       if (authMethod === 'oauth' && oauthService) {
@@ -274,6 +190,7 @@ export function createApiClient(
         config.headers.Authorization = `Basic ${authString}`;
       }
 
+      httpDebug.request(config);
       return config;
     },
     (error) => Promise.reject(error)
@@ -283,13 +200,7 @@ export function createApiClient(
   instance.interceptors.response.use(
     (response) => {
       rateLimiter.onResponse(response.headers);
-      if (process.env.DEBUG === 'true') {
-        console.debug(`[HTTP] Response: ${response.status}`);
-        console.debug(
-          `[HTTP] Response Body:`,
-          JSON.stringify(redactSensitive(response.data), null, 2)
-        );
-      }
+      httpDebug.response(response);
       return response;
     },
     async (error: AxiosError) => {
@@ -298,15 +209,7 @@ export function createApiClient(
       // response is rejected (the success path handles normal responses).
       rateLimiter.onResponse(error.response?.headers);
 
-      if (process.env.DEBUG === 'true') {
-        console.debug(`[HTTP] Error:`, error.message);
-        if (error.response) {
-          console.debug(
-            `[HTTP] Error Response Body:`,
-            JSON.stringify(redactSensitive(error.response.data), null, 2)
-          );
-        }
-      }
+      httpDebug.error(error);
 
       // Reactive OAuth token refresh on 401
       if (error.response?.status === 401 && oauthService) {
@@ -425,8 +328,8 @@ export function createApiClient(
         throw new BBError({
           code: ErrorCode.NETWORK_ERROR,
           message: isTimeout
-            ? `Network error: Request to Bitbucket API timed out after ${instance.defaults.timeout}ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.`
-            : "Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.",
+            ? `Network error: Request to Bitbucket API timed out after ${instance.defaults.timeout}ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.`
+            : "Network error: Unable to reach Bitbucket API. Run with BB_DEBUG=http for details. If you're behind a proxy or using a custom CA, check your environment.",
           cause: error,
         });
       } else {
