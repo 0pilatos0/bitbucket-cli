@@ -112,6 +112,8 @@ bun run release
 - `CommandContext` carries `globalOptions` (workspace/repo/json)
 - Use `withGlobalOptions()` when merging per-command options
 - Prefer `ContextService.requireRepoContext()` for workspace/repo resolution
+- Gate destructive actions with `await this.requireConfirmation(options.yes, warning, context)`; it prompts only in an interactive terminal and otherwise throws the standard "Use --yes" error
+- Ask for missing input only through `this.interactivePrompt(context)` (pass `ServiceTokens.PromptService` to the command); it returns `undefined` for non-TTY, `--json`, `--no-input` and `BB_PROMPT_DISABLED`, and that path must keep the flag-only behavior
 
 ### Output and JSON
 

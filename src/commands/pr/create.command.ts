@@ -9,6 +9,7 @@ import type {
   IContextService,
   IGitService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type {
   Account,
@@ -47,16 +48,19 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     private readonly gitService: IGitService,
     private readonly defaultReviewerService: DefaultReviewerService,
     private readonly configService: IConfigService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
     options: CreatePROptions,
     context: CommandContext
   ): Promise<void> {
-    if (!options.title) {
+    let { title, body } = options;
+    const prompt = title ? undefined : this.interactivePrompt(context);
+    if (!title && !prompt) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
         message: this.appendHelpHint(
@@ -77,6 +81,11 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const destinationBranch = options.destination || 'main';
 
+    if (prompt) {
+      title = await prompt.text('Title', { required: true });
+      body ??= await prompt.text('Description (optional)');
+    }
+
     const includeDefaults = await this.shouldIncludeDefaults(options);
     const explicitUsernames = options.reviewer ?? [];
     const reviewers = await this.resolveReviewers(
@@ -87,7 +96,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const request: Pullrequest = {
       type: 'pullrequest',
-      title: options.title,
+      title,
       source: {
         branch: { name: sourceBranch },
       } as Pullrequest['source'],
@@ -96,8 +105,8 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       } as Pullrequest['destination'],
     };
 
-    if (options.body) {
-      request.description = options.body;
+    if (body) {
+      request.description = body;
     }
 
     if (options.closeSourceBranch) {

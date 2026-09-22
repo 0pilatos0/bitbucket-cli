@@ -13,6 +13,7 @@ import {
   createMockOutputService,
   createMockGitService,
   mockRepository,
+  createMockPromptService,
 } from '../setup.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
@@ -677,7 +678,8 @@ describe('DeleteRepoCommand', () => {
     const command = new DeleteRepoCommand(
       repositoriesApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
     await command.execute(
       { repository: 'workspace/repo', yes: true },
@@ -698,7 +700,8 @@ describe('DeleteRepoCommand', () => {
     const command = new DeleteRepoCommand(
       repositoriesApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
 
     await expect(
@@ -719,7 +722,8 @@ describe('DeleteRepoCommand', () => {
     const command = new DeleteRepoCommand(
       repositoriesApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
     await command.execute(
       { repository: 'myworkspace/myrepo', yes: true },
@@ -728,6 +732,90 @@ describe('DeleteRepoCommand', () => {
 
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
+});
+
+describe('DeleteRepoCommand confirmation prompt', () => {
+  function buildDelete(prompt: ReturnType<typeof createMockPromptService>) {
+    const deleted: unknown[] = [];
+    const repositoriesApi = {
+      repositoriesWorkspaceRepoSlugDelete: async (request: unknown) => {
+        deleted.push(request);
+        return { data: undefined };
+      },
+    } as unknown as RepositoriesApi;
+    const output = createMockOutputService();
+    const command = new DeleteRepoCommand(
+      repositoriesApi,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output,
+      prompt
+    );
+    return { command, output, deleted };
+  }
+
+  it('asks in an interactive terminal and deletes when confirmed', async () => {
+    const prompt = createMockPromptService({
+      available: true,
+      answers: [true],
+    });
+    const { command, output, deleted } = buildDelete(prompt);
+
+    await command.run({ repository: 'workspace/repo' }, { globalOptions: {} });
+
+    expect(prompt.calls).toEqual(['confirm:Continue?']);
+    expect(output.logs).toContain(
+      'warning:This will permanently delete workspace/repo.'
+    );
+    expect(deleted).toEqual([{ workspace: 'workspace', repoSlug: 'repo' }]);
+  });
+
+  it('deletes nothing when the user declines', async () => {
+    const prompt = createMockPromptService({
+      available: true,
+      answers: [false],
+    });
+    const { command, deleted } = buildDelete(prompt);
+
+    const error = await command
+      .run({ repository: 'workspace/repo' }, { globalOptions: {} })
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
+    expect(deleted).toEqual([]);
+  });
+
+  it('skips the prompt when --yes is passed', async () => {
+    const prompt = createMockPromptService({ available: true });
+    const { command, deleted } = buildDelete(prompt);
+
+    await command.run(
+      { repository: 'workspace/repo', yes: true },
+      { globalOptions: {} }
+    );
+
+    expect(prompt.calls).toEqual([]);
+    expect(deleted).toHaveLength(1);
+  });
+
+  it.each([
+    ['a non-interactive terminal', false, {}],
+    ['--json', true, { json: true }],
+    ['--no-input', true, { noInput: true }],
+  ])(
+    'keeps the --yes error under %s',
+    async (_label, available, globalOptions) => {
+      const prompt = createMockPromptService({ available });
+      const { command, deleted } = buildDelete(prompt);
+
+      await expect(
+        command.run({ repository: 'workspace/repo' }, { globalOptions })
+      ).rejects.toThrow(
+        'This will permanently delete workspace/repo.\nUse --yes to confirm.'
+      );
+      expect(prompt.calls).toEqual([]);
+      expect(deleted).toEqual([]);
+    }
+  );
 });
 
 describe('CloneCommand', () => {

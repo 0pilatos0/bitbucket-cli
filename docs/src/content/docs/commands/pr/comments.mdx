@@ -296,7 +296,7 @@ bb pr comments unresolve 42 486512301
 
 ## `bb pr comments delete`
 
-Delete a comment from a pull request. `--yes` is required.
+Delete a comment from a pull request. Asks for confirmation unless `--yes` is passed.
 
 ```bash
 bb pr comments delete <pr-id> <comment-id> [options]
@@ -313,7 +313,7 @@ bb pr comments delete <pr-id> <comment-id> [options]
 
 | Option | Description |
 |---------|-------------|
-| `-y, --yes` | Confirm deletion (required) |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
 
@@ -324,5 +324,5 @@ bb pr comments delete 42 486512301 --yes
 
 ### Notes
 
-- `bb pr comments delete` never prompts. Without `--yes` it exits with a validation error ending in `Use --yes to confirm.`
+- Without `--yes`, `bb pr comments delete` asks `Continue? (y/N)` in an interactive terminal. Anywhere else (see [`--no-input`](/reference/global-flags/#--no-input)) it exits with a validation error ending in `Use --yes to confirm.`
 - Deleting a comment is permanent and cannot be undone

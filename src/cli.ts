@@ -208,6 +208,7 @@ export function createContext(
       noColor: opts.color === false,
       noUnicode: opts.unicode === false || noUnicode,
       noTruncate: opts.truncate === false,
+      noInput: opts.input === false,
       workspace: opts.workspace,
       repo: opts.repo,
     },
@@ -332,6 +333,10 @@ cli
     'Show full values in table output without truncation'
   )
   .option(
+    '--no-input',
+    'Never prompt, even in an interactive terminal (also enabled by BB_PROMPT_DISABLED)'
+  )
+  .option(
     '--locale <locale>',
     'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
   )
@@ -356,6 +361,8 @@ cli
         FORCE_COLOR: "Force color output when set (and not '0')",
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
+        BB_PROMPT_DISABLED:
+          'Never prompt when set (any non-empty value); same as --no-input',
         DEBUG: "Enable HTTP debug logging when exactly 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',

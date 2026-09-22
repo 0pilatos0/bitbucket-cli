@@ -7,6 +7,7 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
@@ -28,9 +29,10 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
     private readonly defaultReviewerService: DefaultReviewerService,
     private readonly usersApi: UsersApi,
     private readonly contextService: IContextService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
@@ -42,10 +44,11 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
       context
     );
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
       `This will remove ${options.username} from the default reviewers of ` +
-        `${repoContext.workspace}/${repoContext.repoSlug}.`
+        `${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     // Same as add: resolve via the users API so nicknames work.

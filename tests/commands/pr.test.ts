@@ -32,6 +32,7 @@ import {
   createMockGitService,
   mockPullRequest,
   mockUser,
+  createMockPromptService,
 } from '../setup.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import type {
@@ -2096,6 +2097,7 @@ interface CreatePRHarnessOptions {
   config?: Parameters<typeof createMockConfigService>[0];
   capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
   createPRThrows?: boolean;
+  prompt?: ReturnType<typeof createMockPromptService>;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -2185,7 +2187,8 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     gitService,
     defaultReviewerService,
     configService,
-    output
+    output,
+    options.prompt ?? createMockPromptService()
   );
 
   return { command, output, captured };
@@ -2206,6 +2209,80 @@ describe('CreatePRCommand', () => {
     const { command, output } = buildCreatePRCommand();
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
     expect(output.logs.some((log) => log.includes('title'))).toBe(true);
+  });
+
+  describe('interactive prompts', () => {
+    it('asks for the title and description when --title is missing', async () => {
+      const prompt = createMockPromptService({
+        available: true,
+        answers: ['Prompted title', 'Prompted body'],
+      });
+      const { command, captured } = buildCreatePRCommand({ prompt });
+
+      await command.execute({}, { globalOptions: {} });
+
+      expect(prompt.calls).toEqual([
+        'text:Title',
+        'text:Description (optional)',
+      ]);
+      expect(captured.body?.title).toBe('Prompted title');
+      expect(captured.body?.description).toBe('Prompted body');
+    });
+
+    it('omits the description when the prompt is left empty', async () => {
+      const prompt = createMockPromptService({
+        available: true,
+        answers: ['Prompted title', ''],
+      });
+      const { command, captured } = buildCreatePRCommand({ prompt });
+
+      await command.execute({}, { globalOptions: {} });
+
+      expect(captured.body?.title).toBe('Prompted title');
+      expect(captured.body?.description).toBeUndefined();
+    });
+
+    it('keeps an explicit --body and only asks for the title', async () => {
+      const prompt = createMockPromptService({
+        available: true,
+        answers: ['Prompted title'],
+      });
+      const { command, captured } = buildCreatePRCommand({ prompt });
+
+      await command.execute({ body: 'Flag body' }, { globalOptions: {} });
+
+      expect(prompt.calls).toEqual(['text:Title']);
+      expect(captured.body?.description).toBe('Flag body');
+    });
+
+    it('does not prompt when --title is given', async () => {
+      const prompt = createMockPromptService({ available: true });
+      const { command, captured } = buildCreatePRCommand({ prompt });
+
+      await command.execute({ title: 'Flag title' }, { globalOptions: {} });
+
+      expect(prompt.calls).toEqual([]);
+      expect(captured.body?.title).toBe('Flag title');
+      expect(captured.body?.description).toBeUndefined();
+    });
+
+    it.each([
+      ['a non-interactive terminal', false, {}],
+      ['--json', true, { json: true }],
+      ['--no-input', true, { noInput: true }],
+    ])(
+      'keeps the missing-title error under %s',
+      async (_label, available, globalOptions) => {
+        const prompt = createMockPromptService({ available });
+        const { command, captured } = buildCreatePRCommand({ prompt });
+
+        await expect(command.run({}, { globalOptions })).rejects.toThrow(
+          'Pull request title is required. Use --title option.'
+        );
+        expect(prompt.calls).toEqual([]);
+        expect(captured.body).toBeUndefined();
+      }
+    );
   });
 
   it('should use current branch as source', async () => {
@@ -3752,7 +3829,8 @@ describe('DeleteCommentPRCommand', () => {
     const command = new DeleteCommentPRCommand(
       pullrequestsApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
     await command.execute(
       { prId: '42', commentId: '7', yes: true },
@@ -3775,7 +3853,8 @@ describe('DeleteCommentPRCommand', () => {
     const command = new DeleteCommentPRCommand(
       pullrequestsApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
     await command.execute(
       { prId: '42', commentId: '7', yes: true },
@@ -3803,7 +3882,8 @@ describe('DeleteCommentPRCommand', () => {
     const command = new DeleteCommentPRCommand(
       pullrequestsApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
 
     await expect(
@@ -3822,7 +3902,8 @@ describe('DeleteCommentPRCommand', () => {
     const command = new DeleteCommentPRCommand(
       pullrequestsApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
 
     await expect(
@@ -3844,12 +3925,37 @@ describe('DeleteCommentPRCommand', () => {
     const command = new DeleteCommentPRCommand(
       pullrequestsApi,
       contextService,
-      output
+      output,
+      createMockPromptService()
     );
 
     await expect(
       command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm');
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService({
+      available: true,
+      answers: [true],
+    });
+    const command = new DeleteCommentPRCommand(
+      createMockPullrequestsApi(),
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output,
+      prompt
+    );
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {} }
+    );
+
+    expect(prompt.calls).toEqual(['confirm:Continue?']);
+    expect(output.logs.some((log) => log.includes('Deleted comment #7'))).toBe(
+      true
+    );
   });
 });
 

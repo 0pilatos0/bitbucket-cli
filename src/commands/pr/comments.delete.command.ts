@@ -7,6 +7,7 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
@@ -25,9 +26,10 @@ export class DeleteCommentPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
@@ -42,9 +44,10 @@ export class DeleteCommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.prId, 'pr-id');
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete comment #${commentId} on PR #${prId}.`
+      `This will permanently delete comment #${commentId} on PR #${prId}.`,
+      context
     );
 
     await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdDelete(

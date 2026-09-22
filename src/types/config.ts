@@ -46,6 +46,7 @@ export interface GlobalOptions {
   noColor?: boolean;
   noUnicode?: boolean;
   noTruncate?: boolean;
+  noInput?: boolean;
   workspace?: string;
   repo?: string;
 }

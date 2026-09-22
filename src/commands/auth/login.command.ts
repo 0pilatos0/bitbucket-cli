@@ -7,6 +7,7 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   ICredentialStore,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
 import type { OAuthService } from '../../services/oauth.service.js';
@@ -29,9 +30,10 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     private readonly credentialStore: ICredentialStore,
     private readonly usersApi: UsersApi,
     private readonly oauthService: OAuthService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
@@ -45,11 +47,32 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       options.password !== undefined ||
       process.env.BB_API_TOKEN !== undefined;
 
-    if (useAppPassword) {
+    if (useAppPassword || (await this.promptForMethod(options, context))) {
       return this.loginWithApiToken(options, context);
     }
 
     return this.loginWithOAuth(options, context);
+  }
+
+  /**
+   * Resolves to true when the user picks API token auth at the interactive
+   * method prompt. No prompt (and so OAuth, the non-interactive default) when
+   * the terminal is not interactive or an OAuth client flag already chose it.
+   */
+  private async promptForMethod(
+    options: LoginOptions,
+    context: CommandContext
+  ): Promise<boolean> {
+    const prompt = this.interactivePrompt(context);
+    if (!prompt || options.clientId || options.clientSecret) {
+      return false;
+    }
+
+    const method = await prompt.select('How would you like to authenticate?', [
+      { value: 'oauth', label: 'Log in with a web browser (OAuth)' },
+      { value: 'api_token', label: 'Paste an API token' },
+    ]);
+    return method === 'api_token';
   }
 
   private async loginWithOAuth(
@@ -90,7 +113,11 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
-    const username = options.username || process.env.BB_USERNAME;
+    const prompt = this.interactivePrompt(context);
+    const username =
+      options.username ||
+      process.env.BB_USERNAME ||
+      (await prompt?.text('Bitbucket username', { required: true }));
 
     if (!username) {
       throw new BBError({
@@ -100,7 +127,9 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       });
     }
 
-    const apiToken = await this.resolveApiToken(options);
+    const apiToken =
+      (await this.resolveApiToken(options)) ||
+      (await prompt?.secret('API token'));
 
     if (!apiToken) {
       throw new BBError({

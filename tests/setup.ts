@@ -16,6 +16,7 @@ import type {
   IGitService,
   IContextService,
   IOutputService,
+  IPromptService,
   ISpinner,
 } from '../src/core/interfaces/services.js';
 import type { BBError } from '../src/types/errors.js';
@@ -265,6 +266,46 @@ export function createMockContextService(
       : {}
   );
   return new ContextService(gitService, configService);
+}
+
+/**
+ * Fake prompt service. Unavailable by default, which matches CI and every
+ * non-TTY run. With `available: true`, each prompt consumes the next entry of
+ * `answers` (booleans for `confirm`, strings otherwise) and records itself in
+ * `calls`; running out of answers throws so an unexpected prompt fails loudly.
+ */
+export function createMockPromptService(
+  options: { available?: boolean; answers?: Array<string | boolean> } = {}
+): IPromptService & { calls: string[] } {
+  const calls: string[] = [];
+  const answers = [...(options.answers ?? [])];
+
+  function next(kind: string, message: string): string | boolean {
+    calls.push(`${kind}:${message}`);
+    if (answers.length === 0) {
+      throw new Error(`Unexpected prompt: ${kind} "${message}"`);
+    }
+    return answers.shift() as string | boolean;
+  }
+
+  return {
+    calls,
+    isAvailable() {
+      return options.available ?? false;
+    },
+    async confirm(message) {
+      return next('confirm', message) as boolean;
+    },
+    async text(message) {
+      return next('text', message) as string;
+    },
+    async secret(message) {
+      return next('secret', message) as string;
+    },
+    async select<T extends string>(message: string) {
+      return next('select', message) as T;
+    },
+  };
 }
 
 export function createMockOutputService(

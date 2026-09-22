@@ -195,7 +195,7 @@ bb snippet delete <id> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Confirm deletion (required) |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
 
@@ -208,7 +208,7 @@ bb snippet delete kypj --yes
 - **JSON envelope:** `{ success, snippetId, workspace }`.
 
 :::danger
-Deletion is permanent and cannot be undone. There is no interactive prompt — without `--yes` the command exits with `This will permanently delete snippet <id>.` followed by `Use --yes to confirm.`
+Deletion is permanent and cannot be undone. In an interactive terminal the command asks `Continue? (y/N)` when `--yes` is missing. Anywhere else (pipes, CI, `--json`, [`--no-input`](/reference/global-flags/#--no-input)) it exits with `This will permanently delete snippet <id>.` followed by `Use --yes to confirm.`
 :::
 
 ---
@@ -368,7 +368,7 @@ bb snippet comments delete <snippet-id> <comment-id> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Confirm deletion (required) |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
 
@@ -378,6 +378,7 @@ bb snippet comments delete kypj 123 --yes
 
 ### Notes
 
-- There is no interactive prompt. Without `--yes` the command fails with
+- Without `--yes` the command asks `Continue? (y/N)` in an interactive
+  terminal. Anywhere else (see [`--no-input`](/reference/global-flags/#--no-input)) it fails with
   `This will permanently delete comment #<comment-id> on snippet <snippet-id>.`
 - **JSON envelope:** `{ success, snippetId, commentId }`.

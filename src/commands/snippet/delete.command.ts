@@ -7,6 +7,7 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { SnippetsApi } from '../../generated/api.js';
 
@@ -25,9 +26,10 @@ export class DeleteSnippetCommand extends BaseCommand<
   constructor(
     private readonly snippetsApi: SnippetsApi,
     private readonly contextService: IContextService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
@@ -38,9 +40,10 @@ export class DeleteSnippetCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete snippet ${options.id}.`
+      `This will permanently delete snippet ${options.id}.`,
+      context
     );
 
     await this.snippetsApi.snippetsWorkspaceEncodedIdDelete({

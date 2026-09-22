@@ -19,6 +19,7 @@ import {
   createMockContextService,
   createMockOutputService,
   mockUser,
+  createMockPromptService,
 } from '../setup.js';
 import type { SnippetsApi, Snippet } from '../../src/generated/api.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
@@ -762,7 +763,12 @@ describe('DeleteSnippetCommand', () => {
         deletedId = (req as { encodedId: string }).encodedId;
       },
     });
-    const cmd = new DeleteSnippetCommand(api, contextService, output);
+    const cmd = new DeleteSnippetCommand(
+      api,
+      contextService,
+      output,
+      createMockPromptService()
+    );
 
     await cmd.run(
       { id: 'kypj', yes: true, workspace: 'workspace' },
@@ -781,11 +787,41 @@ describe('DeleteSnippetCommand', () => {
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommand(api, contextService, output);
+    const cmd = new DeleteSnippetCommand(
+      api,
+      contextService,
+      output,
+      createMockPromptService()
+    );
 
     await expect(
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
     ).rejects.toThrow('Use --yes to confirm');
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService({
+      available: true,
+      answers: [true],
+    });
+    let deletedId: string | undefined;
+    const api = createMockSnippetsApi([], [], {
+      onDeleteCall: (req) => {
+        deletedId = (req as { encodedId: string }).encodedId;
+      },
+    });
+    const cmd = new DeleteSnippetCommand(
+      api,
+      createMockContextService({ defaultWorkspace: 'workspace' }),
+      output,
+      prompt
+    );
+
+    await cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext());
+
+    expect(prompt.calls).toEqual(['confirm:Continue?']);
+    expect(deletedId).toBe('kypj');
   });
 });
 
@@ -991,7 +1027,12 @@ describe('DeleteSnippetCommentCommand', () => {
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, contextService, output);
+    const cmd = new DeleteSnippetCommentCommand(
+      api,
+      contextService,
+      output,
+      createMockPromptService()
+    );
 
     await cmd.run(
       {
@@ -1014,7 +1055,12 @@ describe('DeleteSnippetCommentCommand', () => {
       defaultWorkspace: 'workspace',
     });
     const api = createMockSnippetsApi();
-    const cmd = new DeleteSnippetCommentCommand(api, contextService, output);
+    const cmd = new DeleteSnippetCommentCommand(
+      api,
+      contextService,
+      output,
+      createMockPromptService()
+    );
 
     await expect(
       cmd.run(
@@ -1022,5 +1068,29 @@ describe('DeleteSnippetCommentCommand', () => {
         makeContext()
       )
     ).rejects.toThrow('Use --yes to confirm');
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService({
+      available: true,
+      answers: [true],
+    });
+    const cmd = new DeleteSnippetCommentCommand(
+      createMockSnippetsApi(),
+      createMockContextService({ defaultWorkspace: 'workspace' }),
+      output,
+      prompt
+    );
+
+    await cmd.run(
+      { snippetId: 'kypj', commentId: '1', workspace: 'workspace' },
+      makeContext()
+    );
+
+    expect(prompt.calls).toEqual(['confirm:Continue?']);
+    expect(output.logs.some((log) => log.includes('Deleted comment #1'))).toBe(
+      true
+    );
   });
 });

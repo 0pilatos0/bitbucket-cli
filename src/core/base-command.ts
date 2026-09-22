@@ -3,7 +3,7 @@
  */
 
 import type { ICommand, CommandContext } from './interfaces/commands.js';
-import type { IOutputService } from './interfaces/services.js';
+import type { IOutputService, IPromptService } from './interfaces/services.js';
 import { WRAPPER_ARRAY_KEYS } from '../services/output.service.js';
 import {
   collectPagesWithMeta,
@@ -81,7 +81,10 @@ export abstract class BaseCommand<
    */
   protected readonly suppressNotFoundHint: boolean = false;
 
-  constructor(protected readonly output: IOutputService) {}
+  constructor(
+    protected readonly output: IOutputService,
+    private readonly prompt?: IPromptService
+  ) {}
 
   public abstract execute(
     options: TOptions,
@@ -298,19 +301,49 @@ export abstract class BaseCommand<
   }
 
   /**
+   * The prompt service when this invocation may ask questions: the command
+   * was given one, the terminal is interactive (see
+   * `IPromptService.isAvailable()`), and neither `--json` nor `--no-input`
+   * is set. Otherwise `undefined`, and callers keep the flag-only behavior.
+   */
+  protected interactivePrompt(
+    context: CommandContext
+  ): IPromptService | undefined {
+    const { json, noInput } = context.globalOptions;
+    if (!this.prompt || json || noInput || !this.prompt.isAvailable()) {
+      return undefined;
+    }
+    return this.prompt;
+  }
+
+  /**
    * Gate a destructive action on an explicit confirmation flag (typically
-   * `--yes`). Throws a standard `BBError` so the warning and the
+   * `--yes`). In an interactive terminal the user is asked instead; anywhere
+   * else this throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.
    */
-  protected requireConfirmation(
+  protected async requireConfirmation(
     confirmed: boolean | undefined,
-    warning: string
-  ): void {
+    warning: string,
+    context: CommandContext
+  ): Promise<void> {
     if (confirmed) return;
-    throw new BBError({
-      code: ErrorCode.VALIDATION_REQUIRED,
-      message: `${warning}\nUse --yes to confirm.`,
-    });
+
+    const prompt = this.interactivePrompt(context);
+    if (!prompt) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: `${warning}\nUse --yes to confirm.`,
+      });
+    }
+
+    this.output.warning(warning);
+    if (!(await prompt.confirm('Continue?'))) {
+      throw new BBError({
+        code: ErrorCode.PROMPT_CANCELLED,
+        message: 'Cancelled.',
+      });
+    }
   }
 
   /**

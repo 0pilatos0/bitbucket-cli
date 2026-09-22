@@ -7,6 +7,7 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
@@ -25,9 +26,10 @@ export class DeleteRepoCommand extends BaseCommand<
   constructor(
     private readonly repositoriesApi: RepositoriesApi,
     private readonly contextService: IContextService,
-    output: IOutputService
+    output: IOutputService,
+    prompt: IPromptService
   ) {
-    super(output);
+    super(output, prompt);
   }
 
   public async execute(
@@ -49,9 +51,10 @@ export class DeleteRepoCommand extends BaseCommand<
     const repoContext =
       await this.contextService.requireRepoContext(contextOptions);
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       yes,
-      `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.`
+      `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     await this.repositoriesApi.repositoriesWorkspaceRepoSlugDelete({

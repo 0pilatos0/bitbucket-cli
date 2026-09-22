@@ -19,10 +19,10 @@ import type { CommandContext } from '../src/core/interfaces/commands.js';
 import type { VersionService } from '../src/services/version.service.js';
 import type { VersionCheckResult } from '../src/types/version.js';
 
-describe('createContext --jq / --json validation', () => {
-  const fakeProgram = (opts: Record<string, unknown>): Command =>
-    ({ opts: () => opts }) as unknown as Command;
+const fakeProgram = (opts: Record<string, unknown>): Command =>
+  ({ opts: () => opts }) as unknown as Command;
 
+describe('createContext --jq / --json validation', () => {
   it('rejects --jq without --json by default', () => {
     const context = createContext(fakeProgram({ jq: '.x' }));
     expect(context.validationError).toBeDefined();
@@ -35,6 +35,20 @@ describe('createContext --jq / --json validation', () => {
     });
     expect(context.validationError).toBeUndefined();
     expect(context.globalOptions.jq).toBe('.x');
+  });
+});
+
+describe('createContext --no-input', () => {
+  it('sets noInput when Commander negates the input option', () => {
+    expect(createContext(fakeProgram({ input: false })).globalOptions).toEqual(
+      expect.objectContaining({ noInput: true })
+    );
+  });
+
+  it('leaves noInput false by default', () => {
+    expect(
+      createContext(fakeProgram({ input: true })).globalOptions.noInput
+    ).toBe(false);
   });
 });
 
@@ -329,6 +343,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('NO_COLOR');
     expect(output).toContain('FORCE_COLOR');
     expect(output).toContain('BB_NO_UNICODE');
+    expect(output).toContain('BB_PROMPT_DISABLED');
     expect(output).toContain('DEBUG');
     expect(output).toContain('BB_LOCALE');
   });
@@ -495,7 +510,7 @@ describe('CLI command registration', () => {
     ]);
   });
 
-  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-unicode, --no-truncate and --locale options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-unicode, --no-truncate, --no-input and --locale options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
@@ -503,6 +518,7 @@ describe('CLI command registration', () => {
     expect(hasOption(cli, '--no-color')).toBe(true);
     expect(hasOption(cli, '--no-unicode')).toBe(true);
     expect(hasOption(cli, '--no-truncate')).toBe(true);
+    expect(hasOption(cli, '--no-input')).toBe(true);
     expect(hasOption(cli, '--locale')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
