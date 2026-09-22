@@ -1,0 +1,98 @@
+---
+title: Search Commands - Search Code in Bitbucket
+description: Reference for Bitbucket CLI search commands. Search code across a Bitbucket Cloud workspace, or one repository, from the command line.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Search the code in a workspace with Bitbucket's code search, using the same
+query syntax as the web UI.
+
+<Aside type="caution" title="Code search has to be available for the workspace">
+Code search is not on for every workspace. Bitbucket answers `404` when search
+is not enabled for the workspace, and `bb search code` turns that into
+`Code search is not available for workspace <workspace>.` Turn it on at
+[bitbucket.org/search](https://bitbucket.org/search). Whether it can be turned
+on can depend on your Bitbucket plan.
+
+Atlassian has also marked the code search endpoint as deprecated from
+November 1, 2026. It may stop working after that date.
+</Aside>
+
+`bb search code` is non-interactive and accepts the
+[global flags](/reference/global-flags/), including `--json [fields]` and
+`--jq <expression>`.
+
+---
+
+## `bb search code`
+
+Search code in a workspace.
+
+```bash
+bb search code <query...> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `query` | Search query. Multiple words are joined with spaces, so quoting is optional. Supports Bitbucket's search modifiers such as `lang:`, `ext:`, `path:` and `repo:` |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-w, --workspace <workspace>` | Workspace to search |
+| `-r, --repo <repo>` | Only search this repository (adds `repo:<repo>` to the query) |
+| `--limit <number>` | Maximum number of results (default: 25) |
+| `--all` | List all results (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+The workspace comes from `-w/--workspace`, then the current repository's
+Bitbucket remote, then `BB_WORKSPACE`, then `defaultWorkspace`. The search
+covers the whole workspace unless you pass `--repo`, even inside a checkout.
+
+### Examples
+
+```bash
+bb search code parseConfig
+bb search code "def main" -r my-repo
+bb search code TODO lang:typescript -w my-workspace --limit 50
+
+# Paths of every matching file
+bb search code parseConfig --json --jq '.results[].file.path'
+```
+
+### Output
+
+```text
+REPOSITORY  PATH                 LINE  MATCH
+----------  -------------------  ----  --------------------------------------------------
+acme/api    src/config/parse.ts  12    export function parseConfig(raw: string): Config {
+acme/web    src/lib/settings.ts  4     import { parseConfig } from '@acme/api';
+```
+
+`LINE` and `MATCH` show the first matching line of each file. They are empty
+when only the file path matched. A search with no hits prints
+`No code matches for "<query>" in workspace <workspace>`.
+
+### JSON output
+
+The envelope is `{ workspace, query, count, results }`. `query` is the query
+as sent, including the `repo:` scope `--repo` adds. Each item in `results` is
+Bitbucket's code search result: `content_matches` (lines split into
+`segments`, where matched text has `match: true`), `path_matches`, and `file`,
+with the repository under `file.commit.repository`.
+
+### Notes
+
+- The `MATCH` column is truncated to 60 characters. Pass the global
+  `--no-truncate` for the full line; `--json` always carries everything.
+- A malformed query fails with Bitbucket's `400` error message.
+
+### Related
+
+- [Bitbucket search syntax](https://support.atlassian.com/bitbucket-cloud/docs/search-in-bitbucket-cloud/)
+- [Repository Context](/guides/repository-context/): how the CLI resolves the
+  workspace.

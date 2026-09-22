@@ -195,6 +195,8 @@ describe('bootstrap()', () => {
       ServiceTokens.PipelinesApi,
       ServiceTokens.WorkspacesApi,
       ServiceTokens.ProjectsApi,
+      ServiceTokens.SearchApi,
+      ServiceTokens.WebhooksApi,
     ];
     for (const token of generatedClientTokens) {
       const client = container.resolve<{ axios: AxiosInstance }>(token);

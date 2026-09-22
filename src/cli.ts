@@ -16,6 +16,7 @@ import {
   PIPELINE_STATUSES,
 } from './commands/pipeline/list.command.js';
 import { COMMIT_STATUS_STATES } from './commands/status/shared.js';
+import { WEBHOOK_EVENTS, WEBHOOK_SCOPES } from './commands/webhook/shared.js';
 import { COLOR_WHENS } from './commands/pr/diff.command.js';
 import { HTTP_METHODS } from './services/api-passthrough.js';
 import { createHelpTextBuilder } from './help-text.js';
@@ -2155,6 +2156,187 @@ projectCmd
   });
 
 cli.addCommand(projectCmd);
+
+// Search commands
+const searchCmd = new Command('search').description('Search Bitbucket');
+
+searchCmd
+  .command('code <query...>')
+  .description(
+    'Search code in a workspace (code search must be enabled for it); -r scopes to one repository'
+  )
+  .option('--limit <number>', 'Maximum number of results to list', '25')
+  .option('--all', 'List all results (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb search code parseConfig',
+        'bb search code "def main" -r my-repo',
+        'bb search code TODO lang:typescript -w my-workspace --limit 50',
+        "bb search code parseConfig --json --jq '.results[].file.path'",
+      ],
+      defaults: { limit: '25' },
+      seeAlso: [
+        {
+          label: 'Search syntax',
+          url: 'https://support.atlassian.com/bitbucket-cloud/docs/search-in-bitbucket-cloud/',
+        },
+      ],
+    })
+  )
+  .action(async (query, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.SearchCodeCommand,
+      withGlobalOptions({ query, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(searchCmd);
+
+// Webhook commands
+const webhookCmd = new Command('webhook').description(
+  'Manage repository and workspace webhooks'
+);
+
+const webhookScopeOption = (): Option =>
+  withCompletionChoices(
+    new Option(
+      '--scope <scope>',
+      'Webhook scope: repo (current repository) or workspace'
+    ),
+    WEBHOOK_SCOPES
+  );
+
+webhookCmd
+  .command('list')
+  .description('List webhooks')
+  .addOption(webhookScopeOption())
+  .option('--limit <number>', 'Maximum number of webhooks to list', '25')
+  .option('--all', 'List all webhooks (overrides --limit)')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb webhook list',
+        'bb webhook list --scope workspace -w my-workspace',
+        "bb webhook list --json --jq '.webhooks[].url'",
+      ],
+      validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
+      defaults: { scope: 'repo', limit: '25' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ListWebhooksCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+webhookCmd
+  .command('view <uid>')
+  .description('View webhook details (uid: webhook UUID)')
+  .addOption(webhookScopeOption())
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}',
+        'bb webhook view a1b2c3d4-0000-0000-0000-000000000000 --scope workspace',
+        "bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'",
+      ],
+      validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
+      defaults: { scope: 'repo' },
+    })
+  )
+  .action(async (uid, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.ViewWebhookCommand,
+      withGlobalOptions({ uid, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+webhookCmd
+  .command('create')
+  .description('Create a webhook')
+  .addOption(webhookScopeOption())
+  .option('--url <url>', 'URL events are delivered to (required)')
+  .addOption(
+    withCompletionChoices(
+      new Option(
+        '-e, --event <event...>',
+        'Event to subscribe to (required; repeatable)'
+      ),
+      WEBHOOK_EVENTS
+    )
+  )
+  .option('-d, --description <description>', 'Webhook description')
+  .option(
+    '--secret <secret>',
+    'Secret used to sign deliveries (X-Hub-Signature)'
+  )
+  .option('--inactive', 'Create the webhook disabled')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb webhook create --url https://ci.example.com/hook --event repo:push',
+        'bb webhook create --url https://example.com/hook -e pullrequest:created -e pullrequest:fulfilled -d "PR bot"',
+        'bb webhook create --scope workspace -w my-workspace --url https://example.com/hook -e repo:push --secret "$WEBHOOK_SECRET"',
+      ],
+      validValues: {
+        'Valid scopes': [...WEBHOOK_SCOPES],
+        'Valid events': [...WEBHOOK_EVENTS],
+      },
+      defaults: { scope: 'repo' },
+    })
+  )
+  .action(async (options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.CreateWebhookCommand,
+      withGlobalOptions(options, context),
+      cli,
+      context
+    );
+  });
+
+webhookCmd
+  .command('delete <uid>')
+  .description('Delete a webhook (uid: webhook UUID)')
+  .addOption(webhookScopeOption())
+  .option('-y, --yes', 'Skip confirmation prompt')
+  .addHelpText(
+    'after',
+    buildHelpText({
+      examples: [
+        'bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000}',
+        'bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes',
+      ],
+      validValues: { 'Valid scopes': [...WEBHOOK_SCOPES] },
+      defaults: { scope: 'repo' },
+    })
+  )
+  .action(async (uid, options) => {
+    const context = createContext(cli);
+    await runCommand(
+      ServiceTokens.DeleteWebhookCommand,
+      withGlobalOptions({ uid, ...options }, context),
+      cli,
+      context
+    );
+  });
+
+cli.addCommand(webhookCmd);
 
 // Browse command (top-level)
 cli
