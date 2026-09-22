@@ -3,6 +3,9 @@
  * `scripts/compile.ts` (the release binaries). Compiles for the host target
  * and proves the parts that only break once everything is embedded: the
  * inlined package version, the jq wasm asset and shell completion.
+ *
+ * Opt-in via COMPILE_SMOKE=1 (CI's compile-smoke job): compiling downloads the
+ * baseline Bun runtime, which a plain `bun test` must not depend on.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
@@ -49,69 +52,68 @@ function runBinary(
   };
 }
 
-describe.skipIf(!isCompileTarget(hostTarget))(
-  `compiled ${hostTarget} binary`,
-  () => {
-    beforeAll(async () => {
-      tmpDir = await mkdtemp(join(tmpdir(), 'bb-compile-smoke-'));
-      homeDir = join(tmpDir, 'home');
-      await mkdir(homeDir, { recursive: true });
-      binary = join(tmpDir, hostPlatform === 'windows' ? 'bb.exe' : 'bb');
+describe.skipIf(
+  process.env.COMPILE_SMOKE !== '1' || !isCompileTarget(hostTarget)
+)(`compiled ${hostTarget} binary`, () => {
+  beforeAll(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'bb-compile-smoke-'));
+    homeDir = join(tmpDir, 'home');
+    await mkdir(homeDir, { recursive: true });
+    binary = join(tmpDir, hostPlatform === 'windows' ? 'bb.exe' : 'bb');
 
-      const build = spawnSync(
-        process.execPath,
-        ['scripts/compile.ts', '--target', hostTarget, '--outfile', binary],
-        { cwd: REPO_ROOT, stdio: 'inherit', timeout: COMPILE_TIMEOUT_MS }
-      );
-      if (build.status !== 0) {
-        throw new Error(`scripts/compile.ts failed with ${build.status}`);
-      }
-    }, COMPILE_TIMEOUT_MS);
+    const build = spawnSync(
+      process.execPath,
+      ['scripts/compile.ts', '--target', hostTarget, '--outfile', binary],
+      { cwd: REPO_ROOT, stdio: 'inherit', timeout: COMPILE_TIMEOUT_MS }
+    );
+    if (build.status !== 0) {
+      throw new Error(`scripts/compile.ts failed with ${build.status}`);
+    }
+  }, COMPILE_TIMEOUT_MS);
 
-    afterAll(async () => {
-      if (tmpDir) {
-        await rm(tmpDir, { recursive: true, force: true });
-      }
+  afterAll(async () => {
+    if (tmpDir) {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('reports the package version without a package.json on disk', () => {
+    const result = runBinary(['--version']);
+
+    expect(result.stderr).toBe('');
+    expect(result.stdout.trim()).toBe(pkg.version);
+    expect(result.status).toBe(0);
+  });
+
+  it('runs --jq through the embedded jq wasm', () => {
+    const result = runBinary([
+      'config',
+      'list',
+      '--json',
+      '--jq',
+      '.configPath | type',
+    ]);
+
+    expect(result.stderr).toBe('');
+    expect(result.stdout).toBe('"string"\n');
+    expect(result.status).toBe(0);
+  });
+
+  it('embeds the bash, zsh and fish completion templates', async () => {
+    const contents = await readFile(binary, 'latin1');
+
+    expect(contents.split('begin-{pkgname}-completion').length - 1).toBe(3);
+  });
+
+  it('answers shell completion requests', () => {
+    const result = runBinary(['completion', '--', 'bb', 'pr', ''], {
+      COMP_CWORD: '2',
+      COMP_LINE: 'bb pr ',
+      COMP_POINT: '6',
+      SHELL: '/bin/bash',
     });
 
-    it('reports the package version without a package.json on disk', () => {
-      const result = runBinary(['--version']);
-
-      expect(result.stderr).toBe('');
-      expect(result.stdout.trim()).toBe(pkg.version);
-      expect(result.status).toBe(0);
-    });
-
-    it('runs --jq through the embedded jq wasm', () => {
-      const result = runBinary([
-        'config',
-        'list',
-        '--json',
-        '--jq',
-        '.configPath | type',
-      ]);
-
-      expect(result.stderr).toBe('');
-      expect(result.stdout).toBe('"string"\n');
-      expect(result.status).toBe(0);
-    });
-
-    it('embeds the bash, zsh and fish completion templates', async () => {
-      const contents = await readFile(binary, 'latin1');
-
-      expect(contents.split('begin-{pkgname}-completion').length - 1).toBe(3);
-    });
-
-    it('answers shell completion requests', () => {
-      const result = runBinary(['completion', '--', 'bb', 'pr', ''], {
-        COMP_CWORD: '2',
-        COMP_LINE: 'bb pr ',
-        COMP_POINT: '6',
-        SHELL: '/bin/bash',
-      });
-
-      expect(result.status).toBe(0);
-      expect(result.stdout.split(/\r?\n/)).toContain('create');
-    });
-  }
-);
+    expect(result.status).toBe(0);
+    expect(result.stdout.split(/\r?\n/)).toContain('create');
+  });
+});

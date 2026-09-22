@@ -14,8 +14,15 @@ coverageDir = "coverage"
 # - src/index.ts: the runtime-guard entrypoint.
 # - src/cli.ts: Commander wiring; its ~50 action callbacks are exercised
 #   end-to-end, not unit-tested, so its per-file function coverage is low.
+# - scripts/**: build tooling, exercised by the dist and compile smoke tests
+#   as subprocesses, so only its imported helpers would register.
 # Glob (**) form is required — a plain prefix is not matched by Bun 1.3.x.
-coveragePathIgnorePatterns = ["src/generated/**", "src/index.ts", "src/cli.ts"]
+coveragePathIgnorePatterns = [
+  "src/generated/**",
+  "src/index.ts",
+  "src/cli.ts",
+  "scripts/**",
+]
 
 # Per-file floor enforced by Bun's exit code (the hard CI gate). Use the SCALAR
 # form: the object form ([test.coverageThreshold]) is not enforced on Bun 1.3.x.

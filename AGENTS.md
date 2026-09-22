@@ -18,6 +18,7 @@ bun run build:binary --target bun-darwin-arm64  # Standalone executable in dist-
 # Tests
 bun test             # Run all tests
 bun test <file>      # Run a single test file (e.g., bun test tests/commands/repo.test.ts)
+COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
 # Type-checking / formatting
 bun run lint         # Type-check with tsc --noEmit
