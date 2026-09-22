@@ -5,6 +5,7 @@ interface Step {
   if?: string;
   run?: string;
   uses?: string;
+  env?: Record<string, string>;
 }
 
 interface Job {
@@ -57,6 +58,10 @@ describe('release PR checks', () => {
       step.run?.includes('gh workflow run')
     );
     expect(dispatch).toBeDefined();
+    expect(dispatch!.env?.RELEASE_BRANCH).toBe(
+      'changeset-release/${{ github.ref_name }}'
+    );
+    expect(dispatch!.run).not.toContain('${{');
 
     const prWorkflows: string[] = [];
     for (const file of new Bun.Glob('*.{yml,yaml}').scanSync(workflowsDir)) {
@@ -65,7 +70,7 @@ describe('release PR checks', () => {
       prWorkflows.push(file);
       expect(events).toContain('workflow_dispatch');
       expect(dispatch!.run).toContain(
-        `gh workflow run ${file} --ref "changeset-release/`
+        `gh workflow run ${file} --ref "$RELEASE_BRANCH"`
       );
     }
     expect(prWorkflows.length).toBeGreaterThan(0);

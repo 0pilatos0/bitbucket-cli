@@ -132,9 +132,12 @@ jobs:
       release_pr_number: ${{ steps.release_pr.outputs.pullRequestNumber }}
 
   # The release PR is opened with GITHUB_TOKEN, so its pull_request runs wait
-  # for maintainer approval and expire unrun. workflow_dispatch is exempt from
-  # that gate and reports checks on the same head commit. Kept in its own job
-  # so actions: write is not exposed to dependency installs and scripts.
+  # for maintainer approval and expire unrun. YAML cannot suppress those runs;
+  # only opening the PR with another identity (PAT or GitHub App token) would,
+  # and that means storing a long-lived secret with write access. Instead,
+  # workflow_dispatch is exempt from the gate and reports checks on the same
+  # head commit. Kept in its own job so actions: write is not exposed to
+  # dependency installs and scripts.
   release-pr-checks:
     name: Run checks on the release PR
     needs: [release]
@@ -146,11 +149,12 @@ jobs:
     steps:
       - name: Dispatch CI and Docs lint
         run: |
-          gh workflow run ci.yml --ref "changeset-release/${{ github.ref_name }}"
-          gh workflow run docs-lint.yml --ref "changeset-release/${{ github.ref_name }}"
+          gh workflow run ci.yml --ref "$RELEASE_BRANCH"
+          gh workflow run docs-lint.yml --ref "$RELEASE_BRANCH"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+          RELEASE_BRANCH: changeset-release/${{ github.ref_name }}
 
   # Single npm publish job. Runs inline (no workflow_call) so that npm's
   # Trusted Publisher OIDC check sees `release.yml` as job_workflow_ref —

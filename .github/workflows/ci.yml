@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'push' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   BUN_VERSION: 1.3.14
