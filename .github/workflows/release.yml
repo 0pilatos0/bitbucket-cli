@@ -21,6 +21,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.publish_only != true
     runs-on: ubuntu-latest
     permissions:
+      actions: write
       contents: write
       packages: write
       pull-requests: write
@@ -68,6 +69,7 @@ jobs:
           fi
 
       - name: Create Release Pull Request
+        id: release_pr
         if: steps.changesets.outputs.has_changesets == 'true'
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1
         with:
@@ -76,6 +78,17 @@ jobs:
           commit: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # The release PR is opened with GITHUB_TOKEN, so its pull_request runs
+      # wait for maintainer approval and expire unrun. workflow_dispatch is
+      # exempt from that gate and reports checks on the same head commit.
+      - name: Run checks on the release PR
+        if: steps.release_pr.outputs.pullRequestNumber != ''
+        run: |
+          gh workflow run ci.yml --ref "changeset-release/${{ github.ref_name }}"
+          gh workflow run docs-lint.yml --ref "changeset-release/${{ github.ref_name }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get package version
         if: steps.changesets.outputs.has_changesets == 'false'
