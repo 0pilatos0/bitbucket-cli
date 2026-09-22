@@ -279,3 +279,15 @@ describe('built dist --jq (issue #309)', () => {
     TEST_TIMEOUT_MS
   );
 });
+
+describe.skipIf(Bun.which('node') === null)('built dist under Node', () => {
+  it('prints the Bun runtime guard instead of failing to load', () => {
+    const result = spawnSync('node', [join(distDir, 'index.js'), '--version'], {
+      cwd: homeDir,
+      encoding: 'utf8',
+    });
+
+    expect(result.stderr).toContain('This CLI requires the Bun runtime.');
+    expect(result.status).toBe(1);
+  });
+});

@@ -33,6 +33,8 @@ declare module 'tabtab' {
   export default { install, uninstall, parseEnv, log };
 }
 
+// Private tabtab internals used by src/completion-install.ts; the exact
+// version pin in package.json keeps these paths stable.
 declare module 'tabtab/lib/prompt' {
   interface PromptAnswers {
     location: string;

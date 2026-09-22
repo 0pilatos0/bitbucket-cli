@@ -861,16 +861,18 @@ describe('formatUpdateNotice', () => {
     updateAvailable: true,
   };
 
-  it('includes both versions, the install command, and the disable hint', () => {
+  it('includes both versions, the update hint, and the disable hint', () => {
     const notice = formatUpdateNotice(
       result,
-      'bun install -g @pilatos/bitbucket-cli',
+      "Run 'bun install -g @pilatos/bitbucket-cli' to update",
       '─'.repeat(50)
     );
 
     expect(notice).toContain('2.0.0');
     expect(notice).toContain('1.0.0');
-    expect(notice).toContain('bun install -g @pilatos/bitbucket-cli');
+    expect(notice).toContain(
+      "  Run 'bun install -g @pilatos/bitbucket-cli' to update"
+    );
     expect(notice).toContain('bb config set skipVersionCheck true');
     expect(notice).toContain('─'.repeat(50));
   });
@@ -900,7 +902,8 @@ describe('maybePrintUpdateNotice', () => {
   ): VersionService =>
     ({
       checkForUpdate,
-      getInstallCommand: () => 'bun install -g @pilatos/bitbucket-cli',
+      getUpdateHint: () =>
+        "Run 'bun install -g @pilatos/bitbucket-cli' to update",
     }) as unknown as VersionService;
 
   // Capture process.stderr.write and toggle isTTY, restoring both afterwards.

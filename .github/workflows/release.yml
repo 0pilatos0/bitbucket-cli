@@ -116,7 +116,9 @@ jobs:
         with:
           tag_name: v${{ steps.package.outputs.version }}
           generate_release_notes: true
-          draft: false
+          # Published by release-binaries once the binaries are attached, so
+          # releases/latest never points at a release without its assets.
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -139,6 +141,7 @@ jobs:
     needs: [release]
     if: needs.release.outputs.should_publish == 'true'
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: bun-linux-x64
@@ -181,7 +184,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Compile
-        run: bun scripts/compile.ts --target ${{ matrix.target }} --outfile dist-bin/${{ matrix.asset }}
+        run: bun scripts/compile.ts --target ${{ matrix.target }}
+
+      # Bundled CommonJS keeps the build machine's __dirname, so a dependency
+      # that reads files next to itself only works while node_modules exists.
+      - name: Remove node_modules
+        shell: bash
+        run: rm -rf node_modules
 
       # SHELL pins tabtab's bash output format (bare names, no descriptions).
       - name: Smoke test
@@ -195,6 +204,7 @@ jobs:
           test "$("$BIN" --version | tr -d '\r')" = "$VERSION"
           test "$("$BIN" config list --json --jq '.configPath | type' | tr -d '\r')" = '"string"'
           COMP_LINE='bb pr ' COMP_POINT=6 COMP_CWORD=2 "$BIN" completion -- bb pr '' | tr -d '\r' | grep -x create >/dev/null
+          test "$(grep -ao 'begin-{pkgname}-completion' "$BIN" | wc -l | tr -d ' ')" = 3
 
       - name: Upload binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -205,7 +215,8 @@ jobs:
           retention-days: 7
 
   # Checksums and Sigstore build-provenance attestations for the binaries, so
-  # installers and package formulas can pin and verify them.
+  # installers and package formulas can pin and verify them. Publishing the
+  # draft release is the last step.
   release-binaries:
     name: Attach binaries to release
     needs: [release, binaries]
@@ -232,10 +243,13 @@ jobs:
         with:
           subject-checksums: dist-bin/SHA256SUMS
 
-      - name: Upload to GitHub Release
-        run: gh release upload "v${{ needs.release.outputs.version }}" dist-bin/* --clobber --repo "${{ github.repository }}"
+      - name: Upload to GitHub Release and publish it
+        run: |
+          gh release upload "$TAG" dist-bin/* --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.release.outputs.version }}
 
   # Single npm publish job. Runs inline (no workflow_call) so that npm's
   # Trusted Publisher OIDC check sees `release.yml` as job_workflow_ref —

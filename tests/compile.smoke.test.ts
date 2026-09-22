@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import pkg from '../package.json' with { type: 'json' };
@@ -94,6 +94,12 @@ describe.skipIf(!isCompileTarget(hostTarget))(
       expect(result.stderr).toBe('');
       expect(result.stdout).toBe('"string"\n');
       expect(result.status).toBe(0);
+    });
+
+    it('embeds the bash, zsh and fish completion templates', async () => {
+      const contents = await readFile(binary, 'latin1');
+
+      expect(contents.split('begin-{pkgname}-completion').length - 1).toBe(3);
     });
 
     it('answers shell completion requests', () => {

@@ -261,14 +261,14 @@ export function withGlobalOptions<T extends Record<string, unknown>>(
 // unit-testable; the caller supplies the separator so it can honor --no-unicode.
 export function formatUpdateNotice(
   result: VersionCheckResult,
-  installCommand: string,
+  updateHint: string,
   separator: string
 ): string {
   return [
     '',
     separator,
     `A new version is available: ${result.latestVersion} (you have ${result.currentVersion})`,
-    `  Run '${installCommand}' to update`,
+    `  ${updateHint}`,
     `  Or disable with 'bb config set skipVersionCheck true'`,
     separator,
     '',
@@ -292,11 +292,8 @@ export async function maybePrintUpdateNotice(
     if (result?.updateAvailable) {
       const separator = (opts.noUnicode ? '-' : '─').repeat(50);
       process.stderr.write(
-        formatUpdateNotice(
-          result,
-          versionService.getInstallCommand(),
-          separator
-        ) + '\n'
+        formatUpdateNotice(result, versionService.getUpdateHint(), separator) +
+          '\n'
       );
     }
   } catch {

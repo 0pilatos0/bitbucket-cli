@@ -1,6 +1,6 @@
 /**
- * Shell-completion install, equivalent to `tabtab.install()` except for where
- * the per-shell script templates come from.
+ * Shell-completion install and uninstall. Install is equivalent to
+ * `tabtab.install()` except for where the per-shell script templates come from.
  *
  * tabtab reads its templates from `path.join(__dirname, 'scripts/<shell>.sh')`
  * at install time. Once tabtab is bundled (as it must be inside a
@@ -13,6 +13,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
+import tabtab from 'tabtab';
 import { writeToShellConfig, writeToTabtabScript } from 'tabtab/lib/installer';
 import promptForLocation from 'tabtab/lib/prompt';
 import bashTemplate from 'tabtab/lib/scripts/bash.sh' with { type: 'text' };
@@ -63,4 +64,8 @@ export async function installCompletion(
   await writeToTabtabScript({ name: target.name });
   await mkdir(dirname(scriptPath), { recursive: true });
   await writeFile(scriptPath, renderCompletionScript(shell, target));
+}
+
+export async function uninstallCompletion(name: string): Promise<void> {
+  await tabtab.uninstall({ name });
 }

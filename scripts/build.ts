@@ -60,8 +60,6 @@ const bundle = spawnSync(
     'bun',
     '--minify',
     '--sourcemap',
-    '--external',
-    'tabtab',
   ],
   { stdio: 'inherit' }
 );

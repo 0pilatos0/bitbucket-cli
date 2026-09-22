@@ -12,6 +12,17 @@ import type { VersionCheckResult } from '../types/version.js';
 
 const NPM_REGISTRY_URL = 'https://registry.npmjs.org/@pilatos/bitbucket-cli';
 const PACKAGE_NAME = '@pilatos/bitbucket-cli';
+const RELEASES_URL =
+  'https://github.com/0pilatos0/bitbucket-cli/releases/latest';
+
+// `bun build --compile` serves the entrypoint from its embedded filesystem:
+// `/$bunfs/root/...` on POSIX, `B:\~BUN\root\...` on Windows.
+const EMBEDDED_ENTRY = /^(?:\/\$bunfs\/|[A-Za-z]:[\\/]~BUN[\\/])/;
+
+/** True when running as a standalone `bun build --compile` executable. */
+export function isStandaloneBinary(mainPath: string): boolean {
+  return EMBEDDED_ENTRY.test(mainPath);
+}
 
 interface NpmRegistryResponse {
   'dist-tags': {
@@ -22,10 +33,16 @@ interface NpmRegistryResponse {
 export class VersionService {
   private readonly configService: IConfigService;
   private readonly currentVersion: string;
+  private readonly standalone: boolean;
 
-  constructor(configService: IConfigService, currentVersion: string) {
+  constructor(
+    configService: IConfigService,
+    currentVersion: string,
+    standalone: boolean = isStandaloneBinary(Bun.main)
+  ) {
     this.configService = configService;
     this.currentVersion = currentVersion;
+    this.standalone = standalone;
   }
 
   /**
@@ -200,9 +217,13 @@ export class VersionService {
   }
 
   /**
-   * Get the install command for the package
+   * How to update this installation: standalone binaries are replaced by a
+   * new download, package installs are updated through Bun.
    */
-  public getInstallCommand(): string {
-    return `bun install -g ${PACKAGE_NAME}`;
+  public getUpdateHint(): string {
+    if (this.standalone) {
+      return `Download the new binary from ${RELEASES_URL}`;
+    }
+    return `Run 'bun install -g ${PACKAGE_NAME}' to update`;
   }
 }

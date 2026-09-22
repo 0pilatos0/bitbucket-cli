@@ -27,7 +27,7 @@ export type CompileTarget = (typeof COMPILE_TARGETS)[number];
 
 const repoRoot = resolve(import.meta.dir, '..');
 
-export function defaultOutfile(target: CompileTarget): string {
+function defaultOutfile(target: CompileTarget): string {
   const name = `bb-${target.slice('bun-'.length)}`;
   const suffix = target.startsWith('bun-windows-') ? '.exe' : '';
   return resolve(repoRoot, 'dist-bin', `${name}${suffix}`);
