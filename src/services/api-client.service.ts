@@ -174,7 +174,8 @@ export function createApiClient(
     async (config) => {
       // Proactive pacing before anything else (issue #277): bulk runs stay
       // under the rate-limit ceiling instead of reacting to 429s afterwards.
-      await rateLimiter.acquire();
+      const queuedMs = await rateLimiter.acquire();
+      httpDebug.request(config, queuedMs);
 
       const authMethod = await credentialStore.getAuthMethod();
 
@@ -190,7 +191,7 @@ export function createApiClient(
         config.headers.Authorization = `Basic ${authString}`;
       }
 
-      httpDebug.request(config);
+      httpDebug.dispatch(config);
       return config;
     },
     (error) => Promise.reject(error)

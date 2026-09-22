@@ -648,7 +648,7 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
     const id = traceId(lines[0]);
     expect(lines.map(traceId)).toEqual([id, id, id, id]);
     expect(lines[1]).toMatch(/ 503 GET \S+\/flaky \d+ms$/);
-    expect(lines[2]).toEndWith('/flaky (attempt 2)');
+    expect(lines[2]).toMatch(/\/flaky \(attempt 2(, waited \d+ms)?\)$/);
     expect(lines[3]).toMatch(/ 200 GET \S+\/flaky \d+ms$/);
   });
 
@@ -671,7 +671,7 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
     expect(lines).toHaveLength(4);
     expect(new Set(lines.map(traceId)).size).toBe(1);
     expect(lines[1]).toContain(' 401 GET ');
-    expect(lines[2]).toEndWith('(attempt 2)');
+    expect(lines[2]).toMatch(/\(attempt 2(, waited \d+ms)?\)$/);
   });
 
   it('gives overlapping requests distinct ids that match their outcomes', async () => {
@@ -695,6 +695,42 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
     expect(a.size).toBe(1);
     expect(b.size).toBe(1);
     expect([...a][0]).not.toBe([...b][0]);
+  });
+
+  it('logs the request line before a credential failure', async () => {
+    process.env.BB_DEBUG = 'http';
+    const store = {
+      ...mockConfigService(),
+      getCredentials: async () => {
+        throw new Error('Not authenticated');
+      },
+    };
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(store, createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/repositories/ws/r').catch(() => {});
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(
+      /^\[HTTP\] [0-9a-f]{6} GET https:\/\/api\.bitbucket\.org\/2\.0\/repositories\/ws\/r$/
+    );
+    expect(lines[1]).toBe('[HTTP] Error: Not authenticated');
+  });
+
+  it('logs the redacted request body at the verbose level', async () => {
+    process.env.BB_DEBUG = 'verbose';
+    const mockAdapter = createMockAdapter([{ status: 201, data: {} }]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.post('/items', { password: 'hunter2', title: 'kept' });
+
+    const output = allDebugOutput();
+    expect(output).toMatch(/\[HTTP\] [0-9a-f]{6} Request Body:/);
+    expect(output).not.toContain('hunter2');
+    expect(output).toContain('kept');
   });
 
   it('logs the network error code with the correlation id', async () => {

@@ -2,10 +2,12 @@
  * Leveled HTTP debug tracing for the shared API client.
  *
  * `BB_DEBUG=http` logs one line per request and one per outcome (status or
- * network error code, plus elapsed milliseconds); `BB_DEBUG=verbose` adds the
- * redacted response bodies. `DEBUG=true` is kept as an alias for `verbose`,
- * which is what it always printed. The same level gates the CLI's other
- * diagnostic lines through `isDebugEnabled()`.
+ * network error code, plus elapsed milliseconds on the wire). Time spent
+ * before the send (pacing, retry backoff, credential lookup) is reported
+ * separately. `BB_DEBUG=verbose` adds the redacted request and response
+ * bodies. `DEBUG=true` is kept as an alias for `verbose`, which is what it
+ * always printed. The same level gates the CLI's other diagnostic lines
+ * through `isDebugEnabled()`.
  *
  * Every line carries a short correlation id so overlapping requests stay
  * matchable. The id lives on the axios config, so a retry or a 401 replay of
@@ -120,8 +122,14 @@ export function redactRequestUrl(
 }
 
 export interface HttpDebugLogger {
-  /** Call once per attempt, right before the request is dispatched. */
-  request(config: InternalAxiosRequestConfig): void;
+  /**
+   * Call once per attempt, after pacing and before credentials are resolved,
+   * so an auth failure still follows a request line. `queuedMs` is the time
+   * the pacer held this attempt back.
+   */
+  request(config: InternalAxiosRequestConfig, queuedMs?: number): void;
+  /** Call right before dispatch; the outcome's elapsed time starts here. */
+  dispatch(config: InternalAxiosRequestConfig): void;
   response(response: AxiosResponse): void;
   error(error: unknown): void;
 }
@@ -129,7 +137,9 @@ export interface HttpDebugLogger {
 interface Trace {
   id: string;
   attempt: number;
-  startedAt: number;
+  announcedAt: number;
+  startedAt?: number;
+  settledAt?: number;
 }
 
 interface TracedConfig extends InternalAxiosRequestConfig {
@@ -138,6 +148,7 @@ interface TracedConfig extends InternalAxiosRequestConfig {
 
 const NOOP_LOGGER: HttpDebugLogger = {
   request() {},
+  dispatch() {},
   response() {},
   error() {},
 };
@@ -153,6 +164,18 @@ function describeRequest(config: InternalAxiosRequestConfig): string {
 
 function formatBody(data: unknown): string {
   return JSON.stringify(redactSensitive(data), null, 2);
+}
+
+/** Raw `bb api --input` bodies are strings; parse them so redaction applies. */
+function parseRequestBody(data: unknown): unknown {
+  if (typeof data !== 'string') {
+    return data;
+  }
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
 }
 
 export function createHttpDebugLogger(
@@ -171,9 +194,18 @@ export function createHttpDebugLogger(
   ): string => {
     const trace = config.__trace;
     const prefix = trace ? `[HTTP] ${trace.id}` : '[HTTP]';
-    const ms = trace ? ` ${Math.round(now() - trace.startedAt)}ms` : '';
+    let timing = '';
+    if (trace?.startedAt !== undefined) {
+      const settledAt = now();
+      trace.settledAt = settledAt;
+      const authMs = Math.round(trace.startedAt - trace.announcedAt);
+      timing = ` ${Math.round(settledAt - trace.startedAt)}ms`;
+      if (authMs > 0) {
+        timing += ` (auth ${authMs}ms)`;
+      }
+    }
     console.debug(
-      `${prefix} ${result} ${describeRequest(config)}${ms}${detail}`
+      `${prefix} ${result} ${describeRequest(config)}${timing}${detail}`
     );
     return prefix;
   };
@@ -185,16 +217,38 @@ export function createHttpDebugLogger(
   };
 
   return {
-    request(config) {
+    request(config, queuedMs = 0) {
       const traced = config as TracedConfig;
+      const previous = traced.__trace;
+      const announcedAt = now();
       const trace: Trace = {
-        id: traced.__trace?.id ?? newTraceId(),
-        attempt: (traced.__trace?.attempt ?? 0) + 1,
-        startedAt: now(),
+        id: previous?.id ?? newTraceId(),
+        attempt: (previous?.attempt ?? 0) + 1,
+        announcedAt,
       };
       traced.__trace = trace;
-      const attempt = trace.attempt > 1 ? ` (attempt ${trace.attempt})` : '';
-      console.debug(`[HTTP] ${trace.id} ${describeRequest(config)}${attempt}`);
+      const waitedMs = Math.round(
+        previous?.settledAt !== undefined
+          ? announcedAt - previous.settledAt
+          : queuedMs
+      );
+      const notes = [
+        ...(trace.attempt > 1 ? [`attempt ${trace.attempt}`] : []),
+        ...(waitedMs > 0 ? [`waited ${waitedMs}ms`] : []),
+      ];
+      const suffix = notes.length > 0 ? ` (${notes.join(', ')})` : '';
+      const prefix = `[HTTP] ${trace.id}`;
+      console.debug(`${prefix} ${describeRequest(config)}${suffix}`);
+      if (config.data != null) {
+        logBody(prefix, 'Request Body', parseRequestBody(config.data));
+      }
+    },
+
+    dispatch(config) {
+      const trace = (config as TracedConfig).__trace;
+      if (trace) {
+        trace.startedAt = now();
+      }
     },
 
     response(response) {

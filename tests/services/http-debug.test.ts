@@ -117,11 +117,19 @@ describe('createHttpDebugLogger', () => {
     );
   }
 
+  function send(
+    logger: ReturnType<typeof createHttpDebugLogger>,
+    config: InternalAxiosRequestConfig
+  ): void {
+    logger.request(config);
+    logger.dispatch(config);
+  }
+
   it('logs nothing and leaves the config untouched when off', () => {
     const logger = createHttpDebugLogger('off', now);
     const config = makeConfig();
 
-    logger.request(config);
+    send(logger, config);
     logger.response(makeResponse(config));
     logger.error(new AxiosError('boom', 'ECONNRESET', config, {}));
 
@@ -133,7 +141,7 @@ describe('createHttpDebugLogger', () => {
     const logger = createHttpDebugLogger('http', now);
     const config = makeConfig();
 
-    logger.request(config);
+    send(logger, config);
     clock += 142.4;
     logger.response(makeResponse(config, 200, { secret: 'body' }));
 
@@ -178,19 +186,74 @@ describe('createHttpDebugLogger', () => {
     const logger = createHttpDebugLogger('http', now);
     const config = makeConfig();
 
-    logger.request(config);
+    send(logger, config);
     clock += 500;
-    logger.request(config);
+    send(logger, config);
     clock += 20;
     logger.response(makeResponse(config));
 
     expect(lines()[2]).toEndWith(' 20ms');
   });
 
+  it('shows the pacer wait on the request line', () => {
+    const logger = createHttpDebugLogger('http', now);
+
+    logger.request(makeConfig(), 1840.4);
+
+    expect(lines()[0]).toEndWith('/repositories/ws/r (waited 1840ms)');
+  });
+
+  it('shows the gap since the previous attempt on a retry', () => {
+    const logger = createHttpDebugLogger('http', now);
+    const config = makeConfig();
+    send(logger, config);
+    clock += 10;
+    logger.error(
+      new AxiosError(
+        'unavailable',
+        undefined,
+        config,
+        {},
+        makeResponse(config, 503)
+      )
+    );
+    clock += 1000;
+
+    logger.request(config, 5);
+
+    expect(lines()[2]).toEndWith(
+      '/repositories/ws/r (attempt 2, waited 1000ms)'
+    );
+  });
+
+  it('shows credential lookup time separately from wire time', () => {
+    const logger = createHttpDebugLogger('http', now);
+    const config = makeConfig();
+    logger.request(config);
+    clock += 412;
+    logger.dispatch(config);
+    clock += 20;
+
+    logger.response(makeResponse(config));
+
+    expect(lines()[1]).toEndWith('/repositories/ws/r 20ms (auth 412ms)');
+  });
+
+  it('logs the request line before a failure that happens ahead of dispatch', () => {
+    const logger = createHttpDebugLogger('http', now);
+
+    logger.request(makeConfig('/x', 'post'));
+    logger.error(new Error('Auth required'));
+
+    const [request, error] = lines();
+    expect(request).toMatch(/^\[HTTP\] [0-9a-f]{6} POST \S+\/x$/);
+    expect(error).toBe('[HTTP] Error: Auth required');
+  });
+
   it('logs the status of error responses without their body at the http level', () => {
     const logger = createHttpDebugLogger('http', now);
     const config = makeConfig('/x', 'post');
-    logger.request(config);
+    send(logger, config);
     clock += 7;
 
     logger.error(
@@ -210,7 +273,7 @@ describe('createHttpDebugLogger', () => {
   it('logs the network error code and message when no response arrived', () => {
     const logger = createHttpDebugLogger('http', now);
     const config = makeConfig();
-    logger.request(config);
+    send(logger, config);
     clock += 30;
 
     logger.error(new AxiosError('socket hang up', 'ECONNRESET', config, {}));
@@ -228,14 +291,6 @@ describe('createHttpDebugLogger', () => {
     expect(lines()).toEqual([
       '[HTTP] 204 GET https://api.bitbucket.org/2.0/repositories/ws/r',
     ]);
-  });
-
-  it('logs a plain error line for failures before dispatch', () => {
-    const logger = createHttpDebugLogger('http', now);
-
-    logger.error(new Error('Auth required'));
-
-    expect(lines()).toEqual(['[HTTP] Error: Auth required']);
   });
 
   it('adds redacted response and error bodies at the verbose level', () => {
@@ -271,11 +326,48 @@ describe('createHttpDebugLogger', () => {
     expect(output).toContain('invalid_grant');
   });
 
+  it('adds redacted request bodies at the verbose level', () => {
+    const logger = createHttpDebugLogger('verbose', now);
+    const object = {
+      ...makeConfig('/o', 'post'),
+      data: { password: 'p1', title: 'kept' },
+    };
+    const raw = {
+      ...makeConfig('/r', 'put'),
+      data: '{"token":"t1","name":"raw"}',
+    };
+    const text = { ...makeConfig('/t', 'post'), data: 'not json' };
+
+    logger.request(object);
+    logger.request(raw);
+    logger.request(text);
+    logger.request(makeConfig('/none'));
+
+    const output = lines().join('\n');
+    expect(
+      lines().filter((line) => line.includes('Request Body:'))
+    ).toHaveLength(3);
+    expect(output).not.toContain('p1');
+    expect(output).not.toContain('t1');
+    expect(output).toContain('kept');
+    expect(output).toContain('raw');
+    expect(output).toContain('"not json"');
+  });
+
+  it('never logs request bodies at the http level', () => {
+    const logger = createHttpDebugLogger('http', now);
+
+    logger.request({ ...makeConfig('/o', 'post'), data: { title: 'hidden' } });
+
+    expect(lines()).toHaveLength(1);
+    expect(lines()[0]).not.toContain('hidden');
+  });
+
   it('redacts query strings from logged URLs', () => {
     const logger = createHttpDebugLogger('http', now);
     const config = makeConfig('/test?token=abc&other=xyz');
 
-    logger.request(config);
+    send(logger, config);
     logger.response(makeResponse(config));
 
     const output = lines().join('\n');
