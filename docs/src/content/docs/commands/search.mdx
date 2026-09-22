@@ -37,7 +37,7 @@ bb search code <query...> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `query` | Search query. Multiple words are joined with spaces, so quoting is optional. Supports Bitbucket's search modifiers such as `lang:`, `ext:`, `path:` and `repo:` |
+| `query` | Search query. Multiple words are joined with spaces and searched as separate terms; for an exact phrase, keep the double quotes in the query (`'"def main"'`). Supports Bitbucket's search modifiers such as `lang:`, `ext:`, `path:` and `repo:` |
 
 ### Options
 
@@ -57,7 +57,7 @@ covers the whole workspace unless you pass `--repo`, even inside a checkout.
 
 ```bash
 bb search code parseConfig
-bb search code "def main" -r my-repo
+bb search code parseConfig -r my-repo
 bb search code TODO lang:typescript -w my-workspace --limit 50
 
 # Paths of every matching file

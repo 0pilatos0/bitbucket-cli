@@ -2176,7 +2176,7 @@ searchCmd
     buildHelpText({
       examples: [
         'bb search code parseConfig',
-        'bb search code "def main" -r my-repo',
+        'bb search code parseConfig -r my-repo',
         'bb search code TODO lang:typescript -w my-workspace --limit 50',
         "bb search code parseConfig --json --jq '.results[].file.path'",
       ],
