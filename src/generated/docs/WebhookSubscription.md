@@ -12,7 +12,7 @@ Name | Type | Description | Notes
 **subject** | **object** |  | [optional] [default to undefined]
 **active** | **boolean** |  | [optional] [default to undefined]
 **created_at** | **string** |  | [optional] [default to undefined]
-**events** | **Set&lt;string&gt;** | The events this webhook is subscribed to. | [optional] [default to undefined]
+**events** | **Array&lt;string&gt;** | The events this webhook is subscribed to. | [optional] [default to undefined]
 **secret_set** | **boolean** | Indicates whether or not the hook has an associated secret. It is not possible to see the hook\&#39;s secret. This field is ignored during updates. | [optional] [default to undefined]
 **secret** | **string** | The secret to associate with the hook. The secret is never returned via the API. As such, this field is only used during updates. The secret can be set to &#x60;null&#x60; or \&quot;\&quot; to remove the secret (or create a hook with no secret). Leaving out the secret field during updates will leave the secret unchanged. Leaving out the secret during creation will create a hook with no secret. | [optional] [default to undefined]
 

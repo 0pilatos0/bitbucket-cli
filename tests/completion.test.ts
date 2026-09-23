@@ -15,6 +15,7 @@ import { PR_STATES } from '../src/types/pr.js';
 import {
   PullrequestMergeParametersMergeStrategyEnum,
   SnippetsWorkspaceGetRoleEnum,
+  WebhookSubscriptionEventsEnum,
 } from '../src/generated/api.js';
 
 // Convenience: run the completer for a typed line and return candidate names.
@@ -134,6 +135,20 @@ describe('generateCompletions', () => {
       const names = complete('bb snippet list --role ');
       expect(names.sort()).toEqual(
         Object.values(SnippetsWorkspaceGetRoleEnum).sort()
+      );
+    });
+
+    it('suggests webhook scopes after "bb webhook list --scope "', () => {
+      expect(complete('bb webhook list --scope ')).toEqual([
+        'repo',
+        'workspace',
+      ]);
+    });
+
+    it('suggests webhook events after "bb webhook create --event "', () => {
+      const names = complete('bb webhook create --event ');
+      expect(names.sort()).toEqual(
+        Object.values(WebhookSubscriptionEventsEnum).sort()
       );
     });
 

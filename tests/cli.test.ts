@@ -490,8 +490,10 @@ describe('CLI command registration', () => {
       'pr',
       'project',
       'repo',
+      'search',
       'snippet',
       'status',
+      'webhook',
       'workspace',
     ]);
   });
@@ -644,6 +646,21 @@ describe('CLI command registration', () => {
     const projectCmd = requireCommand('project');
     expect(projectCmd.commands.map((c) => c.name()).sort()).toEqual([
       'create',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all search subcommands', () => {
+    const searchCmd = requireCommand('search');
+    expect(searchCmd.commands.map((c) => c.name())).toEqual(['code']);
+  });
+
+  it('should register all webhook subcommands', () => {
+    const webhookCmd = requireCommand('webhook');
+    expect(webhookCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'create',
+      'delete',
       'list',
       'view',
     ]);

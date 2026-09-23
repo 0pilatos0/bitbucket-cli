@@ -125,6 +125,14 @@ export default defineConfig({
               slug: "commands/project",
             },
             {
+              label: "Search Commands",
+              slug: "commands/search",
+            },
+            {
+              label: "Webhook Commands",
+              slug: "commands/webhook",
+            },
+            {
               label: "Browse",
               slug: "commands/browse",
             },
