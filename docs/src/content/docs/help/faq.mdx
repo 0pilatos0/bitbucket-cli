@@ -174,7 +174,7 @@ See [Repository Context](/guides/repository-context/) for details.
 Partly. Every command is driven by flags and arguments, and a few of them ask
 for what is missing when you run them in an interactive terminal:
 
-- Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`, `bb repo downloads delete`, `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`) ask `Continue? (y/N)` when `-y/--yes` is missing.
+- Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`, `bb repo downloads delete`, `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`, `bb webhook delete`, `bb branch-restriction delete`, `bb ssh-key delete`, `bb gpg-key delete`) ask `Continue? (y/N)` when `-y/--yes` is missing.
 - `bb pr create` asks for the title (and an optional description) when `--title` is missing.
 - `bb auth login` asks whether to use the browser or an API token, and for a missing username or token.
 
