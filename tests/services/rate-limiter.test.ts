@@ -2,7 +2,7 @@
  * Rate limiter tests (issue #277)
  */
 
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, spyOn } from 'bun:test';
 import {
   computeAdaptiveInterval,
   MAX_ADAPTIVE_INTERVAL_MS,
@@ -84,8 +84,30 @@ describe('RateLimiter', () => {
   it('reports how long each caller was held back', async () => {
     const limiter = new RateLimiter({ minIntervalMs: 25 });
 
-    expect(await limiter.acquire()).toBeLessThan(15);
+    expect(await limiter.acquire()).toBe(0);
     expect(await limiter.acquire()).toBeGreaterThanOrEqual(15);
+  });
+
+  it('reports no wait for an uncontended caller when the clock ticks', async () => {
+    let clock = 1_000;
+    const nowSpy = spyOn(Date, 'now').mockImplementation(() => clock++);
+    try {
+      const limiter = new RateLimiter();
+
+      expect(await limiter.acquire()).toBe(0);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
+  it('counts time spent queued behind a concurrent caller', async () => {
+    const limiter = new RateLimiter({ minIntervalMs: 20 });
+    await limiter.acquire();
+
+    const waits = await Promise.all([limiter.acquire(), limiter.acquire()]);
+
+    expect(waits[1]).toBeGreaterThanOrEqual(waits[0]!);
+    expect(waits[1]).toBeGreaterThan(0);
   });
 
   it('serializes concurrent callers so spacing stays honest', async () => {

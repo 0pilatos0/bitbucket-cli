@@ -104,6 +104,7 @@ export class RateLimiter {
   private adaptiveIntervalMs = 0;
   private lastRequestAt: number | null = null;
   private chain: Promise<void> = Promise.resolve();
+  private pending = 0;
   private windowResetAtMs: number | null = null;
   private worstRemainingInWindow: number | null = null;
 
@@ -126,6 +127,10 @@ export class RateLimiter {
    */
   public async acquire(): Promise<number> {
     const requestedAt = Date.now();
+    // Awaiting an already-settled chain can still cross a millisecond tick;
+    // only a queued caller or a pacing sleep counts as being held back.
+    let heldBack = this.pending > 0;
+    this.pending++;
     const previous = this.chain;
     let release!: () => void;
     this.chain = new Promise<void>((resolve) => {
@@ -138,12 +143,14 @@ export class RateLimiter {
       if (interval > 0 && this.lastRequestAt !== null) {
         const wait = this.lastRequestAt + interval - Date.now();
         if (wait > 0) {
+          heldBack = true;
           await sleep(wait);
         }
       }
       this.lastRequestAt = Date.now();
-      return this.lastRequestAt - requestedAt;
+      return heldBack ? this.lastRequestAt - requestedAt : 0;
     } finally {
+      this.pending--;
       release();
     }
   }
