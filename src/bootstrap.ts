@@ -34,6 +34,10 @@ import {
   DownloadsApi,
   SearchApi,
   WebhooksApi,
+  BranchRestrictionsApi,
+  SSHApi,
+  GPGApi,
+  DeploymentsApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -127,6 +131,27 @@ import { ListWebhooksCommand } from './commands/webhook/list.command.js';
 import { ViewWebhookCommand } from './commands/webhook/view.command.js';
 import { CreateWebhookCommand } from './commands/webhook/create.command.js';
 import { DeleteWebhookCommand } from './commands/webhook/delete.command.js';
+
+// Branch restriction commands
+import { ListBranchRestrictionsCommand } from './commands/branch-restriction/list.command.js';
+import { ViewBranchRestrictionCommand } from './commands/branch-restriction/view.command.js';
+import { CreateBranchRestrictionCommand } from './commands/branch-restriction/create.command.js';
+import { DeleteBranchRestrictionCommand } from './commands/branch-restriction/delete.command.js';
+
+// SSH key commands
+import { ListSshKeysCommand } from './commands/ssh-key/list.command.js';
+import { AddSshKeyCommand } from './commands/ssh-key/add.command.js';
+import { DeleteSshKeyCommand } from './commands/ssh-key/delete.command.js';
+
+// GPG key commands
+import { ListGpgKeysCommand } from './commands/gpg-key/list.command.js';
+import { AddGpgKeyCommand } from './commands/gpg-key/add.command.js';
+import { DeleteGpgKeyCommand } from './commands/gpg-key/delete.command.js';
+
+// Deployment commands
+import { ListDeploymentsCommand } from './commands/deployment/list.command.js';
+import { ViewDeploymentCommand } from './commands/deployment/view.command.js';
+import { ListEnvironmentsCommand } from './commands/deployment/environments.command.js';
 
 // Config commands
 import { SetAliasCommand } from './commands/alias/set.command.js';
@@ -279,6 +304,14 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerApiClient(container, ServiceTokens.DownloadsApi, DownloadsApi);
   registerApiClient(container, ServiceTokens.SearchApi, SearchApi);
   registerApiClient(container, ServiceTokens.WebhooksApi, WebhooksApi);
+  registerApiClient(
+    container,
+    ServiceTokens.BranchRestrictionsApi,
+    BranchRestrictionsApi
+  );
+  registerApiClient(container, ServiceTokens.SSHApi, SSHApi);
+  registerApiClient(container, ServiceTokens.GPGApi, GPGApi);
+  registerApiClient(container, ServiceTokens.DeploymentsApi, DeploymentsApi);
 
   registerCommand(
     container,
@@ -944,6 +977,119 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     DeleteWebhookCommand,
     [
       ServiceTokens.WebhooksApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Branch restriction commands
+  registerCommand(
+    container,
+    ServiceTokens.ListBranchRestrictionsCommand,
+    ListBranchRestrictionsCommand,
+    [
+      ServiceTokens.BranchRestrictionsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewBranchRestrictionCommand,
+    ViewBranchRestrictionCommand,
+    [
+      ServiceTokens.BranchRestrictionsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CreateBranchRestrictionCommand,
+    CreateBranchRestrictionCommand,
+    [
+      ServiceTokens.BranchRestrictionsApi,
+      ServiceTokens.UsersApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.DeleteBranchRestrictionCommand,
+    DeleteBranchRestrictionCommand,
+    [
+      ServiceTokens.BranchRestrictionsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // SSH key commands (always scoped to the authenticated account)
+  registerCommand(
+    container,
+    ServiceTokens.ListSshKeysCommand,
+    ListSshKeysCommand,
+    [ServiceTokens.SSHApi, ServiceTokens.UsersApi, ServiceTokens.OutputService]
+  );
+  registerCommand(container, ServiceTokens.AddSshKeyCommand, AddSshKeyCommand, [
+    ServiceTokens.SSHApi,
+    ServiceTokens.UsersApi,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.DeleteSshKeyCommand,
+    DeleteSshKeyCommand,
+    [ServiceTokens.SSHApi, ServiceTokens.UsersApi, ServiceTokens.OutputService]
+  );
+
+  // GPG key commands (always scoped to the authenticated account)
+  registerCommand(
+    container,
+    ServiceTokens.ListGpgKeysCommand,
+    ListGpgKeysCommand,
+    [ServiceTokens.GPGApi, ServiceTokens.UsersApi, ServiceTokens.OutputService]
+  );
+  registerCommand(container, ServiceTokens.AddGpgKeyCommand, AddGpgKeyCommand, [
+    ServiceTokens.GPGApi,
+    ServiceTokens.UsersApi,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.DeleteGpgKeyCommand,
+    DeleteGpgKeyCommand,
+    [ServiceTokens.GPGApi, ServiceTokens.UsersApi, ServiceTokens.OutputService]
+  );
+
+  // Deployment commands
+  registerCommand(
+    container,
+    ServiceTokens.ListDeploymentsCommand,
+    ListDeploymentsCommand,
+    [
+      ServiceTokens.DeploymentsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewDeploymentCommand,
+    ViewDeploymentCommand,
+    [
+      ServiceTokens.DeploymentsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ListEnvironmentsCommand,
+    ListEnvironmentsCommand,
+    [
+      ServiceTokens.DeploymentsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]

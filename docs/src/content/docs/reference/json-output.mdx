@@ -60,7 +60,8 @@ bb pr list --json id,title,author.display_name
   ```text
   pullRequests  repositories  snippets  comments  reviewers  activities
   statuses      files         pipelines commits   workspaces projects
-  entries       downloads     results   webhooks  values
+  entries       downloads     results   webhooks  branchRestrictions
+  sshKeys       gpgKeys       deployments         environments  values
   ```
 
 - If no key in that list holds an array, the envelope object itself is
@@ -256,11 +257,11 @@ Returns an envelope with metadata, a `count`, and a named array:
 
 | Field | Type | Present in |
 |-------|------|-----------|
-| `workspace` | string | All collections except `workspace list` (whose slugs live in the items) |
-| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list`, `webhook list` (default `--scope repo` only) |
+| `workspace` | string | All collections except `workspace list` (whose slugs live in the items) and the account-scoped `ssh-key list` / `gpg-key list` |
+| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list`, `webhook list` (default `--scope repo` only), `branch-restriction list`, `deployment list`, `deployment environments` |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
-| `filters` | object | `pr list`, `pr activity`, `pr comments list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
+| `filters` | object | `pr list`, `pr activity`, `pr comments list`, `branch-restriction list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
 | `commit` | string | `status list` |
 | `sort` | string | `pipeline list` |
 | `ref`, `path` | string | `repo ls` |
@@ -281,6 +282,11 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `project list` | `projects` |
 | `repo ls` | `entries` |
 | `repo downloads list` | `downloads` |
+| `branch-restriction list` | `branchRestrictions` |
+| `ssh-key list` | `sshKeys` |
+| `gpg-key list` | `gpgKeys` |
+| `deployment list` | `deployments` |
+| `deployment environments` | `environments` |
 | `snippet list` | `snippets` |
 | `snippet comments list` | `comments` |
 | `search code` | `results` |

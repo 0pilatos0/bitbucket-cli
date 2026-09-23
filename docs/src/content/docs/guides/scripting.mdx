@@ -124,7 +124,7 @@ bb api /repositories/myworkspace/myrepo/pullrequests --paginate \
   --jq '.values[].title'
 
 # Create resources that have no typed command yet
-bb api POST /repositories/{workspace}/{repo}/branch-restrictions --input body.json
+bb api POST /repositories/{workspace}/{repo}/hooks --input body.json
 ```
 
 `{workspace}` and `{repo}` placeholders resolve from `-w`/`-r` or the current

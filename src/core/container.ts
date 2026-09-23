@@ -147,6 +147,10 @@ export const ServiceTokens = {
   DownloadsApi: 'DownloadsApi',
   SearchApi: 'SearchApi',
   WebhooksApi: 'WebhooksApi',
+  BranchRestrictionsApi: 'BranchRestrictionsApi',
+  SSHApi: 'SSHApi',
+  GPGApi: 'GPGApi',
+  DeploymentsApi: 'DeploymentsApi',
 
   // Commands - Auth
   LoginCommand: 'LoginCommand',
@@ -253,6 +257,27 @@ export const ServiceTokens = {
   ViewWebhookCommand: 'ViewWebhookCommand',
   CreateWebhookCommand: 'CreateWebhookCommand',
   DeleteWebhookCommand: 'DeleteWebhookCommand',
+
+  // Commands - Branch restriction
+  ListBranchRestrictionsCommand: 'ListBranchRestrictionsCommand',
+  ViewBranchRestrictionCommand: 'ViewBranchRestrictionCommand',
+  CreateBranchRestrictionCommand: 'CreateBranchRestrictionCommand',
+  DeleteBranchRestrictionCommand: 'DeleteBranchRestrictionCommand',
+
+  // Commands - SSH key
+  ListSshKeysCommand: 'ListSshKeysCommand',
+  AddSshKeyCommand: 'AddSshKeyCommand',
+  DeleteSshKeyCommand: 'DeleteSshKeyCommand',
+
+  // Commands - GPG key
+  ListGpgKeysCommand: 'ListGpgKeysCommand',
+  AddGpgKeyCommand: 'AddGpgKeyCommand',
+  DeleteGpgKeyCommand: 'DeleteGpgKeyCommand',
+
+  // Commands - Deployment
+  ListDeploymentsCommand: 'ListDeploymentsCommand',
+  ViewDeploymentCommand: 'ViewDeploymentCommand',
+  ListEnvironmentsCommand: 'ListEnvironmentsCommand',
 
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',

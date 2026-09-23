@@ -1,0 +1,79 @@
+---
+title: GPG Key Commands - Manage Bitbucket GPG Keys
+description: Reference for Bitbucket CLI gpg-key commands. List, add, and delete the GPG keys Bitbucket uses to verify signed commits.
+---
+
+Manage the GPG public keys on **your own** Bitbucket account. Bitbucket uses
+them to mark your signed commits as verified. Every command first calls
+`GET /user` to resolve your account; no workspace or repository context is
+involved.
+
+All three subcommands accept the [global flags](/reference/global-flags/),
+including `--json [fields]` and `--jq <expression>`.
+
+---
+
+## `bb gpg-key list`
+
+```bash
+bb gpg-key list [--limit <number>] [--all]
+```
+
+### Examples
+
+```bash
+bb gpg-key list
+
+# → { count, gpgKeys }
+bb gpg-key list --json --jq '.gpgKeys[].fingerprint'
+```
+
+Columns: fingerprint, key ID, name (the key's user ID), date added, and expiry
+(`never` when the key does not expire).
+
+---
+
+## `bb gpg-key add`
+
+Add an ASCII-armored public key. Pass the file, or `-` to read stdin.
+
+```bash
+bb gpg-key add <key-file>
+```
+
+### Examples
+
+```bash
+bb gpg-key add key.asc
+gpg --armor --export you@example.com | bb gpg-key add -
+
+# → { gpgKey }
+bb gpg-key add key.asc --json --jq '.gpgKey.fingerprint'
+```
+
+A private key block (`gpg --export-secret-keys` output) is refused before
+anything is sent to Bitbucket.
+
+---
+
+## `bb gpg-key delete`
+
+Delete a key by its fingerprint. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)).
+
+```bash
+bb gpg-key delete <fingerprint> --yes
+```
+
+### Examples
+
+```bash
+bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes
+
+# → { success, fingerprint }
+bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes --json
+```
+
+### Related
+
+- [SSH Key Commands](/commands/ssh-key/)
+- [Token Scopes](/reference/token-scopes/#ssh-and-gpg-keys-bb-ssh-key--bb-gpg-key-)

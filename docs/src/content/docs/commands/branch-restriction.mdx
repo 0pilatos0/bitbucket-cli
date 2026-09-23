@@ -1,0 +1,165 @@
+---
+title: Branch Restriction Commands - Protect Bitbucket Branches
+description: Reference for Bitbucket CLI branch-restriction commands. List, view, create, and delete branch protection rules (push, force, merge checks) from the command line.
+---
+
+Branch restrictions are Bitbucket's branch protection rules: who may push or
+merge to a branch, whether force-pushes and deletes are allowed, and which
+merge checks (approvals, passing builds, resolved tasks) a pull request must
+pass first.
+
+Branch restriction commands operate at **repository** scope. Run them inside a
+cloned Bitbucket repository, or pass `-w, --workspace <workspace>` and
+`-r, --repo <repo>` explicitly. Every endpoint needs **repository admin**
+access; without it Bitbucket returns 403.
+
+All four subcommands accept the [global flags](/reference/global-flags/),
+including `--json [fields]` and `--jq <expression>`.
+
+---
+
+## `bb branch-restriction list`
+
+List the branch restrictions on a repository.
+
+```bash
+bb branch-restriction list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--kind <kind>` | Only restrictions of this kind (see [kinds](#kinds)) |
+| `--pattern <glob>` | Only restrictions on this branch pattern |
+| `--limit <number>` | Maximum number of restrictions (default: 25) |
+| `--all` | List all restrictions (overrides `--limit`) |
+
+### Examples
+
+```bash
+bb branch-restriction list
+bb branch-restriction list --kind push
+bb branch-restriction list --pattern main
+
+# → { workspace, repoSlug, filters, count, branchRestrictions }
+bb branch-restriction list --json --jq '.branchRestrictions[].kind'
+```
+
+### Output
+
+```text
+ID  KIND                        BRANCH                        VALUE
+--  --------------------------  ----------------------------  -----
+7   require_approvals_to_merge  main                          2
+8   push                        production (branching model)  -
+```
+
+`BRANCH` is the glob pattern, or the branching-model branch type for rules that
+match through the repository's [branching model](https://support.atlassian.com/bitbucket-cloud/docs/configure-a-projects-branching-model/).
+`filters` in the JSON envelope is always present: `{ "kind": null, "pattern": null }`
+when no filter was passed.
+
+---
+
+## `bb branch-restriction view`
+
+View one rule, including the users and groups exempt from it.
+
+```bash
+bb branch-restriction view <id>
+```
+
+### Examples
+
+```bash
+bb branch-restriction view 8
+
+# → { workspace, repoSlug, branchRestriction }
+bb branch-restriction view 8 --json --jq '.branchRestriction.users'
+```
+
+---
+
+## `bb branch-restriction create`
+
+Create a rule.
+
+```bash
+bb branch-restriction create --kind <kind> (--pattern <glob> | --branch-type <type>) [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--kind <kind>` | **Required.** What to restrict (see [kinds](#kinds)) |
+| `--pattern <glob>` | Branches to match; `*` matches any run of characters (`release/*`) |
+| `--branch-type <type>` | Match a branching-model type instead: `feature`, `bugfix`, `release`, `hotfix`, `development`, `production` |
+| `--value <number>` | Kind-specific count, e.g. the minimum approvals for `require_approvals_to_merge` |
+| `--user <user>` | Exempt a user, by account ID or `{uuid}` (repeatable) |
+| `--group <slug>` | Exempt a workspace group, by slug (repeatable) |
+
+Pass exactly one of `--pattern` or `--branch-type`.
+
+### Examples
+
+```bash
+# No force-pushes to main
+bb branch-restriction create --kind force --pattern main
+
+# Two approvals before merging to main
+bb branch-restriction create --kind require_approvals_to_merge --pattern main --value 2
+
+# Only release managers may push to the production branch
+bb branch-restriction create --kind push --branch-type production --group release-managers
+
+# → { workspace, repoSlug, branchRestriction }
+bb branch-restriction create --kind delete --pattern 'release/*' --json --jq '.branchRestriction.id'
+```
+
+### Notes
+
+- `--user` and `--group` only apply to `push` and `restrict_merges`; the CLI
+  rejects them for any other kind. A `push` or `restrict_merges` rule with no
+  exemptions blocks everybody.
+- `--user` values are resolved through `GET /users/{user}` first, so account
+  IDs and `{uuid}`s both work.
+- `--value` accepts `0` (meaningful for `require_commits_behind`).
+- The combination of kind and branch match must be unique per repository;
+  Bitbucket rejects a duplicate. To change an existing rule, delete and
+  recreate it.
+
+### Kinds
+
+`push`, `delete`, `force`, `restrict_merges`, `require_tasks_to_be_completed`,
+`require_approvals_to_merge`, `require_review_group_approvals_to_merge`,
+`require_default_reviewer_approvals_to_merge`, `require_no_changes_requested`,
+`require_passing_builds_to_merge`, `require_commits_behind`,
+`reset_pullrequest_approvals_on_change`, `smart_reset_pullrequest_approvals`,
+`reset_pullrequest_changes_requested_on_change`,
+`require_all_dependencies_merged`, `enforce_merge_checks`,
+`allow_auto_merge_when_builds_pass`, `require_all_comments_resolved`.
+
+---
+
+## `bb branch-restriction delete`
+
+Delete a rule. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)).
+
+```bash
+bb branch-restriction delete <id> --yes
+```
+
+### Examples
+
+```bash
+bb branch-restriction delete 7 --yes
+
+# → { success, workspace, repoSlug, id }
+bb branch-restriction delete 7 --yes --json
+```
+
+### Related
+
+- [Token Scopes](/reference/token-scopes/#branch-restrictions-bb-branch-restriction-)

@@ -3186,3 +3186,536 @@ Supported shells:
 ,
 }
 `;
+
+exports[`command tree snapshot bb branch-restriction 1`] = `
+{
+  "help": 
+"Usage: bb branch-restriction [options] [command]
+
+Manage branch restrictions (branch protection) on a repository
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  list [options]         List branch restrictions for a repository
+  view <id>              View a branch restriction rule
+  create [options]       Create a branch restriction rule
+  delete [options] <id>  Delete a branch restriction rule
+  help [command]         display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "kind": "kind-value",
+      "limit": "limit-value",
+      "pattern": "pattern-value",
+    },
+    "token": "ListBranchRestrictionsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction list [options]
+
+List branch restrictions for a repository
+
+Options:
+  --kind <kind>     Filter by restriction kind (choices: "push", "delete",
+                    "force", "restrict_merges", "require_tasks_to_be_completed",
+                    "require_approvals_to_merge",
+                    "require_review_group_approvals_to_merge",
+                    "require_default_reviewer_approvals_to_merge",
+                    "require_no_changes_requested",
+                    "require_passing_builds_to_merge", "require_commits_behind",
+                    "reset_pullrequest_approvals_on_change",
+                    "smart_reset_pullrequest_approvals",
+                    "reset_pullrequest_changes_requested_on_change",
+                    "require_all_dependencies_merged", "enforce_merge_checks",
+                    "allow_auto_merge_when_builds_pass",
+                    "require_all_comments_resolved")
+  --pattern <glob>  Filter by branch pattern
+  --limit <number>  Maximum number of restrictions to list (default: "25")
+  --all             List all restrictions (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb branch-restriction list
+  $ bb branch-restriction list --kind push
+  $ bb branch-restriction list --pattern main
+  $ bb branch-restriction list --json --jq '.branchRestrictions[].kind'
+
+Valid kinds:
+  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ViewBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction view [options] <id>
+
+View a branch restriction rule
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb branch-restriction view 12
+  $ bb branch-restriction view 12 --json --jq '.branchRestriction.kind'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "branchType": "branchType-value",
+      "group": [
+        "group-value",
+      ],
+      "kind": "kind-value",
+      "pattern": "pattern-value",
+      "user": [
+        "user-value",
+      ],
+      "value": "value-value",
+    },
+    "token": "CreateBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction create [options]
+
+Create a branch restriction rule
+
+Options:
+  --kind <kind>         Restriction kind (required) (choices: "push", "delete",
+                        "force", "restrict_merges",
+                        "require_tasks_to_be_completed",
+                        "require_approvals_to_merge",
+                        "require_review_group_approvals_to_merge",
+                        "require_default_reviewer_approvals_to_merge",
+                        "require_no_changes_requested",
+                        "require_passing_builds_to_merge",
+                        "require_commits_behind",
+                        "reset_pullrequest_approvals_on_change",
+                        "smart_reset_pullrequest_approvals",
+                        "reset_pullrequest_changes_requested_on_change",
+                        "require_all_dependencies_merged",
+                        "enforce_merge_checks",
+                        "allow_auto_merge_when_builds_pass",
+                        "require_all_comments_resolved")
+  --pattern <glob>      Branch glob pattern, e.g. main or release/*
+  --branch-type <type>  Branching-model branch type (instead of --pattern)
+                        (choices: "feature", "bugfix", "release", "hotfix",
+                        "development", "production")
+  --value <number>      Kind-specific count, e.g. minimum approvals or passing
+                        builds
+  --user <user>         Exempt a user by account ID or {uuid} (repeatable; push
+                        and restrict_merges only) (default: [])
+  --group <slug>        Exempt a workspace group by slug (repeatable; push and
+                        restrict_merges only) (default: [])
+  -h, --help            display help for command
+
+Examples:
+  $ bb branch-restriction create --kind force --pattern main
+  $ bb branch-restriction create --kind require_approvals_to_merge --pattern main --value 2
+  $ bb branch-restriction create --kind push --branch-type production --group release-managers
+  $ bb branch-restriction create --kind delete --pattern 'release/*' --json --jq '.branchRestriction.id'
+
+Valid kinds:
+  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
+
+Valid branch types:
+  feature, bugfix, release, hotfix, development, production
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "yes": true,
+    },
+    "token": "DeleteBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction delete [options] <id>
+
+Delete a branch restriction rule
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb branch-restriction delete 12
+  $ bb branch-restriction delete 12 --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key 1`] = `
+{
+  "help": 
+"Usage: bb ssh-key [options] [command]
+
+Manage SSH keys on your Bitbucket account
+
+Options:
+  -h, --help                 display help for command
+
+Commands:
+  list [options]             List SSH keys on your account
+  add [options] <key-file>   Add an SSH public key to your account (- reads
+                             stdin)
+  delete [options] <key-id>  Delete an SSH key from your account (key-id is its
+                             {uuid})
+  help [command]             display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key list 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListSshKeysCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key list [options]
+
+List SSH keys on your account
+
+Options:
+  --limit <number>  Maximum number of keys to list (default: "25")
+  --all             List all keys (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb ssh-key list
+  $ bb ssh-key list --json --jq '.sshKeys[].fingerprint'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key add 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "keyFile": "key-file-value",
+      "label": "label-value",
+    },
+    "token": "AddSshKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key add [options] <key-file>
+
+Add an SSH public key to your account (- reads stdin)
+
+Options:
+  --label <label>  Label for the key
+  -h, --help       display help for command
+
+Examples:
+  $ bb ssh-key add ~/.ssh/id_ed25519.pub
+  $ bb ssh-key add ~/.ssh/id_ed25519.pub --label laptop
+  $ cat ~/.ssh/id_ed25519.pub | bb ssh-key add -
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "keyId": "key-id-value",
+      "yes": true,
+    },
+    "token": "DeleteSshKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key delete [options] <key-id>
+
+Delete an SSH key from your account (key-id is its {uuid})
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}"
+  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key 1`] = `
+{
+  "help": 
+"Usage: bb gpg-key [options] [command]
+
+Manage GPG keys on your Bitbucket account
+
+Options:
+  -h, --help                      display help for command
+
+Commands:
+  list [options]                  List GPG keys on your account
+  add <key-file>                  Add an ASCII-armored GPG public key to your
+                                  account (- reads stdin)
+  delete [options] <fingerprint>  Delete a GPG key from your account
+  help [command]                  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key list 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListGpgKeysCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key list [options]
+
+List GPG keys on your account
+
+Options:
+  --limit <number>  Maximum number of keys to list (default: "25")
+  --all             List all keys (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb gpg-key list
+  $ bb gpg-key list --json --jq '.gpgKeys[].fingerprint'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key add 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "keyFile": "key-file-value",
+    },
+    "token": "AddGpgKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key add [options] <key-file>
+
+Add an ASCII-armored GPG public key to your account (- reads stdin)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb gpg-key add key.asc
+  $ gpg --armor --export you@example.com | bb gpg-key add -
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "fingerprint": "fingerprint-value",
+      "yes": true,
+    },
+    "token": "DeleteGpgKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key delete [options] <fingerprint>
+
+Delete a GPG key from your account
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B
+  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment 1`] = `
+{
+  "help": 
+"Usage: bb deployment [options] [command]
+
+Inspect Bitbucket Pipelines deployments
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List deployments for a repository
+  view <uuid>             View deployment details
+  environments [options]  List deployment environments for a repository
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListDeploymentsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment list [options]
+
+List deployments for a repository
+
+Options:
+  --limit <number>  Maximum number of deployments to list (default: "25")
+  --all             List all deployments (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb deployment list
+  $ bb deployment list --all
+  $ bb deployment list --json --jq '.deployments[].uuid'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "uuid": "uuid-value",
+    },
+    "token": "ViewDeploymentCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment view [options] <uuid>
+
+View deployment details
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}"
+  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}" --json --jq '.deployment.state.name'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment environments 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListEnvironmentsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment environments [options]
+
+List deployment environments for a repository
+
+Options:
+  --limit <number>  Maximum number of environments to list (default: "25")
+  --all             List all environments (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb deployment environments
+  $ bb deployment environments --json --jq '.environments[].name'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;

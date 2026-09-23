@@ -14,6 +14,10 @@ const groups = [
   { n: 'bb auth', d: 'login, logout, whoami', c: 3, ex: 'bb auth login' },
   { n: 'bb project', d: 'projects inside workspaces', c: 3, ex: 'bb project view PROJ' },
   { n: 'bb webhook', d: 'repository and workspace webhooks', c: 4, ex: 'bb webhook list' },
+  { n: 'bb branch-restriction', d: 'branch protection rules', c: 4, ex: 'bb branch-restriction list' },
+  { n: 'bb deployment', d: 'deployments and environments', c: 3, ex: 'bb deployment list' },
+  { n: 'bb ssh-key', d: 'SSH keys on your account', c: 3, ex: 'bb ssh-key add ~/.ssh/id_ed25519.pub' },
+  { n: 'bb gpg-key', d: 'GPG keys for signed commits', c: 3, ex: 'bb gpg-key list' },
   { n: 'bb workspace', d: 'workspaces you belong to', c: 2, ex: 'bb workspace list' },
   { n: 'bb status', d: 'publish commit build statuses', c: 1, ex: 'bb status set abc1234 --state SUCCESSFUL' },
   { n: 'bb alias', d: 'personal command shortcuts', c: 1, ex: "bb alias set co 'pr checkout'" },
@@ -27,7 +31,7 @@ const groups = [
 <div class="bb-commands">
   <div class="bb-refhead">
     <span>Commands</span>
-    <span class="cnt">16 command groups</span>
+    <span class="cnt">20 command groups</span>
   </div>
   <div class="bb-groups">
     {

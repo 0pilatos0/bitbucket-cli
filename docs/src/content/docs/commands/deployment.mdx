@@ -1,0 +1,104 @@
+---
+title: Deployment Commands - Inspect Bitbucket Deployments
+description: Reference for Bitbucket CLI deployment commands. List deployments, view a deployment's status and release, and list deployment environments from the command line.
+---
+
+Inspect the deployments Bitbucket Pipelines records when a step declares a
+`deployment:` environment. The commands are read-only; trigger deployments
+with [`bb pipeline run`](/commands/pipeline/).
+
+Deployment commands operate at **repository** scope. Run them inside a cloned
+Bitbucket repository, or pass `-w, --workspace <workspace>` and
+`-r, --repo <repo>` explicitly.
+
+All three subcommands accept the [global flags](/reference/global-flags/),
+including `--json [fields]` and `--jq <expression>`.
+
+---
+
+## `bb deployment list`
+
+```bash
+bb deployment list [--limit <number>] [--all]
+```
+
+### Examples
+
+```bash
+bb deployment list
+bb deployment list --all
+
+# → { workspace, repoSlug, count, deployments }
+bb deployment list --json --jq '.deployments[].uuid'
+```
+
+### Output
+
+```text
+UUID                                    ENVIRONMENT  STATUS      RELEASE  COMMIT        DATE
+--------------------------------------  -----------  ----------  -------  ------------  ------------------------
+{3c6f1a2e-7b4d-4e8a-9f0c-1d2e3f4a5b6c}  Production   SUCCESSFUL  #42      abcdef012345  Feb 1, 2026 at 12:05 AM
+{8a9b0c1d-2e3f-4a5b-6c7d-8e9f0a1b2c3d}  Staging      IN_PROGRESS -        -             Feb 2, 2026 at 12:00 AM
+```
+
+### Notes
+
+- Bitbucket's deployment payloads reference environments by UUID only, so the
+  table view makes one extra call to the environments endpoint to show names.
+  `--json` skips that call and returns the deployments exactly as the API
+  sends them (`environment` carries just the `uuid`).
+- `STATUS` is the completed result (`SUCCESSFUL`, `FAILED`, `STOPPED`) when
+  there is one, otherwise the state (`IN_PROGRESS`, `UNDEPLOYED`).
+- `DATE` is when the deployment completed, else when it started.
+- Rows come in the order Bitbucket returns them: the deployments endpoint
+  documents no sort order and takes no sort parameter. On a repository with
+  more than 25 deployments, pass `--all` (or a higher `--limit`) before
+  concluding what is deployed where.
+
+---
+
+## `bb deployment view`
+
+View one deployment: environment, status, release, commit, deployer, and
+timing.
+
+```bash
+bb deployment view <uuid>
+```
+
+### Examples
+
+```bash
+bb deployment view "{3c6f1a2e-7b4d-4e8a-9f0c-1d2e3f4a5b6c}"
+
+# → { workspace, repoSlug, deployment }
+bb deployment view "{3c6f1a2e-7b4d-4e8a-9f0c-1d2e3f4a5b6c}" --json --jq '.deployment.state.name'
+```
+
+Quote the UUID: most shells treat `{...}` specially.
+
+---
+
+## `bb deployment environments`
+
+List the repository's deployment environments.
+
+```bash
+bb deployment environments [--limit <number>] [--all]
+```
+
+### Examples
+
+```bash
+bb deployment environments
+
+# → { workspace, repoSlug, count, environments }
+bb deployment environments --json --jq '.environments[].name'
+```
+
+Columns: name, environment type (`Test`, `Staging`, `Production`), and UUID.
+
+### Related
+
+- [Pipeline Commands](/commands/pipeline/)
+- [Token Scopes](/reference/token-scopes/#deployments-bb-deployment-)

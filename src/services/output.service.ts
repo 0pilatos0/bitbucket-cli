@@ -62,6 +62,11 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'downloads', // repo downloads list
   'results', // search code
   'webhooks', // webhook list
+  'branchRestrictions', // branch-restriction list
+  'sshKeys', // ssh-key list
+  'gpgKeys', // gpg-key list
+  'deployments', // deployment list
+  'environments', // deployment environments
   'values', // generic fallback for paginated payloads
 ];
 

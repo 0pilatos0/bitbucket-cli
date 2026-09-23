@@ -133,6 +133,16 @@ export default defineConfig({
               slug: "commands/webhook",
             },
             {
+              label: "Branch Restriction Commands",
+              slug: "commands/branch-restriction",
+            },
+            {
+              label: "Deployment Commands",
+              slug: "commands/deployment",
+            },
+            { label: "SSH Key Commands", slug: "commands/ssh-key" },
+            { label: "GPG Key Commands", slug: "commands/gpg-key" },
+            {
               label: "Browse",
               slug: "commands/browse",
             },

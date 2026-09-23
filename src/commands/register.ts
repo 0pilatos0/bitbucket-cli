@@ -6,16 +6,20 @@ import type {
 import { registerAliasCommands } from './alias/register.js';
 import { registerApiCommand } from './api.register.js';
 import { registerAuthCommands } from './auth/register.js';
+import { registerBranchRestrictionCommands } from './branch-restriction/register.js';
 import { registerBrowseCommand } from './browse.register.js';
 import { registerCommitCommands } from './commit/register.js';
 import { registerCompletionCommands } from './completion/register.js';
 import { registerConfigCommands } from './config/register.js';
+import { registerDeploymentCommands } from './deployment/register.js';
+import { registerGpgKeyCommands } from './gpg-key/register.js';
 import { registerPipelineCommands } from './pipeline/register.js';
 import { registerPrCommands } from './pr/register.js';
 import { registerProjectCommands } from './project/register.js';
 import { registerRepoCommands } from './repo/register.js';
 import { registerSearchCommands } from './search/register.js';
 import { registerSnippetCommands } from './snippet/register.js';
+import { registerSshKeyCommands } from './ssh-key/register.js';
 import { registerStatusCommands } from './status/register.js';
 import { registerWebhookCommands } from './webhook/register.js';
 import { registerWorkspaceCommands } from './workspace/register.js';
@@ -33,6 +37,10 @@ const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
   registerProjectCommands,
   registerSearchCommands,
   registerWebhookCommands,
+  registerBranchRestrictionCommands,
+  registerSshKeyCommands,
+  registerGpgKeyCommands,
+  registerDeploymentCommands,
   registerBrowseCommand,
   registerApiCommand,
   registerAliasCommands,

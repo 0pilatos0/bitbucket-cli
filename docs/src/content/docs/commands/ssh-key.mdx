@@ -1,0 +1,85 @@
+---
+title: SSH Key Commands - Manage Bitbucket SSH Keys
+description: Reference for Bitbucket CLI ssh-key commands. List, add, and delete the SSH public keys on your Bitbucket account from the command line.
+---
+
+Manage the SSH public keys on **your own** Bitbucket account, the keys git
+uses for `git@bitbucket.org:` remotes. Every command first calls `GET /user` to
+resolve your account; no workspace or repository context is involved.
+
+All three subcommands accept the [global flags](/reference/global-flags/),
+including `--json [fields]` and `--jq <expression>`.
+
+---
+
+## `bb ssh-key list`
+
+```bash
+bb ssh-key list [--limit <number>] [--all]
+```
+
+### Examples
+
+```bash
+bb ssh-key list
+
+# → { count, sshKeys }
+bb ssh-key list --json --jq '.sshKeys[].fingerprint'
+```
+
+### Output
+
+```text
+UUID                                    LABEL   FINGERPRINT         CREATED                   LAST USED
+--------------------------------------  ------  ------------------  ------------------------  ---------
+{b15b6026-9c02-4626-b4ad-b905f99f763a}  laptop  SHA256:9Xk2...      Jan 12, 2026 at 09:14 AM  never
+```
+
+---
+
+## `bb ssh-key add`
+
+Add a public key. Pass the `.pub` file, or `-` to read the key from stdin.
+
+```bash
+bb ssh-key add <key-file> [--label <label>]
+```
+
+### Examples
+
+```bash
+bb ssh-key add ~/.ssh/id_ed25519.pub --label laptop
+cat ~/.ssh/id_ed25519.pub | bb ssh-key add -
+
+# → { sshKey }
+bb ssh-key add ~/.ssh/id_ed25519.pub --json --jq '.sshKey.uuid'
+```
+
+Only ever pass the **public** key (`.pub`). A private key is refused before
+anything is sent to Bitbucket.
+
+---
+
+## `bb ssh-key delete`
+
+Delete a key by its UUID (the `UUID` column of `bb ssh-key list`). Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)).
+
+```bash
+bb ssh-key delete <key-id> --yes
+```
+
+### Examples
+
+```bash
+bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes
+
+# → { success, keyId }
+bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes --json
+```
+
+Quote the UUID: most shells treat `{...}` specially.
+
+### Related
+
+- [GPG Key Commands](/commands/gpg-key/)
+- [Token Scopes](/reference/token-scopes/#ssh-and-gpg-keys-bb-ssh-key--bb-gpg-key-)

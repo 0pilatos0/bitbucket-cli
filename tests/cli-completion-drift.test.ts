@@ -42,6 +42,11 @@ describe('CLI completion drift (issue #255)', () => {
       'downloads',
       'results',
       'webhooks',
+      'branchRestrictions',
+      'sshKeys',
+      'gpgKeys',
+      'deployments',
+      'environments',
       'values',
     ];
 
@@ -69,6 +74,11 @@ describe('CLI completion drift (issue #255)', () => {
       'repo downloads list': 'downloads',
       'search code': 'results',
       'webhook list': 'webhooks',
+      'branch-restriction list': 'branchRestrictions',
+      'ssh-key list': 'sshKeys',
+      'gpg-key list': 'gpgKeys',
+      'deployment list': 'deployments',
+      'deployment environments': 'environments',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

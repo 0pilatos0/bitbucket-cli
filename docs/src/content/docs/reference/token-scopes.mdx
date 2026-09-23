@@ -16,9 +16,11 @@ Generate tokens at [Bitbucket API tokens](https://bitbucket.org/account/settings
 a hardcoded scope set — `account repository repository:admin pullrequest
 pullrequest:write` (legacy scope names, not the `<action>:<resource>:bitbucket`
 names used below) — and you cannot widen it, not even with a custom consumer.
-That covers repository, pull request, commit, build-status and workspace
-commands. It does **not** cover `bb pipeline`, `bb snippet`,
-`bb project`, `bb webhook`, or `bb repo delete`. Use an API token for those.
+That covers repository, pull request, commit, build-status, workspace and
+branch-restriction commands, plus `bb ssh-key list` and `bb gpg-key list`. It
+does **not** cover `bb pipeline`, `bb deployment`, `bb snippet`,
+`bb project`, `bb webhook`, `bb repo delete`, or adding and deleting SSH/GPG
+keys. Use an API token for those.
 </Aside>
 
 ## Scope reference
@@ -28,14 +30,14 @@ The CLI uses these scopes:
 
 | Scope | Grants |
 |-------|--------|
-| `read:user:bitbucket` | Read user profiles — verifies any login, resolves your UUID for `bb pr list --mine`, and covers `bb workspace list` |
+| `read:user:bitbucket` | Read user profiles — verifies any login, resolves your UUID for `bb pr list --mine` and the `bb ssh-key` / `bb gpg-key` commands, and covers `bb workspace list` |
 | `read:repository:bitbucket` | List and view repositories, their files, downloads, commits, and commit build statuses; search code |
 | `write:repository:bitbucket` | Set commit build statuses; upload and delete downloads |
-| `admin:repository:bitbucket` | Create repositories; add and remove default reviewers |
+| `admin:repository:bitbucket` | Create repositories; add and remove default reviewers; list, view, create, and delete branch restrictions |
 | `delete:repository:bitbucket` | Delete repositories |
 | `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, reviewers, and default reviewers |
 | `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark pull requests ready; add/remove reviewers; add, edit, and delete comments |
-| `read:pipeline:bitbucket` | List and view pipelines and their steps, read step logs |
+| `read:pipeline:bitbucket` | List and view pipelines and their steps, read step logs; list and view deployments and environments |
 | `write:pipeline:bitbucket` | Trigger and stop pipelines |
 | `read:workspace:bitbucket` | List and view workspaces |
 | `read:project:bitbucket` | List and view projects |
@@ -45,6 +47,12 @@ The CLI uses these scopes:
 | `read:webhook:bitbucket` | List and view webhooks |
 | `write:webhook:bitbucket` | Create webhooks |
 | `delete:webhook:bitbucket` | Delete webhooks |
+| `read:ssh-key:bitbucket` | List SSH keys on your account |
+| `write:ssh-key:bitbucket` | Add SSH keys |
+| `delete:ssh-key:bitbucket` | Delete SSH keys |
+| `read:gpg-key:bitbucket` | List GPG keys on your account |
+| `write:gpg-key:bitbucket` | Add GPG keys |
+| `delete:gpg-key:bitbucket` | Delete GPG keys |
 
 ## Command → scope map
 
@@ -148,6 +156,42 @@ workspace visible to you.
 | `bb project list` | `read:project:bitbucket` |
 | `bb project view` | `read:project:bitbucket` |
 | `bb project create` | `admin:project:bitbucket` |
+
+### Branch restrictions (`bb branch-restriction …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb branch-restriction list` | `admin:repository:bitbucket` |
+| `bb branch-restriction view` | `admin:repository:bitbucket` |
+| `bb branch-restriction create` | `admin:repository:bitbucket` |
+| `bb branch-restriction delete` | `admin:repository:bitbucket` |
+
+Even reading branch restrictions needs the admin scope. `create --user` also
+resolves each user through `GET /users/{user}`, which needs
+`read:user:bitbucket`.
+
+### Deployments (`bb deployment …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb deployment list` | `read:pipeline:bitbucket` |
+| `bb deployment view` | `read:pipeline:bitbucket` |
+| `bb deployment environments` | `read:pipeline:bitbucket` |
+
+### SSH and GPG keys (`bb ssh-key …`, `bb gpg-key …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb ssh-key list` | `read:ssh-key:bitbucket`, `read:user:bitbucket` |
+| `bb ssh-key add` | `read:ssh-key:bitbucket`, `write:ssh-key:bitbucket`, `read:user:bitbucket` |
+| `bb ssh-key delete` | `delete:ssh-key:bitbucket`, `read:user:bitbucket` |
+| `bb gpg-key list` | `read:gpg-key:bitbucket`, `read:user:bitbucket` |
+| `bb gpg-key add` | `read:gpg-key:bitbucket`, `write:gpg-key:bitbucket`, `read:user:bitbucket` |
+| `bb gpg-key delete` | `delete:gpg-key:bitbucket`, `read:user:bitbucket` |
+
+Every key command calls `GET /user` first to resolve your account, hence
+`read:user:bitbucket`. Bitbucket's spec lists both the read and write scope for
+adding a key.
 
 ### Snippets (`bb snippet …`)
 

@@ -199,6 +199,10 @@ describe('bootstrap()', () => {
       ServiceTokens.DownloadsApi,
       ServiceTokens.SearchApi,
       ServiceTokens.WebhooksApi,
+      ServiceTokens.BranchRestrictionsApi,
+      ServiceTokens.SSHApi,
+      ServiceTokens.GPGApi,
+      ServiceTokens.DeploymentsApi,
     ];
     for (const token of generatedClientTokens) {
       const client = container.resolve<{ axios: AxiosInstance }>(token);
