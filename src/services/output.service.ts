@@ -58,6 +58,8 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'commits', // commit list
   'workspaces', // workspace list
   'projects', // project list
+  'results', // search code
+  'webhooks', // webhook list
   'values', // generic fallback for paginated payloads
 ];
 

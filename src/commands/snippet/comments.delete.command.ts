@@ -43,9 +43,10 @@ export class DeleteSnippetCommentCommand extends BaseCommand<
 
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete comment #${commentId} on snippet ${options.snippetId}.`
+      `This will permanently delete comment #${commentId} on snippet ${options.snippetId}.`,
+      context
     );
 
     await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdDelete({

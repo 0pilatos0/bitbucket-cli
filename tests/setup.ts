@@ -16,6 +16,7 @@ import type {
   IGitService,
   IContextService,
   IOutputService,
+  IPromptService,
   ISpinner,
 } from '../src/core/interfaces/services.js';
 import type { BBError } from '../src/types/errors.js';
@@ -265,6 +266,69 @@ export function createMockContextService(
       : {}
   );
   return new ContextService(gitService, configService);
+}
+
+/**
+ * Fake prompt service for `CommandContext.prompt` (setting it is what makes a
+ * command interactive). Each prompt consumes the next entry of `answers`
+ * (booleans for `confirm`, strings otherwise, a choice value for `select`) and
+ * records itself in `calls`; running out of answers, or an answer of the wrong
+ * kind, throws so an unexpected prompt fails loudly.
+ */
+export function createMockPromptService(
+  answers: Array<string | boolean> = []
+): IPromptService & { calls: string[] } {
+  const calls: string[] = [];
+  const queue = [...answers];
+
+  function next(kind: string, message: string): string | boolean {
+    calls.push(`${kind}:${message}`);
+    const answer = queue.shift();
+    if (answer === undefined) {
+      throw new Error(`Unexpected prompt: ${kind} "${message}"`);
+    }
+    return answer;
+  }
+
+  function nextString(kind: string, message: string): string {
+    const answer = next(kind, message);
+    if (typeof answer !== 'string') {
+      throw new Error(`Expected a string answer for ${kind} "${message}"`);
+    }
+    return answer;
+  }
+
+  return {
+    calls,
+    isAvailable: () => true,
+    async confirm(message) {
+      const answer = next('confirm', message);
+      if (typeof answer !== 'boolean') {
+        throw new Error(`Expected a boolean answer for confirm "${message}"`);
+      }
+      return answer;
+    },
+    async text(message, options) {
+      const answer = nextString('text', message);
+      if (options?.required && answer.trim() === '') {
+        throw new Error(`Empty answer for required text "${message}"`);
+      }
+      return answer;
+    },
+    async secret(message) {
+      return nextString('secret', message);
+    },
+    async select(message, choices) {
+      const answer = nextString('select', message);
+      const choice = choices.find((c) => c.value === answer);
+      if (!choice) {
+        throw new Error(
+          `Answer "${answer}" is not a choice for select "${message}"`
+        );
+      }
+      return choice.value;
+    },
+  };
 }
 
 export function createMockOutputService(

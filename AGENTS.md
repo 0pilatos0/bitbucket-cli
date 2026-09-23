@@ -122,6 +122,8 @@ bun run release
 - Merge per-command options with the global ones via
   `registrar.runWithGlobalOptions()` (see Command Registration)
 - Prefer `ContextService.requireRepoContext()` for workspace/repo resolution
+- Gate destructive actions with `await this.requireConfirmation(options.yes, warning, context)`; it prompts only in an interactive terminal and otherwise throws the standard "Use --yes" error
+- Ask for missing input only through `context.prompt`; `createContext()` leaves it `undefined` for non-TTY, `--json`, `--no-input` and `BB_PROMPT_DISABLED`, and that path must keep the flag-only behavior
 
 ### Command Registration
 

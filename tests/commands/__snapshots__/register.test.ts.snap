@@ -2288,6 +2288,277 @@ Defaults:
 }
 `;
 
+exports[`command tree snapshot bb search 1`] = `
+{
+  "help": 
+"Usage: bb search [options] [command]
+
+Search Bitbucket
+
+Options:
+  -h, --help                 display help for command
+
+Commands:
+  code [options] <query...>  Search code in a workspace (code search must be
+                             enabled for it); -r scopes to one repository
+  help [command]             display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb search code 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "query": [
+        "query-value",
+      ],
+    },
+    "token": "SearchCodeCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb search code [options] <query...>
+
+Search code in a workspace (code search must be enabled for it); -r scopes to
+one repository
+
+Options:
+  --limit <number>  Maximum number of results to list (default: "25")
+  --all             List all results (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb search code parseConfig
+  $ bb search code parseConfig -r my-repo
+  $ bb search code TODO lang:typescript -w my-workspace --limit 50
+  $ bb search code parseConfig --json --jq '.results[].file.path'
+
+Defaults:
+  --limit  25
+
+See also:
+  Search syntax  https://support.atlassian.com/bitbucket-cloud/docs/search-in-bitbucket-cloud/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook 1`] = `
+{
+  "help": 
+"Usage: bb webhook [options] [command]
+
+Manage repository and workspace webhooks
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List webhooks
+  view [options] <uid>    View webhook details (uid: webhook UUID)
+  create [options]        Create a webhook
+  delete [options] <uid>  Delete a webhook (uid: webhook UUID)
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "scope": "scope-value",
+    },
+    "token": "ListWebhooksCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook list [options]
+
+List webhooks
+
+Options:
+  --scope <scope>   Webhook scope: repo (current repository) or workspace
+                    (choices: "repo", "workspace")
+  --limit <number>  Maximum number of webhooks to list (default: "25")
+  --all             List all webhooks (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb webhook list
+  $ bb webhook list --scope workspace -w my-workspace
+  $ bb webhook list --json --jq '.webhooks[].url'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+    },
+    "token": "ViewWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook view [options] <uid>
+
+View webhook details (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook view a1b2c3d4-0000-0000-0000-000000000000 --scope workspace
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "event": [
+        "event-value",
+      ],
+      "inactive": true,
+      "scope": "scope-value",
+      "secret": "secret-value",
+      "url": "url-value",
+    },
+    "token": "CreateWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook create [options]
+
+Create a webhook
+
+Options:
+  --scope <scope>                  Webhook scope: repo (current repository) or
+                                   workspace (choices: "repo", "workspace")
+  --url <url>                      URL events are delivered to (required)
+  -e, --event <event...>           Event to subscribe to (required; repeatable)
+                                   (choices: "issue:comment_created",
+                                   "issue:created", "issue:updated",
+                                   "pipeline:span_created", "project:updated",
+                                   "pullrequest:approved",
+                                   "pullrequest:changes_request_created",
+                                   "pullrequest:changes_request_removed",
+                                   "pullrequest:comment_created",
+                                   "pullrequest:comment_deleted",
+                                   "pullrequest:comment_reopened",
+                                   "pullrequest:comment_resolved",
+                                   "pullrequest:comment_updated",
+                                   "pullrequest:created",
+                                   "pullrequest:fulfilled", "pullrequest:push",
+                                   "pullrequest:rejected",
+                                   "pullrequest:unapproved",
+                                   "pullrequest:updated",
+                                   "repo:commit_comment_created",
+                                   "repo:commit_status_created",
+                                   "repo:commit_status_updated", "repo:created",
+                                   "repo:deleted", "repo:fork", "repo:imported",
+                                   "repo:push", "repo:transfer", "repo:updated")
+  -d, --description <description>  Webhook description
+  --secret <secret>                Secret used to sign deliveries
+                                   (X-Hub-Signature)
+  --inactive                       Create the webhook disabled
+  -h, --help                       display help for command
+
+Examples:
+  $ bb webhook create --url https://ci.example.com/hook --event repo:push
+  $ bb webhook create --url https://example.com/hook -e pullrequest:created -e pullrequest:fulfilled -d "PR bot"
+  $ bb webhook create --scope workspace -w my-workspace --url https://example.com/hook -e repo:push --secret "$WEBHOOK_SECRET"
+
+Valid scopes:
+  repo, workspace
+
+Valid events:
+  issue:comment_created, issue:created, issue:updated, pipeline:span_created, project:updated, pullrequest:approved, pullrequest:changes_request_created, pullrequest:changes_request_removed, pullrequest:comment_created, pullrequest:comment_deleted, pullrequest:comment_reopened, pullrequest:comment_resolved, pullrequest:comment_updated, pullrequest:created, pullrequest:fulfilled, pullrequest:push, pullrequest:rejected, pullrequest:unapproved, pullrequest:updated, repo:commit_comment_created, repo:commit_status_created, repo:commit_status_updated, repo:created, repo:deleted, repo:fork, repo:imported, repo:push, repo:transfer, repo:updated
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+      "yes": true,
+    },
+    "token": "DeleteWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook delete [options] <uid>
+
+Delete a webhook (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -y, --yes        Skip confirmation prompt
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb browse 1`] = `
 {
   "dispatch": {

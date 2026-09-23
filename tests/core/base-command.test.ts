@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { BaseCommand } from '../../src/core/base-command.js';
-import { createMockOutputService } from '../setup.js';
+import { createMockOutputService, createMockPromptService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import type { IOutputService } from '../../src/core/interfaces/services.js';
 import {
@@ -166,9 +166,10 @@ class TestCommandWithParseHelpers extends BaseCommand<
 
   public callRequireConfirmation(
     confirmed: boolean | undefined,
-    warning: string
-  ): void {
-    return this.requireConfirmation(confirmed, warning);
+    warning: string,
+    context: CommandContext = { globalOptions: {} }
+  ): Promise<void> {
+    return this.requireConfirmation(confirmed, warning, context);
   }
 }
 
@@ -862,50 +863,67 @@ describe('BaseCommand', () => {
   });
 
   describe('requireConfirmation', () => {
-    it('returns without throwing when confirmed is true', () => {
+    const warning = 'This will permanently delete repo/x.';
+
+    async function expectFlagError(promise: Promise<void>): Promise<void> {
+      const error = await promise.then(
+        () => undefined,
+        (e: unknown) => e
+      );
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect((error as BBError).message).toBe(
+        'This will permanently delete repo/x.\nUse --yes to confirm.'
+      );
+    }
+
+    it('resolves without prompting when confirmed is true', async () => {
+      const prompt = createMockPromptService();
       const command = new TestCommandWithParseHelpers(output);
 
-      expect(() =>
-        command.callRequireConfirmation(true, 'This will delete things.')
-      ).not.toThrow();
+      await command.callRequireConfirmation(true, warning, {
+        globalOptions: {},
+        prompt,
+      });
+
+      expect(prompt.calls).toEqual([]);
     });
 
-    it('throws BBError when confirmed is false', () => {
+    it('throws the --yes error when the context has no prompt', async () => {
       const command = new TestCommandWithParseHelpers(output);
 
-      expect(() =>
-        command.callRequireConfirmation(false, 'This will delete things.')
-      ).toThrow(BBError);
+      await expectFlagError(command.callRequireConfirmation(false, warning));
+      await expectFlagError(
+        command.callRequireConfirmation(undefined, warning)
+      );
     });
 
-    it('throws BBError when confirmed is undefined', () => {
+    it('asks with the warning in the question and resolves on yes', async () => {
+      const prompt = createMockPromptService([true]);
       const command = new TestCommandWithParseHelpers(output);
 
-      expect(() =>
-        command.callRequireConfirmation(undefined, 'This will delete things.')
-      ).toThrow(BBError);
+      await command.callRequireConfirmation(undefined, warning, {
+        globalOptions: {},
+        prompt,
+      });
+
+      expect(prompt.calls).toEqual([`confirm:${warning} Continue?`]);
     });
 
-    it('uses VALIDATION_REQUIRED error code', () => {
+    it('throws PROMPT_CANCELLED when the user declines', async () => {
+      const prompt = createMockPromptService([false]);
       const command = new TestCommandWithParseHelpers(output);
 
-      try {
-        command.callRequireConfirmation(undefined, 'This will delete things.');
-        expect(true).toBe(false); // should not reach here
-      } catch (error) {
-        expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
-      }
-    });
+      const error = await command
+        .callRequireConfirmation(undefined, warning, {
+          globalOptions: {},
+          prompt,
+        })
+        .catch((e: unknown) => e);
 
-    it('embeds the warning and standardized confirmation suffix', () => {
-      const command = new TestCommandWithParseHelpers(output);
-
-      expect(() =>
-        command.callRequireConfirmation(
-          undefined,
-          'This will permanently delete repo/x.'
-        )
-      ).toThrow('This will permanently delete repo/x.\nUse --yes to confirm.');
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
+      expect((error as BBError).message).toBe('Cancelled.');
     });
   });
 

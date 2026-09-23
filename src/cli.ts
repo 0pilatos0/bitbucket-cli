@@ -22,6 +22,7 @@ import type { CommandContext } from './core/interfaces/commands.js';
 import type {
   IConfigService,
   IOutputService,
+  IPromptService,
 } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
@@ -178,7 +179,13 @@ export function createContext(
     },
     validationError,
     commandPath: activeCommandPath || undefined,
+    prompt: json || opts.input === false ? undefined : availablePrompt(),
   };
+}
+
+function availablePrompt(): IPromptService | undefined {
+  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  return prompt.isAvailable() ? prompt : undefined;
 }
 
 async function runCommand<TOptions, TResult>(
@@ -294,6 +301,10 @@ cli
     'Show full values in table output without truncation'
   )
   .option(
+    '--no-input',
+    'Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)'
+  )
+  .option(
     '--locale <locale>',
     'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
   )
@@ -318,6 +329,7 @@ cli
         FORCE_COLOR: "Force color output when set (and not '0')",
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
+        BB_PROMPT_DISABLED: 'Same as --no-input when set (any non-empty value)',
         BB_DEBUG:
           "HTTP debug tracing: 'http' (method, URL, status, timing), 'verbose' (adds redacted request and response bodies) or 'off'",
         DEBUG: "Alias for BB_DEBUG=verbose when exactly 'true'",
