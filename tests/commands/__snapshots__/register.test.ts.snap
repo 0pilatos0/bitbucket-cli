@@ -1,0 +1,2996 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`command tree snapshot bb auth 1`] = `
+{
+  "help": 
+"Usage: bb auth [options] [command]
+
+Authenticate with Bitbucket
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  login [options]  Authenticate with Bitbucket (OAuth or API token)
+  logout           Log out of Bitbucket
+  status           Show authentication status
+  token            Print the current access token
+  help [command]   display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth login 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "appPassword": true,
+      "clientId": "clientId-value",
+      "clientSecret": "clientSecret-value",
+      "password": "password-value",
+      "username": "username-value",
+      "withToken": true,
+    },
+    "token": "LoginCommand",
+    "via": "run",
+  },
+  "help": 
+"
+Default: OAuth (browser-based, recommended).
+For CI/CD: API token via --app-password or BB_API_TOKEN env var.
+For headless/secret-safe: pipe the token in with --with-token.
+OAuth needs a loopback browser (http://localhost:19872/callback); there
+is no device-code flow, so use token auth on headless hosts.
+Note: Bitbucket app passwords are deprecated; use OAuth or an API token.
+
+Usage: bb auth login [options]
+
+Authenticate with Bitbucket (OAuth or API token)
+
+Options:
+  -u, --username <username>       Bitbucket username (implies API token auth)
+  -p, --password <password>       Bitbucket API token (implies API token auth)
+  --app-password                  Use API token authentication (instead of
+                                  OAuth). App passwords are deprecated; use API
+                                  tokens.
+  --with-token                    Read the API token from stdin (keeps it out of
+                                  shell history and process args)
+  --client-id <clientId>          Custom OAuth consumer client ID
+  --client-secret <clientSecret>  Custom OAuth consumer client secret
+  -h, --help                      display help for command
+
+Examples:
+  $ bb auth login
+  $ bb auth login --app-password -u myuser -p mytoken
+  $ echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+  $ bb auth login --client-id <id>
+  $ BB_USERNAME=myuser BB_API_TOKEN=mytoken bb auth login
+
+Environment variables:
+  BB_USERNAME   Used when --username is not provided
+  BB_API_TOKEN  Used when --password is not provided (implies API token auth)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth logout 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "LogoutCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb auth logout [options]
+
+Log out of Bitbucket
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb auth logout
+  $ bb auth logout --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth status 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "StatusCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb auth status [options]
+
+Show authentication status
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb auth status
+  $ bb auth status --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth token 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "TokenCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb auth token [options]
+
+Print the current access token
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb auth token
+  $ bb auth token | pbcopy
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo 1`] = `
+{
+  "help": 
+"Usage: bb repo [options] [command]
+
+Manage repositories
+
+Options:
+  -h, --help                     display help for command
+
+Commands:
+  clone [options] <repository>   Clone a Bitbucket repository
+  create [options] <name>        Create a new repository
+  list [options]                 List repositories
+  view [repository]              View repository details
+  delete [options] <repository>  Delete a repository
+  default-reviewers              Manage default reviewers for a repository
+  help [command]                 display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo clone 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "directory": "directory-value",
+      "repository": "repository-value",
+    },
+    "token": "CloneCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb repo clone [options] <repository>
+
+Clone a Bitbucket repository
+
+Options:
+  -d, --directory <dir>  Directory to clone into
+  -h, --help             display help for command
+
+Examples:
+  $ bb repo clone workspace/repo-name
+  $ bb repo clone workspace/repo-name -d my-directory
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "name": "name-value",
+      "private": true,
+      "project": "project-value",
+      "public": true,
+    },
+    "token": "CreateRepoCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo create [options] <name>
+
+Create a new repository
+
+Options:
+  -d, --description <description>  Repository description
+  --private                        Create a private repository (default)
+  --public                         Create a public repository
+  -p, --project <project>          Project key
+  -h, --help                       display help for command
+
+Examples:
+  $ bb repo create my-repo
+  $ bb repo create my-repo --public -p PROJ
+  $ bb repo create my-repo -d "My new repository"
+
+Defaults:
+  --private  true (visibility is private unless --public)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListReposCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo list [options]
+
+List repositories
+
+Options:
+  --limit <number>  Maximum number of repositories to list (default: "25")
+  --all             List all repositories (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb repo list
+  $ bb repo list --limit 50
+  $ bb repo list --all
+  $ bb repo list --json
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "repository": "repository-value",
+    },
+    "token": "ViewRepoCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo view [options] [repository]
+
+View repository details
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo view
+  $ bb repo view workspace/repo-name
+  $ bb repo view workspace/repo-name --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "repository": "repository-value",
+      "yes": true,
+    },
+    "token": "DeleteRepoCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo delete [options] <repository>
+
+Delete a repository
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo delete workspace/repo-name
+  $ bb repo delete workspace/repo-name --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo default-reviewers 1`] = `
+{
+  "help": 
+"Usage: bb repo default-reviewers [options] [command]
+
+Manage default reviewers for a repository
+
+Options:
+  -h, --help               display help for command
+
+Commands:
+  list [options]           List default reviewers for a repository
+  add <user>               Add a default reviewer to a repository (accepts
+                           account ID or {uuid})
+  remove [options] <user>  Remove a default reviewer from a repository (accepts
+                           account ID or {uuid})
+  help [command]           display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo default-reviewers list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "repoOnly": true,
+    },
+    "token": "ListDefaultReviewersCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo default-reviewers list [options]
+
+List default reviewers for a repository
+
+Options:
+  --repo-only  Only show reviewers configured on the repository (exclude
+               project-inherited)
+  -h, --help   display help for command
+
+Examples:
+  $ bb repo default-reviewers list
+  $ bb repo default-reviewers list --repo-only
+  $ bb repo default-reviewers list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo default-reviewers add 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "username": "user-value",
+    },
+    "token": "AddDefaultReviewerCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo default-reviewers add [options] <user>
+
+Add a default reviewer to a repository (accepts account ID or {uuid})
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+  $ bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo default-reviewers remove 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "username": "user-value",
+      "yes": true,
+    },
+    "token": "RemoveDefaultReviewerCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo default-reviewers remove [options] <user>
+
+Remove a default reviewer from a repository (accepts account ID or {uuid})
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr 1`] = `
+{
+  "help": 
+"Usage: bb pr [options] [command]
+
+Manage pull requests
+
+Options:
+  -h, --help               display help for command
+
+Commands:
+  create [options]         Create a pull request
+  list [options]           List pull requests
+  view <id>                View pull request details
+  activity [options] <id>  Show pull request activity log
+  checks <id>              Show CI/CD checks and build status for a pull request
+  edit [options] [id]      Edit a pull request
+  merge [options] <id>     Merge a pull request
+  approve <id>             Approve a pull request
+  decline <id>             Decline a pull request
+  ready <id>               Mark a draft pull request as ready for review
+  checkout <id>            Checkout a pull request locally
+  diff [options] [id]      View pull request diff
+  comments                 Manage pull request comments
+  reviewers                Manage pull request reviewers
+  help [command]           display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "body": "body-value",
+      "closeSourceBranch": true,
+      "defaultReviewers": true,
+      "destination": "destination-value",
+      "draft": true,
+      "reviewer": [
+        "reviewer-value",
+      ],
+      "source": "source-value",
+      "title": "title-value",
+    },
+    "token": "CreatePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr create [options]
+
+Create a pull request
+
+Options:
+  -t, --title <title>         Pull request title
+  -b, --body <body>           Pull request description
+  -s, --source <branch>       Source branch (default: current branch)
+  -d, --destination <branch>  Destination branch (default: main)
+  --close-source-branch       Close source branch after merge
+  --draft                     Create the pull request as draft
+  --reviewer <user>           Add a reviewer by account ID or {uuid}
+                              (repeatable) (default: [])
+  --default-reviewers         Include the repository's default reviewers
+  --no-default-reviewers      Skip the repository's default reviewers even when
+                              prCreateIncludeDefaultReviewers is true
+  -h, --help                  display help for command
+
+Examples:
+  $ bb pr create -t "My PR" -b "Description"
+  $ bb pr create -t "My PR" --draft
+  $ bb pr create -t "My PR" -s feature -d develop
+  $ bb pr create -t "My PR" --close-source-branch
+  $ bb pr create -t "My PR" --default-reviewers
+  $ bb pr create -t "My PR" --reviewer jdoe --reviewer asmith
+
+Defaults:
+  --source  current git branch
+  --destination  main
+  --default-reviewers  false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)
+
+See also:
+  Repository Context  https://bitbucket-cli.paulvanderlei.com/guides/repository-context/
+  Default reviewers   https://bitbucket-cli.paulvanderlei.com/commands/repo/#bb-repo-default-reviewers
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "mine": true,
+      "state": "state-value",
+    },
+    "token": "ListPRsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr list [options]
+
+List pull requests
+
+Options:
+  -s, --state <state>  Filter by state (OPEN, MERGED, DECLINED, SUPERSEDED)
+                       (choices: "OPEN", "MERGED", "DECLINED", "SUPERSEDED",
+                       default: "OPEN")
+  --limit <number>     Maximum number of PRs to list (default: "25")
+  --all                List all pull requests (overrides --limit)
+  --mine               Show only PRs where you are a reviewer (not authored by
+                       you)
+  -h, --help           display help for command
+
+Examples:
+  $ bb pr list
+  $ bb pr list -s MERGED --limit 10
+  $ bb pr list --all
+  $ bb pr list --mine
+  $ bb pr list --json
+
+Valid states:
+  OPEN, MERGED, DECLINED, SUPERSEDED
+
+Defaults:
+  --state  OPEN
+  --limit  25
+
+See also:
+  Scripting & Automation  https://bitbucket-cli.paulvanderlei.com/guides/scripting/
+  JSON Output             https://bitbucket-cli.paulvanderlei.com/reference/json-output/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ViewPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr view [options] <id>
+
+View pull request details
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr view 42
+  $ bb pr view 42 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr activity 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "id": "id-value",
+      "limit": "limit-value",
+      "type": "type-value",
+    },
+    "token": "ActivityPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr activity [options] <id>
+
+Show pull request activity log
+
+Options:
+  --limit <number>  Maximum number of activity entries (default: "25")
+  --all             Show all activity entries (overrides --limit)
+  --type <types>    Filter activity by type (comma-separated)
+  -h, --help        display help for command
+
+Examples:
+  $ bb pr activity 42
+  $ bb pr activity 42 --type comment,approval
+  $ bb pr activity 42 --all
+  $ bb pr activity 42 --limit 10 --json
+
+Valid activity types (comma-separated):
+  comment, approval, changes_requested, merge, decline, commit, update
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr checks 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ChecksPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr checks [options] <id>
+
+Show CI/CD checks and build status for a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr checks 42
+  $ bb pr checks 42 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr edit 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "body": "body-value",
+      "bodyFile": "bodyFile-value",
+      "id": "id-value",
+      "title": "title-value",
+    },
+    "token": "EditPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr edit [options] [id]
+
+Edit a pull request
+
+Options:
+  -t, --title <title>     New pull request title
+  -b, --body <body>       New pull request description
+  -F, --body-file <file>  Read description from file
+  -h, --help              display help for command
+
+Examples:
+  $ bb pr edit 42 -t "New title"
+  $ bb pr edit 42 -b "Updated description"
+  $ bb pr edit 42 -F description.md
+  $ bb pr edit
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr merge 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "closeSourceBranch": true,
+      "id": "id-value",
+      "message": "message-value",
+      "strategy": "strategy-value",
+    },
+    "token": "MergePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr merge [options] <id>
+
+Merge a pull request
+
+Options:
+  -m, --message <message>  Merge commit message
+  --close-source-branch    Delete the source branch after merging
+  --strategy <strategy>    Merge strategy (choices: "merge_commit", "squash",
+                           "fast_forward", "squash_fast_forward",
+                           "rebase_fast_forward", "rebase_merge")
+  -h, --help               display help for command
+
+Examples:
+  $ bb pr merge 42
+  $ bb pr merge 42 --strategy squash --close-source-branch
+  $ bb pr merge 42 -m "Merge feature X"
+
+Valid merge strategies:
+  merge_commit, squash, fast_forward, squash_fast_forward, rebase_fast_forward, rebase_merge
+
+Defaults:
+  --strategy  the repository's configured merge strategy (typically merge_commit)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr approve 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ApprovePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr approve [options] <id>
+
+Approve a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr approve 42
+  $ bb pr approve 42 --json
+  $ bb pr approve 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr decline 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "DeclinePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr decline [options] <id>
+
+Decline a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr decline 42
+  $ bb pr decline 42 --json
+  $ bb pr decline 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr ready 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ReadyPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr ready [options] <id>
+
+Mark a draft pull request as ready for review
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr ready 42
+  $ bb pr ready 42 --json
+  $ bb pr ready 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr checkout 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "CheckoutPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr checkout [options] <id>
+
+Checkout a pull request locally
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr checkout 42
+  $ bb pr checkout 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr diff 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "color": "color-value",
+      "id": "id-value",
+      "nameOnly": true,
+      "stat": true,
+      "web": true,
+    },
+    "token": "DiffPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr diff [options] [id]
+
+View pull request diff
+
+Options:
+  --color <when>  Colorize output (choices: "auto", "always", "never", default:
+                  "auto")
+  --name-only     Show only names of changed files
+  --stat          Show diffstat
+  --web           Open diff in web browser
+  -h, --help      display help for command
+
+Examples:
+  $ bb pr diff 42
+  $ bb pr diff 42 --stat
+  $ bb pr diff 42 --name-only
+  $ bb pr diff --web
+  $ bb pr diff 42 --color always
+
+Valid --color values:
+  auto, always, never
+
+Defaults:
+  --color  auto
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments 1`] = `
+{
+  "help": 
+"Usage: bb pr comments [options] [command]
+
+Manage pull request comments
+
+Options:
+  -h, --help                             display help for command
+
+Commands:
+  list [options] <id>                    List comments on a pull request
+  add [options] <id> <message>           Add a comment to a pull request
+  edit <pr-id> <comment-id> <message>    Edit a comment on a pull request
+  delete [options] <pr-id> <comment-id>  Delete a comment on a pull request
+  view <pr-id> <comment-id>              View a single comment on a pull request
+  reply <pr-id> <comment-id> <message>   Reply to a comment on a pull request
+  resolve <pr-id> <comment-id>           Resolve a comment thread on a pull request
+  unresolve <pr-id> <comment-id>         Reopen a resolved comment thread on a pull request
+  help [command]                         display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "id": "id-value",
+      "limit": "limit-value",
+      "resolved": true,
+      "unresolved": true,
+    },
+    "token": "ListCommentsPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments list [options] <id>
+
+List comments on a pull request
+
+Options:
+  --limit <number>  Maximum number of comments (default: 25)
+  --all             List all comments (overrides --limit)
+  --resolved        Only show resolved comments
+  --unresolved      Only show unresolved comments
+  -h, --help        display help for command
+
+Examples:
+  $ bb pr comments list 42
+  $ bb pr comments list 42 --no-truncate
+  $ bb pr comments list 42 --unresolved
+  $ bb pr comments list 42 --all
+  $ bb pr comments list 42 --limit 50 --json
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments add 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "file": "file-value",
+      "id": "id-value",
+      "lineFrom": "lineFrom-value",
+      "lineTo": "lineTo-value",
+      "message": "message-value",
+    },
+    "token": "CommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments add [options] <id> <message>
+
+Add a comment to a pull request
+
+Options:
+  --file <path>         File path in the diff for inline comment
+  --line-to <number>    Line number in the new file version
+  --line-from <number>  Line number in the old file version
+  -h, --help            display help for command
+
+Examples:
+  $ bb pr comments add 42 "LGTM"
+  $ bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments edit 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "message": "message-value",
+      "prId": "pr-id-value",
+    },
+    "token": "EditCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments edit [options] <pr-id> <comment-id> <message>
+
+Edit a comment on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments edit 42 12345 "Updated comment"
+  $ bb pr comments edit 42 12345 "Updated comment" --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "prId": "pr-id-value",
+      "yes": true,
+    },
+    "token": "DeleteCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments delete [options] <pr-id> <comment-id>
+
+Delete a comment on a pull request
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments delete 42 12345
+  $ bb pr comments delete 42 12345 --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "prId": "pr-id-value",
+    },
+    "token": "ViewCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments view [options] <pr-id> <comment-id>
+
+View a single comment on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments view 42 12345
+  $ bb pr comments view 42 12345 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments reply 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "message": "message-value",
+      "prId": "pr-id-value",
+    },
+    "token": "ReplyCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments reply [options] <pr-id> <comment-id> <message>
+
+Reply to a comment on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments reply 42 12345 "Good catch, fixed."
+  $ bb pr comments reply 42 12345 "Fixed in the latest push" --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments resolve 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "prId": "pr-id-value",
+    },
+    "token": "ResolveCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments resolve [options] <pr-id> <comment-id>
+
+Resolve a comment thread on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments resolve 42 12345
+  $ bb pr comments resolve 42 12345 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr comments unresolve 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "prId": "pr-id-value",
+    },
+    "token": "UnresolveCommentPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr comments unresolve [options] <pr-id> <comment-id>
+
+Reopen a resolved comment thread on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr comments unresolve 42 12345
+  $ bb pr comments unresolve 42 12345 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr reviewers 1`] = `
+{
+  "help": 
+"Usage: bb pr reviewers [options] [command]
+
+Manage pull request reviewers
+
+Options:
+  -h, --help          display help for command
+
+Commands:
+  list <id>           List reviewers on a pull request
+  add <id> <user>     Add a reviewer to a pull request (user is an account ID or
+                      {uuid})
+  remove <id> <user>  Remove a reviewer from a pull request (user is an account
+                      ID or {uuid})
+  help [command]      display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr reviewers list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ListReviewersPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr reviewers list [options] <id>
+
+List reviewers on a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr reviewers list 42
+  $ bb pr reviewers list 42 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr reviewers add 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "username": "user-value",
+    },
+    "token": "AddReviewerPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr reviewers add [options] <id> <user>
+
+Add a reviewer to a pull request (user is an account ID or {uuid})
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+  $ bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr reviewers remove 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "username": "user-value",
+    },
+    "token": "RemoveReviewerPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr reviewers remove [options] <id> <user>
+
+Remove a reviewer from a pull request (user is an account ID or {uuid})
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+  $ bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet 1`] = `
+{
+  "help": 
+"Usage: bb snippet [options] [command]
+
+Manage snippets
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  list [options]         List snippets in a workspace
+  view [options] <id>    View snippet details
+  create [options]       Create a new snippet
+  edit [options] <id>    Edit a snippet
+  delete [options] <id>  Delete a snippet
+  watch <id>             Watch a snippet
+  unwatch <id>           Stop watching a snippet
+  comments               Manage snippet comments
+  help [command]         display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "role": "role-value",
+    },
+    "token": "ListSnippetsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet list [options]
+
+List snippets in a workspace
+
+Options:
+  --role <role>     Filter by role (owner, contributor, member) (choices:
+                    "owner", "contributor", "member")
+  --limit <number>  Maximum number of snippets to list (default: "25")
+  --all             List all snippets (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb snippet list
+  $ bb snippet list --role owner
+  $ bb snippet list --all
+  $ bb snippet list --limit 50 --json
+
+Valid roles:
+  owner, contributor, member
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "file": "file-value",
+      "files": true,
+      "id": "id-value",
+    },
+    "token": "ViewSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet view [options] <id>
+
+View snippet details
+
+Options:
+  -f, --file <name>  Print contents of a specific file in the snippet
+  --files            Print contents of all files in the snippet
+  -h, --help         display help for command
+
+Examples:
+  $ bb snippet view kypj
+  $ bb snippet view kypj --json
+  $ bb snippet view kypj --file foo.txt
+  $ bb snippet view kypj --files
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "file": [
+        "file-value",
+      ],
+      "private": true,
+      "public": true,
+      "title": "title-value",
+    },
+    "token": "CreateSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet create [options]
+
+Create a new snippet
+
+Options:
+  -t, --title <title>   Snippet title
+  -f, --file <path...>  File(s) to include (variadic; pass multiple paths or
+                        repeat the flag)
+  --private             Create a private snippet (default)
+  --public              Create a public snippet
+  -h, --help            display help for command
+
+Examples:
+  $ bb snippet create -t "My snippet" -f file.txt
+  $ bb snippet create -t "Config files" -f config.yml -f setup.sh --public
+
+Defaults:
+  --private  true (visibility is private unless --public)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet edit 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "file": [
+        "file-value",
+      ],
+      "id": "id-value",
+      "private": true,
+      "public": true,
+      "title": "title-value",
+    },
+    "token": "EditSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet edit [options] <id>
+
+Edit a snippet
+
+Options:
+  -t, --title <title>   New snippet title
+  --private             Make snippet private
+  --public              Make snippet public
+  -f, --file <path...>  Replace/add file(s) (variadic; pass multiple paths or
+                        repeat the flag; sends multipart update)
+  -h, --help            display help for command
+
+Examples:
+  $ bb snippet edit kypj -t "New title"
+  $ bb snippet edit kypj --public
+  $ bb snippet edit kypj -f updated.txt
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "yes": true,
+    },
+    "token": "DeleteSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet delete [options] <id>
+
+Delete a snippet
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb snippet delete kypj
+  $ bb snippet delete kypj --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet watch 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "WatchSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet watch [options] <id>
+
+Watch a snippet
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb snippet watch kypj
+  $ bb snippet watch kypj -w my-team
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet unwatch 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "UnwatchSnippetCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet unwatch [options] <id>
+
+Stop watching a snippet
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb snippet unwatch kypj
+  $ bb snippet unwatch kypj -w my-team
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet comments 1`] = `
+{
+  "help": 
+"Usage: bb snippet comments [options] [command]
+
+Manage snippet comments
+
+Options:
+  -h, --help                                  display help for command
+
+Commands:
+  list [options] <id>                         List comments on a snippet
+  add [options] <id> [message]                Add a comment to a snippet (message is required)
+  edit <snippet-id> <comment-id> <message>    Edit a comment on a snippet
+  delete [options] <snippet-id> <comment-id>  Delete a comment on a snippet
+  help [command]                              display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet comments list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "id": "id-value",
+      "limit": "limit-value",
+    },
+    "token": "ListSnippetCommentsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet comments list [options] <id>
+
+List comments on a snippet
+
+Options:
+  --limit <number>  Maximum number of comments (default: "25")
+  --all             List all comments (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb snippet comments list kypj
+  $ bb snippet comments list kypj --all
+  $ bb snippet comments list kypj --limit 50 --json
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet comments add 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "message": "message-value",
+    },
+    "token": "AddSnippetCommentCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet comments add [options] <id> [message]
+
+Add a comment to a snippet (message is required)
+
+Options:
+  -m, --message <text>  Comment message (alternative to the positional [message]
+                        argument; one of the two is required)
+  -h, --help            display help for command
+
+Examples:
+  $ bb snippet comments add kypj "Great snippet!"
+  $ bb snippet comments add kypj -m "Great snippet!"
+  $ bb snippet comments add kypj "Great snippet!" --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet comments edit 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "message": "message-value",
+      "snippetId": "snippet-id-value",
+    },
+    "token": "EditSnippetCommentCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet comments edit [options] <snippet-id> <comment-id> <message>
+
+Edit a comment on a snippet
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb snippet comments edit kypj 123 "Updated comment"
+  $ bb snippet comments edit kypj 123 "Updated comment" --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb snippet comments delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "commentId": "comment-id-value",
+      "snippetId": "snippet-id-value",
+      "yes": true,
+    },
+    "token": "DeleteSnippetCommentCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb snippet comments delete [options] <snippet-id> <comment-id>
+
+Delete a comment on a snippet
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb snippet comments delete kypj 123
+  $ bb snippet comments delete kypj 123 --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline 1`] = `
+{
+  "help": 
+"Usage: bb pipeline [options] [command]
+
+Manage Bitbucket Pipelines (CI/CD)
+
+Options:
+  -h, --help           display help for command
+
+Commands:
+  list [options]       List pipelines for a repository
+  view <id>            View pipeline details and step summary (id: build number
+                       or UUID)
+  run [options]        Trigger a pipeline run
+  stop <id>            Stop a running pipeline (id: build number or UUID)
+  logs [options] <id>  Print the log of a pipeline step (id: build number or
+                       UUID)
+  help [command]       display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "branch": "branch-value",
+      "limit": "limit-value",
+      "sort": "sort-value",
+      "status": "status-value",
+    },
+    "token": "ListPipelinesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline list [options]
+
+List pipelines for a repository
+
+Options:
+  --status <status>   Filter by pipeline status (choices: "PARSING", "PENDING",
+                      "PAUSED", "HALTED", "BUILDING", "ERROR", "PASSED",
+                      "FAILED", "STOPPED", "UNKNOWN")
+  --branch <branch>   Filter by target branch
+  --sort <attribute>  Sort attribute (prefix with - for descending) (choices:
+                      "creator.uuid", "-creator.uuid", "created_on",
+                      "-created_on", "run_creation_date", "-run_creation_date")
+  --limit <number>    Maximum number of pipelines to list (default: "25")
+  --all               List all pipelines (overrides --limit)
+  -h, --help          display help for command
+
+Examples:
+  $ bb pipeline list
+  $ bb pipeline list --status FAILED
+  $ bb pipeline list --branch main --limit 50
+  $ bb pipeline list --json --jq '.pipelines[].build_number'
+
+Valid statuses:
+  PARSING, PENDING, PAUSED, HALTED, BUILDING, ERROR, PASSED, FAILED, STOPPED, UNKNOWN
+
+Valid sort attributes:
+  creator.uuid, -creator.uuid, created_on, -created_on, run_creation_date, -run_creation_date
+
+Defaults:
+  --limit  25
+  --sort  -created_on
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ViewPipelineCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline view [options] <id>
+
+View pipeline details and step summary (id: build number or UUID)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pipeline view 42
+  $ bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb pipeline view 42 --json --jq '.pipeline.state'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline run 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "branch": "branch-value",
+      "commit": "commit-value",
+      "pipeline": "pipeline-value",
+      "var": [
+        "var-value",
+      ],
+    },
+    "token": "RunPipelineCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline run [options]
+
+Trigger a pipeline run
+
+Options:
+  -b, --branch <branch>  Branch to run on (default: current git branch)
+  --commit <hash>        Run against a specific commit on the branch
+  -p, --pipeline <name>  Custom pipeline definition to run (from
+                         bitbucket-pipelines.yml)
+  --var <key=value...>   Pipeline variable (repeatable; value may contain =)
+  -h, --help             display help for command
+
+Examples:
+  $ bb pipeline run
+  $ bb pipeline run --branch main
+  $ bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
+  $ bb pipeline run --branch main --json --jq '.build_number'
+
+Defaults:
+  --branch  current git branch
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline stop 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "StopPipelineCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline stop [options] <id>
+
+Stop a running pipeline (id: build number or UUID)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pipeline stop 42
+  $ bb pipeline stop {a1b2c3d4-0000-0000-0000-000000000000} --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline logs 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "step": "step-value",
+    },
+    "token": "LogsPipelineCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline logs [options] <id>
+
+Print the log of a pipeline step (id: build number or UUID)
+
+Options:
+  -s, --step <uuid-or-index>  Step to fetch (UUID or 1-based index; default: the
+                              only step)
+  -h, --help                  display help for command
+
+Examples:
+  $ bb pipeline logs 42
+  $ bb pipeline logs 42 --step 2
+  $ bb pipeline logs 42 --step {step-uuid}
+  $ bb pipeline logs 42 --json --jq '.log'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb commit 1`] = `
+{
+  "help": 
+"Usage: bb commit [options] [command]
+
+Inspect commits in a repository
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  list [options]  List commits (defaults to the current git branch)
+  view <sha>      View commit details (author, date, parents, full message)
+  help [command]  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb commit list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "ref": "ref-value",
+    },
+    "token": "ListCommitsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb commit list [options]
+
+List commits (defaults to the current git branch)
+
+Options:
+  --ref <ref>       Branch, tag, or commit to list history for (default: current
+                    git branch, falling back to the repository default listing)
+  --limit <number>  Maximum number of commits to list (default: "25")
+  --all             List all commits (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb commit list
+  $ bb commit list --ref main
+  $ bb commit list --ref v1.0.0 --limit 50
+  $ bb commit list --json --jq '.commits[].hash'
+
+Defaults:
+  --ref  current git branch (repository default listing outside a git repo)
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb commit view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "sha": "sha-value",
+    },
+    "token": "ViewCommitCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb commit view [options] <sha>
+
+View commit details (author, date, parents, full message)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb commit view abc1234
+  $ bb commit view abc1234def5678900000000000000000000000000
+  $ bb commit view abc1234 --json --jq '.commit.author.raw'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb status 1`] = `
+{
+  "help": 
+"Usage: bb status [options] [command]
+
+Manage build statuses on commits
+
+Options:
+  -h, --help            display help for command
+
+Commands:
+  list [options] <sha>  List build statuses reported on a commit
+  set [options] <sha>   Create or update a build status on a commit (idempotent
+                        per --key)
+  help [command]        display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb status list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "sha": "sha-value",
+    },
+    "token": "ListCommitStatusesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb status list [options] <sha>
+
+List build statuses reported on a commit
+
+Options:
+  --limit <number>  Maximum number of statuses to list (default: "25")
+  --all             List all statuses (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb status list abc1234
+  $ bb status list abc1234 --all
+  $ bb status list abc1234 --json --jq '.statuses[].state'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb status set 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "key": "key-value",
+      "name": "name-value",
+      "refname": "refname-value",
+      "sha": "sha-value",
+      "state": "state-value",
+      "url": "url-value",
+    },
+    "token": "SetCommitStatusCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb status set [options] <sha>
+
+Create or update a build status on a commit (idempotent per --key)
+
+Options:
+  --key <key>                  Unique status key, e.g. BB-DEPLOY (required)
+  --state <state>              Status state (required) (choices: "FAILED",
+                               "INPROGRESS", "STOPPED", "SUCCESSFUL")
+  --url <url>                  Link back to the build system
+  --name <name>                Build identifier, e.g. BB-DEPLOY-1
+  --description <description>  Short build description
+  --refname <refname>          Ref the build ran on, e.g. a branch name
+  -h, --help                   display help for command
+
+Examples:
+  $ bb status set abc1234 --key CI --state INPROGRESS
+  $ bb status set abc1234 --key CI --state SUCCESSFUL --url https://ci.example.com/builds/42
+  $ bb status set abc1234 --key CI --state FAILED --description "Unit tests failed" --refname main
+  $ bb status set abc1234 --key CI --state SUCCESSFUL --json --jq '.status.state'
+
+Valid states:
+  FAILED, INPROGRESS, STOPPED, SUCCESSFUL
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb workspace 1`] = `
+{
+  "help": 
+"Usage: bb workspace [options] [command]
+
+Discover and inspect Bitbucket workspaces
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  list [options]  List workspaces you are a member of
+  view [slug]     View workspace details (defaults to the current workspace
+                  context)
+  help [command]  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb workspace list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListWorkspacesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb workspace list [options]
+
+List workspaces you are a member of
+
+Options:
+  --limit <number>  Maximum number of workspaces to list (default: "25")
+  --all             List all workspaces (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb workspace list
+  $ bb workspace list --json --jq '.workspaces[].slug'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb workspace view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "slug": "slug-value",
+    },
+    "token": "ViewWorkspaceCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb workspace view [options] [slug]
+
+View workspace details (defaults to the current workspace context)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb workspace view
+  $ bb workspace view my-workspace
+  $ bb workspace view my-workspace --json --jq '.workspace.uuid'
+
+Defaults:
+  --slug  resolved workspace (-w, current repo, BB_WORKSPACE, or defaultWorkspace)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb project 1`] = `
+{
+  "help": 
+"Usage: bb project [options] [command]
+
+Manage projects in a workspace
+
+Options:
+  -h, --help        display help for command
+
+Commands:
+  list [options]    List projects in a workspace
+  view <key>        View project details
+  create [options]  Create a new project in a workspace
+  help [command]    display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb project list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListProjectsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb project list [options]
+
+List projects in a workspace
+
+Options:
+  --limit <number>  Maximum number of projects to list (default: "25")
+  --all             List all projects (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb project list
+  $ bb project list -w my-workspace
+  $ bb project list --json --jq '.projects[].key'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb project view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "key": "key-value",
+    },
+    "token": "ViewProjectCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb project view [options] <key>
+
+View project details
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb project view PROJ
+  $ bb project view PROJ -w my-workspace
+  $ bb project view PROJ --json --jq '.project.name'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb project create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "key": "key-value",
+      "name": "name-value",
+      "private": true,
+      "public": true,
+    },
+    "token": "CreateProjectCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb project create [options]
+
+Create a new project in a workspace
+
+Options:
+  -k, --key <key>                  Project key, e.g. PROJ (required; uppercased)
+  -n, --name <name>                Project name (required)
+  -d, --description <description>  Project description
+  --private                        Create a private project (default)
+  --public                         Create a public project
+  -h, --help                       display help for command
+
+Examples:
+  $ bb project create --key PROJ --name "My Project"
+  $ bb project create -k PROJ -n "My Project" -d "Team things" --public
+  $ bb project create -k PROJ -n "My Project" --json --jq '.project.key'
+
+Defaults:
+  --private  true (visibility is private unless --public)
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb search 1`] = `
+{
+  "help": 
+"Usage: bb search [options] [command]
+
+Search Bitbucket
+
+Options:
+  -h, --help                 display help for command
+
+Commands:
+  code [options] <query...>  Search code in a workspace (code search must be
+                             enabled for it); -r scopes to one repository
+  help [command]             display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb search code 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "query": [
+        "query-value",
+      ],
+    },
+    "token": "SearchCodeCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb search code [options] <query...>
+
+Search code in a workspace (code search must be enabled for it); -r scopes to
+one repository
+
+Options:
+  --limit <number>  Maximum number of results to list (default: "25")
+  --all             List all results (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb search code parseConfig
+  $ bb search code parseConfig -r my-repo
+  $ bb search code TODO lang:typescript -w my-workspace --limit 50
+  $ bb search code parseConfig --json --jq '.results[].file.path'
+
+Defaults:
+  --limit  25
+
+See also:
+  Search syntax  https://support.atlassian.com/bitbucket-cloud/docs/search-in-bitbucket-cloud/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook 1`] = `
+{
+  "help": 
+"Usage: bb webhook [options] [command]
+
+Manage repository and workspace webhooks
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List webhooks
+  view [options] <uid>    View webhook details (uid: webhook UUID)
+  create [options]        Create a webhook
+  delete [options] <uid>  Delete a webhook (uid: webhook UUID)
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "scope": "scope-value",
+    },
+    "token": "ListWebhooksCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook list [options]
+
+List webhooks
+
+Options:
+  --scope <scope>   Webhook scope: repo (current repository) or workspace
+                    (choices: "repo", "workspace")
+  --limit <number>  Maximum number of webhooks to list (default: "25")
+  --all             List all webhooks (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb webhook list
+  $ bb webhook list --scope workspace -w my-workspace
+  $ bb webhook list --json --jq '.webhooks[].url'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+    },
+    "token": "ViewWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook view [options] <uid>
+
+View webhook details (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook view a1b2c3d4-0000-0000-0000-000000000000 --scope workspace
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "event": [
+        "event-value",
+      ],
+      "inactive": true,
+      "scope": "scope-value",
+      "secret": "secret-value",
+      "url": "url-value",
+    },
+    "token": "CreateWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook create [options]
+
+Create a webhook
+
+Options:
+  --scope <scope>                  Webhook scope: repo (current repository) or
+                                   workspace (choices: "repo", "workspace")
+  --url <url>                      URL events are delivered to (required)
+  -e, --event <event...>           Event to subscribe to (required; repeatable)
+                                   (choices: "issue:comment_created",
+                                   "issue:created", "issue:updated",
+                                   "pipeline:span_created", "project:updated",
+                                   "pullrequest:approved",
+                                   "pullrequest:changes_request_created",
+                                   "pullrequest:changes_request_removed",
+                                   "pullrequest:comment_created",
+                                   "pullrequest:comment_deleted",
+                                   "pullrequest:comment_reopened",
+                                   "pullrequest:comment_resolved",
+                                   "pullrequest:comment_updated",
+                                   "pullrequest:created",
+                                   "pullrequest:fulfilled", "pullrequest:push",
+                                   "pullrequest:rejected",
+                                   "pullrequest:unapproved",
+                                   "pullrequest:updated",
+                                   "repo:commit_comment_created",
+                                   "repo:commit_status_created",
+                                   "repo:commit_status_updated", "repo:created",
+                                   "repo:deleted", "repo:fork", "repo:imported",
+                                   "repo:push", "repo:transfer", "repo:updated")
+  -d, --description <description>  Webhook description
+  --secret <secret>                Secret used to sign deliveries
+                                   (X-Hub-Signature)
+  --inactive                       Create the webhook disabled
+  -h, --help                       display help for command
+
+Examples:
+  $ bb webhook create --url https://ci.example.com/hook --event repo:push
+  $ bb webhook create --url https://example.com/hook -e pullrequest:created -e pullrequest:fulfilled -d "PR bot"
+  $ bb webhook create --scope workspace -w my-workspace --url https://example.com/hook -e repo:push --secret "$WEBHOOK_SECRET"
+
+Valid scopes:
+  repo, workspace
+
+Valid events:
+  issue:comment_created, issue:created, issue:updated, pipeline:span_created, project:updated, pullrequest:approved, pullrequest:changes_request_created, pullrequest:changes_request_removed, pullrequest:comment_created, pullrequest:comment_deleted, pullrequest:comment_reopened, pullrequest:comment_resolved, pullrequest:comment_updated, pullrequest:created, pullrequest:fulfilled, pullrequest:push, pullrequest:rejected, pullrequest:unapproved, pullrequest:updated, repo:commit_comment_created, repo:commit_status_created, repo:commit_status_updated, repo:created, repo:deleted, repo:fork, repo:imported, repo:push, repo:transfer, repo:updated
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+      "yes": true,
+    },
+    "token": "DeleteWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook delete [options] <uid>
+
+Delete a webhook (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -y, --yes        Skip confirmation prompt
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb browse 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "branch": "branch-value",
+      "branches": true,
+      "browser": true,
+      "commit": "commit-value",
+      "commits": true,
+      "downloads": true,
+      "pipeline": "pipeline-value",
+      "pipelines": true,
+      "pr": "pr-value",
+      "prs": true,
+      "pullRequests": true,
+      "settings": true,
+      "target": "target-value",
+    },
+    "token": "BrowseCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb browse [options] [target]
+
+Open a Bitbucket page (repo home, file, PR, commit, etc.) in your browser
+
+Options:
+  --pr <id>         Open a specific pull request
+  --prs             Open the pull-requests list
+  --pull-requests   Alias for --prs
+  --branch <name>   Open the branch source tree (or, with <target>, that path on
+                    the branch)
+  --branches        Open the branches list
+  --commit [sha]    Open a specific commit (defaults to HEAD when no SHA is
+                    given)
+  --commits         Open the commits list
+  --pipelines       Open the pipelines page
+  --pipeline <id>   Open a specific pipeline run
+  --downloads       Open the downloads page
+  --settings        Open repository settings
+  -n, --no-browser  Print the URL to stdout instead of opening it
+  -h, --help        display help for command
+
+Examples:
+  $ bb browse
+  $ bb browse src/cli.ts
+  $ bb browse src/cli.ts:42
+  $ bb browse --branch release/2.0 src/cli.ts
+  $ bb browse 217
+  $ bb browse --pr 217
+  $ bb browse --prs
+  $ bb browse abc1234
+  $ bb browse --commit
+  $ bb browse --pipelines
+  $ bb browse --settings
+  $ bb browse --pr 217 --no-browser
+  $ bb browse --pr 217 --json url
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb api 1`] = `
+{
+  "dispatch": {
+    "contextOptions": {
+      "allowJqWithoutJson": true,
+    },
+    "options": {
+      "endpoint": "endpoint-value",
+      "field": [
+        "field-value",
+      ],
+      "header": [
+        "header-value",
+      ],
+      "include": true,
+      "input": "input-value",
+      "method": "method-value",
+      "methodOrEndpoint": "methodOrEndpoint-value",
+      "paginate": true,
+      "rawField": [
+        "rawField-value",
+      ],
+    },
+    "token": "ApiCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"
+Escape hatch for endpoints not yet wrapped by a typed command.
+The path is relative to https://api.bitbucket.org/2.0; {workspace} and
+{repo} placeholders are filled from --workspace/--repo or the current repo.
+
+Usage: bb api [options] [methodOrEndpoint] [endpoint]
+
+Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint
+
+Options:
+  -X, --method <method>        HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD,
+                               OPTIONS). Defaults to GET, or POST when
+                               fields/body are present. (choices: "GET", "POST",
+                               "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+  -f, --raw-field <key=value>  Add a string parameter — query param on GET/HEAD,
+                               JSON body field otherwise (repeatable) (default:
+                               [])
+  -F, --field <key=value>      Add a typed parameter: true/false/null and
+                               numbers are converted; @file reads a file and @-
+                               reads stdin (repeatable) (default: [])
+  --input <file>               Read the request body from a file, or - for stdin
+                               (sent as application/json; mutually exclusive
+                               with -f/-F)
+  -H, --header <key:value>     Add a request header (repeatable). Authorization
+                               is managed automatically and cannot be set here.
+                               (default: [])
+  -i, --include                Print the HTTP status line and response headers
+                               before the body, on success and failure (text
+                               mode only)
+  --paginate                   Follow the cursor (next) and merge every page
+                               into a single {"values": [...]} result (GET/HEAD
+                               only)
+  -h, --help                   display help for command
+
+Examples:
+  $ bb api /user
+  $ bb api GET /user
+  $ bb api /repositories/{workspace}/{repo}/pullrequests --paginate
+  $ bb api POST /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234
+  $ bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
+  $ cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -
+  $ bb api /repositories/my-ws --jq '.values[].name'
+  $ bb api -i /user
+
+Valid methods:
+  GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+
+See also:
+  Scripting & Automation  https://bitbucket-cli.paulvanderlei.com/guides/scripting/
+  Bitbucket REST API      https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias 1`] = `
+{
+  "help": 
+"Usage: bb alias [options] [command]
+
+Create shortcuts for bb commands
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  set <name> <expansion>  Create or update an alias; supports $1-$9 placeholders
+                          and a ! prefix for shell passthrough
+  list                    List configured aliases
+  delete <name>           Delete an alias
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias set 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "expansion": "expansion-value",
+      "name": "name-value",
+    },
+    "token": "SetAliasCommand",
+    "via": "run",
+  },
+  "help": 
+"
+An alias expands in place of the first bb argument: \`bb co 42\` runs
+\`bb pr checkout 42\` after \`bb alias set co "pr checkout $1"\`. Extra
+arguments are appended unless consumed by $1-$9 placeholders. A \`!\`
+prefix runs the expansion through \`sh -c\` instead, with the remaining
+arguments available as shell positional parameters ($1, $@).
+
+Usage: bb alias set [options] <name> <expansion>
+
+Create or update an alias; supports $1-$9 placeholders and a ! prefix for shell
+passthrough
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias set co "pr checkout $1"
+  $ bb alias set prd "pr create --draft"
+  $ bb alias set openpr '!bb pr list --json --jq ".pullRequests[0].id" | xargs bb browse --pr'
+
+See also:
+  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias list 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "ListAliasesCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb alias list [options]
+
+List configured aliases
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias list
+  $ bb alias list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "name": "name-value",
+    },
+    "token": "DeleteAliasCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb alias delete [options] <name>
+
+Delete an alias
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias delete co
+  $ bb alias delete co --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config 1`] = `
+{
+  "help": 
+"Usage: bb config [options] [command]
+
+Manage configuration
+
+Options:
+  -h, --help         display help for command
+
+Commands:
+  get <key>          Get a configuration value
+  set <key> <value>  Set a configuration value
+  list               List all configuration values
+  help [command]     display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config get 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "key": "key-value",
+    },
+    "token": "GetConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config get [options] <key>
+
+Get a configuration value
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config get defaultWorkspace
+
+Readable config keys:
+  username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config set 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "key": "key-value",
+      "value": "value-value",
+    },
+    "token": "SetConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config set [options] <key> <value>
+
+Set a configuration value
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config set defaultWorkspace my-workspace
+  $ bb config set skipVersionCheck true
+  $ bb config set versionCheckInterval 86400
+
+Settable config keys:
+  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, seconds), prCreateIncludeDefaultReviewers (true/false)
+
+See also:
+  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config list 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "ListConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config list [options]
+
+List all configuration values
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config list
+  $ bb config list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion 1`] = `
+{
+  "help": 
+"Usage: bb completion [options] [command]
+
+Shell completion utilities
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  install         Install shell completions for bash, zsh, or fish
+  uninstall       Uninstall shell completions
+  help [command]  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion install 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "InstallCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion install [options]
+
+Install shell completions for bash, zsh, or fish
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion install
+  $ bb completion install --json
+
+Supported shells:
+  bash, zsh, fish
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion uninstall 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "UninstallCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion uninstall [options]
+
+Uninstall shell completions
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion uninstall
+  $ bb completion uninstall --json
+
+Supported shells:
+  bash, zsh, fish
+
+"
+,
+}
+`;

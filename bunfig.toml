@@ -12,8 +12,10 @@ coverageDir = "coverage"
 # Exclude code that can't be meaningfully unit-covered:
 # - src/generated/**: auto-generated API client (never edited by hand).
 # - src/index.ts: the runtime-guard entrypoint.
-# - src/cli.ts: Commander wiring; its ~50 action callbacks are exercised
-#   end-to-end, not unit-tested, so its per-file function coverage is low.
+# - src/cli.ts: the composition root; its DI dispatch (runCommand) and the
+#   shell-completion exit path run against the live container and process,
+#   so they are exercised end-to-end, not unit-tested. The per-group command
+#   wiring lives in src/commands/**/register.ts and is covered normally.
 # Glob (**) form is required — a plain prefix is not matched by Bun 1.3.x.
 coveragePathIgnorePatterns = ["src/generated/**", "src/index.ts", "src/cli.ts"]
 
