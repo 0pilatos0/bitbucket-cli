@@ -21,7 +21,7 @@ import { BBError, ErrorCode } from '../../types/errors.js';
 
 /**
  * Allowed `--color <when>` values. Single-sourced here (like `PIPELINE_SORTS`
- * in the pipeline list command) so `src/cli.ts` can advertise them for shell
+ * in the pipeline list command) so `./register.ts` can advertise them for shell
  * completion and `--help` without a circular import.
  */
 export const COLOR_WHENS = ['auto', 'always', 'never'] as const;

@@ -2,7 +2,7 @@
  * Tests for VersionService
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import {
   isStandaloneBinary,
   VersionService,
@@ -264,6 +264,35 @@ describe('VersionService', () => {
       const result = await service.checkForUpdate();
 
       expect(result).toBeNull();
+    });
+
+    it('reports the skipped check when BB_DEBUG is set, and not when BB_DEBUG=off', async () => {
+      const saved = {
+        BB_DEBUG: process.env.BB_DEBUG,
+        DEBUG: process.env.DEBUG,
+      };
+      const errorSpy = spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        stubFetchToThrow(new Error('ENETUNREACH'));
+        process.env.BB_DEBUG = 'http';
+        delete process.env.DEBUG;
+        await service.checkForUpdate();
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[version-check] skipped: ENETUNREACH'
+        );
+
+        errorSpy.mockClear();
+        process.env.BB_DEBUG = 'off';
+        process.env.DEBUG = 'true';
+        await service.checkForUpdate();
+        expect(errorSpy).not.toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+        for (const [key, value] of Object.entries(saved)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+      }
     });
 
     it('should update lastVersionCheck on successful fetch', async () => {

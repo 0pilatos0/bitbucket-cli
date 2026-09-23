@@ -146,7 +146,8 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 | `BB_WORKSPACE`  | Default workspace; overrides `defaultWorkspace` config                 |
 | `BB_LOCALE`     | BCP-47 locale for date/time formatting (e.g. `de-DE`); `--locale` wins |
 | `BB_NO_UNICODE` | Use ASCII fallbacks for symbols when set (any non-empty value)         |
-| `DEBUG`         | Enable HTTP debug logging — must equal exactly `true`                  |
+| `BB_DEBUG`      | HTTP debug tracing: `http` (status + timing) or `verbose` (+ bodies)   |
+| `DEBUG`         | Alias for `BB_DEBUG=verbose`; must equal exactly `true`                |
 | `NO_COLOR`      | Disable color output when set                                          |
 | `FORCE_COLOR`   | Force color output when set (and not `0`)                              |
 
