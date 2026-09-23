@@ -52,17 +52,17 @@
     "axios": "^1.20.0",
     "chalk": "^6.0.0",
     "commander": "^15.0.0",
-    "open": "^11.0.2",
+    "open": "^11.0.4",
     "tabtab": "^3.0.2"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
-    "@changesets/cli": "^3.0.2",
+    "@changesets/cli": "^3.0.3",
     "@openapitools/openapi-generator-cli": "^2.41.0",
     "@types/bun": "^1.4.2",
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.2",
     "jq-wasm": "^3.0.0-jq-1.8.2",
-    "prettier": "^3.9.6",
+    "prettier": "^3.9.8",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^7.0.2"
   }
