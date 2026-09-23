@@ -164,7 +164,12 @@ Commands:
   list [options]                 List repositories
   view [repository]              View repository details
   delete [options] <repository>  Delete a repository
+  cat [options] <path>           Print the contents of a repository file without
+                                 cloning
+  ls [options] [path]            List a repository directory without cloning
+                                 (default: the repository root)
   default-reviewers              Manage default reviewers for a repository
+  downloads                      Manage download artifacts of a repository
   help [command]                 display help for command
 "
 ,
@@ -330,6 +335,81 @@ Examples:
 }
 `;
 
+exports[`command tree snapshot bb repo cat 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "path": "path-value",
+      "ref": "ref-value",
+    },
+    "token": "CatRepoFileCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo cat [options] <path>
+
+Print the contents of a repository file without cloning
+
+Options:
+  --ref <ref>  Branch, tag, or commit to read from (default: the repository main
+               branch)
+  -h, --help   display help for command
+
+Examples:
+  $ bb repo cat README.md
+  $ bb repo cat src/index.ts --ref develop
+  $ bb repo cat package.json | jq .version
+  $ bb repo cat logo.png --ref v1.0.0 > logo.png
+
+Defaults:
+  --ref  the repository main branch
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo ls 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "path": "path-value",
+      "ref": "ref-value",
+    },
+    "token": "ListRepoFilesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo ls [options] [path]
+
+List a repository directory without cloning (default: the repository root)
+
+Options:
+  --ref <ref>       Branch, tag, or commit to list (default: the repository main
+                    branch)
+  --limit <number>  Maximum number of entries to list (default: "25")
+  --all             List all entries (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb repo ls
+  $ bb repo ls src --ref develop
+  $ bb repo ls docs --all
+  $ bb repo ls --json --jq '.entries[].path'
+
+Defaults:
+  --ref  the repository main branch
+  --limit  25
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb repo default-reviewers 1`] = `
 {
   "help": 
@@ -431,6 +511,118 @@ Options:
 
 Examples:
   $ bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo downloads 1`] = `
+{
+  "help": 
+"Usage: bb repo downloads [options] [command]
+
+Manage download artifacts of a repository
+
+Options:
+  -h, --help                   display help for command
+
+Commands:
+  list [options]               List download artifacts of a repository
+  upload <files...>            Upload files as download artifacts (replaces
+                               artifacts with the same name)
+  delete [options] <filename>  Delete a download artifact from a repository
+  help [command]               display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo downloads list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListDownloadsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo downloads list [options]
+
+List download artifacts of a repository
+
+Options:
+  --limit <number>  Maximum number of downloads to list (default: "25")
+  --all             List all downloads (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb repo downloads list
+  $ bb repo downloads list --all
+  $ bb repo downloads list --json --jq '.downloads[].name'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo downloads upload 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "files": [
+        "files-value",
+      ],
+    },
+    "token": "UploadDownloadCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo downloads upload [options] <files...>
+
+Upload files as download artifacts (replaces artifacts with the same name)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo downloads upload dist/app-1.0.0.tar.gz
+  $ bb repo downloads upload build/*.zip
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb repo downloads delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "filename": "filename-value",
+      "yes": true,
+    },
+    "token": "DeleteDownloadCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb repo downloads delete [options] <filename>
+
+Delete a download artifact from a repository
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  -h, --help  display help for command
+
+Examples:
+  $ bb repo downloads delete app-1.0.0.tar.gz --yes
 
 "
 ,

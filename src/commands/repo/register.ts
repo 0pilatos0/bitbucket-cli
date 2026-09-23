@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { registerRepoDefaultReviewersCommands } from './default-reviewers.register.js';
+import { registerRepoDownloadsCommands } from './downloads.register.js';
 
 export function registerRepoCommands(
   parent: Command,
@@ -120,7 +121,64 @@ export function registerRepoCommands(
       });
     });
 
+  repoCmd
+    .command('cat <path>')
+    .description('Print the contents of a repository file without cloning')
+    .option(
+      '--ref <ref>',
+      'Branch, tag, or commit to read from (default: the repository main branch)'
+    )
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb repo cat README.md',
+          'bb repo cat src/index.ts --ref develop',
+          'bb repo cat package.json | jq .version',
+          'bb repo cat logo.png --ref v1.0.0 > logo.png',
+        ],
+        defaults: { ref: 'the repository main branch' },
+      })
+    )
+    .action(async (path, options) => {
+      await registrar.runWithGlobalOptions(ServiceTokens.CatRepoFileCommand, {
+        path,
+        ...options,
+      });
+    });
+
+  repoCmd
+    .command('ls [path]')
+    .description(
+      'List a repository directory without cloning (default: the repository root)'
+    )
+    .option(
+      '--ref <ref>',
+      'Branch, tag, or commit to list (default: the repository main branch)'
+    )
+    .option('--limit <number>', 'Maximum number of entries to list', '25')
+    .option('--all', 'List all entries (overrides --limit)')
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb repo ls',
+          'bb repo ls src --ref develop',
+          'bb repo ls docs --all',
+          "bb repo ls --json --jq '.entries[].path'",
+        ],
+        defaults: { ref: 'the repository main branch', limit: '25' },
+      })
+    )
+    .action(async (path, options) => {
+      await registrar.runWithGlobalOptions(ServiceTokens.ListRepoFilesCommand, {
+        path,
+        ...options,
+      });
+    });
+
   registerRepoDefaultReviewersCommands(repoCmd, registrar);
+  registerRepoDownloadsCommands(repoCmd, registrar);
 
   parent.addCommand(repoCmd);
 }

@@ -58,6 +58,23 @@ function resolveTimeoutMs(): number {
   return parsed;
 }
 
+/** Slowest upload link budgeted for: 32 KiB/s (~256 kbit/s). */
+const MIN_UPLOAD_BYTES_PER_SECOND = 32 * 1024;
+
+/**
+ * Timeout for a request that uploads `bytes` of body. Under Bun the axios
+ * timeout spans the whole exchange, body streaming included, so the base
+ * timeout only has to cover the server's reply once the transfer allowance
+ * is added on top. A disabled timeout (`0`) stays disabled.
+ */
+export function resolveUploadTimeoutMs(bytes: number): number {
+  const base = resolveTimeoutMs();
+  if (base === 0) {
+    return 0;
+  }
+  return base + Math.ceil((bytes / MIN_UPLOAD_BYTES_PER_SECOND) * 1000);
+}
+
 const RETRYABLE_STATUS_CODES = new Set([429, 502, 503, 504]);
 
 /**
@@ -329,7 +346,7 @@ export function createApiClient(
         throw new BBError({
           code: ErrorCode.NETWORK_ERROR,
           message: isTimeout
-            ? `Network error: Request to Bitbucket API timed out after ${instance.defaults.timeout}ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.`
+            ? `Network error: Request to Bitbucket API timed out after ${error.config?.timeout ?? instance.defaults.timeout}ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.`
             : "Network error: Unable to reach Bitbucket API. Run with BB_DEBUG=http for details. If you're behind a proxy or using a custom CA, check your environment.",
           cause: error,
         });

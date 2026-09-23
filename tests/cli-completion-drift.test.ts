@@ -38,6 +38,8 @@ describe('CLI completion drift (issue #255)', () => {
       'commits',
       'workspaces',
       'projects',
+      'entries',
+      'downloads',
       'results',
       'webhooks',
       'values',
@@ -63,6 +65,8 @@ describe('CLI completion drift (issue #255)', () => {
       'status list': 'statuses',
       'workspace list': 'workspaces',
       'project list': 'projects',
+      'repo ls': 'entries',
+      'repo downloads list': 'downloads',
       'search code': 'results',
       'webhook list': 'webhooks',
     };

@@ -143,6 +143,8 @@ export const ServiceTokens = {
   PipelinesApi: 'PipelinesApi',
   WorkspacesApi: 'WorkspacesApi',
   ProjectsApi: 'ProjectsApi',
+  SourceApi: 'SourceApi',
+  DownloadsApi: 'DownloadsApi',
   SearchApi: 'SearchApi',
   WebhooksApi: 'WebhooksApi',
 
@@ -161,6 +163,11 @@ export const ServiceTokens = {
   ListDefaultReviewersCommand: 'ListDefaultReviewersCommand',
   AddDefaultReviewerCommand: 'AddDefaultReviewerCommand',
   RemoveDefaultReviewerCommand: 'RemoveDefaultReviewerCommand',
+  CatRepoFileCommand: 'CatRepoFileCommand',
+  ListRepoFilesCommand: 'ListRepoFilesCommand',
+  ListDownloadsCommand: 'ListDownloadsCommand',
+  UploadDownloadCommand: 'UploadDownloadCommand',
+  DeleteDownloadCommand: 'DeleteDownloadCommand',
 
   // Services - Default Reviewers
   DefaultReviewerService: 'DefaultReviewerService',
