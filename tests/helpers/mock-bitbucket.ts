@@ -29,6 +29,7 @@ export interface RecordedRequest {
 
 export interface MockResponse {
   status?: number;
+  /** JSON-serialized, except a `Uint8Array`, which is sent as raw bytes. */
   body?: unknown;
   headers?: Record<string, string>;
 }
@@ -216,10 +217,13 @@ export async function startMockBitbucket(
             headers,
             method: request.method,
           });
-          return Response.json(result.body ?? {}, {
+          const init = {
             status: result.status ?? 200,
             headers: { ...commonHeaders, ...(result.headers ?? {}) },
-          });
+          };
+          return result.body instanceof Uint8Array
+            ? new Response(result.body, init)
+            : Response.json(result.body ?? {}, init);
         }
 
         // Unknown route: Bitbucket-shaped 404 so tests fail loudly instead of

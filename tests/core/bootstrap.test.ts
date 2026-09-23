@@ -195,6 +195,8 @@ describe('bootstrap()', () => {
       ServiceTokens.PipelinesApi,
       ServiceTokens.WorkspacesApi,
       ServiceTokens.ProjectsApi,
+      ServiceTokens.SourceApi,
+      ServiceTokens.DownloadsApi,
       ServiceTokens.SearchApi,
       ServiceTokens.WebhooksApi,
       ServiceTokens.BranchRestrictionsApi,

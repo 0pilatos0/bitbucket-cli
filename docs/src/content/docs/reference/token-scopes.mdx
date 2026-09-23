@@ -31,8 +31,8 @@ The CLI uses these scopes:
 | Scope | Grants |
 |-------|--------|
 | `read:user:bitbucket` | Read user profiles — verifies any login, resolves your UUID for `bb pr list --mine` and the `bb ssh-key` / `bb gpg-key` commands, and covers `bb workspace list` |
-| `read:repository:bitbucket` | List and view repositories, commits, and commit build statuses; search code |
-| `write:repository:bitbucket` | Set commit build statuses |
+| `read:repository:bitbucket` | List and view repositories, their files, downloads, commits, and commit build statuses; search code |
+| `write:repository:bitbucket` | Set commit build statuses; upload and delete downloads |
 | `admin:repository:bitbucket` | Create repositories; add and remove default reviewers; list, view, create, and delete branch restrictions |
 | `delete:repository:bitbucket` | Delete repositories |
 | `read:pullrequest:bitbucket` | List, view, and diff pull requests; read comments, activity, checks, reviewers, and default reviewers |
@@ -76,6 +76,11 @@ The CLI uses these scopes:
 | `bb repo default-reviewers list` | `read:pullrequest:bitbucket` |
 | `bb repo default-reviewers add` | `admin:repository:bitbucket` |
 | `bb repo default-reviewers remove` | `admin:repository:bitbucket` |
+| `bb repo cat` | `read:repository:bitbucket` |
+| `bb repo ls` | `read:repository:bitbucket` |
+| `bb repo downloads list` | `read:repository:bitbucket` |
+| `bb repo downloads upload` | `write:repository:bitbucket` |
+| `bb repo downloads delete` | `write:repository:bitbucket` |
 
 `admin:` and `delete:` are separate scopes. A token with
 `admin:repository:bitbucket` can create repositories but cannot delete them.

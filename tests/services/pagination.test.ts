@@ -87,6 +87,30 @@ describe('collectPages', () => {
     expect(calls).toEqual([1, 2]);
   });
 
+  it("passes the previous page's next link to fetchPage", async () => {
+    const pages: Array<PaginatedCollection<number>> = [
+      { values: [1], next: 'https://api.example/?page=tokA' },
+      { values: [2], next: 'https://api.example/?page=tokB' },
+      { values: [3] },
+    ];
+    const nexts: Array<string | undefined> = [];
+
+    const result = await collectPages<number>({
+      limit: Number.POSITIVE_INFINITY,
+      fetchPage: async (page, _pagelen, next) => {
+        nexts.push(next);
+        return pages[page - 1] ?? { values: [] };
+      },
+    });
+
+    expect(result).toEqual([1, 2, 3]);
+    expect(nexts).toEqual([
+      undefined,
+      'https://api.example/?page=tokA',
+      'https://api.example/?page=tokB',
+    ]);
+  });
+
   it('returns an empty array when the first page is empty', async () => {
     const result = await collectPages<number>({
       limit: 10,

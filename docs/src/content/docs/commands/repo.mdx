@@ -1,6 +1,6 @@
 ---
 title: Repo Commands - Clone, Create & Manage Bitbucket Repositories
-description: Complete reference for Bitbucket CLI repository commands. Learn to clone, create, list, view, and delete repositories from the command line with examples.
+description: Complete reference for Bitbucket CLI repository commands. Clone, create, list, view, and delete repositories, read files without cloning, and manage downloads from the command line.
 ---
 
 Manage Bitbucket repositories.
@@ -182,6 +182,103 @@ bb repo view --json
 
 ---
 
+## `bb repo cat`
+
+Print a file's contents from Bitbucket without cloning the repository.
+
+```bash
+bb repo cat <path> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `path` | File path relative to the repository root (leading and trailing `/` are ignored) |
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--ref <ref>` | Branch, tag, or commit to read from | the repository main branch |
+
+### Examples
+
+```bash
+# Print a file from the main branch
+bb repo cat README.md
+
+# Read from another branch, tag, or commit
+bb repo cat src/index.ts --ref develop
+bb repo cat CHANGELOG.md --ref v1.2.0
+
+# Pipe it anywhere; output is the file's exact bytes
+bb repo cat package.json | jq .version
+bb repo cat assets/logo.png --ref v1.0.0 > logo.png
+
+# Content plus metadata as JSON
+bb repo cat package.json --json
+```
+
+### JSON output
+
+`--json` emits `{ workspace, repoSlug, ref, commit, path, size, encoding, content }`. `commit` is the resolved commit hash. `encoding` is `utf-8` when the file is valid UTF-8 text, otherwise `base64` and `content` holds the base64-encoded bytes.
+
+### Notes
+
+- When stdout is piped or redirected the file is written byte-for-byte, with no trailing newline added. When printing to a terminal, control sequences are stripped like all other output.
+- A directory path fails with a pointer to `bb repo ls`. A missing path or ref fails with `Path '<path>' not found at ref '<ref>' in <workspace>/<repo>.`
+- Branch names containing `/` (such as `feature/x`) are resolved to their head commit first, because Bitbucket's source endpoint cannot address them by name.
+
+---
+
+## `bb repo ls`
+
+List a directory's files and subdirectories without cloning.
+
+```bash
+bb repo ls [path] [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `path` | Directory path relative to the repository root. Omit to list the root. |
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--ref <ref>` | Branch, tag, or commit to list | the repository main branch |
+| `--limit <number>` | Maximum number of entries | 25 |
+| `--all` | List every entry (overrides `--limit`) | |
+
+### Examples
+
+```bash
+# List the repository root
+bb repo ls
+
+# List a subdirectory on another branch
+bb repo ls src/commands --ref develop
+
+# Every entry, as JSON paths
+bb repo ls docs --all --json --jq '.entries[].path'
+```
+
+### JSON output
+
+The `--json` envelope is `{ workspace, repoSlug, ref, path, count, entries }`. Each entry is Bitbucket's tree entry object: `type` is `commit_file` or `commit_directory`, `path` is relative to the repository root, and files carry `size` and `attributes`.
+
+### Notes
+
+- The table shows `TYPE` (`dir` or `file`), `SIZE` in bytes, and `PATH`. Directories end in `/`.
+- Listing is not recursive. Pass a directory path to go deeper.
+- A file path fails with a pointer to `bb repo cat`.
+
+---
+
 ## `bb repo delete`
 
 Delete a repository.
@@ -286,3 +383,62 @@ bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" -
 
 - Project-inherited reviewers can only be removed by editing the parent project, not the repository.
 - Related: [`bb pr create --default-reviewers`](/commands/pr/create-and-edit/) applies these reviewers when opening a pull request.
+
+---
+
+<a id="bb-repo-downloads"></a>
+
+## `bb repo downloads`
+
+Manage the files in a repository's **Downloads** section (release archives, installers, and other build artifacts).
+
+:::note
+Bitbucket only offers Downloads on Standard and Premium workspace plans. On a Free plan every `bb repo downloads` command fails with Bitbucket's `A workspace on a Free plan does not support uploading or downloading files.` message.
+:::
+
+### `bb repo downloads list`
+
+```bash
+bb repo downloads list [options]
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--limit <number>` | Maximum number of downloads | 25 |
+| `--all` | List every download (overrides `--limit`) | |
+
+```bash
+bb repo downloads list
+bb repo downloads list --json --jq '.downloads[].name'
+```
+
+The table shows name, size in bytes, download count, uploader, and upload date. The `--json` envelope is `{ workspace, repoSlug, count, downloads }`; each download object includes its `links.self.href` URL.
+
+### `bb repo downloads upload`
+
+```bash
+bb repo downloads upload <files...>
+```
+
+Uploads one or more local files in a single request. Each artifact is named after the file's basename, and an existing artifact with the same name is replaced.
+
+```bash
+bb repo downloads upload dist/app-1.0.0.tar.gz
+bb repo downloads upload build/*.zip
+```
+
+`--json` emits `{ success, workspace, repoSlug, uploaded }`, where `uploaded` lists the artifact names. A missing file, a directory, or two files sharing a basename fails before anything is sent.
+
+The upload gets the HTTP timeout (30 seconds by default, see [`BB_HTTP_TIMEOUT`](/reference/environment-variables/)) plus transfer time for the total file size at 32 KiB/s, so large artifacts do not need a raised timeout. `BB_HTTP_TIMEOUT=0` disables it.
+
+### `bb repo downloads delete`
+
+```bash
+bb repo downloads delete <filename> --yes
+```
+
+| Option | Description |
+|--------|-------------|
+| `-y, --yes` | Confirm deletion (required) |
+
+`--json` emits `{ success, workspace, repoSlug, filename }`.

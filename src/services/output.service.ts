@@ -58,6 +58,8 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'commits', // commit list
   'workspaces', // workspace list
   'projects', // project list
+  'entries', // repo ls
+  'downloads', // repo downloads list
   'results', // search code
   'webhooks', // webhook list
   'branchRestrictions', // branch-restriction list
@@ -67,6 +69,23 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'environments', // deployment environments
   'values', // generic fallback for paginated payloads
 ];
+
+let closedPipeGuardInstalled = false;
+
+// A reader that exits early (`bb repo cat big.bin | head`) closes the pipe
+// mid-write. That is a normal end of output, like `cat` under SIGPIPE, not
+// an error worth a Bun crash report.
+function ignoreClosedStdoutPipe(): void {
+  if (closedPipeGuardInstalled) {
+    return;
+  }
+  closedPipeGuardInstalled = true;
+  process.stdout.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.code !== 'EPIPE') {
+      throw error;
+    }
+  });
+}
 
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
@@ -238,6 +257,16 @@ export class OutputService implements IOutputService {
   public stderr(message: string): void {
     this.stopActiveSpinner();
     console.error(stripControl(message));
+  }
+
+  public raw(data: Uint8Array): void {
+    this.stopActiveSpinner();
+    ignoreClosedStdoutPipe();
+    if (process.stdout.isTTY) {
+      process.stdout.write(stripControl(new TextDecoder().decode(data)));
+      return;
+    }
+    process.stdout.write(data);
   }
 
   public separator(width = 60): void {

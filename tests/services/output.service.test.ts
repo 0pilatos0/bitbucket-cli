@@ -141,6 +141,8 @@ describe('OutputService', () => {
       ['commits', 'commit list'],
       ['workspaces', 'workspace list'],
       ['projects', 'project list'],
+      ['entries', 'repo ls'],
+      ['downloads', 'repo downloads list'],
       ['results', 'search code'],
       ['webhooks', 'webhook list'],
       ['values', 'generic paginated payloads'],
@@ -369,6 +371,51 @@ describe('OutputService', () => {
       output.stderr('ok\x1b]0;pwned\x07after');
 
       expect(consoleErrors[0]).toBe('okafter');
+    });
+  });
+
+  describe('raw', () => {
+    let writes: unknown[];
+    let writeSpy: ReturnType<typeof spyOn>;
+    const originalIsTTY = process.stdout.isTTY;
+    const setStdoutTTY = (value: boolean | undefined): void => {
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value,
+        configurable: true,
+      });
+    };
+
+    beforeEach(() => {
+      writes = [];
+      writeSpy = spyOn(process.stdout, 'write').mockImplementation(
+        (chunk: unknown) => {
+          writes.push(chunk);
+          return true;
+        }
+      );
+    });
+
+    afterEach(() => {
+      writeSpy.mockRestore();
+      setStdoutTTY(originalIsTTY);
+    });
+
+    it('writes the exact bytes with no trailing newline when piped', () => {
+      setStdoutTTY(false);
+      const bytes = new Uint8Array([0x89, 0x50, 0x1b, 0x5d, 0x00, 0x0a]);
+
+      output.raw(bytes);
+
+      expect(writes).toEqual([bytes]);
+      expect(consoleLogs).toHaveLength(0);
+    });
+
+    it('strips terminal control sequences when stdout is a TTY', () => {
+      setStdoutTTY(true);
+
+      output.raw(new TextEncoder().encode('ok\x1b]0;pwned\x07after\n'));
+
+      expect(writes).toEqual(['okafter\n']);
     });
   });
 

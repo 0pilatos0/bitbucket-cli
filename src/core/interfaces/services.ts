@@ -218,6 +218,13 @@ export interface IOutputService {
    */
   stderr(message: string): void;
   /**
+   * Write file contents to stdout exactly as given: no trailing newline and,
+   * when stdout is not a terminal, no control-character stripping, so piped
+   * output is byte-for-byte identical to the source (e.g. `bb repo cat`).
+   * Terminal output is still sanitized like every other text channel.
+   */
+  raw(data: Uint8Array): void;
+  /**
    * Render a horizontal visual section divider. Used for framing rich
    * command output (e.g. `pr view`). Centralizing this keeps the separator
    * style consistent across commands and lets callers avoid raw repeat

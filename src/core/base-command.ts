@@ -25,13 +25,23 @@ export interface RunListSpec<TItem> {
    * `resolveLimit()` (defaulting to 25, `Infinity` for `--all`).
    */
   options: { limit?: string; all?: boolean };
-  /** Fetch one page from the API (1-based page number). */
+  /**
+   * Fetch one page from the API (1-based page number). `next` is the previous
+   * page's `next` link on the sequential walk (see `collectPagesWithMeta`).
+   */
   fetchPage: (
     page: number,
-    pagelen: number
+    pagelen: number,
+    next?: string
   ) => Promise<PaginatedCollection<TItem>>;
   /** Optional client-side filter applied to each fetched item. */
   shouldInclude?: (item: TItem) => boolean;
+  /**
+   * Max pages fetched in flight for `--all` (see `collectPagesWithMeta`).
+   * Set to 1 for cursor-paginated endpoints: the concurrent fast path
+   * requests pages by number and never passes `next`.
+   */
+  concurrency?: number;
   /**
    * Key under which the collected items array is emitted in the JSON
    * envelope (e.g. `pullRequests`, `comments`). MUST be registered in
@@ -360,6 +370,7 @@ export abstract class BaseCommand<
       limit,
       fetchPage: spec.fetchPage,
       shouldInclude: spec.shouldInclude,
+      concurrency: spec.concurrency,
     });
 
     if (context.globalOptions.json) {

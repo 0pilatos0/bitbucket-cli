@@ -566,21 +566,38 @@ describe('CLI command registration', () => {
     expect(names).toEqual(['login', 'logout', 'status', 'token']);
   });
 
-  it('should register all repo subcommands (including default-reviewers)', () => {
+  it('should register all repo subcommands (including default-reviewers and downloads)', () => {
     const repoCmd = requireCommand('repo');
     const names = repoCmd.commands.map((c) => c.name()).sort();
     expect(names).toEqual([
+      'cat',
       'clone',
       'create',
       'default-reviewers',
       'delete',
+      'downloads',
       'list',
+      'ls',
       'view',
     ]);
 
     const drCmd = requireCommand('repo', 'default-reviewers');
     const drNames = drCmd.commands.map((c) => c.name()).sort();
     expect(drNames).toEqual(['add', 'list', 'remove']);
+
+    const dlCmd = requireCommand('repo', 'downloads');
+    const dlNames = dlCmd.commands.map((c) => c.name()).sort();
+    expect(dlNames).toEqual(['delete', 'list', 'upload']);
+  });
+
+  it('should wire repo cat/ls --ref and ls pagination options', () => {
+    const cat = requireCommand('repo', 'cat');
+    expect(hasOption(cat, '--ref')).toBe(true);
+
+    const ls = requireCommand('repo', 'ls');
+    expect(hasOption(ls, '--ref')).toBe(true);
+    expect(hasOption(ls, '--limit')).toBe(true);
+    expect(hasOption(ls, '--all')).toBe(true);
   });
 
   it('should register all pr subcommands (including comments and reviewers)', () => {

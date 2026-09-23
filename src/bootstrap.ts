@@ -30,6 +30,8 @@ import {
   PipelinesApi,
   WorkspacesApi,
   ProjectsApi,
+  SourceApi,
+  DownloadsApi,
   SearchApi,
   WebhooksApi,
   BranchRestrictionsApi,
@@ -53,6 +55,11 @@ import { DeleteRepoCommand } from './commands/repo/delete.command.js';
 import { ListDefaultReviewersCommand } from './commands/repo/default-reviewers.list.command.js';
 import { AddDefaultReviewerCommand } from './commands/repo/default-reviewers.add.command.js';
 import { RemoveDefaultReviewerCommand } from './commands/repo/default-reviewers.remove.command.js';
+import { CatRepoFileCommand } from './commands/repo/cat.command.js';
+import { ListRepoFilesCommand } from './commands/repo/ls.command.js';
+import { ListDownloadsCommand } from './commands/repo/downloads.list.command.js';
+import { UploadDownloadCommand } from './commands/repo/downloads.upload.command.js';
+import { DeleteDownloadCommand } from './commands/repo/downloads.delete.command.js';
 
 // PR commands
 import { CreatePRCommand } from './commands/pr/create.command.js';
@@ -293,6 +300,8 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerApiClient(container, ServiceTokens.PipelinesApi, PipelinesApi);
   registerApiClient(container, ServiceTokens.WorkspacesApi, WorkspacesApi);
   registerApiClient(container, ServiceTokens.ProjectsApi, ProjectsApi);
+  registerApiClient(container, ServiceTokens.SourceApi, SourceApi);
+  registerApiClient(container, ServiceTokens.DownloadsApi, DownloadsApi);
   registerApiClient(container, ServiceTokens.SearchApi, SearchApi);
   registerApiClient(container, ServiceTokens.WebhooksApi, WebhooksApi);
   registerApiClient(
@@ -413,6 +422,58 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.DefaultReviewerService,
       ServiceTokens.UsersApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CatRepoFileCommand,
+    CatRepoFileCommand,
+    [
+      ServiceTokens.SourceApi,
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ListRepoFilesCommand,
+    ListRepoFilesCommand,
+    [
+      ServiceTokens.SourceApi,
+      ServiceTokens.CommitsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ListDownloadsCommand,
+    ListDownloadsCommand,
+    [
+      ServiceTokens.DownloadsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.UploadDownloadCommand,
+    UploadDownloadCommand,
+    [
+      ServiceTokens.DownloadsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.DeleteDownloadCommand,
+    DeleteDownloadCommand,
+    [
+      ServiceTokens.DownloadsApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
