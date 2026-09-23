@@ -572,7 +572,7 @@ describe('createApiClient - retry/backoff', () => {
       expect(bbErr.message).toContain(
         'Network error: Unable to reach Bitbucket API'
       );
-      expect(bbErr.message).toContain('DEBUG=true');
+      expect(bbErr.message).toContain('BB_DEBUG=http');
     }
 
     // Network errors without a recognized transient `code` are not retried

@@ -336,7 +336,9 @@ cli
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
         BB_PROMPT_DISABLED: 'Same as --no-input when set (any non-empty value)',
-        DEBUG: "Enable HTTP debug logging when exactly 'true'",
+        BB_DEBUG:
+          "HTTP debug tracing: 'http' (method, URL, status, timing), 'verbose' (adds redacted request and response bodies) or 'off'",
+        DEBUG: "Alias for BB_DEBUG=verbose when exactly 'true'",
         BB_LOCALE:
           'BCP-47 locale tag for date/time formatting; --locale takes precedence',
       },

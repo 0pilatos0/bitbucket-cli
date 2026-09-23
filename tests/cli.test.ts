@@ -362,6 +362,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('FORCE_COLOR');
     expect(output).toContain('BB_NO_UNICODE');
     expect(output).toContain('BB_PROMPT_DISABLED');
+    expect(output).toContain('BB_DEBUG');
     expect(output).toContain('DEBUG');
     expect(output).toContain('BB_LOCALE');
   });
