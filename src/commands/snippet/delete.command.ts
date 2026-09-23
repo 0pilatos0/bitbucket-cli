@@ -38,9 +38,10 @@ export class DeleteSnippetCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete snippet ${options.id}.`
+      `This will permanently delete snippet ${options.id}.`,
+      context
     );
 
     await this.snippetsApi.snippetsWorkspaceEncodedIdDelete({

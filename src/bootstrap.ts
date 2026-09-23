@@ -8,6 +8,7 @@ import {
   GitService,
   ContextService,
   OutputService,
+  PromptService,
   VersionService,
   OAuthService,
   createApiClient,
@@ -227,6 +228,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
         locale: options.locale,
       })
   );
+  container.register(ServiceTokens.PromptService, () => new PromptService());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.ConfigService,
     ServiceTokens.CredentialStore,

@@ -129,6 +129,7 @@ export const ServiceTokens = {
   GitService: 'GitService',
   ContextService: 'ContextService',
   OutputService: 'OutputService',
+  PromptService: 'PromptService',
   OAuthService: 'OAuthService',
   VersionService: 'VersionService',
 

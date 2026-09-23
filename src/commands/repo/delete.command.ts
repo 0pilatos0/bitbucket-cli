@@ -49,9 +49,10 @@ export class DeleteRepoCommand extends BaseCommand<
     const repoContext =
       await this.contextService.requireRepoContext(contextOptions);
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       yes,
-      `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.`
+      `This will permanently delete ${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     await this.repositoriesApi.repositoriesWorkspaceRepoSlugDelete({

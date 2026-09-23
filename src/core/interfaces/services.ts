@@ -159,6 +159,37 @@ export interface ISpinner {
   setText(text: string): ISpinner;
 }
 
+export interface PromptChoice<T extends string> {
+  value: T;
+  label: string;
+}
+
+/**
+ * Interactive terminal prompts. Commands reach it through
+ * `CommandContext.prompt`, which is only set once `isAvailable()` and the
+ * per-invocation gates passed, so scripts and CI keep the non-interactive,
+ * flag-driven contract.
+ */
+export interface IPromptService {
+  /**
+   * True only when stdin and stdout are both TTYs and `BB_PROMPT_DISABLED`
+   * is unset or empty. Per-invocation gates (`--json`, `--no-input`) are
+   * applied in `createContext()`.
+   */
+  isAvailable(): boolean;
+  /** Ask a yes/no question; anything but `y`/`yes` answers no. */
+  confirm(message: string): Promise<boolean>;
+  /** Ask for a line of text. With `required`, re-asks until non-empty. */
+  text(message: string, options?: { required?: boolean }): Promise<string>;
+  /** Ask for a value without echoing it (tokens, passwords). */
+  secret(message: string): Promise<string>;
+  /** Ask the user to pick one of `choices`; an empty answer picks the first. */
+  select<T extends string>(
+    message: string,
+    choices: readonly PromptChoice<T>[]
+  ): Promise<T>;
+}
+
 /**
  * Output service interface for formatting and displaying output
  */

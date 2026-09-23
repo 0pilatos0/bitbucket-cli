@@ -9,6 +9,7 @@ import type {
   IContextService,
   IGitService,
   IOutputService,
+  IPromptService,
 } from '../../core/interfaces/services.js';
 import type {
   Account,
@@ -56,13 +57,9 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     options: CreatePROptions,
     context: CommandContext
   ): Promise<void> {
-    if (!options.title) {
-      throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
-        message: this.appendHelpHint(
-          'Pull request title is required. Use --title option.'
-        ),
-      });
+    // Fail before any git or API call when the title can't be asked for.
+    if (!options.title && !context.prompt) {
+      throw this.titleRequiredError();
     }
 
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -77,6 +74,11 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const destinationBranch = options.destination || 'main';
 
+    const { title, body } = await this.resolveTitleAndBody(
+      options,
+      context.prompt
+    );
+
     const includeDefaults = await this.shouldIncludeDefaults(options);
     const explicitUsernames = options.reviewer ?? [];
     const reviewers = await this.resolveReviewers(
@@ -87,7 +89,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const request: Pullrequest = {
       type: 'pullrequest',
-      title: options.title,
+      title,
       source: {
         branch: { name: sourceBranch },
       } as Pullrequest['source'],
@@ -96,8 +98,8 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       } as Pullrequest['destination'],
     };
 
-    if (options.body) {
-      request.description = options.body;
+    if (body) {
+      request.description = body;
     }
 
     if (options.closeSourceBranch) {
@@ -143,6 +145,32 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       const labels = reviewers.map((r) => r.label).join(', ');
       this.output.text(`  ${this.output.dim('Reviewers:')} ${labels}`);
     }
+  }
+
+  /** `--title`/`--body` win; a missing title, then body, is asked for. */
+  private async resolveTitleAndBody(
+    options: CreatePROptions,
+    prompt: IPromptService | undefined
+  ): Promise<{ title: string; body?: string }> {
+    if (options.title) {
+      return { title: options.title, body: options.body };
+    }
+    if (!prompt) {
+      throw this.titleRequiredError();
+    }
+    return {
+      title: await prompt.text('Title', { required: true }),
+      body: options.body ?? (await prompt.text('Description (optional)')),
+    };
+  }
+
+  private titleRequiredError(): BBError {
+    return new BBError({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: this.appendHelpHint(
+        'Pull request title is required. Use --title option.'
+      ),
+    });
   }
 
   private async shouldIncludeDefaults(

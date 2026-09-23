@@ -12,6 +12,7 @@ import {
   createMockAdapter,
   createMockContextService,
   createMockOutputService,
+  createMockPromptService,
 } from '../setup.js';
 import { APIError, ErrorCode } from '../../src/types/errors.js';
 import {
@@ -455,6 +456,24 @@ describe('DeleteWebhookCommand', () => {
       command.execute({ uid: UID }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm.');
     expect(calls).toEqual([]);
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const calls: ApiCall[] = [];
+    const prompt = createMockPromptService([true]);
+    const command = new DeleteWebhookCommand(
+      createMockWebhooksApi({ calls }),
+      repoContextService(),
+      createMockOutputService()
+    );
+
+    await command.execute({ uid: UID }, { globalOptions: {}, prompt });
+
+    expect(prompt.calls).toHaveLength(1);
+    expect(prompt.calls[0]).toStartWith(
+      'confirm:This will permanently delete webhook'
+    );
+    expect(calls.length).toBeGreaterThan(0);
   });
 
   it('rejects a blank uid before prompting or calling the API', async () => {

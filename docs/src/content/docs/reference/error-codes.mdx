@@ -359,6 +359,22 @@ snippet actually contains.
 Any other read failure (a permission error, or pointing at a directory) is
 reported as [9999 UNKNOWN](#9999---unknown).
 
+### 5004 - PROMPT_CANCELLED
+
+**Message:** `Cancelled.` (a declined confirmation) or `Prompt cancelled.`
+(Ctrl+C or Ctrl+D at any prompt)
+
+**Cause:** You answered no at a `Continue? (y/N)` confirmation, or interrupted
+an interactive prompt. Prompts only appear in an interactive terminal, so
+scripts and CI never see this code. See
+[`--no-input`](/reference/global-flags/#--no-input).
+
+The process exits with status 1, except after Ctrl+C, which exits with 130
+like any other interrupted command.
+
+**Solution:**
+- Run the command again and answer `y`, or pass `--yes` to skip the question
+
 ---
 
 ## Context errors (6xxx)

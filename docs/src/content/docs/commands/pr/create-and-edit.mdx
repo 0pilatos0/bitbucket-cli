@@ -23,7 +23,7 @@ bb pr create [options]
 
 | Option | Description |
 |--------|-------------|
-| `-t, --title <title>` | PR title (required) |
+| `-t, --title <title>` | PR title (required; asked for in an interactive terminal when missing) |
 | `-b, --body <body>` | PR description |
 | `-s, --source <branch>` | Source branch (default: current branch) |
 | `-d, --destination <branch>` | Destination branch (default: main) |
@@ -63,6 +63,18 @@ bb pr create -t "Add new feature" --default-reviewers \
 # Capture the new PR's URL from JSON output for scripting
 bb pr create -t "Add new feature" --json --jq '.links.html.href'
 ```
+
+### Interactive prompts
+
+Run `bb pr create` without `--title` in an interactive terminal and it asks
+for the title, then for an optional one-line description (press Enter to skip
+it; a `--body` you passed is kept and not asked for). Use `--body` for a
+multi-line description. The questions come after the
+repository and source branch are resolved, so a bad context fails before you
+type anything.
+
+Outside an interactive terminal (pipes, CI, `--json`, [`--no-input`](/reference/global-flags/#--no-input)) a missing title
+still fails straight away with `Pull request title is required. Use --title option.`
 
 ### Reviewers
 

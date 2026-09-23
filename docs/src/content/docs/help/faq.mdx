@@ -166,17 +166,24 @@ See [Repository Context](/guides/repository-context/) for details.
 
 ### Does bb support interactive mode?
 
-Only `bb completion install`, which asks which shell you use. Every other command takes flags and arguments.
+Partly. Every command is driven by flags and arguments, and a few of them ask
+for what is missing when you run them in an interactive terminal:
 
-`bb auth login` is browser-interactive but never prompts in the terminal — it opens your browser and waits up to 5 minutes for the callback on `http://localhost:19872/callback`.
+- Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`) ask `Continue? (y/N)` when `-y/--yes` is missing.
+- `bb pr create` asks for the title (and an optional description) when `--title` is missing.
+- `bb auth login` asks whether to use the browser or an API token, and for a missing username or token.
 
-Destructive commands don't prompt either. Without `-y/--yes` they fail with `Use --yes to confirm.`:
+Scripts and CI are unaffected. Prompts need stdin and stdout to both be terminals, and `--json`, `--no-input` or `BB_PROMPT_DISABLED=1` turn them off.
+
+`bb completion install` is the exception: it always asks which shell you use, even with these switches, so don't run it in a script. See [`bb completion install`](/commands/completion/#bb-completion-install).
+
+Without prompts a destructive command fails with `Use --yes to confirm.`, so pass the flag:
 
 ```bash
 bb repo delete myworkspace/old-repo --yes
 ```
 
-That gate applies to `bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`, `bb snippet delete`, and `bb snippet comments delete`.
+See [`--no-input`](/reference/global-flags/#--no-input) for the details.
 
 ---
 

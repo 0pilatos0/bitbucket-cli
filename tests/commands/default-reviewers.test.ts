@@ -12,7 +12,11 @@ import type {
 } from '../../src/services/default-reviewer.service.js';
 import type { IContextService } from '../../src/core/interfaces/services.js';
 import type { UsersApi } from '../../src/generated/api.js';
-import { createMockOutputService, mockUser } from '../setup.js';
+import {
+  createMockOutputService,
+  createMockPromptService,
+  mockUser,
+} from '../setup.js';
 
 function createMockUsersApi(): UsersApi {
   const api = {
@@ -292,5 +296,23 @@ describe('RemoveDefaultReviewerCommand', () => {
 
     expect(removeCalls).toEqual(['{jdoe-uuid}']);
     expect(output.logs.some((l) => l.startsWith('success:'))).toBe(true);
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const removeCalls: string[] = [];
+    const prompt = createMockPromptService([true]);
+    const cmd = new RemoveDefaultReviewerCommand(
+      createMockService({ removeCalls }),
+      createMockUsersApi(),
+      createContextService(),
+      createMockOutputService()
+    );
+
+    await cmd.execute({ username: 'jdoe' }, { globalOptions: {}, prompt });
+
+    expect(prompt.calls).toEqual([
+      'confirm:This will remove jdoe from the default reviewers of ws/repo. Continue?',
+    ]);
+    expect(removeCalls).toEqual(['{jdoe-uuid}']);
   });
 });

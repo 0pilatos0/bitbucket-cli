@@ -4,6 +4,7 @@
 
 import type { GlobalOptions } from '../../types/config.js';
 import type { BBError } from '../../types/errors.js';
+import type { IPromptService } from './services.js';
 
 /**
  * Base command context passed to all commands
@@ -25,6 +26,13 @@ export interface CommandContext {
    * in which case the hint falls back to `bb --help`.
    */
   commandPath?: string;
+  /**
+   * Set only when this invocation may ask questions: stdin and stdout are
+   * TTYs, `BB_PROMPT_DISABLED` is unset, and neither `--json` nor
+   * `--no-input` was passed. When absent, commands keep the flag-only
+   * behavior.
+   */
+  prompt?: IPromptService;
 }
 
 /**
