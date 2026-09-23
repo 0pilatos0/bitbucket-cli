@@ -42,7 +42,14 @@ bun run release
 ## Repository Layout
 
 - `src/index.ts` entrypoint (Bun shebang; runtime guard)
-- `src/cli.ts` Commander CLI wiring and option parsing
+- `src/cli.ts` composition root: global flags, root action, lifecycle hooks,
+  and the `CommandRegistrar` handed to every command group
+- `src/commands/register.ts` top-level command order (drives `bb --help` and
+  completion order)
+- `src/commands/<group>/register.ts` each group's Commander subtree (arguments,
+  options, help text); nested groups get their own module
+  (e.g. `pr/comments.register.ts`), top-level commands use
+  `src/commands/<name>.register.ts`
 - `src/bootstrap.ts` dependency injection registrations
 - `src/core/**` DI container, base command, interfaces
 - `src/commands/**` command implementations (`*.command.ts`)
@@ -110,10 +117,30 @@ bun run release
 - Implement `name`, `description`, and `execute()` returning `Promise<TResult>`
 - Inject dependencies via constructor; avoid service locators in commands
 - `CommandContext` carries `globalOptions` (workspace/repo/json)
-- Use `withGlobalOptions()` when merging per-command options
+- Merge per-command options with the global ones via
+  `registrar.runWithGlobalOptions()` (see Command Registration)
 - Prefer `ContextService.requireRepoContext()` for workspace/repo resolution
 - Gate destructive actions with `await this.requireConfirmation(options.yes, warning, context)`; it prompts only in an interactive terminal and otherwise throws the standard "Use --yes" error
 - Ask for missing input only through `context.prompt`; `createContext()` leaves it `undefined` for non-TTY, `--json`, `--no-input` and `BB_PROMPT_DISABLED`, and that path must keep the flag-only behavior
+
+### Command Registration
+
+- Wire a new subcommand in its group's `register.ts`; a new group gets its own
+  `register.ts` plus an entry in `src/commands/register.ts`
+- Map parsed arguments to options and dispatch through the `CommandRegistrar`:
+  `registrar.runWithGlobalOptions(token, options)` merges `--workspace` /
+  `--repo`, `registrar.run(token, options)` passes options as-is
+- Create groups with `new Command(name)` and attach them with
+  `parent.addCommand()`; top-level leaf commands use `parent.command()`
+  (historical, keep it for consistency)
+- Never call `cli.allowExcessArguments()` before `registerCommands()`; see the
+  comment in `src/cli.ts`
+- Advertise enum values with `withCompletionChoices()` from
+  `src/core/command-options.ts`, not Commander's `.choices()`; use its
+  `collectRepeated` for repeatable options
+- `tests/commands/__snapshots__/register.test.ts.snap` pins the command tree
+  and help text; review its diff and update it with `bun test --update-snapshots`
+- Register modules never import `src/cli.ts`
 
 ### Output and JSON
 
