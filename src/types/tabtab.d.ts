@@ -1,4 +1,5 @@
-declare module 'tabtab' {
+// Declared by `.js` file path to match the imports; see scripts/build.ts.
+declare module 'tabtab/lib/index.js' {
   interface TabtabEnv {
     complete: boolean;
     words: number;
@@ -35,7 +36,7 @@ declare module 'tabtab' {
 
 // Private tabtab internals used by src/completion-install.ts; the exact
 // version pin in package.json keeps these paths stable.
-declare module 'tabtab/lib/prompt' {
+declare module 'tabtab/lib/prompt.js' {
   interface PromptAnswers {
     location: string;
     shell?: string;
@@ -45,7 +46,7 @@ declare module 'tabtab/lib/prompt' {
   export default prompt;
 }
 
-declare module 'tabtab/lib/installer' {
+declare module 'tabtab/lib/installer.js' {
   function writeToShellConfig(options: {
     location: string;
     name: string;
@@ -55,7 +56,7 @@ declare module 'tabtab/lib/installer' {
   export { writeToShellConfig, writeToTabtabScript };
 }
 
-declare module 'tabtab/lib/utils/systemShell' {
+declare module 'tabtab/lib/utils/systemShell.js' {
   function systemShell(): string;
   export default systemShell;
 }

@@ -13,13 +13,16 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import tabtab from 'tabtab';
-import { writeToShellConfig, writeToTabtabScript } from 'tabtab/lib/installer';
-import promptForLocation from 'tabtab/lib/prompt';
+import tabtab from 'tabtab/lib/index.js';
+import {
+  writeToShellConfig,
+  writeToTabtabScript,
+} from 'tabtab/lib/installer.js';
+import promptForLocation from 'tabtab/lib/prompt.js';
 import bashTemplate from 'tabtab/lib/scripts/bash.sh' with { type: 'text' };
 import fishTemplate from 'tabtab/lib/scripts/fish.sh' with { type: 'text' };
 import zshTemplate from 'tabtab/lib/scripts/zsh.sh' with { type: 'text' };
-import systemShell from 'tabtab/lib/utils/systemShell';
+import systemShell from 'tabtab/lib/utils/systemShell.js';
 
 export interface CompletionTarget {
   name: string;

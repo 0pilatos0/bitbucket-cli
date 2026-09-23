@@ -36,7 +36,7 @@ import { resolveRootInvocation } from './root-dispatch.js';
 export { buildCommandPath } from './core/command-tree.js';
 import { resolveLocale } from './services/locale.js';
 
-import tabtab from 'tabtab';
+import tabtab from 'tabtab/lib/index.js';
 
 // Enum option values, single-sourced so shell completion and the help-text
 // `validValues` blocks can never drift. The merge strategies and snippet roles

@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { spawn, spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -158,6 +158,14 @@ beforeAll(async () => {
   if (build.status !== 0) {
     throw new Error(`scripts/build.ts failed with exit code ${build.status}`);
   }
+
+  // tabtab stays external in the bundle; link node_modules next to dist/ as
+  // an npm install would, so it resolves without Bun's auto-install.
+  await symlink(
+    join(REPO_ROOT, 'node_modules'),
+    join(tmpDir, 'node_modules'),
+    'junction'
+  );
 
   // Write the config in BOTH platform layouts so whichever leg CI runs on
   // finds the credentials: POSIX reads $HOME/.config/bb, win32 reads

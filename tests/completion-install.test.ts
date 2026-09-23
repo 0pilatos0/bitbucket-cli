@@ -40,10 +40,10 @@ describe('installCompletion', () => {
     homeDir = await mkdtemp(join(tmpdir(), 'bb-completion-'));
     writeToShellConfig = mock(() => Promise.resolve());
     writeToTabtabScript = mock(() => Promise.resolve());
-    mock.module('tabtab/lib/prompt', () => ({
+    mock.module('tabtab/lib/prompt.js', () => ({
       default: () => Promise.resolve({ location: '~/.zshrc', shell: 'zsh' }),
     }));
-    mock.module('tabtab/lib/installer', () => ({
+    mock.module('tabtab/lib/installer.js', () => ({
       writeToShellConfig,
       writeToTabtabScript,
     }));

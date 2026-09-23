@@ -49,6 +49,12 @@ function parseOutDir(): string {
 
 const outDir = parseOutDir();
 
+// tabtab's JavaScript stays external: it pulls in inquirer, which would double
+// the bundle, and npm installs it as a dependency. The pattern matches only
+// `.js` files, so its shell templates (imported as text) are still bundled.
+// src/ imports tabtab by `.js` file path so Node can resolve it and reach the
+// Bun runtime guard; a bare `--external tabtab` would also externalize the
+// templates, and Node cannot load text imports.
 const bundle = spawnSync(
   process.execPath,
   [
@@ -60,6 +66,8 @@ const bundle = spawnSync(
     'bun',
     '--minify',
     '--sourcemap',
+    '--external',
+    'tabtab/lib/*.js',
   ],
   { stdio: 'inherit' }
 );
