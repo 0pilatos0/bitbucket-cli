@@ -410,11 +410,11 @@ Transient failures (dropped connections, temporary DNS errors, timeouts) on read
 
 `7001` has two distinct messages. The connectivity one:
 
-> Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.
+> Network error: Unable to reach Bitbucket API. Run with BB_DEBUG=http for details. If you're behind a proxy or using a custom CA, check your environment.
 
 And the timeout one, when the server accepted the connection but never answered:
 
-> Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.
+> Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.
 
 **Solution:**
 - Check internet and DNS connectivity
@@ -482,7 +482,6 @@ bb pr list --json id,title
 
 **Solution:**
 - Check write permissions on your shell rc file (e.g. `~/.zshrc`, `~/.bashrc`)
-- Re-run with `DEBUG=true bb completion install` for the underlying error
 - If the issue persists, install completions manually by following your shell's documentation for `tabtab`
 
 ### 9002 - COMPLETION_UNINSTALL_FAILED
@@ -510,7 +509,7 @@ bb pr list --json id,title
 - Retry the command
 - If the issue persists, [report it](https://github.com/0pilatos0/bitbucket-cli/issues) with full debug output:
 ```bash
-DEBUG=true bb <your-command> 2>&1
+BB_DEBUG=verbose bb <your-command> 2>&1
 ```
 
 ---

@@ -81,6 +81,13 @@ describe('RateLimiter', () => {
     expect(Date.now() - secondStart).toBeGreaterThanOrEqual(40);
   });
 
+  it('reports how long each caller was held back', async () => {
+    const limiter = new RateLimiter({ minIntervalMs: 25 });
+
+    expect(await limiter.acquire()).toBeLessThan(15);
+    expect(await limiter.acquire()).toBeGreaterThanOrEqual(15);
+  });
+
   it('serializes concurrent callers so spacing stays honest', async () => {
     const limiter = new RateLimiter({ minIntervalMs: 20 });
     const starts: number[] = [];

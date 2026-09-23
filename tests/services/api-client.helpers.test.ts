@@ -1,8 +1,8 @@
 /**
  * Direct unit tests for the api-client helper functions exported for the
- * interceptor suite (issue #265): redaction, URL scrubbing, retry delay, and
- * error-message extraction. Testing the pure functions directly is more
- * precise than observing them through the DEBUG console seam.
+ * interceptor suite (issue #265): retry delay, base URL resolution and
+ * error-message extraction. The debug redaction helpers are covered in
+ * http-debug.test.ts.
  */
 
 import { describe, it, expect, afterEach } from 'bun:test';
@@ -11,116 +11,9 @@ import {
   extractErrorMessage,
   formatErrorFields,
   getRetryDelay,
-  redactRequestUrl,
-  redactSensitive,
   resolveBaseUrl,
 } from '../../src/services/api-client.service.js';
 import { AxiosError, type InternalAxiosRequestConfig } from 'axios';
-
-describe('redactSensitive', () => {
-  it('replaces values under sensitive keys with [REDACTED] case-insensitively', () => {
-    const result = redactSensitive({
-      Access_Token: 'a',
-      refresh_token: 'b',
-      Authorization: 'c',
-      client_secret: 'd',
-      id: 1,
-      name: 'keep',
-    });
-    expect(result).toEqual({
-      Access_Token: '[REDACTED]',
-      refresh_token: '[REDACTED]',
-      Authorization: '[REDACTED]',
-      client_secret: '[REDACTED]',
-      id: 1,
-      name: 'keep',
-    });
-  });
-
-  it('redacts sensitive keys nested inside arrays and objects', () => {
-    const result = redactSensitive({
-      items: [
-        { id: 1, token: 'nested' },
-        { id: 2, password: 'also' },
-      ],
-      meta: { token: 'deep' },
-    });
-    expect(result).toEqual({
-      items: [
-        { id: 1, token: '[REDACTED]' },
-        { id: 2, password: '[REDACTED]' },
-      ],
-      meta: { token: '[REDACTED]' },
-    });
-  });
-
-  it('passes primitives and null through unchanged', () => {
-    expect(redactSensitive(null)).toBeNull();
-    expect(redactSensitive('plain')).toBe('plain');
-    expect(redactSensitive(42)).toBe(42);
-    expect(redactSensitive(undefined)).toBeUndefined();
-  });
-
-  it('breaks circular references with [Circular]', () => {
-    const circular: Record<string, unknown> = { name: 'self' };
-    circular.self = circular;
-    const result = redactSensitive(circular) as Record<string, unknown>;
-    expect(result.name).toBe('self');
-    expect(result.self).toBe('[Circular]');
-  });
-
-  it('flags repeated object references as [Circular] via the seen-set', () => {
-    // Not a cycle: `arr` holds the same object twice. The WeakSet marks it
-    // seen on the first pass, so the second occurrence renders '[Circular]'.
-    // Deliberate seen-set semantics — production bodies come from JSON.parse
-    // and never share references, but the guard must stay bounded anyway.
-    const inner: Record<string, unknown> = { token: 'x' };
-    const arr = [inner, inner];
-    const result = redactSensitive(arr) as Array<Record<string, unknown>>;
-    expect(result[0]).toEqual({ token: '[REDACTED]' });
-    expect(result[1]).toBe('[Circular]');
-  });
-});
-
-describe('redactRequestUrl', () => {
-  it('keeps path and origin but scrubs the query string', () => {
-    expect(
-      redactRequestUrl(
-        '/repositories/ws/r?token=abc&other=xyz',
-        'https://api.bitbucket.org/2.0'
-      )
-    ).toBe('https://api.bitbucket.org/2.0/repositories/ws/r?[redacted]');
-  });
-
-  it('keeps a URL without a query string unchanged', () => {
-    expect(
-      redactRequestUrl('/repositories/ws/r', 'https://api.bitbucket.org/2.0')
-    ).toBe('https://api.bitbucket.org/2.0/repositories/ws/r');
-  });
-
-  it('preserves the base path for root-relative URLs', () => {
-    // axios concatenates baseURL + url, so the logged URL must keep the
-    // base path (e.g. /2.0) to match the actual wire request.
-    expect(redactRequestUrl('/a/b', 'https://api.bitbucket.org/2.0')).toBe(
-      'https://api.bitbucket.org/2.0/a/b'
-    );
-  });
-
-  it('handles absolute request URLs', () => {
-    expect(redactRequestUrl('https://example.com/x?a=1', undefined)).toBe(
-      'https://example.com/x?[redacted]'
-    );
-  });
-
-  it('falls back to a manual query split when URL parsing fails', () => {
-    expect(redactRequestUrl('https://[invalid?a=1', undefined)).toBe(
-      'https://[invalid?[redacted]'
-    );
-    expect(redactRequestUrl('https://[invalid', undefined)).toBe(
-      'https://[invalid'
-    );
-  });
-});
 
 function retryError(
   status: number,
