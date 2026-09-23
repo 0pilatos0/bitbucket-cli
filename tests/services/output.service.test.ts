@@ -143,6 +143,8 @@ describe('OutputService', () => {
       ['projects', 'project list'],
       ['entries', 'repo ls'],
       ['downloads', 'repo downloads list'],
+      ['results', 'search code'],
+      ['webhooks', 'webhook list'],
       ['values', 'generic paginated payloads'],
     ])('drops the wrapper for the %s key (used by %s)', async (key) => {
       output.setJsonFormatOptions({ fields: ['id'] });

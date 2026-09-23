@@ -40,15 +40,9 @@ export class ViewWorkspaceCommand extends BaseCommand<
     options: ViewWorkspaceOptions,
     context: CommandContext
   ): Promise<void> {
-    // Resolution order matches repo-scoped commands: explicit slug / -w flag,
-    // then the current repository's Bitbucket remote, then BB_WORKSPACE /
-    // config.defaultWorkspace (requireWorkspace throws when nothing resolves).
     const workspace =
       options.slug ??
-      options.workspace ??
-      context.globalOptions.workspace ??
-      (await this.contextService.getRepoContextFromGit())?.workspace ??
-      (await this.contextService.requireWorkspace());
+      (await this.contextService.resolveWorkspaceFor(options, context));
 
     const response = await this.workspacesApi
       .workspacesWorkspaceGet({ workspace })

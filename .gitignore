@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-bin/
 docs/.astro/
 
 # Generated API client - we commit this so consumers never need Java or the

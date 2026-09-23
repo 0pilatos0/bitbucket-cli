@@ -8,6 +8,7 @@ import {
   GitService,
   ContextService,
   OutputService,
+  PromptService,
   VersionService,
   OAuthService,
   createApiClient,
@@ -16,10 +17,7 @@ import {
   UrlBuilderService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const pkg = require('../package.json');
+import pkg from '../package.json' with { type: 'json' };
 
 // Import generated API classes
 import {
@@ -34,6 +32,8 @@ import {
   ProjectsApi,
   SourceApi,
   DownloadsApi,
+  SearchApi,
+  WebhooksApi,
 } from './generated/api.js';
 
 // Auth commands
@@ -118,6 +118,15 @@ import { ViewWorkspaceCommand } from './commands/workspace/view.command.js';
 import { ListProjectsCommand } from './commands/project/list.command.js';
 import { ViewProjectCommand } from './commands/project/view.command.js';
 import { CreateProjectCommand } from './commands/project/create.command.js';
+
+// Search commands
+import { SearchCodeCommand } from './commands/search/code.command.js';
+
+// Webhook commands
+import { ListWebhooksCommand } from './commands/webhook/list.command.js';
+import { ViewWebhookCommand } from './commands/webhook/view.command.js';
+import { CreateWebhookCommand } from './commands/webhook/create.command.js';
+import { DeleteWebhookCommand } from './commands/webhook/delete.command.js';
 
 // Config commands
 import { SetAliasCommand } from './commands/alias/set.command.js';
@@ -223,6 +232,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
         locale: options.locale,
       })
   );
+  container.register(ServiceTokens.PromptService, () => new PromptService());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.ConfigService,
     ServiceTokens.CredentialStore,
@@ -267,6 +277,8 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerApiClient(container, ServiceTokens.ProjectsApi, ProjectsApi);
   registerApiClient(container, ServiceTokens.SourceApi, SourceApi);
   registerApiClient(container, ServiceTokens.DownloadsApi, DownloadsApi);
+  registerApiClient(container, ServiceTokens.SearchApi, SearchApi);
+  registerApiClient(container, ServiceTokens.WebhooksApi, WebhooksApi);
 
   registerCommand(
     container,
@@ -878,6 +890,60 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     CreateProjectCommand,
     [
       ServiceTokens.ProjectsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Search commands
+  registerCommand(
+    container,
+    ServiceTokens.SearchCodeCommand,
+    SearchCodeCommand,
+    [
+      ServiceTokens.SearchApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+
+  // Webhook commands
+  registerCommand(
+    container,
+    ServiceTokens.ListWebhooksCommand,
+    ListWebhooksCommand,
+    [
+      ServiceTokens.WebhooksApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewWebhookCommand,
+    ViewWebhookCommand,
+    [
+      ServiceTokens.WebhooksApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.CreateWebhookCommand,
+    CreateWebhookCommand,
+    [
+      ServiceTokens.WebhooksApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.DeleteWebhookCommand,
+    DeleteWebhookCommand,
+    [
+      ServiceTokens.WebhooksApi,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]

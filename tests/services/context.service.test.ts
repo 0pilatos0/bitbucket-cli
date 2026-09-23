@@ -284,6 +284,64 @@ describe('ContextService', () => {
     });
   });
 
+  describe('resolveWorkspaceFor', () => {
+    const remote = () =>
+      createMockGitService({
+        isRepo: true,
+        remoteUrl: 'git@bitbucket.org:git-ws/repo.git',
+      });
+
+    it('prefers the command-local workspace, then the global flag', async () => {
+      const service = new ContextService(remote(), createMockConfigService());
+
+      expect(
+        await service.resolveWorkspaceFor(
+          { workspace: 'local-ws' },
+          { globalOptions: { workspace: 'gws' } }
+        )
+      ).toBe('local-ws');
+      expect(
+        await service.resolveWorkspaceFor(
+          {},
+          { globalOptions: { workspace: 'gws' } }
+        )
+      ).toBe('gws');
+    });
+
+    it('uses the git remote workspace before the configured default', async () => {
+      const service = new ContextService(
+        remote(),
+        createMockConfigService({ defaultWorkspace: 'cfg' })
+      );
+
+      expect(await service.resolveWorkspaceFor({}, { globalOptions: {} })).toBe(
+        'git-ws'
+      );
+    });
+
+    it('falls back to the configured default outside a Bitbucket repo', async () => {
+      const service = new ContextService(
+        createMockGitService({ isRepo: false }),
+        createMockConfigService({ defaultWorkspace: 'cfg' })
+      );
+
+      expect(await service.resolveWorkspaceFor({}, { globalOptions: {} })).toBe(
+        'cfg'
+      );
+    });
+
+    it('throws CONTEXT_WORKSPACE_NOT_FOUND when nothing resolves', async () => {
+      const service = new ContextService(
+        createMockGitService({ isRepo: false }),
+        createMockConfigService({})
+      );
+
+      await expect(
+        service.resolveWorkspaceFor({}, { globalOptions: {} })
+      ).rejects.toMatchObject({ code: ErrorCode.CONTEXT_WORKSPACE_NOT_FOUND });
+    });
+  });
+
   describe('requireWorkspace', () => {
     it('returns the explicit value when provided', async () => {
       const service = new ContextService(

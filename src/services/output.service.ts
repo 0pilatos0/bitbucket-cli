@@ -60,6 +60,8 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'projects', // project list
   'entries', // repo ls
   'downloads', // repo downloads list
+  'results', // search code
+  'webhooks', // webhook list
   'values', // generic fallback for paginated payloads
 ];
 

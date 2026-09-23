@@ -13,10 +13,12 @@ bun install
 # CLI
 bun run dev          # Run CLI in dev mode (executes src/index.ts)
 bun run build        # Build CLI to dist/
+bun run build:binary --target bun-darwin-arm64  # Standalone executable in dist-bin/
 
 # Tests
 bun test             # Run all tests
 bun test <file>      # Run a single test file (e.g., bun test tests/commands/repo.test.ts)
+COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
 # Type-checking / formatting
 bun run lint         # Type-check with tsc --noEmit
@@ -120,6 +122,8 @@ bun run release
 - Merge per-command options with the global ones via
   `registrar.runWithGlobalOptions()` (see Command Registration)
 - Prefer `ContextService.requireRepoContext()` for workspace/repo resolution
+- Gate destructive actions with `await this.requireConfirmation(options.yes, warning, context)`; it prompts only in an interactive terminal and otherwise throws the standard "Use --yes" error
+- Ask for missing input only through `context.prompt`; `createContext()` leaves it `undefined` for non-TTY, `--json`, `--no-input` and `BB_PROMPT_DISABLED`, and that path must keep the flag-only behavior
 
 ### Command Registration
 

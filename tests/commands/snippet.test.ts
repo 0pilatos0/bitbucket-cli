@@ -19,6 +19,7 @@ import {
   createMockContextService,
   createMockOutputService,
   mockUser,
+  createMockPromptService,
 } from '../setup.js';
 import type { SnippetsApi, Snippet } from '../../src/generated/api.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
@@ -787,6 +788,32 @@ describe('DeleteSnippetCommand', () => {
       cmd.run({ id: 'kypj', workspace: 'workspace' }, makeContext())
     ).rejects.toThrow('Use --yes to confirm');
   });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService([true]);
+    let deletedId: string | undefined;
+    const api = createMockSnippetsApi([], [], {
+      onDeleteCall: (req) => {
+        deletedId = (req as { encodedId: string }).encodedId;
+      },
+    });
+    const cmd = new DeleteSnippetCommand(
+      api,
+      createMockContextService({ defaultWorkspace: 'workspace' }),
+      output
+    );
+
+    await cmd.run(
+      { id: 'kypj', workspace: 'workspace' },
+      { ...makeContext(), prompt }
+    );
+
+    expect(prompt.calls).toEqual([
+      'confirm:This will permanently delete snippet kypj. Continue?',
+    ]);
+    expect(deletedId).toBe('kypj');
+  });
 });
 
 // --- Watch / Unwatch ---
@@ -1022,5 +1049,27 @@ describe('DeleteSnippetCommentCommand', () => {
         makeContext()
       )
     ).rejects.toThrow('Use --yes to confirm');
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService([true]);
+    const cmd = new DeleteSnippetCommentCommand(
+      createMockSnippetsApi(),
+      createMockContextService({ defaultWorkspace: 'workspace' }),
+      output
+    );
+
+    await cmd.run(
+      { snippetId: 'kypj', commentId: '1', workspace: 'workspace' },
+      { ...makeContext(), prompt }
+    );
+
+    expect(prompt.calls).toEqual([
+      'confirm:This will permanently delete comment #1 on snippet kypj. Continue?',
+    ]);
+    expect(output.logs.some((log) => log.includes('Deleted comment #1'))).toBe(
+      true
+    );
   });
 });

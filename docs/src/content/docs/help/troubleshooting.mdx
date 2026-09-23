@@ -308,17 +308,18 @@ git clone https://bitbucket.org/myworkspace/myrepo.git    # HTTPS fallback
 
 ## Command-specific issues
 
-### Destructive commands do not prompt
+### Destructive commands fail instead of asking
 
 ```text
 ✗ This will permanently delete myworkspace/old-repo.
 Use --yes to confirm.
 ```
 
-The `-y, --yes` help text says "Skip confirmation prompt", but there is no
-prompt — the command fails until you pass the flag. This affects
-`bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`,
-`bb snippet delete`, and `bb snippet comments delete`.
+These commands only ask `Continue? (y/N)` in an interactive terminal. You get
+this error instead when stdin or stdout is piped or redirected, under `--json`
+or `--no-input`, or when `BB_PROMPT_DISABLED` is set. This affects
+`bb repo delete`, `bb repo default-reviewers remove`, `bb repo downloads delete`,
+`bb pr comments delete`, `bb snippet delete`, and `bb snippet comments delete`. Pass the flag:
 
 ```bash
 bb repo delete myworkspace/old-repo --yes

@@ -2,7 +2,7 @@
  * CLI helper tests
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import type { Command } from 'commander';
 import {
   buildCommandPath,
@@ -15,14 +15,17 @@ import {
   withGlobalOptions,
 } from '../src/cli.js';
 import { cli } from '../src/cli.js';
+import { Container, ServiceTokens } from '../src/core/container.js';
+import { PromptService } from '../src/services/prompt.service.js';
+import { createMockPromptService } from './setup.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
 import type { VersionService } from '../src/services/version.service.js';
 import type { VersionCheckResult } from '../src/types/version.js';
 
-describe('createContext --jq / --json validation', () => {
-  const fakeProgram = (opts: Record<string, unknown>): Command =>
-    ({ opts: () => opts }) as unknown as Command;
+const fakeProgram = (opts: Record<string, unknown>): Command =>
+  ({ opts: () => opts }) as unknown as Command;
 
+describe('createContext --jq / --json validation', () => {
   it('rejects --jq without --json by default', () => {
     const context = createContext(fakeProgram({ jq: '.x' }));
     expect(context.validationError).toBeDefined();
@@ -35,6 +38,35 @@ describe('createContext --jq / --json validation', () => {
     });
     expect(context.validationError).toBeUndefined();
     expect(context.globalOptions.jq).toBe('.x');
+  });
+});
+
+describe('createContext prompt gating', () => {
+  const container = Container.getInstance();
+
+  function useFakePrompt(available: boolean): void {
+    container.registerInstance(ServiceTokens.PromptService, {
+      ...createMockPromptService(),
+      isAvailable: () => available,
+    });
+  }
+
+  afterEach(() => {
+    container.register(ServiceTokens.PromptService, () => new PromptService());
+  });
+
+  it('sets the prompt in an interactive terminal', () => {
+    useFakePrompt(true);
+    expect(createContext(fakeProgram({ input: true })).prompt).toBeDefined();
+  });
+
+  it.each([
+    ['the terminal is not interactive', false, { input: true }],
+    ['--json is passed', true, { input: true, json: true }],
+    ['--no-input is passed', true, { input: false }],
+  ])('leaves the prompt unset when %s', (_label, available, opts) => {
+    useFakePrompt(available);
+    expect(createContext(fakeProgram(opts)).prompt).toBeUndefined();
   });
 });
 
@@ -329,6 +361,7 @@ describe('CLI help text integration', () => {
     expect(output).toContain('NO_COLOR');
     expect(output).toContain('FORCE_COLOR');
     expect(output).toContain('BB_NO_UNICODE');
+    expect(output).toContain('BB_PROMPT_DISABLED');
     expect(output).toContain('BB_DEBUG');
     expect(output).toContain('DEBUG');
     expect(output).toContain('BB_LOCALE');
@@ -490,13 +523,15 @@ describe('CLI command registration', () => {
       'pr',
       'project',
       'repo',
+      'search',
       'snippet',
       'status',
+      'webhook',
       'workspace',
     ]);
   });
 
-  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-unicode, --no-truncate and --locale options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-unicode, --no-truncate, --no-input and --locale options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
@@ -504,6 +539,7 @@ describe('CLI command registration', () => {
     expect(hasOption(cli, '--no-color')).toBe(true);
     expect(hasOption(cli, '--no-unicode')).toBe(true);
     expect(hasOption(cli, '--no-truncate')).toBe(true);
+    expect(hasOption(cli, '--no-input')).toBe(true);
     expect(hasOption(cli, '--locale')).toBe(true);
     expect(hasShortOption(cli, '-w')).toBe(true);
     expect(hasShortOption(cli, '-r')).toBe(true);
@@ -661,6 +697,21 @@ describe('CLI command registration', () => {
     const projectCmd = requireCommand('project');
     expect(projectCmd.commands.map((c) => c.name()).sort()).toEqual([
       'create',
+      'list',
+      'view',
+    ]);
+  });
+
+  it('should register all search subcommands', () => {
+    const searchCmd = requireCommand('search');
+    expect(searchCmd.commands.map((c) => c.name())).toEqual(['code']);
+  });
+
+  it('should register all webhook subcommands', () => {
+    const webhookCmd = requireCommand('webhook');
+    expect(webhookCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'create',
+      'delete',
       'list',
       'view',
     ]);
@@ -879,16 +930,18 @@ describe('formatUpdateNotice', () => {
     updateAvailable: true,
   };
 
-  it('includes both versions, the install command, and the disable hint', () => {
+  it('includes both versions, the update hint, and the disable hint', () => {
     const notice = formatUpdateNotice(
       result,
-      'bun install -g @pilatos/bitbucket-cli',
+      "Run 'bun install -g @pilatos/bitbucket-cli' to update",
       '─'.repeat(50)
     );
 
     expect(notice).toContain('2.0.0');
     expect(notice).toContain('1.0.0');
-    expect(notice).toContain('bun install -g @pilatos/bitbucket-cli');
+    expect(notice).toContain(
+      "  Run 'bun install -g @pilatos/bitbucket-cli' to update"
+    );
     expect(notice).toContain('bb config set skipVersionCheck true');
     expect(notice).toContain('─'.repeat(50));
   });
@@ -918,7 +971,8 @@ describe('maybePrintUpdateNotice', () => {
   ): VersionService =>
     ({
       checkForUpdate,
-      getInstallCommand: () => 'bun install -g @pilatos/bitbucket-cli',
+      getUpdateHint: () =>
+        "Run 'bun install -g @pilatos/bitbucket-cli' to update",
     }) as unknown as VersionService;
 
   // Capture process.stderr.write and toggle isTTY, restoring both afterwards.

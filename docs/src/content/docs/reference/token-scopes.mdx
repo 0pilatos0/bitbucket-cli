@@ -18,7 +18,7 @@ pullrequest:write` (legacy scope names, not the `<action>:<resource>:bitbucket`
 names used below) — and you cannot widen it, not even with a custom consumer.
 That covers repository, pull request, commit, build-status and workspace
 commands. It does **not** cover `bb pipeline`, `bb snippet`,
-`bb project`, or `bb repo delete`. Use an API token for those.
+`bb project`, `bb webhook`, or `bb repo delete`. Use an API token for those.
 </Aside>
 
 ## Scope reference
@@ -29,7 +29,7 @@ The CLI uses these scopes:
 | Scope | Grants |
 |-------|--------|
 | `read:user:bitbucket` | Read user profiles — verifies any login, resolves your UUID for `bb pr list --mine`, and covers `bb workspace list` |
-| `read:repository:bitbucket` | List and view repositories, their files, downloads, commits, and commit build statuses |
+| `read:repository:bitbucket` | List and view repositories, their files, downloads, commits, and commit build statuses; search code |
 | `write:repository:bitbucket` | Set commit build statuses; upload and delete downloads |
 | `admin:repository:bitbucket` | Create repositories; add and remove default reviewers |
 | `delete:repository:bitbucket` | Delete repositories |
@@ -42,6 +42,9 @@ The CLI uses these scopes:
 | `admin:project:bitbucket` | Create projects |
 | `read:snippet:bitbucket` | List and view snippets, read snippet comments |
 | `write:snippet:bitbucket` | Create, edit, and delete snippets; watch and unwatch; add, edit, and delete snippet comments |
+| `read:webhook:bitbucket` | List and view webhooks |
+| `write:webhook:bitbucket` | Create webhooks |
+| `delete:webhook:bitbucket` | Delete webhooks |
 
 ## Command → scope map
 
@@ -165,6 +168,29 @@ workspace visible to you.
 As with pull request comments, Bitbucket's API spec maps snippet comment writes
 to the read scope. Grant `write:snippet:bitbucket` anyway — that is the scope to
 rely on.
+
+### Search (`bb search …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb search code` | `read:repository:bitbucket` |
+
+A token with the right scope still gets a `404` when code search is not enabled
+for the workspace. See [Search Commands](/commands/search/).
+
+### Webhooks (`bb webhook …`)
+
+| Command | Required scopes |
+|---------|-----------------|
+| `bb webhook list` | `read:webhook:bitbucket` |
+| `bb webhook view` | `read:webhook:bitbucket` |
+| `bb webhook create` | `read:webhook:bitbucket`, `write:webhook:bitbucket` |
+| `bb webhook delete` | `delete:webhook:bitbucket` |
+
+Bitbucket also requires the scope that applies to each event a new webhook
+subscribes to, for example `read:repository:bitbucket` for `repo:push` and
+`read:pullrequest:bitbucket` for `pullrequest:created`. Only workspace owners
+can create `--scope workspace` webhooks, whatever the token grants.
 
 ### Raw API (`bb api`)
 

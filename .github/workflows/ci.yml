@@ -156,3 +156,50 @@ jobs:
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  # Every release target, compiled and smoke-tested on its native runner (the
+  # same runners as release.yml's binaries job), so a target-specific failure
+  # shows up before a release.
+  compile-smoke:
+    name: Compile smoke (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - macos-15-intel
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock*') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # BUN_INSTALL_CACHE_DIR: Bun 1.3.14 on Windows fails to move the
+      # downloaded baseline runtime into a cache on another volume (workspace
+      # on D:, home on C:) and reports it as an incomplete download
+      # (oven-sh/bun#43446). runner.temp shares the workspace's volume.
+      - name: Compile and smoke test
+        run: bun test tests/compile.smoke.test.ts
+        env:
+          COMPILE_SMOKE: '1'
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-runtimes

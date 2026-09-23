@@ -8,7 +8,11 @@ import { UploadDownloadCommand } from '../../src/commands/repo/downloads.upload.
 import { DeleteDownloadCommand } from '../../src/commands/repo/downloads.delete.command.js';
 import type { DownloadsApi } from '../../src/generated/api.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
-import { createMockContextService, createMockOutputService } from '../setup.js';
+import {
+  createMockContextService,
+  createMockOutputService,
+  createMockPromptService,
+} from '../setup.js';
 
 const mockDownloads = [
   {
@@ -264,6 +268,24 @@ describe('DeleteDownloadCommand', () => {
       cmd.run({ filename: 'notes.txt' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm.');
     expect(recorded.deleted).toBeUndefined();
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService([true]);
+    const { api, recorded } = createMockDownloadsApi();
+    const cmd = new DeleteDownloadCommand(api, repoContextService(), output);
+
+    await cmd.run({ filename: 'notes.txt' }, { globalOptions: {}, prompt });
+
+    expect(prompt.calls).toEqual([
+      "confirm:This will permanently delete download 'notes.txt' from workspace/repo. Continue?",
+    ]);
+    expect(recorded.deleted).toEqual({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+      filename: 'notes.txt',
+    });
   });
 
   it('deletes the named artifact', async () => {

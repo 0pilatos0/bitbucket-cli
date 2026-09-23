@@ -42,9 +42,10 @@ export class DeleteCommentPRCommand extends BaseCommand<
     const prId = this.parsePositiveInt(options.prId, 'pr-id');
     const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete comment #${commentId} on PR #${prId}.`
+      `This will permanently delete comment #${commentId} on PR #${prId}.`,
+      context
     );
 
     await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdDelete(

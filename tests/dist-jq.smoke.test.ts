@@ -13,7 +13,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { spawn, spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -159,11 +159,12 @@ beforeAll(async () => {
     throw new Error(`scripts/build.ts failed with exit code ${build.status}`);
   }
 
-  // The bundle resolves its own package.json via createRequire(import.meta.url)
-  // (`../package.json` relative to dist/) for the version string.
-  await writeFile(
-    join(tmpDir, 'package.json'),
-    JSON.stringify({ name: 'smoke', version: '0.0.0', type: 'module' })
+  // tabtab stays external in the bundle; link node_modules next to dist/ as
+  // an npm install would, so it resolves without Bun's auto-install.
+  await symlink(
+    join(REPO_ROOT, 'node_modules'),
+    join(tmpDir, 'node_modules'),
+    'junction'
   );
 
   // Write the config in BOTH platform layouts so whichever leg CI runs on
@@ -285,4 +286,16 @@ describe('built dist --jq (issue #309)', () => {
     },
     TEST_TIMEOUT_MS
   );
+});
+
+describe.skipIf(Bun.which('node') === null)('built dist under Node', () => {
+  it('prints the Bun runtime guard instead of failing to load', () => {
+    const result = spawnSync('node', [join(distDir, 'index.js'), '--version'], {
+      cwd: homeDir,
+      encoding: 'utf8',
+    });
+
+    expect(result.stderr).toContain('This CLI requires the Bun runtime.');
+    expect(result.status).toBe(1);
+  });
 });

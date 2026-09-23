@@ -40,6 +40,8 @@ describe('CLI completion drift (issue #255)', () => {
       'projects',
       'entries',
       'downloads',
+      'results',
+      'webhooks',
       'values',
     ];
 
@@ -65,6 +67,8 @@ describe('CLI completion drift (issue #255)', () => {
       'project list': 'projects',
       'repo ls': 'entries',
       'repo downloads list': 'downloads',
+      'search code': 'results',
+      'webhook list': 'webhooks',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

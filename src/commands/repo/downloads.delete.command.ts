@@ -42,10 +42,11 @@ export class DeleteDownloadCommand extends BaseCommand<
     );
     const filename = this.requireOption(options.filename, 'filename');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
       `This will permanently delete download '${filename}' from ` +
-        `${repoContext.workspace}/${repoContext.repoSlug}.`
+        `${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     await this.downloadsApi

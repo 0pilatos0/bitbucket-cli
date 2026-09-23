@@ -48,7 +48,9 @@
 
 ## Install
 
-> **Requires:** [Bun](https://bun.sh) runtime 1.0 or higher. The CLI is installed via npm but runs on the Bun runtime — Node.js is not supported.
+> **No Bun?** [GitHub Releases](https://github.com/0pilatos0/bitbucket-cli/releases) after v2.1.1 ship standalone `bb` binaries for Linux, macOS and Windows with a `SHA256SUMS` file. See [Installation](https://bitbucket-cli.paulvanderlei.com/getting-started/installation/#standalone-binary) to download and verify one.
+
+The npm package requires the [Bun](https://bun.sh) runtime 1.0 or higher. It is installed via npm but runs on Bun; Node.js is not supported.
 
 1. **Install Bun** (if `bun --version` fails):
 
@@ -95,7 +97,7 @@ bb api /user                  # call any Bitbucket API endpoint (escape hatch)
 bb config set defaultWorkspace myworkspace
 ```
 
-**Global options** (work on every command): `--json [fields]`, `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--limit`, `--all`, `--locale`, `-w, --workspace`, `-r, --repo`. Full reference: [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
+**Global options** (work on every command): `--json [fields]`, `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--no-input`, `--limit`, `--all`, `--locale`, `-w, --workspace`, `-r, --repo`. Full reference: [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
 
 ### Scripting with `--json` and `--jq`
 
@@ -137,17 +139,18 @@ Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.pa
 
 ## Environment Variables
 
-| Variable        | Description                                                            |
-| --------------- | ---------------------------------------------------------------------- |
-| `BB_USERNAME`   | Bitbucket username (fallback for `bb auth login`)                      |
-| `BB_API_TOKEN`  | Bitbucket API token (fallback for `bb auth login`; for CI)             |
-| `BB_WORKSPACE`  | Default workspace; overrides `defaultWorkspace` config                 |
-| `BB_LOCALE`     | BCP-47 locale for date/time formatting (e.g. `de-DE`); `--locale` wins |
-| `BB_NO_UNICODE` | Use ASCII fallbacks for symbols when set (any non-empty value)         |
-| `BB_DEBUG`      | HTTP debug tracing: `http` (status + timing) or `verbose` (+ bodies)   |
-| `DEBUG`         | Alias for `BB_DEBUG=verbose`; must equal exactly `true`                |
-| `NO_COLOR`      | Disable color output when set                                          |
-| `FORCE_COLOR`   | Force color output when set (and not `0`)                              |
+| Variable             | Description                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `BB_USERNAME`        | Bitbucket username (fallback for `bb auth login`)                                                                               |
+| `BB_API_TOKEN`       | Bitbucket API token (fallback for `bb auth login`; for CI)                                                                      |
+| `BB_WORKSPACE`       | Default workspace; overrides `defaultWorkspace` config                                                                          |
+| `BB_LOCALE`          | BCP-47 locale for date/time formatting (e.g. `de-DE`); `--locale` wins                                                          |
+| `BB_NO_UNICODE`      | Use ASCII fallbacks for symbols when set (any non-empty value)                                                                  |
+| `BB_PROMPT_DISABLED` | Never prompt, even in a terminal (any non-empty value); same as `--no-input`. `bb completion install` still asks for your shell |
+| `BB_DEBUG`           | HTTP debug tracing: `http` (status + timing) or `verbose` (+ bodies)                                                            |
+| `DEBUG`              | Alias for `BB_DEBUG=verbose`; must equal exactly `true`                                                                         |
+| `NO_COLOR`           | Disable color output when set                                                                                                   |
+| `FORCE_COLOR`        | Force color output when set (and not `0`)                                                                                       |
 
 Full reference: [Environment variables](https://bitbucket-cli.paulvanderlei.com/reference/environment-variables/).
 

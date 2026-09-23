@@ -297,12 +297,12 @@ bb repo delete <repository> [options]
 
 | Option | Description |
 |--------|-------------|
-| `-y, --yes` | Confirm deletion (required) |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
 
 ```bash
-# Delete a repository (--yes is required to confirm)
+# Delete a repository without being asked to confirm
 bb repo delete myworkspace/myrepo --yes
 
 # Delete using explicit workspace option
@@ -312,7 +312,7 @@ bb repo delete myrepo -w myworkspace --yes
 `--json` emits `{ success, workspace, repoSlug }`.
 
 :::danger
-Deletion is permanent. All repository data, including code and pull requests, is destroyed. There is no interactive prompt — without `--yes` the command exits with `This will permanently delete <workspace>/<repo>.` followed by `Use --yes to confirm.`
+Deletion is permanent. All repository data, including code and pull requests, is destroyed. In an interactive terminal the command asks `Continue? (y/N)` when `--yes` is missing. Anywhere else (pipes, CI, `--json`, [`--no-input`](/reference/global-flags/#--no-input)) it exits with `This will permanently delete <workspace>/<repo>.` followed by `Use --yes to confirm.`
 :::
 
 ---
@@ -371,7 +371,7 @@ bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 bb repo default-reviewers remove <user> --yes
 ```
 
-Removes a user from the repository's default reviewers. `--yes` is required to confirm. Requires repository admin permission.
+Removes a user from the repository's default reviewers. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)). Requires repository admin permission.
 
 `<user>` accepts the same identifiers as `add` (account ID or `{uuid}`).
 

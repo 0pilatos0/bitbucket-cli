@@ -60,7 +60,7 @@ bb pr list --json id,title,author.display_name
   ```text
   pullRequests  repositories  snippets  comments  reviewers  activities
   statuses      files         pipelines commits   workspaces projects
-  entries       downloads     values
+  entries       downloads     results   webhooks  values
   ```
 
 - If no key in that list holds an array, the envelope object itself is
@@ -237,7 +237,7 @@ filesystem-dependent features are not supported.
 
 Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`,
 `snippet list`, `snippet comments list`, `pipeline list`, `commit list`,
-`status list`, `workspace list`, `project list`
+`status list`, `workspace list`, `project list`, `search code`, `webhook list`
 
 Returns an envelope with metadata, a `count`, and a named array:
 
@@ -257,13 +257,14 @@ Returns an envelope with metadata, a `count`, and a named array:
 | Field | Type | Present in |
 |-------|------|-----------|
 | `workspace` | string | All collections except `workspace list` (whose slugs live in the items) |
-| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list` |
+| `repoSlug` | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list`, `webhook list` (default `--scope repo` only) |
 | `count` | number | All collections |
 | `state` | string | `pr list` |
 | `filters` | object | `pr list`, `pr activity`, `pr comments list` — always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}` |
 | `commit` | string | `status list` |
 | `sort` | string | `pipeline list` |
 | `ref`, `path` | string | `repo ls` |
+| `query` | string | `search code` — the query as sent, including any `repo:` scope added by `--repo` |
 
 **Collection key names:**
 
@@ -282,6 +283,8 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `repo downloads list` | `downloads` |
 | `snippet list` | `snippets` |
 | `snippet comments list` | `comments` |
+| `search code` | `results` |
+| `webhook list` | `webhooks` |
 
 Three commands return collections without going through the shared list
 plumbing. They are not paginated and have no `--limit`/`--all`:
@@ -383,6 +386,7 @@ envelope. Read the resource from the named key, not from the root:
 |---------|-------|
 | `commit view` | `{ workspace, repoSlug, commit }` |
 | `project view`, `project create` | `{ workspace, project }` |
+| `webhook view`, `webhook create` | `{ workspace, repoSlug, webhook }` (no `repoSlug` with `--scope workspace`) |
 | `workspace view` | `{ workspace }` (the workspace object) |
 | `status set` | `{ workspace, repoSlug, commit, status }` |
 | `pipeline view` | `{ workspace, repoSlug, pipeline, steps }` |
@@ -399,7 +403,7 @@ a projection wrapper key — see the trap above.
 
 ### Pattern 3: action (approve/merge/decline commands)
 
-Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `auth logout`
+Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `webhook delete`, `auth logout`
 
 Returns a success indicator plus resource identifiers:
 
@@ -419,6 +423,9 @@ Some action commands include the full resource in the response:
   "pullRequest": {...}
 }
 ```
+
+`webhook delete` returns `{ "success": true, "workspace": "...", "repoSlug": "...", "webhookId": "{...}" }`
+(no `repoSlug` with `--scope workspace`).
 
 Two action-style commands do **not** emit `success` — branch on their own key
 instead:
