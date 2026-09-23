@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.2.0
+
+### Minor Changes
+
+- [#335](https://github.com/0pilatos0/bitbucket-cli/pull/335) [`b8ac1b3`](https://github.com/0pilatos0/bitbucket-cli/commit/b8ac1b3b03b32920f9d680c5b00e649d7322fb21) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add four command groups on existing Bitbucket API clients. `bb branch-restriction list|view|create|delete` manages branch protection rules (push, force, delete, merge checks), matching branches by glob `--pattern` or branching-model `--branch-type`, with `--user`/`--group` exemptions for `push` and `restrict_merges`. `bb ssh-key list|add|delete` and `bb gpg-key list|add|delete` manage the keys on your own account, reading the public key from a file or stdin (`-`) and refusing private key material before anything is sent. `bb deployment list|view` inspects Pipelines deployments with environment names resolved, and `bb deployment environments` lists the repository's environments. Deletes ask for confirmation in an interactive terminal and need `--yes` everywhere else; all commands support `--json`/`--jq` and shell completion.
+
+- [#333](https://github.com/0pilatos0/bitbucket-cli/pull/333) [`6a22dfc`](https://github.com/0pilatos0/bitbucket-cli/commit/6a22dfcf5e9d75861f7cdff5c20138e829b0df44) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add leveled HTTP debug tracing via `BB_DEBUG`. `BB_DEBUG=http` logs method, URL, status (or network error code) and elapsed time per request, plus time spent on rate-limit pacing, retry backoff and credential lookup before a send; `BB_DEBUG=verbose` also logs the redacted request and response bodies. Every trace line carries a short correlation id that stays the same across retries and OAuth token refreshes, so overlapping requests can be told apart. `DEBUG=true` keeps working as an alias for `BB_DEBUG=verbose`, `BB_DEBUG=off` silences all debug output (including the browser-open and version-check diagnostics), and the network error messages now point at `BB_DEBUG=http`.
+
+- [#338](https://github.com/0pilatos0/bitbucket-cli/pull/338) [`6ea354f`](https://github.com/0pilatos0/bitbucket-cli/commit/6ea354fe395945d56b30c027698d711b6299c118) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Read repository files and manage download artifacts without cloning (part of [#276](https://github.com/0pilatos0/bitbucket-cli/issues/276)):
+
+  - `bb repo cat <path> [--ref <ref>]` prints a file's contents. Output is written
+    byte-for-byte when piped, so `bb repo cat logo.png > logo.png` and
+    `bb repo cat package.json | jq` work; `--json` returns the content (UTF-8, or
+    base64 for binary files) with the resolved commit.
+  - `bb repo ls [path] [--ref <ref>]` lists a directory (`--limit`/`--all`,
+    `--json` envelope key `entries`).
+  - `bb repo downloads list|upload|delete` manages the repository's Downloads
+    (`--json` envelope key `downloads`). Bitbucket only offers Downloads on paid
+    workspace plans.
+
+  Both source commands default to the repository's main branch and accept
+  branch names containing `/` (such as `feature/x`).
+
+- [#337](https://github.com/0pilatos0/bitbucket-cli/pull/337) [`8889458`](https://github.com/0pilatos0/bitbucket-cli/commit/888945845e7761ea8e5448ba151e0220e749fc39) Thanks [@0pilatos0](https://github.com/0pilatos0)! - New `bb search code` and `bb webhook` command groups (part of [#276](https://github.com/0pilatos0/bitbucket-cli/issues/276)). `bb search code <query...>` searches code across a workspace with Bitbucket's search syntax, `-r/--repo` narrows it to one repository, and a workspace without code search enabled gets a clear error instead of a bare 404. Atlassian has marked the code search endpoint deprecated from November 1, 2026. `bb webhook list|view|create|delete` manages repository webhooks, or workspace webhooks with `--scope workspace`; `create` takes `--url` and one or more `--event` values (validated and shell-completed), and `delete` requires `--yes`. All subcommands support `--json`.
+
+- [#339](https://github.com/0pilatos0/bitbucket-cli/pull/339) [`7a4d952`](https://github.com/0pilatos0/bitbucket-cli/commit/7a4d9525fbfae7ae630fa43e13ff0c7ca9ceda07) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Ship standalone `bb` executables for Linux (x64, arm64), macOS (x64, arm64)
+  and Windows (x64) with every GitHub Release, so `bb` runs without Bun, Node.js
+  or npm. Each release includes a `SHA256SUMS` file and build provenance
+  attestations (`gh attestation verify`). The npm package is unchanged.
+
+  `bb completion install` now embeds tabtab's shell templates instead of reading
+  them from disk, and reports a failure instead of claiming success when the
+  completion script cannot be written.
+
+  The update notice in a standalone binary links to the latest release instead of
+  suggesting `bun install -g`.
+
+- [#336](https://github.com/0pilatos0/bitbucket-cli/pull/336) [`4019e09`](https://github.com/0pilatos0/bitbucket-cli/commit/4019e0964d11519c81f2796ff13bc91dba3f1c84) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Prompt for missing input in an interactive terminal. Destructive commands (`repo delete`, `repo default-reviewers remove`, `pr comments delete`, `snippet delete`, `snippet comments delete`) ask `Continue? (y/N)` instead of failing without `--yes`, `pr create` asks for a missing title and optional description, and `auth login` asks for the auth method and a missing username or token. Prompts only appear when stdin and stdout are both TTYs; pipes, CI, `--json`, the new global `--no-input` flag and `BB_PROMPT_DISABLED` keep the existing non-interactive behavior. Declining or interrupting a prompt exits with the new error code 5004 `PROMPT_CANCELLED` (exit status 130 after Ctrl+C).
+
+### Patch Changes
+
+- [#331](https://github.com/0pilatos0/bitbucket-cli/pull/331) [`0564b06`](https://github.com/0pilatos0/bitbucket-cli/commit/0564b06cd4eeef81ff37a839e2047b65bfce7cfe) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Bump `open` to 11.0.4.
+
+- [#342](https://github.com/0pilatos0/bitbucket-cli/pull/342) [`3f133c5`](https://github.com/0pilatos0/bitbucket-cli/commit/3f133c5f5bd9b9c45b0680898b976f7af69d94cd) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Stop printing a crash report when a reader closes stdout early on macOS and the write fails with ENOTCONN instead of EPIPE (for example when another program spawns `bb repo cat` and stops reading).
+
 ## 2.1.1
 
 ### Patch Changes
