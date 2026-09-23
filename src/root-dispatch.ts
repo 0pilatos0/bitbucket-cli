@@ -4,7 +4,7 @@
  * Commander hands the root action whatever it could not dispatch. Deciding what
  * that leftover means is pure logic over the command tree, so it lives here as a
  * function of its inputs rather than inside the root `.action()` closure: it
- * keeps the Commander wiring in `src/cli.ts` declarative, and it is unit
+ * keeps the root program wiring in `src/cli.ts` declarative, and it is unit
  * testable without driving `parseAsync` over the module-level `cli` singleton.
  */
 
