@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { ListGpgKeysCommand } from '../../src/commands/gpg-key/list.command.js';
 import { AddGpgKeyCommand } from '../../src/commands/gpg-key/add.command.js';
 import { DeleteGpgKeyCommand } from '../../src/commands/gpg-key/delete.command.js';
-import { createMockOutputService } from '../setup.js';
+import { createMockOutputService, createMockPromptService } from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
 import type {
   GPGAccountKey,
@@ -153,6 +153,27 @@ describe('DeleteGpgKeyCommand', () => {
       command.execute({ fingerprint: 'ABC' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm');
     expect(calls.delete).toHaveLength(0);
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const prompt = createMockPromptService([true]);
+    const { api, calls } = createMockGpgApi();
+    const command = new DeleteGpgKeyCommand(
+      api,
+      usersApi,
+      createMockOutputService()
+    );
+
+    await command.execute(
+      { fingerprint: 'ABC' },
+      { globalOptions: {}, prompt }
+    );
+
+    expect(prompt.calls).toHaveLength(1);
+    expect(prompt.calls[0]).toStartWith(
+      'confirm:This will permanently delete GPG key ABC'
+    );
+    expect(calls.delete).toHaveLength(1);
   });
 
   it('deletes the key with --yes and reports JSON', async () => {

@@ -2,8 +2,11 @@
  * Tests for VersionService
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { VersionService } from '../../src/services/version.service.js';
+import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
+import {
+  isStandaloneBinary,
+  VersionService,
+} from '../../src/services/version.service.js';
 import { createMockConfigService } from '../setup.js';
 import type { BBConfig } from '../../src/types/config.js';
 
@@ -52,6 +55,18 @@ function stubFetchToThrow(error: Error): void {
     throw error;
   }) as typeof fetch;
 }
+
+describe('isStandaloneBinary', () => {
+  it.each([
+    ['/$bunfs/root/bb', true],
+    ['B:\\~BUN\\root\\bb.exe', true],
+    ['B:/~BUN/root/bb.exe', true],
+    ['/usr/local/lib/node_modules/@pilatos/bitbucket-cli/dist/index.js', false],
+    ['C:\\Users\\me\\.bun\\bin\\bb.exe', false],
+  ])('%s -> %p', (mainPath, expected) => {
+    expect(isStandaloneBinary(mainPath)).toBe(expected);
+  });
+});
 
 describe('VersionService', () => {
   let service: VersionService;
@@ -158,11 +173,29 @@ describe('VersionService', () => {
     });
   });
 
-  describe('getInstallCommand', () => {
-    it('should return correct install command', () => {
-      const command = service.getInstallCommand();
+  describe('getUpdateHint', () => {
+    it('suggests bun install for a package install', () => {
+      const pkg = new VersionService(
+        createMockConfigService(mockConfig),
+        '1.0.0',
+        false
+      );
 
-      expect(command).toBe('bun install -g @pilatos/bitbucket-cli');
+      expect(pkg.getUpdateHint()).toBe(
+        "Run 'bun install -g @pilatos/bitbucket-cli' to update"
+      );
+    });
+
+    it('points a standalone binary at the latest release', () => {
+      const binary = new VersionService(
+        createMockConfigService(mockConfig),
+        '1.0.0',
+        true
+      );
+
+      expect(binary.getUpdateHint()).toBe(
+        'Download the new binary from https://github.com/0pilatos0/bitbucket-cli/releases/latest'
+      );
     });
   });
 
@@ -231,6 +264,35 @@ describe('VersionService', () => {
       const result = await service.checkForUpdate();
 
       expect(result).toBeNull();
+    });
+
+    it('reports the skipped check when BB_DEBUG is set, and not when BB_DEBUG=off', async () => {
+      const saved = {
+        BB_DEBUG: process.env.BB_DEBUG,
+        DEBUG: process.env.DEBUG,
+      };
+      const errorSpy = spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        stubFetchToThrow(new Error('ENETUNREACH'));
+        process.env.BB_DEBUG = 'http';
+        delete process.env.DEBUG;
+        await service.checkForUpdate();
+        expect(errorSpy).toHaveBeenCalledWith(
+          '[version-check] skipped: ENETUNREACH'
+        );
+
+        errorSpy.mockClear();
+        process.env.BB_DEBUG = 'off';
+        process.env.DEBUG = 'true';
+        await service.checkForUpdate();
+        expect(errorSpy).not.toHaveBeenCalled();
+      } finally {
+        errorSpy.mockRestore();
+        for (const [key, value] of Object.entries(saved)) {
+          if (value === undefined) delete process.env[key];
+          else process.env[key] = value;
+        }
+      }
     });
 
     it('should update lastVersionCheck on successful fetch', async () => {

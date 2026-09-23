@@ -2,7 +2,7 @@
  * Completion commands tests
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { InstallCompletionCommand } from '../../src/commands/completion/install.command.js';
 import { UninstallCompletionCommand } from '../../src/commands/completion/uninstall.command.js';
 import { createMockOutputService } from '../setup.js';
@@ -11,57 +11,45 @@ import { BBError, ErrorCode } from '../../src/types/errors.js';
 
 describe('Completion Commands', () => {
   let output: ReturnType<typeof createMockOutputService>;
-  let mockTabtabInstall: ReturnType<typeof mock>;
-  let mockTabtabUninstall: ReturnType<typeof mock>;
+  let mockInstall: ReturnType<typeof mock>;
+  let mockUninstall: ReturnType<typeof mock>;
 
   beforeEach(() => {
     output = createMockOutputService();
-
-    mockTabtabInstall = mock(() => Promise.resolve());
-    mockTabtabUninstall = mock(() => Promise.resolve());
-
-    mock.module('tabtab', () => ({
-      default: {
-        install: mockTabtabInstall,
-        uninstall: mockTabtabUninstall,
-      },
-    }));
-  });
-
-  afterEach(() => {
-    mock.restore();
+    mockInstall = mock(() => Promise.resolve());
+    mockUninstall = mock(() => Promise.resolve());
   });
 
   describe('InstallCompletionCommand', () => {
     it('should have correct name', () => {
-      const command = new InstallCompletionCommand(output);
+      const command = new InstallCompletionCommand(output, mockInstall);
 
       expect(command.name).toBe('install');
       expect(typeof command.name).toBe('string');
     });
 
     it('should have description', () => {
-      const command = new InstallCompletionCommand(output);
+      const command = new InstallCompletionCommand(output, mockInstall);
 
       expect(command.description).toBe('Install shell completions');
       expect(typeof command.description).toBe('string');
     });
 
-    it('should call tabtab.install with correct options', async () => {
-      const command = new InstallCompletionCommand(output);
+    it('should install completion for bb', async () => {
+      const command = new InstallCompletionCommand(output, mockInstall);
       const context: CommandContext = { globalOptions: {} };
 
       await command.execute(undefined, context);
 
-      expect(mockTabtabInstall).toHaveBeenCalledWith({
+      expect(mockInstall).toHaveBeenCalledWith({
         name: 'bb',
         completer: 'bb',
       });
-      expect(mockTabtabInstall).toHaveBeenCalledTimes(1);
+      expect(mockInstall).toHaveBeenCalledTimes(1);
     });
 
     it('should output success message on successful install', async () => {
-      const command = new InstallCompletionCommand(output);
+      const command = new InstallCompletionCommand(output, mockInstall);
       const context: CommandContext = { globalOptions: {} };
 
       await command.execute(undefined, context);
@@ -78,14 +66,8 @@ describe('Completion Commands', () => {
       const mockInstallFail = mock(() =>
         Promise.reject(new Error('Permission denied'))
       );
-      mock.module('tabtab', () => ({
-        default: {
-          install: mockInstallFail,
-          uninstall: mockTabtabUninstall,
-        },
-      }));
 
-      const command = new InstallCompletionCommand(output);
+      const command = new InstallCompletionCommand(output, mockInstallFail);
       const context: CommandContext = { globalOptions: {} };
 
       await expect(command.run(undefined, context)).rejects.toBeDefined();
@@ -99,14 +81,8 @@ describe('Completion Commands', () => {
       const mockInstallFail = mock(() =>
         Promise.reject(new Error('Some error'))
       );
-      mock.module('tabtab', () => ({
-        default: {
-          install: mockInstallFail,
-          uninstall: mockTabtabUninstall,
-        },
-      }));
 
-      const command = new InstallCompletionCommand(output);
+      const command = new InstallCompletionCommand(output, mockInstallFail);
       const context: CommandContext = { globalOptions: {} };
 
       try {
@@ -123,33 +99,31 @@ describe('Completion Commands', () => {
 
   describe('UninstallCompletionCommand', () => {
     it('should have correct name', () => {
-      const command = new UninstallCompletionCommand(output);
+      const command = new UninstallCompletionCommand(output, mockUninstall);
 
       expect(command.name).toBe('uninstall');
       expect(typeof command.name).toBe('string');
     });
 
     it('should have description', () => {
-      const command = new UninstallCompletionCommand(output);
+      const command = new UninstallCompletionCommand(output, mockUninstall);
 
       expect(command.description).toBe('Uninstall shell completions');
       expect(typeof command.description).toBe('string');
     });
 
-    it('should call tabtab.uninstall with correct options', async () => {
-      const command = new UninstallCompletionCommand(output);
+    it('should uninstall completion for bb', async () => {
+      const command = new UninstallCompletionCommand(output, mockUninstall);
       const context: CommandContext = { globalOptions: {} };
 
       await command.execute(undefined, context);
 
-      expect(mockTabtabUninstall).toHaveBeenCalledWith({
-        name: 'bb',
-      });
-      expect(mockTabtabUninstall).toHaveBeenCalledTimes(1);
+      expect(mockUninstall).toHaveBeenCalledWith('bb');
+      expect(mockUninstall).toHaveBeenCalledTimes(1);
     });
 
     it('should output success message on successful uninstall', async () => {
-      const command = new UninstallCompletionCommand(output);
+      const command = new UninstallCompletionCommand(output, mockUninstall);
       const context: CommandContext = { globalOptions: {} };
 
       await command.execute(undefined, context);
@@ -163,14 +137,8 @@ describe('Completion Commands', () => {
       const mockUninstallFail = mock(() =>
         Promise.reject(new Error('File not found'))
       );
-      mock.module('tabtab', () => ({
-        default: {
-          install: mockTabtabInstall,
-          uninstall: mockUninstallFail,
-        },
-      }));
 
-      const command = new UninstallCompletionCommand(output);
+      const command = new UninstallCompletionCommand(output, mockUninstallFail);
       const context: CommandContext = { globalOptions: {} };
 
       await expect(command.run(undefined, context)).rejects.toBeDefined();
@@ -184,14 +152,8 @@ describe('Completion Commands', () => {
       const mockUninstallFail = mock(() =>
         Promise.reject(new Error('Some error'))
       );
-      mock.module('tabtab', () => ({
-        default: {
-          install: mockTabtabInstall,
-          uninstall: mockUninstallFail,
-        },
-      }));
 
-      const command = new UninstallCompletionCommand(output);
+      const command = new UninstallCompletionCommand(output, mockUninstallFail);
       const context: CommandContext = { globalOptions: {} };
 
       try {

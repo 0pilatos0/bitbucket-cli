@@ -35,9 +35,10 @@ export class DeleteSshKeyCommand extends BaseCommand<
   ): Promise<void> {
     const keyId = this.requireOption(options.keyId, 'key-id');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete SSH key ${keyId} from your account.`
+      `This will permanently delete SSH key ${keyId} from your account.`,
+      context
     );
 
     const selectedUser = await resolveCurrentUserUuid(this.usersApi);

@@ -170,7 +170,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksGet
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugHooksPost**
-> WebhookSubscription repositoriesWorkspaceRepoSlugHooksPost()
+> WebhookSubscription repositoriesWorkspaceRepoSlugHooksPost(body)
 
 Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
 
@@ -179,7 +179,8 @@ Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST
 ```typescript
 import {
     WebhooksApi,
-    Configuration
+    Configuration,
+    WebhookSubscription
 } from './api';
 
 const configuration = new Configuration();
@@ -187,10 +188,12 @@ const apiInstance = new WebhooksApi(configuration);
 
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+let body: WebhookSubscription; //
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksPost(
     repoSlug,
-    workspace
+    workspace,
+    body
 );
 ```
 
@@ -198,6 +201,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksPos
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
+| **body** | **WebhookSubscription**|  | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -212,7 +216,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksPos
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 
@@ -343,7 +347,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksUid
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **repositoriesWorkspaceRepoSlugHooksUidPut**
-> WebhookSubscription repositoriesWorkspaceRepoSlugHooksUidPut()
+> WebhookSubscription repositoriesWorkspaceRepoSlugHooksUidPut(body)
 
 Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
 
@@ -352,7 +356,8 @@ Updates the specified webhook subscription.  The following properties can be mut
 ```typescript
 import {
     WebhooksApi,
-    Configuration
+    Configuration,
+    WebhookSubscription
 } from './api';
 
 const configuration = new Configuration();
@@ -361,11 +366,13 @@ const apiInstance = new WebhooksApi(configuration);
 let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`.  (default to undefined)
 let uid: string; //Installed webhook\'s ID (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+let body: WebhookSubscription; //
 
 const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksUidPut(
     repoSlug,
     uid,
-    workspace
+    workspace,
+    body
 );
 ```
 
@@ -373,6 +380,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksUid
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
+| **body** | **WebhookSubscription**|  | |
 | **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.  | defaults to undefined|
 | **uid** | [**string**] | Installed webhook\&#39;s ID | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
@@ -388,7 +396,7 @@ const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugHooksUid
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 
@@ -455,7 +463,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksGet(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **workspacesWorkspaceHooksPost**
-> WebhookSubscription workspacesWorkspaceHooksPost()
+> WebhookSubscription workspacesWorkspaceHooksPost(body)
 
 Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
 
@@ -464,16 +472,19 @@ Creates a new webhook on the specified workspace.  Workspace webhooks are fired 
 ```typescript
 import {
     WebhooksApi,
-    Configuration
+    Configuration,
+    WebhookSubscription
 } from './api';
 
 const configuration = new Configuration();
 const apiInstance = new WebhooksApi(configuration);
 
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+let body: WebhookSubscription; //
 
 const { status, data } = await apiInstance.workspacesWorkspaceHooksPost(
-    workspace
+    workspace,
+    body
 );
 ```
 
@@ -481,6 +492,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksPost(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
+| **body** | **WebhookSubscription**|  | |
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
 
@@ -494,7 +506,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksPost(
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 
@@ -619,7 +631,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksUidGet(
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **workspacesWorkspaceHooksUidPut**
-> WebhookSubscription workspacesWorkspaceHooksUidPut()
+> WebhookSubscription workspacesWorkspaceHooksUidPut(body)
 
 Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
 
@@ -628,7 +640,8 @@ Updates the specified webhook subscription.  The following properties can be mut
 ```typescript
 import {
     WebhooksApi,
-    Configuration
+    Configuration,
+    WebhookSubscription
 } from './api';
 
 const configuration = new Configuration();
@@ -636,10 +649,12 @@ const apiInstance = new WebhooksApi(configuration);
 
 let uid: string; //Installed webhook\'s ID (default to undefined)
 let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`.  (default to undefined)
+let body: WebhookSubscription; //
 
 const { status, data } = await apiInstance.workspacesWorkspaceHooksUidPut(
     uid,
-    workspace
+    workspace,
+    body
 );
 ```
 
@@ -647,6 +662,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksUidPut(
 
 |Name | Type | Description  | Notes|
 |------------- | ------------- | ------------- | -------------|
+| **body** | **WebhookSubscription**|  | |
 | **uid** | [**string**] | Installed webhook\&#39;s ID | defaults to undefined|
 | **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.  | defaults to undefined|
 
@@ -661,7 +677,7 @@ const { status, data } = await apiInstance.workspacesWorkspaceHooksUidPut(
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 

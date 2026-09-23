@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { ListSshKeysCommand } from '../../src/commands/ssh-key/list.command.js';
 import { AddSshKeyCommand } from '../../src/commands/ssh-key/add.command.js';
 import { DeleteSshKeyCommand } from '../../src/commands/ssh-key/delete.command.js';
-import { createMockOutputService } from '../setup.js';
+import { createMockOutputService, createMockPromptService } from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
 import type {
   SSHApi,
@@ -186,6 +186,24 @@ describe('DeleteSshKeyCommand', () => {
       command.execute({ keyId: '{key-1}' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm');
     expect(calls.delete).toHaveLength(0);
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const prompt = createMockPromptService([true]);
+    const { api, calls } = createMockSshApi();
+    const command = new DeleteSshKeyCommand(
+      api,
+      usersApi,
+      createMockOutputService()
+    );
+
+    await command.execute({ keyId: '{key-1}' }, { globalOptions: {}, prompt });
+
+    expect(prompt.calls).toHaveLength(1);
+    expect(prompt.calls[0]).toStartWith(
+      'confirm:This will permanently delete SSH key {key-1}'
+    );
+    expect(calls.delete).toHaveLength(1);
   });
 
   it('deletes the key with --yes', async () => {

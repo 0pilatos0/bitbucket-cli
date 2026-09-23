@@ -42,10 +42,11 @@ export class RemoveDefaultReviewerCommand extends BaseCommand<
       context
     );
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
       `This will remove ${options.username} from the default reviewers of ` +
-        `${repoContext.workspace}/${repoContext.repoSlug}.`
+        `${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     // Same as add: resolve via the users API so nicknames work.

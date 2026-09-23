@@ -10,6 +10,10 @@
 //     model with its enum in the standard const+typeof idiom, in place.
 //   - comment.inline is promoted to a `comment_inline` definition.
 //   - pipeline_selector.type is marked required (the API requires it).
+//   - webhook create/update operations get the `webhook_subscription` body
+//     they accept but upstream does not declare, so the generated methods
+//     carry a typed payload; its `events` drops `uniqueItems`, which the
+//     generator types as a `Set` that JSON-serializes to `{}`.
 //
 // Everything else upstream flattens to plain `object` (links, rendered) is
 // accepted as-is: it is a deliberate upstream spec decision, not an accident.
@@ -40,8 +44,20 @@ interface SpecSchema extends SpecField {
   allOf?: Array<SpecField | { $ref: string }>;
 }
 
+interface SpecParameter {
+  name?: string;
+  in?: string;
+  [key: string]: unknown;
+}
+
+interface SpecOperation {
+  parameters?: SpecParameter[];
+  [key: string]: unknown;
+}
+
 interface ApiSpec {
   definitions: Record<string, SpecSchema>;
+  paths: Record<string, Record<string, SpecOperation>>;
   [key: string]: unknown;
 }
 
@@ -62,6 +78,23 @@ const CONTENT_FIELDS: Array<[string, string]> = [
   ['base_commit', 'summary'],
 ];
 const INLINE_FIELDS: Array<[string, string]> = [['comment', 'inline']];
+
+// Operations whose request body upstream leaves undeclared, as
+// [path, method, body definition].
+const UNDECLARED_BODIES: Array<[string, string, string]> = [
+  [
+    '/repositories/{workspace}/{repo_slug}/hooks',
+    'post',
+    'webhook_subscription',
+  ],
+  [
+    '/repositories/{workspace}/{repo_slug}/hooks/{uid}',
+    'put',
+    'webhook_subscription',
+  ],
+  ['/workspaces/{workspace}/hooks', 'post', 'webhook_subscription'],
+  ['/workspaces/{workspace}/hooks/{uid}', 'put', 'webhook_subscription'],
+];
 
 function allProps(def: SpecSchema): Record<string, SpecField> {
   const props: Record<string, SpecField> = {};
@@ -179,6 +212,46 @@ if (!selectorPart) {
 selectorPart.required = Array.from(
   new Set([...(selectorPart.required ?? []), 'type'])
 );
+
+for (const [path, method, definition] of UNDECLARED_BODIES) {
+  const where = `${method.toUpperCase()} ${path}`;
+  const operation = spec.paths[path]?.[method];
+  if (!operation) {
+    throw new Error(
+      `normalize-spec: ${where} no longer exists; update scripts/normalize-spec.ts`
+    );
+  }
+  if (!defs[definition]) {
+    throw new Error(
+      `normalize-spec: definition ${definition} no longer exists; update scripts/normalize-spec.ts`
+    );
+  }
+  const parameters = operation.parameters ?? [];
+  if (parameters.some((param) => param.in === 'body')) {
+    throw new Error(
+      `normalize-spec: upstream now declares a body for ${where}; remove it from UNDECLARED_BODIES in scripts/normalize-spec.ts`
+    );
+  }
+  operation.parameters = [
+    ...parameters,
+    {
+      name: '_body',
+      in: 'body',
+      required: true,
+      schema: { $ref: `#/definitions/${definition}` },
+    },
+  ];
+}
+
+const webhookEvents = defs.webhook_subscription
+  ? allProps(defs.webhook_subscription)['events']
+  : undefined;
+if (webhookEvents?.uniqueItems !== true) {
+  throw new Error(
+    'normalize-spec: webhook_subscription.events is no longer a uniqueItems array; update scripts/normalize-spec.ts'
+  );
+}
+delete webhookEvents.uniqueItems;
 
 writeFileSync(outPath, `${JSON.stringify(spec, null, 2)}\n`);
 console.log(

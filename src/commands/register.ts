@@ -17,9 +17,11 @@ import { registerPipelineCommands } from './pipeline/register.js';
 import { registerPrCommands } from './pr/register.js';
 import { registerProjectCommands } from './project/register.js';
 import { registerRepoCommands } from './repo/register.js';
+import { registerSearchCommands } from './search/register.js';
 import { registerSnippetCommands } from './snippet/register.js';
 import { registerSshKeyCommands } from './ssh-key/register.js';
 import { registerStatusCommands } from './status/register.js';
+import { registerWebhookCommands } from './webhook/register.js';
 import { registerWorkspaceCommands } from './workspace/register.js';
 
 // Registration order is the order `bb --help` and shell completion list them.
@@ -33,6 +35,8 @@ const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
   registerStatusCommands,
   registerWorkspaceCommands,
   registerProjectCommands,
+  registerSearchCommands,
+  registerWebhookCommands,
   registerBranchRestrictionCommands,
   registerSshKeyCommands,
   registerGpgKeyCommands,

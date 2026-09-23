@@ -32,6 +32,7 @@ import {
   createMockGitService,
   mockPullRequest,
   mockUser,
+  createMockPromptService,
 } from '../setup.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import type {
@@ -2208,6 +2209,62 @@ describe('CreatePRCommand', () => {
     expect(output.logs.some((log) => log.includes('title'))).toBe(true);
   });
 
+  describe('interactive prompts', () => {
+    it('asks for the title and description when --title is missing', async () => {
+      const prompt = createMockPromptService([
+        'Prompted title',
+        'Prompted body',
+      ]);
+      const { command, captured } = buildCreatePRCommand();
+
+      await command.execute({}, { globalOptions: {}, prompt });
+
+      expect(prompt.calls).toEqual([
+        'text:Title',
+        'text:Description (optional)',
+      ]);
+      expect(captured.body?.title).toBe('Prompted title');
+      expect(captured.body?.description).toBe('Prompted body');
+    });
+
+    it('omits the description when the prompt is left empty', async () => {
+      const prompt = createMockPromptService(['Prompted title', '']);
+      const { command, captured } = buildCreatePRCommand();
+
+      await command.execute({}, { globalOptions: {}, prompt });
+
+      expect(captured.body?.title).toBe('Prompted title');
+      expect(captured.body?.description).toBeUndefined();
+    });
+
+    it('keeps an explicit --body and only asks for the title', async () => {
+      const prompt = createMockPromptService(['Prompted title']);
+      const { command, captured } = buildCreatePRCommand();
+
+      await command.execute(
+        { body: 'Flag body' },
+        { globalOptions: {}, prompt }
+      );
+
+      expect(prompt.calls).toEqual(['text:Title']);
+      expect(captured.body?.description).toBe('Flag body');
+    });
+
+    it('does not prompt when --title is given', async () => {
+      const prompt = createMockPromptService();
+      const { command, captured } = buildCreatePRCommand();
+
+      await command.execute(
+        { title: 'Flag title' },
+        { globalOptions: {}, prompt }
+      );
+
+      expect(prompt.calls).toEqual([]);
+      expect(captured.body?.title).toBe('Flag title');
+      expect(captured.body?.description).toBeUndefined();
+    });
+  });
+
   it('should use current branch as source', async () => {
     const { command, output } = buildCreatePRCommand({
       currentBranch: 'my-feature',
@@ -3850,6 +3907,28 @@ describe('DeleteCommentPRCommand', () => {
     await expect(
       command.execute({ prId: '42', commentId: '7' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm');
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const output = createMockOutputService();
+    const prompt = createMockPromptService([true]);
+    const command = new DeleteCommentPRCommand(
+      createMockPullrequestsApi(),
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute(
+      { prId: '42', commentId: '7' },
+      { globalOptions: {}, prompt }
+    );
+
+    expect(prompt.calls).toEqual([
+      'confirm:This will permanently delete comment #7 on PR #42. Continue?',
+    ]);
+    expect(output.logs.some((log) => log.includes('Deleted comment #7'))).toBe(
+      true
+    );
   });
 });
 

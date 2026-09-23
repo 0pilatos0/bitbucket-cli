@@ -13,6 +13,7 @@ import {
   createMockOutputService,
   createMockGitService,
   mockRepository,
+  createMockPromptService,
 } from '../setup.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
@@ -727,6 +728,75 @@ describe('DeleteRepoCommand', () => {
     );
 
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+  });
+});
+
+describe('DeleteRepoCommand confirmation prompt', () => {
+  function buildDelete() {
+    const deleted: unknown[] = [];
+    const repositoriesApi = {
+      repositoriesWorkspaceRepoSlugDelete: async (request: unknown) => {
+        deleted.push(request);
+        return { data: undefined };
+      },
+    } as unknown as RepositoriesApi;
+    const command = new DeleteRepoCommand(
+      repositoriesApi,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockOutputService()
+    );
+    return { command, deleted };
+  }
+
+  it('asks with the target in the question and deletes when confirmed', async () => {
+    const prompt = createMockPromptService([true]);
+    const { command, deleted } = buildDelete();
+
+    await command.run(
+      { repository: 'workspace/repo' },
+      { globalOptions: {}, prompt }
+    );
+
+    expect(prompt.calls).toEqual([
+      'confirm:This will permanently delete workspace/repo. Continue?',
+    ]);
+    expect(deleted).toEqual([{ workspace: 'workspace', repoSlug: 'repo' }]);
+  });
+
+  it('deletes nothing when the user declines', async () => {
+    const prompt = createMockPromptService([false]);
+    const { command, deleted } = buildDelete();
+
+    const error = await command
+      .run({ repository: 'workspace/repo' }, { globalOptions: {}, prompt })
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
+    expect(deleted).toEqual([]);
+  });
+
+  it('skips the prompt when --yes is passed', async () => {
+    const prompt = createMockPromptService();
+    const { command, deleted } = buildDelete();
+
+    await command.run(
+      { repository: 'workspace/repo', yes: true },
+      { globalOptions: {}, prompt }
+    );
+
+    expect(prompt.calls).toEqual([]);
+    expect(deleted).toHaveLength(1);
+  });
+
+  it('keeps the --yes error without a prompt', async () => {
+    const { command, deleted } = buildDelete();
+
+    await expect(
+      command.run({ repository: 'workspace/repo' }, { globalOptions: {} })
+    ).rejects.toThrow(
+      'This will permanently delete workspace/repo.\nUse --yes to confirm.'
+    );
+    expect(deleted).toEqual([]);
   });
 });
 

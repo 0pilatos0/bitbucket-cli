@@ -42,9 +42,10 @@ export class DeleteBranchRestrictionCommand extends BaseCommand<
     );
     const id = this.parsePositiveInt(options.id, 'id');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete branch restriction ${id} in ${repoContext.workspace}/${repoContext.repoSlug}.`
+      `This will permanently delete branch restriction ${id} in ${repoContext.workspace}/${repoContext.repoSlug}.`,
+      context
     );
 
     await this.branchRestrictionsApi

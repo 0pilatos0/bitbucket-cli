@@ -2288,6 +2288,713 @@ Defaults:
 }
 `;
 
+exports[`command tree snapshot bb search 1`] = `
+{
+  "help": 
+"Usage: bb search [options] [command]
+
+Search Bitbucket
+
+Options:
+  -h, --help                 display help for command
+
+Commands:
+  code [options] <query...>  Search code in a workspace (code search must be
+                             enabled for it); -r scopes to one repository
+  help [command]             display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb search code 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "query": [
+        "query-value",
+      ],
+    },
+    "token": "SearchCodeCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb search code [options] <query...>
+
+Search code in a workspace (code search must be enabled for it); -r scopes to
+one repository
+
+Options:
+  --limit <number>  Maximum number of results to list (default: "25")
+  --all             List all results (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb search code parseConfig
+  $ bb search code parseConfig -r my-repo
+  $ bb search code TODO lang:typescript -w my-workspace --limit 50
+  $ bb search code parseConfig --json --jq '.results[].file.path'
+
+Defaults:
+  --limit  25
+
+See also:
+  Search syntax  https://support.atlassian.com/bitbucket-cloud/docs/search-in-bitbucket-cloud/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook 1`] = `
+{
+  "help": 
+"Usage: bb webhook [options] [command]
+
+Manage repository and workspace webhooks
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List webhooks
+  view [options] <uid>    View webhook details (uid: webhook UUID)
+  create [options]        Create a webhook
+  delete [options] <uid>  Delete a webhook (uid: webhook UUID)
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "scope": "scope-value",
+    },
+    "token": "ListWebhooksCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook list [options]
+
+List webhooks
+
+Options:
+  --scope <scope>   Webhook scope: repo (current repository) or workspace
+                    (choices: "repo", "workspace")
+  --limit <number>  Maximum number of webhooks to list (default: "25")
+  --all             List all webhooks (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb webhook list
+  $ bb webhook list --scope workspace -w my-workspace
+  $ bb webhook list --json --jq '.webhooks[].url'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+    },
+    "token": "ViewWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook view [options] <uid>
+
+View webhook details (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook view a1b2c3d4-0000-0000-0000-000000000000 --scope workspace
+  $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "description": "description-value",
+      "event": [
+        "event-value",
+      ],
+      "inactive": true,
+      "scope": "scope-value",
+      "secret": "secret-value",
+      "url": "url-value",
+    },
+    "token": "CreateWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook create [options]
+
+Create a webhook
+
+Options:
+  --scope <scope>                  Webhook scope: repo (current repository) or
+                                   workspace (choices: "repo", "workspace")
+  --url <url>                      URL events are delivered to (required)
+  -e, --event <event...>           Event to subscribe to (required; repeatable)
+                                   (choices: "issue:comment_created",
+                                   "issue:created", "issue:updated",
+                                   "pipeline:span_created", "project:updated",
+                                   "pullrequest:approved",
+                                   "pullrequest:changes_request_created",
+                                   "pullrequest:changes_request_removed",
+                                   "pullrequest:comment_created",
+                                   "pullrequest:comment_deleted",
+                                   "pullrequest:comment_reopened",
+                                   "pullrequest:comment_resolved",
+                                   "pullrequest:comment_updated",
+                                   "pullrequest:created",
+                                   "pullrequest:fulfilled", "pullrequest:push",
+                                   "pullrequest:rejected",
+                                   "pullrequest:unapproved",
+                                   "pullrequest:updated",
+                                   "repo:commit_comment_created",
+                                   "repo:commit_status_created",
+                                   "repo:commit_status_updated", "repo:created",
+                                   "repo:deleted", "repo:fork", "repo:imported",
+                                   "repo:push", "repo:transfer", "repo:updated")
+  -d, --description <description>  Webhook description
+  --secret <secret>                Secret used to sign deliveries
+                                   (X-Hub-Signature)
+  --inactive                       Create the webhook disabled
+  -h, --help                       display help for command
+
+Examples:
+  $ bb webhook create --url https://ci.example.com/hook --event repo:push
+  $ bb webhook create --url https://example.com/hook -e pullrequest:created -e pullrequest:fulfilled -d "PR bot"
+  $ bb webhook create --scope workspace -w my-workspace --url https://example.com/hook -e repo:push --secret "$WEBHOOK_SECRET"
+
+Valid scopes:
+  repo, workspace
+
+Valid events:
+  issue:comment_created, issue:created, issue:updated, pipeline:span_created, project:updated, pullrequest:approved, pullrequest:changes_request_created, pullrequest:changes_request_removed, pullrequest:comment_created, pullrequest:comment_deleted, pullrequest:comment_reopened, pullrequest:comment_resolved, pullrequest:comment_updated, pullrequest:created, pullrequest:fulfilled, pullrequest:push, pullrequest:rejected, pullrequest:unapproved, pullrequest:updated, repo:commit_comment_created, repo:commit_status_created, repo:commit_status_updated, repo:created, repo:deleted, repo:fork, repo:imported, repo:push, repo:transfer, repo:updated
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb webhook delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "scope": "scope-value",
+      "uid": "uid-value",
+      "yes": true,
+    },
+    "token": "DeleteWebhookCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb webhook delete [options] <uid>
+
+Delete a webhook (uid: webhook UUID)
+
+Options:
+  --scope <scope>  Webhook scope: repo (current repository) or workspace
+                   (choices: "repo", "workspace")
+  -y, --yes        Skip confirmation prompt
+  -h, --help       display help for command
+
+Examples:
+  $ bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes
+
+Valid scopes:
+  repo, workspace
+
+Defaults:
+  --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb browse 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "branch": "branch-value",
+      "branches": true,
+      "browser": true,
+      "commit": "commit-value",
+      "commits": true,
+      "downloads": true,
+      "pipeline": "pipeline-value",
+      "pipelines": true,
+      "pr": "pr-value",
+      "prs": true,
+      "pullRequests": true,
+      "settings": true,
+      "target": "target-value",
+    },
+    "token": "BrowseCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb browse [options] [target]
+
+Open a Bitbucket page (repo home, file, PR, commit, etc.) in your browser
+
+Options:
+  --pr <id>         Open a specific pull request
+  --prs             Open the pull-requests list
+  --pull-requests   Alias for --prs
+  --branch <name>   Open the branch source tree (or, with <target>, that path on
+                    the branch)
+  --branches        Open the branches list
+  --commit [sha]    Open a specific commit (defaults to HEAD when no SHA is
+                    given)
+  --commits         Open the commits list
+  --pipelines       Open the pipelines page
+  --pipeline <id>   Open a specific pipeline run
+  --downloads       Open the downloads page
+  --settings        Open repository settings
+  -n, --no-browser  Print the URL to stdout instead of opening it
+  -h, --help        display help for command
+
+Examples:
+  $ bb browse
+  $ bb browse src/cli.ts
+  $ bb browse src/cli.ts:42
+  $ bb browse --branch release/2.0 src/cli.ts
+  $ bb browse 217
+  $ bb browse --pr 217
+  $ bb browse --prs
+  $ bb browse abc1234
+  $ bb browse --commit
+  $ bb browse --pipelines
+  $ bb browse --settings
+  $ bb browse --pr 217 --no-browser
+  $ bb browse --pr 217 --json url
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb api 1`] = `
+{
+  "dispatch": {
+    "contextOptions": {
+      "allowJqWithoutJson": true,
+    },
+    "options": {
+      "endpoint": "endpoint-value",
+      "field": [
+        "field-value",
+      ],
+      "header": [
+        "header-value",
+      ],
+      "include": true,
+      "input": "input-value",
+      "method": "method-value",
+      "methodOrEndpoint": "methodOrEndpoint-value",
+      "paginate": true,
+      "rawField": [
+        "rawField-value",
+      ],
+    },
+    "token": "ApiCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"
+Escape hatch for endpoints not yet wrapped by a typed command.
+The path is relative to https://api.bitbucket.org/2.0; {workspace} and
+{repo} placeholders are filled from --workspace/--repo or the current repo.
+
+Usage: bb api [options] [methodOrEndpoint] [endpoint]
+
+Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint
+
+Options:
+  -X, --method <method>        HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD,
+                               OPTIONS). Defaults to GET, or POST when
+                               fields/body are present. (choices: "GET", "POST",
+                               "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
+  -f, --raw-field <key=value>  Add a string parameter — query param on GET/HEAD,
+                               JSON body field otherwise (repeatable) (default:
+                               [])
+  -F, --field <key=value>      Add a typed parameter: true/false/null and
+                               numbers are converted; @file reads a file and @-
+                               reads stdin (repeatable) (default: [])
+  --input <file>               Read the request body from a file, or - for stdin
+                               (sent as application/json; mutually exclusive
+                               with -f/-F)
+  -H, --header <key:value>     Add a request header (repeatable). Authorization
+                               is managed automatically and cannot be set here.
+                               (default: [])
+  -i, --include                Print the HTTP status line and response headers
+                               before the body, on success and failure (text
+                               mode only)
+  --paginate                   Follow the cursor (next) and merge every page
+                               into a single {"values": [...]} result (GET/HEAD
+                               only)
+  -h, --help                   display help for command
+
+Examples:
+  $ bb api /user
+  $ bb api GET /user
+  $ bb api /repositories/{workspace}/{repo}/pullrequests --paginate
+  $ bb api POST /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234
+  $ bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
+  $ cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -
+  $ bb api /repositories/my-ws --jq '.values[].name'
+  $ bb api -i /user
+
+Valid methods:
+  GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
+
+See also:
+  Scripting & Automation  https://bitbucket-cli.paulvanderlei.com/guides/scripting/
+  Bitbucket REST API      https://developer.atlassian.com/cloud/bitbucket/rest/intro/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias 1`] = `
+{
+  "help": 
+"Usage: bb alias [options] [command]
+
+Create shortcuts for bb commands
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  set <name> <expansion>  Create or update an alias; supports $1-$9 placeholders
+                          and a ! prefix for shell passthrough
+  list                    List configured aliases
+  delete <name>           Delete an alias
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias set 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "expansion": "expansion-value",
+      "name": "name-value",
+    },
+    "token": "SetAliasCommand",
+    "via": "run",
+  },
+  "help": 
+"
+An alias expands in place of the first bb argument: \`bb co 42\` runs
+\`bb pr checkout 42\` after \`bb alias set co "pr checkout $1"\`. Extra
+arguments are appended unless consumed by $1-$9 placeholders. A \`!\`
+prefix runs the expansion through \`sh -c\` instead, with the remaining
+arguments available as shell positional parameters ($1, $@).
+
+Usage: bb alias set [options] <name> <expansion>
+
+Create or update an alias; supports $1-$9 placeholders and a ! prefix for shell
+passthrough
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias set co "pr checkout $1"
+  $ bb alias set prd "pr create --draft"
+  $ bb alias set openpr '!bb pr list --json --jq ".pullRequests[0].id" | xargs bb browse --pr'
+
+See also:
+  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias list 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "ListAliasesCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb alias list [options]
+
+List configured aliases
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias list
+  $ bb alias list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb alias delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "name": "name-value",
+    },
+    "token": "DeleteAliasCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb alias delete [options] <name>
+
+Delete an alias
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb alias delete co
+  $ bb alias delete co --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config 1`] = `
+{
+  "help": 
+"Usage: bb config [options] [command]
+
+Manage configuration
+
+Options:
+  -h, --help         display help for command
+
+Commands:
+  get <key>          Get a configuration value
+  set <key> <value>  Set a configuration value
+  list               List all configuration values
+  help [command]     display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config get 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "key": "key-value",
+    },
+    "token": "GetConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config get [options] <key>
+
+Get a configuration value
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config get defaultWorkspace
+
+Readable config keys:
+  username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config set 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "key": "key-value",
+      "value": "value-value",
+    },
+    "token": "SetConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config set [options] <key> <value>
+
+Set a configuration value
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config set defaultWorkspace my-workspace
+  $ bb config set skipVersionCheck true
+  $ bb config set versionCheckInterval 86400
+
+Settable config keys:
+  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, seconds), prCreateIncludeDefaultReviewers (true/false)
+
+See also:
+  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb config list 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "ListConfigCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb config list [options]
+
+List all configuration values
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb config list
+  $ bb config list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion 1`] = `
+{
+  "help": 
+"Usage: bb completion [options] [command]
+
+Shell completion utilities
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  install         Install shell completions for bash, zsh, or fish
+  uninstall       Uninstall shell completions
+  help [command]  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion install 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "InstallCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion install [options]
+
+Install shell completions for bash, zsh, or fish
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion install
+  $ bb completion install --json
+
+Supported shells:
+  bash, zsh, fish
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion uninstall 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "UninstallCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion uninstall [options]
+
+Uninstall shell completions
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion uninstall
+  $ bb completion uninstall --json
+
+Supported shells:
+  bash, zsh, fish
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb branch-restriction 1`] = `
 {
   "help": 
@@ -2815,442 +3522,6 @@ Examples:
 
 Defaults:
   --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb browse 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "branch": "branch-value",
-      "branches": true,
-      "browser": true,
-      "commit": "commit-value",
-      "commits": true,
-      "downloads": true,
-      "pipeline": "pipeline-value",
-      "pipelines": true,
-      "pr": "pr-value",
-      "prs": true,
-      "pullRequests": true,
-      "settings": true,
-      "target": "target-value",
-    },
-    "token": "BrowseCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb browse [options] [target]
-
-Open a Bitbucket page (repo home, file, PR, commit, etc.) in your browser
-
-Options:
-  --pr <id>         Open a specific pull request
-  --prs             Open the pull-requests list
-  --pull-requests   Alias for --prs
-  --branch <name>   Open the branch source tree (or, with <target>, that path on
-                    the branch)
-  --branches        Open the branches list
-  --commit [sha]    Open a specific commit (defaults to HEAD when no SHA is
-                    given)
-  --commits         Open the commits list
-  --pipelines       Open the pipelines page
-  --pipeline <id>   Open a specific pipeline run
-  --downloads       Open the downloads page
-  --settings        Open repository settings
-  -n, --no-browser  Print the URL to stdout instead of opening it
-  -h, --help        display help for command
-
-Examples:
-  $ bb browse
-  $ bb browse src/cli.ts
-  $ bb browse src/cli.ts:42
-  $ bb browse --branch release/2.0 src/cli.ts
-  $ bb browse 217
-  $ bb browse --pr 217
-  $ bb browse --prs
-  $ bb browse abc1234
-  $ bb browse --commit
-  $ bb browse --pipelines
-  $ bb browse --settings
-  $ bb browse --pr 217 --no-browser
-  $ bb browse --pr 217 --json url
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb api 1`] = `
-{
-  "dispatch": {
-    "contextOptions": {
-      "allowJqWithoutJson": true,
-    },
-    "options": {
-      "endpoint": "endpoint-value",
-      "field": [
-        "field-value",
-      ],
-      "header": [
-        "header-value",
-      ],
-      "include": true,
-      "input": "input-value",
-      "method": "method-value",
-      "methodOrEndpoint": "methodOrEndpoint-value",
-      "paginate": true,
-      "rawField": [
-        "rawField-value",
-      ],
-    },
-    "token": "ApiCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"
-Escape hatch for endpoints not yet wrapped by a typed command.
-The path is relative to https://api.bitbucket.org/2.0; {workspace} and
-{repo} placeholders are filled from --workspace/--repo or the current repo.
-
-Usage: bb api [options] [methodOrEndpoint] [endpoint]
-
-Make an authenticated request to any Bitbucket Cloud 2.0 API endpoint
-
-Options:
-  -X, --method <method>        HTTP method (GET, POST, PUT, PATCH, DELETE, HEAD,
-                               OPTIONS). Defaults to GET, or POST when
-                               fields/body are present. (choices: "GET", "POST",
-                               "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS")
-  -f, --raw-field <key=value>  Add a string parameter — query param on GET/HEAD,
-                               JSON body field otherwise (repeatable) (default:
-                               [])
-  -F, --field <key=value>      Add a typed parameter: true/false/null and
-                               numbers are converted; @file reads a file and @-
-                               reads stdin (repeatable) (default: [])
-  --input <file>               Read the request body from a file, or - for stdin
-                               (sent as application/json; mutually exclusive
-                               with -f/-F)
-  -H, --header <key:value>     Add a request header (repeatable). Authorization
-                               is managed automatically and cannot be set here.
-                               (default: [])
-  -i, --include                Print the HTTP status line and response headers
-                               before the body, on success and failure (text
-                               mode only)
-  --paginate                   Follow the cursor (next) and merge every page
-                               into a single {"values": [...]} result (GET/HEAD
-                               only)
-  -h, --help                   display help for command
-
-Examples:
-  $ bb api /user
-  $ bb api GET /user
-  $ bb api /repositories/{workspace}/{repo}/pullrequests --paginate
-  $ bb api POST /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234
-  $ bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
-  $ cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -
-  $ bb api /repositories/my-ws --jq '.values[].name'
-  $ bb api -i /user
-
-Valid methods:
-  GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
-
-See also:
-  Scripting & Automation  https://bitbucket-cli.paulvanderlei.com/guides/scripting/
-  Bitbucket REST API      https://developer.atlassian.com/cloud/bitbucket/rest/intro/
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb alias 1`] = `
-{
-  "help": 
-"Usage: bb alias [options] [command]
-
-Create shortcuts for bb commands
-
-Options:
-  -h, --help              display help for command
-
-Commands:
-  set <name> <expansion>  Create or update an alias; supports $1-$9 placeholders
-                          and a ! prefix for shell passthrough
-  list                    List configured aliases
-  delete <name>           Delete an alias
-  help [command]          display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb alias set 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "expansion": "expansion-value",
-      "name": "name-value",
-    },
-    "token": "SetAliasCommand",
-    "via": "run",
-  },
-  "help": 
-"
-An alias expands in place of the first bb argument: \`bb co 42\` runs
-\`bb pr checkout 42\` after \`bb alias set co "pr checkout $1"\`. Extra
-arguments are appended unless consumed by $1-$9 placeholders. A \`!\`
-prefix runs the expansion through \`sh -c\` instead, with the remaining
-arguments available as shell positional parameters ($1, $@).
-
-Usage: bb alias set [options] <name> <expansion>
-
-Create or update an alias; supports $1-$9 placeholders and a ! prefix for shell
-passthrough
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb alias set co "pr checkout $1"
-  $ bb alias set prd "pr create --draft"
-  $ bb alias set openpr '!bb pr list --json --jq ".pullRequests[0].id" | xargs bb browse --pr'
-
-See also:
-  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb alias list 1`] = `
-{
-  "dispatch": {
-    "options": undefined,
-    "token": "ListAliasesCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb alias list [options]
-
-List configured aliases
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb alias list
-  $ bb alias list --json
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb alias delete 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "name": "name-value",
-    },
-    "token": "DeleteAliasCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb alias delete [options] <name>
-
-Delete an alias
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb alias delete co
-  $ bb alias delete co --json
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb config 1`] = `
-{
-  "help": 
-"Usage: bb config [options] [command]
-
-Manage configuration
-
-Options:
-  -h, --help         display help for command
-
-Commands:
-  get <key>          Get a configuration value
-  set <key> <value>  Set a configuration value
-  list               List all configuration values
-  help [command]     display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb config get 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "key": "key-value",
-    },
-    "token": "GetConfigCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb config get [options] <key>
-
-Get a configuration value
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb config get defaultWorkspace
-
-Readable config keys:
-  username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb config set 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "key": "key-value",
-      "value": "value-value",
-    },
-    "token": "SetConfigCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb config set [options] <key> <value>
-
-Set a configuration value
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb config set defaultWorkspace my-workspace
-  $ bb config set skipVersionCheck true
-  $ bb config set versionCheckInterval 86400
-
-Settable config keys:
-  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, seconds), prCreateIncludeDefaultReviewers (true/false)
-
-See also:
-  Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb config list 1`] = `
-{
-  "dispatch": {
-    "options": undefined,
-    "token": "ListConfigCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb config list [options]
-
-List all configuration values
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb config list
-  $ bb config list --json
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb completion 1`] = `
-{
-  "help": 
-"Usage: bb completion [options] [command]
-
-Shell completion utilities
-
-Options:
-  -h, --help      display help for command
-
-Commands:
-  install         Install shell completions for bash, zsh, or fish
-  uninstall       Uninstall shell completions
-  help [command]  display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb completion install 1`] = `
-{
-  "dispatch": {
-    "options": undefined,
-    "token": "InstallCompletionCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb completion install [options]
-
-Install shell completions for bash, zsh, or fish
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb completion install
-  $ bb completion install --json
-
-Supported shells:
-  bash, zsh, fish
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb completion uninstall 1`] = `
-{
-  "dispatch": {
-    "options": undefined,
-    "token": "UninstallCompletionCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb completion uninstall [options]
-
-Uninstall shell completions
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb completion uninstall
-  $ bb completion uninstall --json
-
-Supported shells:
-  bash, zsh, fish
 
 "
 ,

@@ -28,6 +28,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun scripts/build.ts",
+    "build:binary": "bun scripts/compile.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit",
@@ -53,7 +54,7 @@
     "chalk": "^6.0.0",
     "commander": "^15.0.0",
     "open": "^11.0.4",
-    "tabtab": "^3.0.2"
+    "tabtab": "3.0.2"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",

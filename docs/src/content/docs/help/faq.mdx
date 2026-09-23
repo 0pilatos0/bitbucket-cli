@@ -15,7 +15,7 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 
 ### How does this compare to GitHub CLI (gh)?
 
-`bb` follows `gh`'s command shapes for Bitbucket Cloud. It covers authentication, repositories, pull requests, pipelines, commits and build statuses, deployments, branch restrictions, SSH and GPG keys, snippets, workspaces and projects, browsing, configuration, and shell completion. Anything without a typed command, such as webhooks, is reachable through `bb api`, the analog of `gh api`.
+`bb` follows `gh`'s command shapes for Bitbucket Cloud. It covers authentication, repositories, pull requests, pipelines, commits and build statuses, deployments, branch restrictions, SSH and GPG keys, snippets, workspaces and projects, code search, webhooks, browsing, configuration, and shell completion. Anything without a typed command, such as deploy keys, is reachable through `bb api`, the analog of `gh api`.
 
 ---
 
@@ -30,6 +30,8 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 - **SSH & GPG keys** - `bb ssh-key list/add/delete`, `bb gpg-key list/add/delete` (your own account)
 - **Commits & build statuses** - `bb commit list/view`, `bb status list/set`
 - **Workspaces & projects** - `bb workspace list/view`, `bb project list/view/create`
+- **Code search** - `bb search code` across a workspace or one repository
+- **Webhooks** - `bb webhook list/view/create/delete` for repositories and workspaces
 - **Snippets** - List, view (with file contents), create, edit (metadata or file upload), delete, watch/unwatch, comments (list/add/edit/delete)
 - **Browse** - Open repository pages, PRs, files, commits, and pipelines in the browser
 - **Configuration** - Get, set, list settings
@@ -108,14 +110,14 @@ Each login overwrites the credentials in the config file, so parallel shells can
 
 ### What scopes does my token need?
 
-**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, pull requests, branch restrictions, and listing SSH/GPG keys, but **not** `bb repo delete`, `bb pipeline *`, `bb deployment *`, `bb snippet *`, `bb project *`, or `bb ssh-key`/`bb gpg-key` add and delete — for those, log in with an API token carrying the scopes below.
+**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, pull requests, branch restrictions, and listing SSH/GPG keys, but **not** `bb repo delete`, `bb pipeline *`, `bb deployment *`, `bb snippet *`, `bb project *`, `bb webhook *`, or `bb ssh-key`/`bb gpg-key` add and delete — for those, log in with an API token carrying the scopes below.
 
 **API token scopes:**
 
 | Scope | Required for |
 |-------|-------------|
 | `read:user:bitbucket` | `bb auth status`, plus the user lookups in `bb pr list --mine`, `bb pr create --reviewer`, `bb pr reviewers add/remove`, `bb branch-restriction create --user`, and all `bb ssh-key` / `bb gpg-key` subcommands |
-| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb commit list/view`, `bb status list` |
+| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb commit list/view`, `bb status list`, `bb search code` |
 | `write:repository:bitbucket` | `bb status set` |
 | `admin:repository:bitbucket` | `bb repo create`, `bb repo default-reviewers add/remove`, all `bb branch-restriction` subcommands |
 | `delete:repository:bitbucket` | `bb repo delete` |
@@ -129,6 +131,9 @@ Each login overwrites the credentials in the config file, so parallel shells can
 | `read:project:bitbucket` | `bb project list`, `bb project view` |
 | `admin:project:bitbucket` | `bb project create` |
 | `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` |
+| `read:webhook:bitbucket` | `bb webhook list`, `bb webhook view`, `bb webhook create` |
+| `write:webhook:bitbucket` | `bb webhook create` |
+| `delete:webhook:bitbucket` | `bb webhook delete` |
 | `read:ssh-key:bitbucket` / `write:ssh-key:bitbucket` / `delete:ssh-key:bitbucket` | `bb ssh-key list` / `add` / `delete` (`add` also needs `read`) |
 | `read:gpg-key:bitbucket` / `write:gpg-key:bitbucket` / `delete:gpg-key:bitbucket` | `bb gpg-key list` / `add` / `delete` (`add` also needs `read`) |
 
@@ -166,17 +171,24 @@ See [Repository Context](/guides/repository-context/) for details.
 
 ### Does bb support interactive mode?
 
-Only `bb completion install`, which asks which shell you use. Every other command takes flags and arguments.
+Partly. Every command is driven by flags and arguments, and a few of them ask
+for what is missing when you run them in an interactive terminal:
 
-`bb auth login` is browser-interactive but never prompts in the terminal — it opens your browser and waits up to 5 minutes for the callback on `http://localhost:19872/callback`.
+- Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`) ask `Continue? (y/N)` when `-y/--yes` is missing.
+- `bb pr create` asks for the title (and an optional description) when `--title` is missing.
+- `bb auth login` asks whether to use the browser or an API token, and for a missing username or token.
 
-Destructive commands don't prompt either. Without `-y/--yes` they fail with `Use --yes to confirm.`:
+Scripts and CI are unaffected. Prompts need stdin and stdout to both be terminals, and `--json`, `--no-input` or `BB_PROMPT_DISABLED=1` turn them off.
+
+`bb completion install` is the exception: it always asks which shell you use, even with these switches, so don't run it in a script. See [`bb completion install`](/commands/completion/#bb-completion-install).
+
+Without prompts a destructive command fails with `Use --yes to confirm.`, so pass the flag:
 
 ```bash
 bb repo delete myworkspace/old-repo --yes
 ```
 
-That gate applies to `bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`, `bb snippet delete`, and `bb snippet comments delete`.
+See [`--no-input`](/reference/global-flags/#--no-input) for the details.
 
 ---
 

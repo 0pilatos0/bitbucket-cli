@@ -16,6 +16,7 @@ prints. `--limit` and `--all` look global but are not; see
 | `--no-color` | boolean | colors on | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`. |
 | `--no-unicode` | boolean | Unicode on | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`. |
 | `--no-truncate` | boolean | _off_ | Show full values in table output without truncating long cells. |
+| `--no-input` | boolean | _off_ | Never prompt, even in an interactive terminal (except `bb completion install`, see [`--no-input`](#--no-input)). Also honoured: `BB_PROMPT_DISABLED`. |
 | `--locale <locale>` | BCP-47 | system | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. |
 | `-w, --workspace <workspace>` | string | git remote / env / config | Override the workspace. |
 | `-r, --repo <repo>` | string | git remote | Override the repository. |
@@ -126,6 +127,43 @@ The two environment variables are not symmetric:
   command. `--unicode` is accepted but has no effect while `BB_NO_UNICODE` is
   set — unset the variable instead.
 
+## Prompt flag
+
+### `--no-input`
+
+A few commands ask for what is missing when you run them in an interactive
+terminal:
+
+- Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`,
+  `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`)
+  name what they are about to change and ask `Continue? (y/N)` instead of
+  failing without `--yes`.
+- `bb pr create` asks for the title, and then an optional description, when
+  `--title` is missing.
+- `bb auth login` asks whether to use the browser (OAuth) or an API token when
+  no auth flag is given, and asks for a missing username or token.
+
+Prompts only appear when stdin **and** stdout are both terminals. Piped input,
+redirected output, `--json`, `--no-input` and a non-empty `BB_PROMPT_DISABLED`
+each switch them off, and the command then behaves exactly as it does in a
+script: a missing `--yes` or `--title` is an error, and `bb auth login` with no
+flags goes straight to OAuth.
+
+`bb completion install` is the exception. Its shell question comes from the
+completion installer and ignores all of these switches; see
+[`bb completion install`](/commands/completion/#bb-completion-install).
+
+```bash
+bb repo delete myworkspace/old-repo            # asks Continue? (y/N)
+bb repo delete myworkspace/old-repo --yes      # never asks
+bb repo delete myworkspace/old-repo --no-input # fails: Use --yes to confirm.
+```
+
+Answering anything other than `y` or `yes`, or pressing Ctrl+C or Ctrl+D at a
+prompt, stops the command with error
+[5004 PROMPT_CANCELLED](/reference/error-codes/#5004---prompt_cancelled) and
+nothing is changed. Ctrl+C exits with status 130, the rest with 1.
+
 ## List-command flags
 
 `--limit` and `--all` are options on list commands, not global flags.
@@ -143,7 +181,7 @@ Values below 1 fail with `--limit must be a positive integer`.
 
 Fetch every page. `--all` overrides `--limit`.
 
-Both flags are available on these sixteen commands:
+Both flags are available on these eighteen commands:
 
 - `bb repo list`
 - `bb pr list`
@@ -161,6 +199,8 @@ Both flags are available on these sixteen commands:
 - `bb status list`
 - `bb workspace list`
 - `bb project list`
+- `bb search code`
+- `bb webhook list`
 
 `bb pr checks`, `bb pr reviewers list`, `bb repo default-reviewers list` and
 `bb config list` are single-request and accept neither. `bb api` uses

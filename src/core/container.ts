@@ -129,6 +129,7 @@ export const ServiceTokens = {
   GitService: 'GitService',
   ContextService: 'ContextService',
   OutputService: 'OutputService',
+  PromptService: 'PromptService',
   OAuthService: 'OAuthService',
   VersionService: 'VersionService',
 
@@ -142,6 +143,8 @@ export const ServiceTokens = {
   PipelinesApi: 'PipelinesApi',
   WorkspacesApi: 'WorkspacesApi',
   ProjectsApi: 'ProjectsApi',
+  SearchApi: 'SearchApi',
+  WebhooksApi: 'WebhooksApi',
   BranchRestrictionsApi: 'BranchRestrictionsApi',
   SSHApi: 'SSHApi',
   GPGApi: 'GPGApi',
@@ -238,6 +241,15 @@ export const ServiceTokens = {
   ListProjectsCommand: 'ListProjectsCommand',
   ViewProjectCommand: 'ViewProjectCommand',
   CreateProjectCommand: 'CreateProjectCommand',
+
+  // Commands - Search
+  SearchCodeCommand: 'SearchCodeCommand',
+
+  // Commands - Webhook
+  ListWebhooksCommand: 'ListWebhooksCommand',
+  ViewWebhookCommand: 'ViewWebhookCommand',
+  CreateWebhookCommand: 'CreateWebhookCommand',
+  DeleteWebhookCommand: 'DeleteWebhookCommand',
 
   // Commands - Branch restriction
   ListBranchRestrictionsCommand: 'ListBranchRestrictionsCommand',

@@ -58,7 +58,7 @@ anything is sent to Bitbucket.
 
 ## `bb gpg-key delete`
 
-Delete a key by its fingerprint. Requires `--yes`.
+Delete a key by its fingerprint. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)).
 
 ```bash
 bb gpg-key delete <fingerprint> --yes

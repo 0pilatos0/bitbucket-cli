@@ -38,6 +38,8 @@ export const RESERVED_COMMAND_NAMES = [
   'status',
   'workspace',
   'project',
+  'search',
+  'webhook',
   'branch-restriction',
   'ssh-key',
   'gpg-key',

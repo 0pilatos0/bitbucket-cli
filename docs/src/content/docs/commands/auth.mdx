@@ -29,7 +29,7 @@ bb auth login [options]
 ### Examples
 
 ```bash
-# Login with OAuth (opens browser)
+# Pick OAuth or API token interactively (in a terminal), or OAuth in scripts
 bb auth login
 
 # Login with a custom OAuth consumer
@@ -62,6 +62,14 @@ errors with `No API token found on stdin.`
 ### How it works
 
 OAuth is used unless any of `--app-password`, `--with-token`, `-u`, `-p`, or the `BB_API_TOKEN` environment variable is present.
+
+In an interactive terminal, `bb auth login` with none of those (and no
+`--client-id`/`--client-secret`) first asks which method to use. Picking the
+API token then asks for your username and the token; the token is not echoed.
+The API token flow also asks for a username or token you left out, for example
+`bb auth login -u myuser` asks only for the token. Outside an interactive
+terminal (pipes, CI, `--json`, [`--no-input`](/reference/global-flags/#--no-input)) nothing is asked: no flags means OAuth,
+and a missing username or token is an error.
 
 **OAuth flow (default):**
 

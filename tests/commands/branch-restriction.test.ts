@@ -7,7 +7,11 @@ import { ListBranchRestrictionsCommand } from '../../src/commands/branch-restric
 import { ViewBranchRestrictionCommand } from '../../src/commands/branch-restriction/view.command.js';
 import { CreateBranchRestrictionCommand } from '../../src/commands/branch-restriction/create.command.js';
 import { DeleteBranchRestrictionCommand } from '../../src/commands/branch-restriction/delete.command.js';
-import { createMockContextService, createMockOutputService } from '../setup.js';
+import {
+  createMockContextService,
+  createMockOutputService,
+  createMockPromptService,
+} from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
 import type {
   BranchRestrictionsApi,
@@ -499,6 +503,24 @@ describe('DeleteBranchRestrictionCommand', () => {
       command.execute({ id: '7' }, { globalOptions: {} })
     ).rejects.toThrow('Use --yes to confirm');
     expect(calls.delete).toHaveLength(0);
+  });
+
+  it('asks for confirmation in an interactive terminal', async () => {
+    const prompt = createMockPromptService([true]);
+    const { api, calls } = createMockApi();
+    const command = new DeleteBranchRestrictionCommand(
+      api,
+      repoContextService(),
+      createMockOutputService()
+    );
+
+    await command.execute({ id: '7' }, { globalOptions: {}, prompt });
+
+    expect(prompt.calls).toHaveLength(1);
+    expect(prompt.calls[0]).toStartWith(
+      'confirm:This will permanently delete branch restriction 7'
+    );
+    expect(calls.delete).toHaveLength(1);
   });
 
   it('deletes the rule with --yes', async () => {

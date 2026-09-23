@@ -74,6 +74,8 @@ describe('registerCommands', () => {
       'status',
       'workspace',
       'project',
+      'search',
+      'webhook',
       'branch-restriction',
       'ssh-key',
       'gpg-key',

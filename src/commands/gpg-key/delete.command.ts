@@ -35,9 +35,10 @@ export class DeleteGpgKeyCommand extends BaseCommand<
   ): Promise<void> {
     const fingerprint = this.requireOption(options.fingerprint, 'fingerprint');
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete GPG key ${fingerprint} from your account.`
+      `This will permanently delete GPG key ${fingerprint} from your account.`,
+      context
     );
 
     const selectedUser = await resolveCurrentUserUuid(this.usersApi);

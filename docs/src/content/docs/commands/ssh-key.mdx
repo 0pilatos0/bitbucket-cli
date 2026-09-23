@@ -62,8 +62,7 @@ anything is sent to Bitbucket.
 
 ## `bb ssh-key delete`
 
-Delete a key by its UUID (the `UUID` column of `bb ssh-key list`). Requires
-`--yes`.
+Delete a key by its UUID (the `UUID` column of `bb ssh-key list`). Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)).
 
 ```bash
 bb ssh-key delete <key-id> --yes

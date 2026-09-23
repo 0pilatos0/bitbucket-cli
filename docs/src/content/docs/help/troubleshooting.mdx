@@ -219,13 +219,13 @@ bb repo list -w myworkspace
 ### Cannot reach Bitbucket
 
 ```text
-✗ Network error: Unable to reach Bitbucket API. Run with DEBUG=true for details. If you're behind a proxy or using a custom CA, check your environment.
+✗ Network error: Unable to reach Bitbucket API. Run with BB_DEBUG=http for details. If you're behind a proxy or using a custom CA, check your environment.
 ```
 
 ```bash
 curl -I https://api.bitbucket.org          # connectivity
 export HTTPS_PROXY=http://proxy.example.com:8080
-DEBUG=true bb repo list                    # [HTTP] tracing on stdout, secrets redacted
+BB_DEBUG=http bb repo list                 # [HTTP] tracing on stdout, secrets redacted
 ```
 
 Bitbucket's own availability is at
@@ -236,7 +236,7 @@ Bitbucket's own availability is at
 ### Request timed out
 
 ```text
-✗ Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with DEBUG=true for details.
+✗ Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.
 ```
 
 The per-request timeout defaults to 30000 ms.
@@ -308,17 +308,18 @@ git clone https://bitbucket.org/myworkspace/myrepo.git    # HTTPS fallback
 
 ## Command-specific issues
 
-### Destructive commands do not prompt
+### Destructive commands fail instead of asking
 
 ```text
 ✗ This will permanently delete myworkspace/old-repo.
 Use --yes to confirm.
 ```
 
-The `-y, --yes` help text says "Skip confirmation prompt", but there is no
-prompt — the command fails until you pass the flag. This affects
+These commands only ask `Continue? (y/N)` in an interactive terminal. You get
+this error instead when stdin or stdout is piped or redirected, under `--json`
+or `--no-input`, or when `BB_PROMPT_DISABLED` is set. This affects
 `bb repo delete`, `bb repo default-reviewers remove`, `bb pr comments delete`,
-`bb snippet delete`, and `bb snippet comments delete`.
+`bb snippet delete`, and `bb snippet comments delete`. Pass the flag:
 
 ```bash
 bb repo delete myworkspace/old-repo --yes
