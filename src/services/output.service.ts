@@ -74,14 +74,17 @@ let closedPipeGuardInstalled = false;
 
 // A reader that exits early (`bb repo cat big.bin | head`) closes the pipe
 // mid-write. That is a normal end of output, like `cat` under SIGPIPE, not
-// an error worth a Bun crash report.
+// an error worth a Bun crash report. macOS reports ENOTCONN instead of EPIPE
+// when stdout is a socketpair, which is what Node/Bun spawn hands a child.
+const CLOSED_READER_CODES = new Set(['EPIPE', 'ENOTCONN']);
+
 function ignoreClosedStdoutPipe(): void {
   if (closedPipeGuardInstalled) {
     return;
   }
   closedPipeGuardInstalled = true;
   process.stdout.on('error', (error: NodeJS.ErrnoException) => {
-    if (error.code !== 'EPIPE') {
+    if (!CLOSED_READER_CODES.has(error.code ?? '')) {
       throw error;
     }
   });
