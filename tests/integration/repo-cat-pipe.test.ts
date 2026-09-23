@@ -1,6 +1,7 @@
 /**
  * `bb repo cat big.bin | head -c 1`: the reader closes the pipe after the
- * first chunk, so the CLI's next write fails with EPIPE. That must end the
+ * first chunk, so the CLI's next write fails with EPIPE (ENOTCONN on macOS,
+ * where the spawned child's stdout is a socketpair). That must end the
  * run quietly instead of crashing with a Bun error report. Runs the real
  * entrypoint out of process because the failure only exists on a real pipe.
  */
