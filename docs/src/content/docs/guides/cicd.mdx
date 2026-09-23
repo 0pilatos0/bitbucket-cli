@@ -15,7 +15,20 @@ The Bitbucket CLI automates pull request (PR) workflows, reports build statuses 
    - `BB_USERNAME` — your Bitbucket username
    - `BB_API_TOKEN` — your Bitbucket API token
 
-2. **Install Bun and the CLI.** The CLI is Bun-only; it exits immediately under Node.js.
+2. **Install the CLI.** The standalone binary needs no Bun, Node.js or npm, so the job skips the runtime install. Verify it against the release's `SHA256SUMS` before running it:
+
+   ```bash
+   base=https://github.com/0pilatos0/bitbucket-cli/releases/latest/download
+   curl -fsSLO "$base/bb-linux-x64"
+   curl -fsSLO "$base/SHA256SUMS"
+   sha256sum --check --ignore-missing SHA256SUMS
+   install -D -m 755 bb-linux-x64 "$HOME/.local/bin/bb"
+   export PATH="$HOME/.local/bin:$PATH"
+   ```
+
+   Replace `latest/download` with `download/v<version>` to pin a release, and `bb-linux-x64` with `bb-linux-arm64` on arm64 agents. See [Installation](/getting-started/installation/#standalone-binary) for the other platforms and for `gh attestation verify`. The binary needs glibc, so on Alpine use the Bun route below.
+
+   To use the npm package instead, install Bun first. The package is Bun-only; it exits immediately under Node.js.
 
    ```bash
    curl -fsSL https://bun.sh/install | bash
@@ -67,7 +80,7 @@ Projection runs before jq, and `--json <fields>` drops the envelope on list comm
 
 ## Platform examples
 
-Each snippet shows the platform-specific part: how secrets reach the job, and how `~/.bun/bin` gets on `PATH`. The install and `bb auth login` steps are the same everywhere.
+Each snippet shows the platform-specific part: how secrets reach the job, and how the CLI gets on `PATH`. The GitHub Actions example uses the standalone binary and the others use Bun; either install from [Quick setup](#quick-setup) works on any of them. The `bb auth login` step is the same everywhere.
 
 ### GitHub Actions
 
@@ -86,13 +99,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
       - name: Install Bitbucket CLI
-        run: bun install -g @pilatos/bitbucket-cli
+        run: |
+          base=https://github.com/0pilatos0/bitbucket-cli/releases/latest/download
+          curl -fsSLO "$base/bb-linux-x64"
+          curl -fsSLO "$base/SHA256SUMS"
+          sha256sum --check --ignore-missing SHA256SUMS
+          install -D -m 755 bb-linux-x64 "$HOME/.local/bin/bb"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: List open PRs
         env:
@@ -103,7 +117,7 @@ jobs:
           bb pr list -w myworkspace -r myrepo --json --jq '.count'
 ```
 
-`oven-sh/setup-bun` puts `bun` on `PATH` for you, including globally installed binaries.
+Appending to `$GITHUB_PATH` puts `bb` on `PATH` for every later step.
 
 ### GitLab CI
 

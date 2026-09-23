@@ -117,7 +117,9 @@ jobs:
         with:
           tag_name: v${{ steps.package.outputs.version }}
           generate_release_notes: true
-          draft: false
+          # Published by release-binaries once the binaries are attached, so
+          # releases/latest never points at a release without its assets.
+          draft: true
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -129,7 +131,131 @@ jobs:
 
     outputs:
       should_publish: ${{ steps.publish.outputs.should_publish }}
+      version: ${{ steps.package.outputs.version }}
       release_pr_number: ${{ steps.release_pr.outputs.pullRequestNumber }}
+
+  # Standalone executables with the Bun runtime embedded, for machines without
+  # Bun. Each target compiles and is smoke-tested on its native runner, so a
+  # binary that cannot start, load the embedded jq wasm or answer completion
+  # never reaches the release.
+  binaries:
+    name: Compile ${{ matrix.target }}
+    needs: [release]
+    if: needs.release.outputs.should_publish == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-linux-x64
+            runner: ubuntu-latest
+            asset: bb-linux-x64
+          - target: bun-linux-arm64
+            runner: ubuntu-24.04-arm
+            asset: bb-linux-arm64
+          - target: bun-darwin-x64
+            runner: macos-15-intel
+            asset: bb-darwin-x64
+          - target: bun-darwin-arm64
+            runner: macos-latest
+            asset: bb-darwin-arm64
+          - target: bun-windows-x64
+            runner: windows-latest
+            asset: bb-windows-x64.exe
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock*') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Same-volume runtime cache for Bun 1.3.14 on Windows; see ci.yml's
+      # compile-smoke job (oven-sh/bun#43446).
+      - name: Compile
+        run: bun scripts/compile.ts --target ${{ matrix.target }}
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/bun-runtimes
+
+      # Bundled CommonJS keeps the build machine's __dirname, so a dependency
+      # that reads files next to itself only works while node_modules exists.
+      - name: Remove node_modules
+        shell: bash
+        run: rm -rf node_modules
+
+      # SHELL pins tabtab's bash output format (bare names, no descriptions).
+      - name: Smoke test
+        shell: bash
+        env:
+          BIN: dist-bin/${{ matrix.asset }}
+          VERSION: ${{ needs.release.outputs.version }}
+          CI: '1'
+          SHELL: /bin/bash
+        run: |
+          test "$("$BIN" --version | tr -d '\r')" = "$VERSION"
+          test "$("$BIN" config list --json --jq '.configPath | type' | tr -d '\r')" = '"string"'
+          COMP_LINE='bb pr ' COMP_POINT=6 COMP_CWORD=2 "$BIN" completion -- bb pr '' | tr -d '\r' | grep -x create >/dev/null
+          test "$(grep -ao 'begin-{pkgname}-completion' "$BIN" | wc -l | tr -d ' ')" = 3
+
+      - name: Upload binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ matrix.asset }}
+          path: dist-bin/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 7
+
+  # Checksums and Sigstore build-provenance attestations for the binaries, so
+  # installers and package formulas can pin and verify them. Publishing the
+  # draft release is the last step.
+  release-binaries:
+    name: Attach binaries to release
+    needs: [release, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: bb-*
+          path: dist-bin
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist-bin
+        run: sha256sum bb-* > SHA256SUMS && cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist-bin/SHA256SUMS
+
+      - name: Upload to GitHub Release and publish it
+        run: |
+          gh release upload "$TAG" dist-bin/* --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ needs.release.outputs.version }}
 
   # The release PR is opened with GITHUB_TOKEN, so its pull_request runs wait
   # for maintainer approval and expire unrun. YAML cannot suppress those runs;
@@ -161,18 +287,23 @@ jobs:
   # matching the npmjs.com trusted-publisher configuration for this package.
   #
   # Triggers:
-  #   - automatic: after `release` creates the git tag and sets should_publish
+  #   - automatic: after `release` creates the git tag and sets should_publish,
+  #                and only once release-binaries has published the GitHub
+  #                Release, so npm never announces a version whose binaries
+  #                are missing. When a binary leg fails, the tag and the draft
+  #                release stay in place; "Re-run failed jobs" on the same run
+  #                finishes both the release and the npm publish.
   #   - manual:    `gh workflow run "Release" --ref main -f publish_only=true`
   #                (ships whatever version is currently in package.json; use
   #                 this to re-publish a version that already has a git tag)
   publish:
     name: Publish to npm
-    needs: [release]
+    needs: [release, release-binaries]
     if: |
       always() &&
       (needs.release.result == 'success' || needs.release.result == 'skipped') &&
       (
-        needs.release.outputs.should_publish == 'true' ||
+        (needs.release.outputs.should_publish == 'true' && needs.release-binaries.result == 'success') ||
         (github.event_name == 'workflow_dispatch' && inputs.publish_only == true)
       )
     runs-on: ubuntu-latest

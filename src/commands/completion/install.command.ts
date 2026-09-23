@@ -5,23 +5,23 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
+import { installCompletion } from '../../completion-install.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
-import tabtab from 'tabtab';
 
 export class InstallCompletionCommand extends BaseCommand<void, void> {
   public readonly name = 'install';
   public readonly description = 'Install shell completions';
 
-  constructor(output: IOutputService) {
+  constructor(
+    output: IOutputService,
+    private readonly install: typeof installCompletion = installCompletion
+  ) {
     super(output);
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
     try {
-      await tabtab.install({
-        name: 'bb',
-        completer: 'bb',
-      });
+      await this.install({ name: 'bb', completer: 'bb' });
 
       if (context.globalOptions.json) {
         await this.output.json({
