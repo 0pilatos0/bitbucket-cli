@@ -171,6 +171,7 @@ jobs:
           - macos-15-intel
           - windows-latest
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
 
     steps:
       - name: Checkout

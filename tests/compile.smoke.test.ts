@@ -18,6 +18,8 @@ import { isCompileTarget } from '../scripts/compile.js';
 
 const REPO_ROOT = resolve(import.meta.dir, '..');
 const COMPILE_TIMEOUT_MS = 120_000;
+// spawnSync blocks the event loop, so Bun's per-test timeout can't fire on a hung binary.
+const RUN_TIMEOUT_MS = 30_000;
 
 const hostPlatform =
   process.platform === 'win32' ? 'windows' : process.platform;
@@ -34,6 +36,7 @@ function runBinary(
   const result = spawnSync(binary, args, {
     cwd: homeDir,
     encoding: 'utf8',
+    timeout: RUN_TIMEOUT_MS,
     env: {
       HOME: homeDir,
       USERPROFILE: homeDir,
@@ -45,6 +48,9 @@ function runBinary(
       ...extraEnv,
     },
   });
+  if (result.error) {
+    throw result.error;
+  }
   return {
     status: result.status,
     stdout: result.stdout,
