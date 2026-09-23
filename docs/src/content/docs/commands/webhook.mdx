@@ -163,7 +163,7 @@ bb webhook delete <uid> --yes [options]
 | Option | Description |
 |--------|-------------|
 | `--scope <scope>` | `repo` (default) or `workspace` |
-| `-y, --yes` | Confirm the deletion (required) |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 | `--json` | Output as JSON |
 
 ### Examples
@@ -175,7 +175,7 @@ bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes
 
 ### Notes
 
-- Without `--yes` the command refuses and changes nothing.
+- Without `--yes` the command asks `Continue? (y/N)` in an interactive terminal. Anywhere else (pipes, CI, `--json`, [`--no-input`](/reference/global-flags/#--no-input)) it refuses and changes nothing.
 - The JSON output is `{ success, workspace, repoSlug, webhookId }` (no
   `repoSlug` with `--scope workspace`).
 
