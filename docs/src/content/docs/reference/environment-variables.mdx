@@ -19,7 +19,8 @@ its footer.
 | `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Same effect as the global `--no-unicode` flag, but it cannot be overridden per command: `--unicode` is accepted and does nothing while this is set. Unset the variable instead. | `1` |
 | `NO_COLOR` | Disable color output globally. Triggers on any value, including the empty string. | `1` |
 | `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
-| `DEBUG` | Enable HTTP debug logging (request method, URL, status, response body for every API call). Must equal the literal string `true`. | `true` |
+| `BB_DEBUG` | HTTP debug tracing on stdout. `http` logs method, URL, status (or network error code) and elapsed time for every API call; `verbose` also logs the request and response bodies, secrets redacted. `0`, `false`, `off`, `no` or `none` disables it, even when `DEBUG=true` is set; any other non-empty value (e.g. `1`) means `http`. Any level also prints the browser-open and version-check diagnostics on stderr. See [HTTP debug tracing](#http-debug-tracing). | `http` |
+| `DEBUG` | Alias for `BB_DEBUG=verbose`. Must equal the literal string `true`, and is ignored when `BB_DEBUG` is set. | `true` |
 | `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. `bb repo downloads upload` adds transfer time for the upload size on top. | `60000` |
 | `BB_API_BASE_URL` | Base URL for Bitbucket API calls. Defaults to `https://api.bitbucket.org/2.0`. Point it at a gateway, a mirror, or a local mock server (trailing slashes are stripped). | `http://localhost:8080/2.0` |
 
@@ -30,6 +31,45 @@ like `BB_HTTP_TIMEOUT=15000` so a stalled call fails fast instead of hanging
 the pipeline. `BB_HTTP_TIMEOUT=0` disables the timeout — useful for very large
 clones or exports, but a hung request in CI has no human to Ctrl-C.
 </Aside>
+
+### HTTP debug tracing
+
+`BB_DEBUG=http` prints one line when a request is sent and one when it
+finishes. Each line starts with `[HTTP]` and a six-character correlation id,
+so lines from overlapping requests can be matched up:
+
+```text
+$ BB_DEBUG=http bb pr list
+[HTTP] 3f9a1c GET https://api.bitbucket.org/2.0/repositories/my-ws/my-repo/pullrequests?[redacted]
+[HTTP] 3f9a1c 200 GET https://api.bitbucket.org/2.0/repositories/my-ws/my-repo/pullrequests?[redacted] 184ms
+```
+
+A retried request (rate limit, `502`/`503`/`504`, transient network error) or
+an OAuth token refresh keeps its id, and the resent line ends in
+`(attempt N)`. The elapsed time on an outcome line covers one attempt on the
+wire. Time spent before sending is shown separately so slow runs can be
+explained:
+
+- `(waited Nms)` on a request line: how long it was held back, by rate-limit
+  pacing for a first attempt, or since the previous attempt finished (retry
+  backoff, token refresh) for a retry.
+- `(auth Nms)` on an outcome line: credential lookup, including a proactive
+  OAuth token refresh, between the request line and the send.
+
+A request that gets no response logs the network error code instead of a
+status, e.g. `ECONNRESET` or `ECONNABORTED` for a timeout. A failure before
+the request is sent (e.g. missing credentials) logs `[HTTP] Error: <message>`
+right after its request line.
+
+`BB_DEBUG=verbose` adds a `Request Body:` line after a request line that has a
+body, and a `Response Body:` (or `Error Response Body:`) line after each
+outcome. Query strings are always replaced with `?[redacted]`, and values
+under keys such as `access_token`, `password` and `authorization` are replaced
+with `[REDACTED]` in JSON bodies. Headers are never logged.
+
+Trace lines go to stdout and ignore `--json`, so they end up in the same
+stream as JSON output. Leave tracing off when piping `--json` into another
+tool.
 
 ### POSIX locale variables
 

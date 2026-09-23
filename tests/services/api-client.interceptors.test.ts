@@ -5,9 +5,10 @@
  * broad retry/timeout/network matrix; this one pins the seams the behavioral
  * tests cannot see — replay headers, the auth-method re-check on 401, exact
  * APIError shape, the UNKNOWN branch, request-interceptor passthrough, and
- * DEBUG gating on the request/error paths. It also owns the DEBUG logging
- * matrix (moved here from api-client.test.ts so redaction coverage has a
- * single owner).
+ * HTTP debug gating on the request/error paths. It also owns the HTTP debug
+ * wiring matrix: correlation ids across retries and replays, and redaction
+ * through the real interceptors (the logger itself is unit-tested in
+ * http-debug.test.ts).
  */
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
@@ -24,6 +25,7 @@ import {
   createMockOutputService,
   mockConfigService,
   mockOAuthConfigService,
+  createTimeoutErrorAdapter,
   restoreSetTimeout,
   stubSetTimeout,
 } from '../setup.js';
@@ -400,29 +402,47 @@ describe('createApiClient - interceptor edges', () => {
   });
 });
 
-describe('createApiClient - DEBUG logging and redaction', () => {
+describe('createApiClient - HTTP debug logging and redaction', () => {
   let client: AxiosInstance;
   let consoleDebugSpy: ReturnType<typeof spyOn>;
   let originalDebug: string | undefined;
+  let originalBbDebug: string | undefined;
+
+  function restoreEnv(key: string, value: string | undefined): void {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
 
   beforeEach(() => {
     originalDebug = process.env.DEBUG;
+    originalBbDebug = process.env.BB_DEBUG;
+    delete process.env.BB_DEBUG;
     consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
   });
 
   afterEach(() => {
     consoleDebugSpy.mockRestore();
-    if (originalDebug === undefined) {
-      delete process.env.DEBUG;
-    } else {
-      process.env.DEBUG = originalDebug;
-    }
+    restoreEnv('DEBUG', originalDebug);
+    restoreEnv('BB_DEBUG', originalBbDebug);
   });
 
+  function debugLines(): string[] {
+    return consoleDebugSpy.mock.calls.map((args) =>
+      args.map((a) => String(a)).join(' ')
+    );
+  }
+
+  function traceId(line: string | undefined): string {
+    const match = /^\[HTTP\] ([0-9a-f]{6}) /.exec(line ?? '');
+    expect(match).not.toBeNull();
+    return match![1]!;
+  }
+
   function allDebugOutput(): string {
-    return consoleDebugSpy.mock.calls
-      .map((args) => args.map((a) => String(a)).join(' '))
-      .join('\n');
+    return debugLines().join('\n');
   }
 
   it('redacts access_token and refresh_token from response body logs', async () => {
@@ -444,7 +464,7 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     await client.get('/test');
 
     const output = allDebugOutput();
-    expect(output).toContain('[HTTP] Response Body:');
+    expect(output).toMatch(/\[HTTP\] [0-9a-f]{6} Response Body:/);
     expect(output).not.toContain('secret-AT');
     expect(output).not.toContain('secret-RT');
     expect(output).toContain('[REDACTED]');
@@ -472,7 +492,7 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     }
 
     const output = allDebugOutput();
-    expect(output).toContain('[HTTP] Error Response Body:');
+    expect(output).toMatch(/\[HTTP\] [0-9a-f]{6} Error Response Body:/);
     expect(output).not.toContain('leaked');
     expect(output).toContain('[REDACTED]');
     expect(output).toContain('invalid_grant');
@@ -506,7 +526,7 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     expect(output).toContain('items');
   });
 
-  it('does not log response bodies when DEBUG is not set', async () => {
+  it('does not log response bodies when debugging is off', async () => {
     delete process.env.DEBUG;
     const mockAdapter = createMockAdapter([
       {
@@ -522,7 +542,7 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     expect(consoleDebugSpy).not.toHaveBeenCalled();
   });
 
-  it('logs nothing on the request or error path when DEBUG is unset', async () => {
+  it('logs nothing on the request or error path when debugging is off', async () => {
     delete process.env.DEBUG;
     const mockAdapter = createMockAdapter([
       { status: 500, data: { error: { message: 'boom' } } },
@@ -578,12 +598,158 @@ describe('createApiClient - DEBUG logging and redaction', () => {
 
     await client.get('/some/resource');
 
-    const output = allDebugOutput();
-    expect(output).toContain('[HTTP] GET');
-    expect(output).toContain('/some/resource');
+    expect(debugLines()[0]).toMatch(
+      /^\[HTTP\] [0-9a-f]{6} GET https:\/\/api\.bitbucket\.org\/2\.0\/some\/resource$/
+    );
   });
 
-  it('redacts query strings from request URL DEBUG logs', async () => {
+  it('logs status and timing but no bodies with BB_DEBUG=http', async () => {
+    process.env.BB_DEBUG = 'http';
+    const mockAdapter = createMockAdapter([
+      { status: 200, data: { access_token: 'never-logged', name: 'body' } },
+    ]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/some/resource');
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(2);
+    expect(traceId(lines[1])).toBe(traceId(lines[0]));
+    expect(lines[1]).toMatch(/ 200 GET \S+\/some\/resource \d+ms$/);
+    expect(lines.join('\n')).not.toContain('body');
+  });
+
+  it('lets BB_DEBUG=off silence a DEBUG=true set for another tool', async () => {
+    process.env.DEBUG = 'true';
+    process.env.BB_DEBUG = 'off';
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/test');
+
+    expect(consoleDebugSpy).not.toHaveBeenCalled();
+  });
+
+  it('keeps one correlation id across status retries', async () => {
+    process.env.BB_DEBUG = 'http';
+    const mockAdapter = createMockAdapter([
+      { status: 503, data: {} },
+      { status: 200, data: {} },
+    ]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/flaky');
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(4);
+    const id = traceId(lines[0]);
+    expect(lines.map(traceId)).toEqual([id, id, id, id]);
+    expect(lines[1]).toMatch(/ 503 GET \S+\/flaky \d+ms$/);
+    expect(lines[2]).toMatch(/\/flaky \(attempt 2(, waited \d+ms)?\)$/);
+    expect(lines[3]).toMatch(/ 200 GET \S+\/flaky \d+ms$/);
+  });
+
+  it('keeps one correlation id across the 401 refresh replay', async () => {
+    process.env.BB_DEBUG = 'http';
+    const mockAdapter = createMockAdapter([
+      { status: 401, data: {} },
+      { status: 200, data: {} },
+    ]);
+    client = createApiClient(
+      mockOAuthConfigService(),
+      createMockOutputService(),
+      createMockOAuthService().service
+    );
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/me');
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(4);
+    expect(new Set(lines.map(traceId)).size).toBe(1);
+    expect(lines[1]).toContain(' 401 GET ');
+    expect(lines[2]).toMatch(/\(attempt 2(, waited \d+ms)?\)$/);
+  });
+
+  it('gives overlapping requests distinct ids that match their outcomes', async () => {
+    process.env.BB_DEBUG = 'http';
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await Promise.all([client.get('/a'), client.get('/b')]);
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(4);
+    const idFor = (suffix: string): Set<string> =>
+      new Set(
+        lines
+          .filter((line) => new RegExp(`GET \\S+${suffix}( |$)`).test(line))
+          .map(traceId)
+      );
+    const a = idFor('/a');
+    const b = idFor('/b');
+    expect(a.size).toBe(1);
+    expect(b.size).toBe(1);
+    expect([...a][0]).not.toBe([...b][0]);
+  });
+
+  it('logs the request line before a credential failure', async () => {
+    process.env.BB_DEBUG = 'http';
+    const store = {
+      ...mockConfigService(),
+      getCredentials: async () => {
+        throw new Error('Not authenticated');
+      },
+    };
+    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
+    client = createApiClient(store, createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.get('/repositories/ws/r').catch(() => {});
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(
+      /^\[HTTP\] [0-9a-f]{6} GET https:\/\/api\.bitbucket\.org\/2\.0\/repositories\/ws\/r$/
+    );
+    expect(lines[1]).toBe('[HTTP] Error: Not authenticated');
+  });
+
+  it('logs the redacted request body at the verbose level', async () => {
+    process.env.BB_DEBUG = 'verbose';
+    const mockAdapter = createMockAdapter([{ status: 201, data: {} }]);
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await client.post('/items', { password: 'hunter2', title: 'kept' });
+
+    const output = allDebugOutput();
+    expect(output).toMatch(/\[HTTP\] [0-9a-f]{6} Request Body:/);
+    expect(output).not.toContain('hunter2');
+    expect(output).toContain('kept');
+  });
+
+  it('logs the network error code with the correlation id', async () => {
+    process.env.BB_DEBUG = 'http';
+    const timeoutMock = createTimeoutErrorAdapter('ECONNABORTED');
+    client = createApiClient(mockConfigService(), createMockOutputService());
+    client.defaults.adapter = timeoutMock.adapter;
+
+    await client.post('/slow', { a: 1 }).catch(() => {});
+
+    const lines = debugLines();
+    expect(lines).toHaveLength(2);
+    expect(traceId(lines[1])).toBe(traceId(lines[0]));
+    expect(lines[1]).toMatch(
+      / ECONNABORTED POST \S+\/slow \d+ms: timeout of 30000ms exceeded$/
+    );
+  });
+
+  it('redacts query strings from request URL debug logs', async () => {
     process.env.DEBUG = 'true';
     const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
     client = createApiClient(mockConfigService(), createMockOutputService());
@@ -592,7 +758,7 @@ describe('createApiClient - DEBUG logging and redaction', () => {
     await client.get('/test?token=abc&other=xyz');
 
     const output = allDebugOutput();
-    expect(output).toContain('[HTTP] GET');
+    expect(output).toMatch(/\[HTTP\] [0-9a-f]{6} GET /);
     expect(output).toContain('/test');
     expect(output).not.toContain('token=abc');
     expect(output).not.toContain('other=xyz');
