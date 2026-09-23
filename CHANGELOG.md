@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.1
+
+### Patch Changes
+
+- [#344](https://github.com/0pilatos0/bitbucket-cli/pull/344) [`fbbdce7`](https://github.com/0pilatos0/bitbucket-cli/commit/fbbdce728c3a15547428778746e9ca37dc8b435c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `BB_DEBUG` request lines no longer show a phantom `(waited 1ms)` when nothing held the request back.
+
 ## 2.2.0
 
 ### Minor Changes
