@@ -192,7 +192,7 @@ jq '.statusCode, .response, .headers' err.json
 ```
 - **Retries and redaction are inherited** from the shared API client — rate
   limits (`429`) and the transient gateway errors `502`/`503`/`504` are retried
-  with backoff, and sensitive values are redacted from `DEBUG` logs.
+  with backoff, and sensitive values are redacted from `BB_DEBUG` traces.
 
 ### Related
 

@@ -120,11 +120,12 @@ export class RateLimiter {
   }
 
   /**
-   * Resolve when the caller may start its request. Always awaits — even with
-   * zero intervals it serializes callers, which keeps `lastRequestAt` honest
-   * under concurrency.
+   * Resolve when the caller may start its request, with the milliseconds it
+   * was held back. Always awaits — even with zero intervals it serializes
+   * callers, which keeps `lastRequestAt` honest under concurrency.
    */
-  public async acquire(): Promise<void> {
+  public async acquire(): Promise<number> {
+    const requestedAt = Date.now();
     const previous = this.chain;
     let release!: () => void;
     this.chain = new Promise<void>((resolve) => {
@@ -141,6 +142,7 @@ export class RateLimiter {
         }
       }
       this.lastRequestAt = Date.now();
+      return this.lastRequestAt - requestedAt;
     } finally {
       release();
     }
