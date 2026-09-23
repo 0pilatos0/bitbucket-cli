@@ -1,0 +1,187 @@
+---
+title: Webhook Commands - Manage Bitbucket Webhooks
+description: Reference for Bitbucket CLI webhook commands. List, view, create, and delete repository and workspace webhooks in Bitbucket Cloud from the command line.
+---
+
+Webhooks send an HTTP request to a URL of your choice when something happens
+in Bitbucket, such as a push or a new pull request.
+
+Every subcommand works on **repository** webhooks by default, resolved like
+other repository commands: `--workspace`/`--repo`, or the current repository's
+Bitbucket remote. Pass `--scope workspace` to work on **workspace** webhooks
+instead. Those fire for every repository in the workspace; the workspace comes
+from `-w/--workspace`, then the git remote, then `BB_WORKSPACE`, then
+`defaultWorkspace`. `--repo` cannot be combined with `--scope workspace`.
+
+All subcommands are non-interactive and accept the
+[global flags](/reference/global-flags/), including `--json [fields]` and
+`--jq <expression>`.
+
+---
+
+## `bb webhook list`
+
+List webhooks.
+
+```bash
+bb webhook list [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--scope <scope>` | `repo` (default) or `workspace` |
+| `--limit <number>` | Maximum number of webhooks (default: 25) |
+| `--all` | List all webhooks (overrides `--limit`) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb webhook list
+bb webhook list --scope workspace -w my-workspace
+bb webhook list --json --jq '.webhooks[].url'
+```
+
+### Output
+
+```text
+UUID                                    DESCRIPTION  URL                          EVENTS                         ACTIVE
+--------------------------------------  -----------  ---------------------------  -----------------------------  ------
+{a1b2c3d4-0000-0000-0000-000000000000}  CI trigger   https://ci.example.com/hook  repo:push,pullrequest:created  yes
+```
+
+With no webhooks it prints `No webhooks found for <workspace>/<repo>` (or
+`workspace <workspace>`).
+
+### JSON output
+
+The envelope is `{ workspace, repoSlug, count, webhooks }`. With
+`--scope workspace` there is no `repoSlug`.
+
+---
+
+## `bb webhook view`
+
+View webhook details.
+
+```bash
+bb webhook view <uid> [options]
+```
+
+### Arguments
+
+| Argument | Description |
+|----------|-------------|
+| `uid` | Webhook UUID, with or without the surrounding `{}` |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--scope <scope>` | `repo` (default) or `workspace` |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}
+bb webhook view a1b2c3d4-0000-0000-0000-000000000000 --scope workspace
+
+# JSON is wrapped: { workspace, repoSlug, webhook }
+bb webhook view {a1b2c3d4-0000-0000-0000-000000000000} --json --jq '.webhook.events'
+```
+
+### Notes
+
+- The secret is never shown. Bitbucket only says whether one is set.
+- An unknown id fails with `Webhook <uid> not found for <target>.`
+
+---
+
+## `bb webhook create`
+
+Create a webhook.
+
+```bash
+bb webhook create --url <url> --event <event...> [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--scope <scope>` | `repo` (default) or `workspace` |
+| `--url <url>` | URL events are delivered to (required) |
+| `-e, --event <event...>` | Event to subscribe to (required; repeat the flag or list several after it) |
+| `-d, --description <description>` | Webhook description |
+| `--secret <secret>` | Secret Bitbucket uses to sign each delivery in the `X-Hub-Signature` header |
+| `--inactive` | Create the webhook disabled |
+| `--json` | Output as JSON |
+
+Events are checked against the list Bitbucket publishes (for example
+`repo:push`, `pullrequest:created`, `pullrequest:fulfilled`,
+`repo:commit_status_updated`). `bb webhook create --help` prints all of them,
+and shell completion suggests them after `--event`.
+
+### Examples
+
+```bash
+bb webhook create --url https://ci.example.com/hook --event repo:push
+bb webhook create --url https://example.com/hook \
+  -e pullrequest:created -e pullrequest:fulfilled -d "PR bot"
+
+# Workspace-wide, signed with a secret from the environment
+bb webhook create --scope workspace -w my-workspace \
+  --url https://example.com/hook -e repo:push --secret "$WEBHOOK_SECRET"
+```
+
+### Notes
+
+- Bitbucket rejects URLs that do not resolve or point at internal addresses.
+- Typing the secret on the command line puts it in your shell history. Reading
+  it from an environment variable, as in the last example, avoids that, but the
+  expanded value is still an argument of the `bb` process, so other users on a
+  shared machine can see it in `ps` while the command runs.
+- Only workspace owners can create workspace webhooks.
+- The JSON output is `{ workspace, repoSlug, webhook }` (no `repoSlug` with
+  `--scope workspace`).
+
+---
+
+## `bb webhook delete`
+
+Delete a webhook.
+
+```bash
+bb webhook delete <uid> --yes [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--scope <scope>` | `repo` (default) or `workspace` |
+| `-y, --yes` | Confirm the deletion (required) |
+| `--json` | Output as JSON |
+
+### Examples
+
+```bash
+bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000} --yes
+bb webhook delete a1b2c3d4-0000-0000-0000-000000000000 --scope workspace --yes
+```
+
+### Notes
+
+- Without `--yes` the command refuses and changes nothing.
+- The JSON output is `{ success, workspace, repoSlug, webhookId }` (no
+  `repoSlug` with `--scope workspace`).
+
+### Related
+
+- [Token Scopes](/reference/token-scopes/): the scopes
+  each subcommand needs.
+- [Repository Context](/guides/repository-context/): how the CLI resolves
+  workspace and repository.

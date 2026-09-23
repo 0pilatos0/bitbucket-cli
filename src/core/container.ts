@@ -143,6 +143,8 @@ export const ServiceTokens = {
   PipelinesApi: 'PipelinesApi',
   WorkspacesApi: 'WorkspacesApi',
   ProjectsApi: 'ProjectsApi',
+  SearchApi: 'SearchApi',
+  WebhooksApi: 'WebhooksApi',
 
   // Commands - Auth
   LoginCommand: 'LoginCommand',
@@ -235,6 +237,15 @@ export const ServiceTokens = {
   ListProjectsCommand: 'ListProjectsCommand',
   ViewProjectCommand: 'ViewProjectCommand',
   CreateProjectCommand: 'CreateProjectCommand',
+
+  // Commands - Search
+  SearchCodeCommand: 'SearchCodeCommand',
+
+  // Commands - Webhook
+  ListWebhooksCommand: 'ListWebhooksCommand',
+  ViewWebhookCommand: 'ViewWebhookCommand',
+  CreateWebhookCommand: 'CreateWebhookCommand',
+  DeleteWebhookCommand: 'DeleteWebhookCommand',
 
   // Commands - Config
   GetConfigCommand: 'GetConfigCommand',
