@@ -55,9 +55,10 @@ export class DeleteWebhookCommand extends BaseCommand<
       this.webhooksApi
     );
 
-    this.requireConfirmation(
+    await this.requireConfirmation(
       options.yes,
-      `This will permanently delete webhook ${uid} from ${hooks.label}.`
+      `This will permanently delete webhook ${uid} from ${hooks.label}.`,
+      context
     );
 
     await hooks
