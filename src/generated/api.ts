@@ -375,6 +375,59 @@ export interface Committer extends ModelObject {
     'raw'?: string;
     'user'?: Account;
 }
+export interface CurrentUserPermissionCheck extends PullrequestMergeabilityCheck {
+    'type': CurrentUserPermissionCheckTypeEnum;
+}
+
+export const CurrentUserPermissionCheckTypeEnum = {
+    CurrentUserPermissionCheck: 'current_user_permission_check'
+} as const;
+
+export type CurrentUserPermissionCheckTypeEnum = typeof CurrentUserPermissionCheckTypeEnum[keyof typeof CurrentUserPermissionCheckTypeEnum];
+
+export interface CustomMergeCheck extends PullrequestMergeabilityCheck {
+    'type': CustomMergeCheckTypeEnum;
+    /**
+     * Identifies which custom check this is, as `{\'type\': \'custom_merge_check_definition\', \'id\': \'...\', \'name\': \'...\'}`, where `id` is the ARI of the custom check extension.
+     */
+    'check': { [key: string]: any; };
+    /**
+     * Present when a persisted result exists: the persisted custom check result UUID. Omitted for on-merge checks known but not yet triggered.
+     */
+    'uuid'?: string;
+    /**
+     * Present when the custom check provides one; omitted when absent.
+     */
+    'message'?: string;
+}
+
+export const CustomMergeCheckTypeEnum = {
+    CustomPreMergeCheck: 'custom_pre_merge_check',
+    CustomOnMergeCheck: 'custom_on_merge_check'
+} as const;
+
+export type CustomMergeCheckTypeEnum = typeof CustomMergeCheckTypeEnum[keyof typeof CustomMergeCheckTypeEnum];
+
+export interface CustomOnMergeCheck extends CustomMergeCheck {
+    'type': CustomOnMergeCheckTypeEnum;
+}
+
+export const CustomOnMergeCheckTypeEnum = {
+    CustomOnMergeCheck: 'custom_on_merge_check'
+} as const;
+
+export type CustomOnMergeCheckTypeEnum = typeof CustomOnMergeCheckTypeEnum[keyof typeof CustomOnMergeCheckTypeEnum];
+
+export interface CustomPreMergeCheck extends CustomMergeCheck {
+    'type': CustomPreMergeCheckTypeEnum;
+}
+
+export const CustomPreMergeCheckTypeEnum = {
+    CustomPreMergeCheck: 'custom_pre_merge_check'
+} as const;
+
+export type CustomPreMergeCheckTypeEnum = typeof CustomPreMergeCheckTypeEnum[keyof typeof CustomPreMergeCheckTypeEnum];
+
 /**
  * Object containing a user that is a default reviewer and the type of reviewer
  */
@@ -663,6 +716,31 @@ export interface GPGAccountKey extends ModelObject {
     'subkeys'?: Set<GPGAccountKey>;
     'links'?: object;
 }
+export interface GitMergeabilityCheck extends PullrequestMergeabilityCheck {
+    'type': GitMergeabilityCheckTypeEnum;
+    /**
+     * Present when `status` is `PASSED` or `FAILED`: the Git-level outcome for the selected source and destination heads. Omitted when `status` is `UNKNOWN` (Bitbucket could not evaluate Git mergeability, e.g. due to a timeout); this doesn\'t imply the pull request is conflict-free.
+     */
+    'reason'?: GitMergeabilityCheckReasonEnum;
+    /**
+     * Present when this check is blocking: `{\'details\': {\'href\': \'...\'}}`, linking to this pull request\'s `conflicts` endpoint.
+     */
+    'links'?: { [key: string]: any; };
+}
+
+export const GitMergeabilityCheckTypeEnum = {
+    GitMergeabilityCheck: 'git_mergeability_check'
+} as const;
+
+export type GitMergeabilityCheckTypeEnum = typeof GitMergeabilityCheckTypeEnum[keyof typeof GitMergeabilityCheckTypeEnum];
+export const GitMergeabilityCheckReasonEnum = {
+    Clean: 'clean',
+    Conflicts: 'conflicts',
+    MergeImpossible: 'merge_impossible'
+} as const;
+
+export type GitMergeabilityCheckReasonEnum = typeof GitMergeabilityCheckReasonEnum[keyof typeof GitMergeabilityCheckReasonEnum];
+
 export interface Group extends ModelObject {
     'links'?: object;
     'owner'?: Account;
@@ -740,6 +818,43 @@ export interface Link {
     'href'?: string;
     'name'?: string;
 }
+export interface MergeQueue extends ModelObject {
+    /**
+     * The merge queue UUID.
+     */
+    'uuid': string;
+    /**
+     * The merge queue name.
+     */
+    'name': string;
+    /**
+     * The configuration state returned by the merge queue service. Known values are `ACTIVE`, `PAUSED`, `DRAINING`, `SUSPENDED`, `INACTIVE`, and `UNKNOWN`. `ACTIVE` accepts entries; `PAUSED` accepts entries but pauses landing; `DRAINING` and `SUSPENDED` block entry; `INACTIVE` does not require queueing. Unknown values are returned unchanged and follow the existing queue behavior: only `DRAINING` and `SUSPENDED` block entry.
+     */
+    'state': string;
+}
+export interface MergeQueueCheck extends PullrequestMergeabilityCheck {
+    'type': MergeQueueCheckTypeEnum;
+    /**
+     * Whether the destination branch currently requires queueing.
+     */
+    'required': boolean;
+    /**
+     * Whether this check is currently preventing the pull request from being merged.
+     */
+    'blocking': boolean;
+    /**
+     * Whether the pull request is already queued, according to its current lifecycle state.
+     */
+    'queued': boolean;
+    'merge_queue': MergeQueue;
+}
+
+export const MergeQueueCheckTypeEnum = {
+    MergeQueueCheck: 'merge_queue_check'
+} as const;
+
+export type MergeQueueCheckTypeEnum = typeof MergeQueueCheckTypeEnum[keyof typeof MergeQueueCheckTypeEnum];
+
 /**
  * Base type for most resource objects. It defines the common `type` element that identifies an object\'s type. It also identifies the element as Swagger\'s `discriminator`.
  */
@@ -1206,7 +1321,7 @@ export interface PaginatedHookEvents {
      */
     'next'?: string;
     /**
-     * Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.
+     * Link to previous page if it exists. A collection\'s first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.
      */
     'previous'?: string;
     'values'?: Set<HookEvent>;
@@ -2990,6 +3105,79 @@ export const PullrequestMergeParametersMergeStrategyEnum = {
 
 export type PullrequestMergeParametersMergeStrategyEnum = typeof PullrequestMergeParametersMergeStrategyEnum[keyof typeof PullrequestMergeParametersMergeStrategyEnum];
 
+/**
+ * A mergeability check. The `type` identifies the concrete check and its additional fields.
+ */
+export interface PullrequestMergeabilityCheck {
+    [key: string]: any;
+
+    'type': PullrequestMergeabilityCheckTypeEnum;
+    /**
+     * Whether this check passed. `UNKNOWN` means the check could not be evaluated; it does not establish that the pull request is mergeable.
+     */
+    'status': PullrequestMergeabilityCheckStatusEnum;
+    /**
+     * Whether this check must pass for the pull request to be mergeable.
+     */
+    'required': boolean;
+    /**
+     * Whether this check is currently preventing the pull request from being merged.
+     */
+    'blocking': boolean;
+}
+
+export const PullrequestMergeabilityCheckTypeEnum = {
+    PullrequestStateCheck: 'pullrequest_state_check',
+    CurrentUserPermissionCheck: 'current_user_permission_check',
+    GitMergeabilityCheck: 'git_mergeability_check',
+    StandardMergeCheck: 'standard_merge_check',
+    CustomPreMergeCheck: 'custom_pre_merge_check',
+    CustomOnMergeCheck: 'custom_on_merge_check',
+    MergeQueueCheck: 'merge_queue_check'
+} as const;
+
+export type PullrequestMergeabilityCheckTypeEnum = typeof PullrequestMergeabilityCheckTypeEnum[keyof typeof PullrequestMergeabilityCheckTypeEnum];
+export const PullrequestMergeabilityCheckStatusEnum = {
+    Passed: 'PASSED',
+    Failed: 'FAILED',
+    Pending: 'PENDING',
+    Skipped: 'SKIPPED',
+    Unknown: 'UNKNOWN'
+} as const;
+
+export type PullrequestMergeabilityCheckStatusEnum = typeof PullrequestMergeabilityCheckStatusEnum[keyof typeof PullrequestMergeabilityCheckStatusEnum];
+
+/**
+ * The collection of checks that determine whether the specified pull request can be merged. Every check has a `type` identifying its shape - see `pullrequest_state_check`, `current_user_permission_check`, `git_mergeability_check`, `standard_merge_check`, `custom_merge_check`, and `merge_queue_check` for what each type covers.
+ */
+export interface PullrequestMergeabilityChecks {
+    'size'?: number;
+    'values': Array<PullrequestMergeabilityCheck>;
+}
+export interface PullrequestStateCheck extends PullrequestMergeabilityCheck {
+    'type': PullrequestStateCheckTypeEnum;
+    /**
+     * The public state of the pull request. Note that a queued pull request is reported as `OPEN` here but as `blocking: true`, since it cannot be merged again while a merge is already in progress.
+     */
+    'state': PullrequestStateCheckStateEnum;
+}
+
+export const PullrequestStateCheckTypeEnum = {
+    PullrequestStateCheck: 'pullrequest_state_check'
+} as const;
+
+export type PullrequestStateCheckTypeEnum = typeof PullrequestStateCheckTypeEnum[keyof typeof PullrequestStateCheckTypeEnum];
+export const PullrequestStateCheckStateEnum = {
+    Open: 'OPEN',
+    Draft: 'DRAFT',
+    Merged: 'MERGED',
+    Declined: 'DECLINED',
+    Superseded: 'SUPERSEDED',
+    Unknown: 'UNKNOWN'
+} as const;
+
+export type PullrequestStateCheckStateEnum = typeof PullrequestStateCheckStateEnum[keyof typeof PullrequestStateCheckStateEnum];
+
 export interface PullrequestTask {
     'id'?: number;
     'created_on': string;
@@ -3460,6 +3648,36 @@ export interface SshKey extends ModelObject {
     'last_used'?: string;
     'links'?: object;
 }
+export interface StandardMergeCheck extends PullrequestMergeabilityCheck {
+    'type': StandardMergeCheckTypeEnum;
+    /**
+     * Whether merge-check enforcement is currently active for the pull request (a repository-wide setting), not a property of the individual check.
+     */
+    'required': boolean;
+    /**
+     * Whether this check is currently preventing the pull request from being merged.
+     */
+    'blocking': boolean;
+    /**
+     * Identifies which branch-restriction-backed check this is, as `{\'type\': \'standard_merge_check_definition\', \'kind\': \'...\'}`. See `check.kind` in the endpoint documentation for the full list of supported kinds.
+     */
+    'check': { [key: string]: any; };
+    /**
+     * The configured threshold for this check, keyed by a check.kind-specific field name (e.g. `{\'minimum_approvals\': 2}`). The shape varies per `check.kind`.
+     */
+    'requirement': { [key: string]: any; };
+    /**
+     * The current observed value for this check, keyed by a check.kind-specific field name (e.g. `{\'approval_count\': 1}`). The shape varies per `check.kind`.
+     */
+    'observed': { [key: string]: any; };
+}
+
+export const StandardMergeCheckTypeEnum = {
+    StandardMergeCheck: 'standard_merge_check'
+} as const;
+
+export type StandardMergeCheckTypeEnum = typeof StandardMergeCheckTypeEnum[keyof typeof StandardMergeCheckTypeEnum];
+
 /**
  * The mapping of resource/subject types pointing to their individual event types.
  */
@@ -22429,7 +22647,7 @@ export class ProjectsApi extends BaseAPI implements ProjectsApiInterface {
 export const PropertiesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Delete a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22437,6 +22655,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteCommitHostedPropertyValue: async (workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22489,7 +22708,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Delete a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22497,6 +22716,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deletePullRequestHostedPropertyValue: async (workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22549,13 +22769,14 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Delete a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteRepositoryHostedPropertyValue: async (workspace: string, repoSlug: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22605,12 +22826,13 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Delete a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteUserHostedPropertyValue: async (selectedUser: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22657,7 +22879,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Get a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22665,6 +22887,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getCommitHostedPropertyValue: async (workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22718,7 +22941,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Get a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22726,6 +22949,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getPullRequestHostedPropertyValue: async (workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22779,13 +23003,14 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Get a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getRepositoryHostedPropertyValue: async (workspace: string, repoSlug: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22836,12 +23061,13 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Get a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         retrieveUserHostedPropertyValue: async (selectedUser: string, appKey: string, propertyName: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22889,7 +23115,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Update a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22898,6 +23124,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateCommitHostedPropertyValue: async (workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -22954,7 +23181,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
          * @summary Update a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -22963,6 +23190,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updatePullRequestHostedPropertyValue: async (workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -23019,7 +23247,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Update a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23027,6 +23255,7 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateRepositoryHostedPropertyValue: async (workspace: string, repoSlug: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -23080,13 +23309,14 @@ export const PropertiesApiAxiosParamCreator = function (configuration?: Configur
             };
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Update a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateUserHostedPropertyValue: async (selectedUser: string, appKey: string, propertyName: string, body: ApplicationProperty, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
@@ -23146,7 +23376,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = PropertiesApiAxiosParamCreator(configuration)
     return {
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Delete a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23154,6 +23384,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async deleteCommitHostedPropertyValue(workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23163,7 +23394,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Delete a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23171,6 +23402,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async deletePullRequestHostedPropertyValue(workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23180,13 +23412,14 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Delete a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async deleteRepositoryHostedPropertyValue(workspace: string, repoSlug: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23196,12 +23429,13 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Delete a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async deleteUserHostedPropertyValue(selectedUser: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23211,7 +23445,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Get a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23219,6 +23453,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async getCommitHostedPropertyValue(workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationProperty>> {
@@ -23228,7 +23463,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Get a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23236,6 +23471,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async getPullRequestHostedPropertyValue(workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationProperty>> {
@@ -23245,13 +23481,14 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Get a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async getRepositoryHostedPropertyValue(workspace: string, repoSlug: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationProperty>> {
@@ -23261,12 +23498,13 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Get a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async retrieveUserHostedPropertyValue(selectedUser: string, appKey: string, propertyName: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ApplicationProperty>> {
@@ -23276,7 +23514,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Update a commit application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23285,6 +23523,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async updateCommitHostedPropertyValue(workspace: string, repoSlug: string, commit: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23294,7 +23533,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
          * @summary Update a pull request application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23303,6 +23542,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async updatePullRequestHostedPropertyValue(workspace: string, repoSlug: string, pullrequestId: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23312,7 +23552,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Update a repository application property
          * @param {string} workspace The repository container; either the workspace slug or the UUID in curly braces.
          * @param {string} repoSlug The repository.
@@ -23320,6 +23560,7 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async updateRepositoryHostedPropertyValue(workspace: string, repoSlug: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23329,13 +23570,14 @@ export const PropertiesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Update a user application property
          * @param {string} selectedUser Either the UUID of the account surrounded by curly-braces, for example &#x60;{account UUID}&#x60;, OR an Atlassian Account ID.
          * @param {string} appKey The key of the Connect app.
          * @param {string} propertyName The name of the property.
          * @param {ApplicationProperty} body The application property to create or update.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         async updateUserHostedPropertyValue(selectedUser: string, appKey: string, propertyName: string, body: ApplicationProperty, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
@@ -23354,120 +23596,132 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
     const localVarFp = PropertiesApiFp(configuration)
     return {
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Delete a commit application property
          * @param {PropertiesApiDeleteCommitHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteCommitHostedPropertyValue(requestParameters: PropertiesApiDeleteCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deleteCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Delete a pull request application property
          * @param {PropertiesApiDeletePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deletePullRequestHostedPropertyValue(requestParameters: PropertiesApiDeletePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deletePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Delete a repository application property
          * @param {PropertiesApiDeleteRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteRepositoryHostedPropertyValue(requestParameters: PropertiesApiDeleteRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deleteRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Delete a user application property
          * @param {PropertiesApiDeleteUserHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         deleteUserHostedPropertyValue(requestParameters: PropertiesApiDeleteUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.deleteUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Get a commit application property
          * @param {PropertiesApiGetCommitHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getCommitHostedPropertyValue(requestParameters: PropertiesApiGetCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty> {
             return localVarFp.getCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
          * @summary Get a pull request application property
          * @param {PropertiesApiGetPullRequestHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getPullRequestHostedPropertyValue(requestParameters: PropertiesApiGetPullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty> {
             return localVarFp.getPullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Get a repository application property
          * @param {PropertiesApiGetRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         getRepositoryHostedPropertyValue(requestParameters: PropertiesApiGetRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty> {
             return localVarFp.getRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Get a user application property
          * @param {PropertiesApiRetrieveUserHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         retrieveUserHostedPropertyValue(requestParameters: PropertiesApiRetrieveUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty> {
             return localVarFp.retrieveUserHostedPropertyValue(requestParameters.selectedUser, requestParameters.appKey, requestParameters.propertyName, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
          * @summary Update a commit application property
          * @param {PropertiesApiUpdateCommitHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateCommitHostedPropertyValue(requestParameters: PropertiesApiUpdateCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.updateCommitHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.commit, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
          * @summary Update a pull request application property
          * @param {PropertiesApiUpdatePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updatePullRequestHostedPropertyValue(requestParameters: PropertiesApiUpdatePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.updatePullRequestHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.pullrequestId, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
          * @summary Update a repository application property
          * @param {PropertiesApiUpdateRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateRepositoryHostedPropertyValue(requestParameters: PropertiesApiUpdateRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
             return localVarFp.updateRepositoryHostedPropertyValue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.appKey, requestParameters.propertyName, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
-         * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+         * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
          * @summary Update a user application property
          * @param {PropertiesApiUpdateUserHostedPropertyValueRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
+         * @deprecated
          * @throws {RequiredError}
          */
         updateUserHostedPropertyValue(requestParameters: PropertiesApiUpdateUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
@@ -23481,109 +23735,121 @@ export const PropertiesApiFactory = function (configuration?: Configuration, bas
  */
 export interface PropertiesApiInterface {
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Delete a commit application property
      * @param {PropertiesApiDeleteCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     deleteCommitHostedPropertyValue(requestParameters: PropertiesApiDeleteCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
      * @summary Delete a pull request application property
      * @param {PropertiesApiDeletePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     deletePullRequestHostedPropertyValue(requestParameters: PropertiesApiDeletePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Delete a repository application property
      * @param {PropertiesApiDeleteRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     deleteRepositoryHostedPropertyValue(requestParameters: PropertiesApiDeleteRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Delete a user application property
      * @param {PropertiesApiDeleteUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     deleteUserHostedPropertyValue(requestParameters: PropertiesApiDeleteUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Get a commit application property
      * @param {PropertiesApiGetCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getCommitHostedPropertyValue(requestParameters: PropertiesApiGetCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty>;
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
      * @summary Get a pull request application property
      * @param {PropertiesApiGetPullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getPullRequestHostedPropertyValue(requestParameters: PropertiesApiGetPullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty>;
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Get a repository application property
      * @param {PropertiesApiGetRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     getRepositoryHostedPropertyValue(requestParameters: PropertiesApiGetRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty>;
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Get a user application property
      * @param {PropertiesApiRetrieveUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     retrieveUserHostedPropertyValue(requestParameters: PropertiesApiRetrieveUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<ApplicationProperty>;
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Update a commit application property
      * @param {PropertiesApiUpdateCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     updateCommitHostedPropertyValue(requestParameters: PropertiesApiUpdateCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
      * @summary Update a pull request application property
      * @param {PropertiesApiUpdatePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     updatePullRequestHostedPropertyValue(requestParameters: PropertiesApiUpdatePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Update a repository application property
      * @param {PropertiesApiUpdateRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     updateRepositoryHostedPropertyValue(requestParameters: PropertiesApiUpdateRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Update a user application property
      * @param {PropertiesApiUpdateUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     updateUserHostedPropertyValue(requestParameters: PropertiesApiUpdateUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
@@ -23930,10 +24196,11 @@ export interface PropertiesApiUpdateUserHostedPropertyValueRequest {
  */
 export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Delete a commit application property
      * @param {PropertiesApiDeleteCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public deleteCommitHostedPropertyValue(requestParameters: PropertiesApiDeleteCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23941,10 +24208,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
      * @summary Delete a pull request application property
      * @param {PropertiesApiDeletePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public deletePullRequestHostedPropertyValue(requestParameters: PropertiesApiDeletePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23952,10 +24220,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Delete a repository application property
      * @param {PropertiesApiDeleteRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public deleteRepositoryHostedPropertyValue(requestParameters: PropertiesApiDeleteRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23963,10 +24232,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Delete a user application property
      * @param {PropertiesApiDeleteUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public deleteUserHostedPropertyValue(requestParameters: PropertiesApiDeleteUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23974,10 +24244,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Get a commit application property
      * @param {PropertiesApiGetCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public getCommitHostedPropertyValue(requestParameters: PropertiesApiGetCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23985,10 +24256,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
      * @summary Get a pull request application property
      * @param {PropertiesApiGetPullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public getPullRequestHostedPropertyValue(requestParameters: PropertiesApiGetPullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -23996,10 +24268,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Get a repository application property
      * @param {PropertiesApiGetRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public getRepositoryHostedPropertyValue(requestParameters: PropertiesApiGetRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -24007,10 +24280,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Get a user application property
      * @param {PropertiesApiRetrieveUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public retrieveUserHostedPropertyValue(requestParameters: PropertiesApiRetrieveUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -24018,10 +24292,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
      * @summary Update a commit application property
      * @param {PropertiesApiUpdateCommitHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public updateCommitHostedPropertyValue(requestParameters: PropertiesApiUpdateCommitHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -24029,10 +24304,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
      * @summary Update a pull request application property
      * @param {PropertiesApiUpdatePullRequestHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public updatePullRequestHostedPropertyValue(requestParameters: PropertiesApiUpdatePullRequestHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -24040,10 +24316,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
      * @summary Update a repository application property
      * @param {PropertiesApiUpdateRepositoryHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public updateRepositoryHostedPropertyValue(requestParameters: PropertiesApiUpdateRepositoryHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -24051,10 +24328,11 @@ export class PropertiesApi extends BaseAPI implements PropertiesApiInterface {
     }
 
     /**
-     * Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+     * This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
      * @summary Update a user application property
      * @param {PropertiesApiUpdateUserHostedPropertyValueRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
+     * @deprecated
      * @throws {RequiredError}
      */
     public updateUserHostedPropertyValue(requestParameters: PropertiesApiUpdateUserHostedPropertyValueRequest, options?: RawAxiosRequestConfig) {
@@ -25537,6 +25815,64 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
+         * Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+         * @summary List pull request mergeability checks
+         * @param {number} pullRequestId The id of the pull request.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.
+         * @param {string} [q] Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: &#x60;type!&#x3D;\&quot;git_mergeability_check\&quot;&#x60; skips Git conflict evaluation, and &#x60;check.kind!&#x3D;\&quot;maximum_commits_behind\&quot;&#x60; skips the bounded Git ancestry check behind that standard merge check. Combine both with &#x60;AND&#x60; (either order). Anything else returns &#x60;400 Bad Request&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet: async (pullRequestId: number, repoSlug: string, workspace: string, q?: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'pullRequestId' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet', 'pullRequestId', pullRequestId)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet', 'repoSlug', repoSlug)
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet', 'workspace', workspace)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/mergeability/checks`
+                .replace(`{${"pull_request_id"}}`, encodeURIComponent(String(pullRequestId)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["pullrequest"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            if (q !== undefined) {
+                localVarQueryParameter['q'] = q;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Redirects to the [repository patch](/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-patch-spec-get) with the revspec that corresponds to pull request.
          * @summary Get the patch for a pull request
          * @param {number} pullRequestId The id of the pull request.
@@ -26593,6 +26929,22 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+         * @summary List pull request mergeability checks
+         * @param {number} pullRequestId The id of the pull request.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.
+         * @param {string} [q] Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: &#x60;type!&#x3D;\&quot;git_mergeability_check\&quot;&#x60; skips Git conflict evaluation, and &#x60;check.kind!&#x3D;\&quot;maximum_commits_behind\&quot;&#x60; skips the bounded Git ancestry check behind that standard merge check. Combine both with &#x60;AND&#x60; (either order). Anything else returns &#x60;400 Bad Request&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(pullRequestId: number, repoSlug: string, workspace: string, q?: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PullrequestMergeabilityChecks>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(pullRequestId, repoSlug, workspace, q, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['PullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Redirects to the [repository patch](/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-patch-spec-get) with the revspec that corresponds to pull request.
          * @summary Get the patch for a pull request
          * @param {number} pullRequestId The id of the pull request.
@@ -27048,6 +27400,16 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
             return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGet(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
+         * Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+         * @summary List pull request mergeability checks
+         * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestMergeabilityChecks> {
+            return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.q, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Redirects to the [repository patch](/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-patch-spec-get) with the revspec that corresponds to pull request.
          * @summary Get the patch for a pull request
          * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPatchGetRequest} requestParameters Request parameters.
@@ -27406,6 +27768,15 @@ export interface PullrequestsApiInterface {
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+     * @summary List pull request mergeability checks
+     * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PullrequestMergeabilityChecks>;
 
     /**
      * Redirects to the [repository patch](/cloud/bitbucket/rest/api-group-commits/#api-repositories-workspace-repo-slug-patch-spec-get) with the revspec that corresponds to pull request.
@@ -28091,6 +28462,31 @@ export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullReq
 }
 
 /**
+ * Request parameters for repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet operation in PullrequestsApi.
+ */
+export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest {
+    /**
+     * The id of the pull request.
+     */
+    readonly pullRequestId: number
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: &#x60;type!&#x3D;\&quot;git_mergeability_check\&quot;&#x60; skips Git conflict evaluation, and &#x60;check.kind!&#x3D;\&quot;maximum_commits_behind\&quot;&#x60; skips the bounded Git ancestry check behind that standard merge check. Combine both with &#x60;AND&#x60; (either order). Anything else returns &#x60;400 Bad Request&#x60;.
+     */
+    readonly q?: string
+}
+
+/**
  * Request parameters for repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPatchGet operation in PullrequestsApi.
  */
 export interface PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPatchGetRequest {
@@ -28664,6 +29060,17 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
      */
     public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGetRequest, options?: RawAxiosRequestConfig) {
         return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGet(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.taskId, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+     * @summary List pull request mergeability checks
+     * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGetRequest, options?: RawAxiosRequestConfig) {
+        return PullrequestsApiFp(this.configuration).repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.q, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -39558,12 +39965,12 @@ export class UsersApi extends BaseAPI implements UsersApiInterface {
 export const WebhooksApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
-         * Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+         * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        hookEventsGet: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listHookEvents: async (options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             const localVarPath = `/hook_events`;
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -39599,15 +40006,15 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
          * @summary List subscribable webhook types
-         * @param {HookEventsSubjectTypeGetSubjectTypeEnum} subjectType A resource or subject type.
+         * @param {ListHookEventsForResourceSubjectTypeEnum} subjectType A resource or subject type.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        hookEventsSubjectTypeGet: async (subjectType: HookEventsSubjectTypeGetSubjectTypeEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+        listHookEventsForResource: async (subjectType: ListHookEventsForResourceSubjectTypeEnum, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'subjectType' is not null or undefined
-            assertParamExists('hookEventsSubjectTypeGet', 'subjectType', subjectType)
+            assertParamExists('listHookEventsForResource', 'subjectType', subjectType)
             const localVarPath = `/hook_events/{subject_type}`
                 .replace(`{${"subject_type"}}`, encodeURIComponent(String(subjectType)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
@@ -40167,28 +40574,28 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = WebhooksApiAxiosParamCreator(configuration)
     return {
         /**
-         * Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+         * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async hookEventsGet(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SubjectTypes>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.hookEventsGet(options);
+        async listHookEvents(options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<SubjectTypes>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listHookEvents(options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.hookEventsGet']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.listHookEvents']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
          * @summary List subscribable webhook types
-         * @param {HookEventsSubjectTypeGetSubjectTypeEnum} subjectType A resource or subject type.
+         * @param {ListHookEventsForResourceSubjectTypeEnum} subjectType A resource or subject type.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async hookEventsSubjectTypeGet(subjectType: HookEventsSubjectTypeGetSubjectTypeEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedHookEvents>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.hookEventsSubjectTypeGet(subjectType, options);
+        async listHookEventsForResource(subjectType: ListHookEventsForResourceSubjectTypeEnum, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedHookEvents>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listHookEventsForResource(subjectType, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.hookEventsSubjectTypeGet']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.listHookEventsForResource']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -40346,23 +40753,23 @@ export const WebhooksApiFactory = function (configuration?: Configuration, baseP
     const localVarFp = WebhooksApiFp(configuration)
     return {
         /**
-         * Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+         * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        hookEventsGet(options?: RawAxiosRequestConfig): AxiosPromise<SubjectTypes> {
-            return localVarFp.hookEventsGet(options).then((request) => request(axios, basePath));
+        listHookEvents(options?: RawAxiosRequestConfig): AxiosPromise<SubjectTypes> {
+            return localVarFp.listHookEvents(options).then((request) => request(axios, basePath));
         },
         /**
-         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+         * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
          * @summary List subscribable webhook types
-         * @param {WebhooksApiHookEventsSubjectTypeGetRequest} requestParameters Request parameters.
+         * @param {WebhooksApiListHookEventsForResourceRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        hookEventsSubjectTypeGet(requestParameters: WebhooksApiHookEventsSubjectTypeGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHookEvents> {
-            return localVarFp.hookEventsSubjectTypeGet(requestParameters.subjectType, options).then((request) => request(axios, basePath));
+        listHookEventsForResource(requestParameters: WebhooksApiListHookEventsForResourceRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHookEvents> {
+            return localVarFp.listHookEventsForResource(requestParameters.subjectType, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of webhooks installed on this repository.
@@ -40472,21 +40879,21 @@ export const WebhooksApiFactory = function (configuration?: Configuration, baseP
  */
 export interface WebhooksApiInterface {
     /**
-     * Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+     * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
      * @summary Get a webhook resource
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    hookEventsGet(options?: RawAxiosRequestConfig): AxiosPromise<SubjectTypes>;
+    listHookEvents(options?: RawAxiosRequestConfig): AxiosPromise<SubjectTypes>;
 
     /**
-     * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+     * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
      * @summary List subscribable webhook types
-     * @param {WebhooksApiHookEventsSubjectTypeGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListHookEventsForResourceRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    hookEventsSubjectTypeGet(requestParameters: WebhooksApiHookEventsSubjectTypeGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHookEvents>;
+    listHookEventsForResource(requestParameters: WebhooksApiListHookEventsForResourceRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedHookEvents>;
 
     /**
      * Returns a paginated list of webhooks installed on this repository.
@@ -40581,13 +40988,13 @@ export interface WebhooksApiInterface {
 }
 
 /**
- * Request parameters for hookEventsSubjectTypeGet operation in WebhooksApi.
+ * Request parameters for listHookEventsForResource operation in WebhooksApi.
  */
-export interface WebhooksApiHookEventsSubjectTypeGetRequest {
+export interface WebhooksApiListHookEventsForResourceRequest {
     /**
      * A resource or subject type.
      */
-    readonly subjectType: HookEventsSubjectTypeGetSubjectTypeEnum
+    readonly subjectType: ListHookEventsForResourceSubjectTypeEnum
 }
 
 /**
@@ -40758,24 +41165,24 @@ export interface WebhooksApiWorkspacesWorkspaceHooksUidPutRequest {
  */
 export class WebhooksApi extends BaseAPI implements WebhooksApiInterface {
     /**
-     * Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+     * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
      * @summary Get a webhook resource
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public hookEventsGet(options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).hookEventsGet(options).then((request) => request(this.axios, this.basePath));
+    public listHookEvents(options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).listHookEvents(options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
-     * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+     * Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
      * @summary List subscribable webhook types
-     * @param {WebhooksApiHookEventsSubjectTypeGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListHookEventsForResourceRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public hookEventsSubjectTypeGet(requestParameters: WebhooksApiHookEventsSubjectTypeGetRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).hookEventsSubjectTypeGet(requestParameters.subjectType, options).then((request) => request(this.axios, this.basePath));
+    public listHookEventsForResource(requestParameters: WebhooksApiListHookEventsForResourceRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).listHookEventsForResource(requestParameters.subjectType, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -40889,11 +41296,11 @@ export class WebhooksApi extends BaseAPI implements WebhooksApiInterface {
     }
 }
 
-export const HookEventsSubjectTypeGetSubjectTypeEnum = {
+export const ListHookEventsForResourceSubjectTypeEnum = {
     Repository: 'repository',
     Workspace: 'workspace'
 } as const;
-export type HookEventsSubjectTypeGetSubjectTypeEnum = typeof HookEventsSubjectTypeGetSubjectTypeEnum[keyof typeof HookEventsSubjectTypeGetSubjectTypeEnum];
+export type ListHookEventsForResourceSubjectTypeEnum = typeof ListHookEventsForResourceSubjectTypeEnum[keyof typeof ListHookEventsForResourceSubjectTypeEnum];
 
 
 /**

@@ -4,8 +4,8 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 
 |Method | HTTP request | Description|
 |------------- | ------------- | -------------|
-|[**hookEventsGet**](#hookeventsget) | **GET** /hook_events | Get a webhook resource|
-|[**hookEventsSubjectTypeGet**](#hookeventssubjecttypeget) | **GET** /hook_events/{subject_type} | List subscribable webhook types|
+|[**listHookEvents**](#listhookevents) | **GET** /hook_events | Get a webhook resource|
+|[**listHookEventsForResource**](#listhookeventsforresource) | **GET** /hook_events/{subject_type} | List subscribable webhook types|
 |[**repositoriesWorkspaceRepoSlugHooksGet**](#repositoriesworkspacereposlughooksget) | **GET** /repositories/{workspace}/{repo_slug}/hooks | List webhooks for a repository|
 |[**repositoriesWorkspaceRepoSlugHooksPost**](#repositoriesworkspacereposlughookspost) | **POST** /repositories/{workspace}/{repo_slug}/hooks | Create a webhook for a repository|
 |[**repositoriesWorkspaceRepoSlugHooksUidDelete**](#repositoriesworkspacereposlughooksuiddelete) | **DELETE** /repositories/{workspace}/{repo_slug}/hooks/{uid} | Delete a webhook for a repository|
@@ -17,10 +17,10 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**workspacesWorkspaceHooksUidGet**](#workspacesworkspacehooksuidget) | **GET** /workspaces/{workspace}/hooks/{uid} | Get a webhook for a workspace|
 |[**workspacesWorkspaceHooksUidPut**](#workspacesworkspacehooksuidput) | **PUT** /workspaces/{workspace}/hooks/{uid} | Update a webhook for a workspace|
 
-# **hookEventsGet**
-> SubjectTypes hookEventsGet()
+# **listHookEvents**
+> SubjectTypes listHookEvents()
 
-Returns the webhook resource or subject types on which webhooks can be registered.  Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.  This endpoint is publicly accessible and does not require authentication or scopes.
+Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
 
 ### Example
 
@@ -33,7 +33,7 @@ import {
 const configuration = new Configuration();
 const apiInstance = new WebhooksApi(configuration);
 
-const { status, data } = await apiInstance.hookEventsGet();
+const { status, data } = await apiInstance.listHookEvents();
 ```
 
 ### Parameters
@@ -61,10 +61,10 @@ This endpoint does not have any parameters.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **hookEventsSubjectTypeGet**
-> PaginatedHookEvents hookEventsSubjectTypeGet()
+# **listHookEventsForResource**
+> PaginatedHookEvents listHookEventsForResource()
 
-Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**  This is public data that does not require any scopes or authentication.  NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
+Returns a paginated list of all valid webhook events for the specified entity. **The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).** This is public data that does not require any scopes or authentication. NOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.
 
 ### Example
 
@@ -79,7 +79,7 @@ const apiInstance = new WebhooksApi(configuration);
 
 let subjectType: 'repository' | 'workspace'; //A resource or subject type. (default to undefined)
 
-const { status, data } = await apiInstance.hookEventsSubjectTypeGet(
+const { status, data } = await apiInstance.listHookEventsForResource(
     subjectType
 );
 ```

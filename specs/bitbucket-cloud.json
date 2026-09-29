@@ -109,9 +109,10 @@
     },
     "/hook_events": {
       "get": {
-        "tags": ["Webhooks"],
-        "description": "Returns the webhook resource or subject types on which webhooks can\nbe registered.\n\nEach resource/subject type contains an `events` link that returns the\npaginated list of specific events each individual subject type can\nemit.\n\nThis endpoint is publicly accessible and does not require\nauthentication or scopes.",
+        "operationId": "list_hook_events",
         "summary": "Get a webhook resource",
+        "description": "Returns the webhook resource or subject types on which webhooks can be registered.\nEach resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit.\nThis endpoint is publicly accessible and does not require authentication or scopes.",
+        "tags": ["Webhooks"],
         "responses": {
           "200": {
             "description": "A mapping of resource/subject types pointing to their individual event types.",
@@ -136,16 +137,25 @@
             }
           }
         },
-        "parameters": [],
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
-      },
-      "parameters": []
+      }
     },
     "/hook_events/{subject_type}": {
       "get": {
-        "tags": ["Webhooks"],
-        "description": "Returns a paginated list of all valid webhook events for the\nspecified entity.\n**The team and user webhooks are deprecated, and you should use workspace instead.\nFor more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**\n\nThis is public data that does not require any scopes or authentication.\n\nNOTE: The example response is a truncated response object for the `workspace` `subject_type`.\nWe return the same structure for the other `subject_type` objects.",
+        "operationId": "list_hook_events_for_resource",
         "summary": "List subscribable webhook types",
+        "description": "Returns a paginated list of all valid webhook events for the specified entity.\n**The team and user webhooks are deprecated, and you should use workspace instead. For more information, see [the announcement](https://developer.atlassian.com/cloud/bitbucket/bitbucket-api-teams-deprecation/).**\nThis is public data that does not require any scopes or authentication.\nNOTE: The example response is a truncated response object for the `workspace` `subject_type`. We return the same structure for the other `subject_type` objects.",
+        "tags": ["Webhooks"],
+        "parameters": [
+          {
+            "name": "subject_type",
+            "description": "A resource or subject type.",
+            "required": true,
+            "in": "path",
+            "type": "string",
+            "enum": ["repository", "workspace"]
+          }
+        ],
         "responses": {
           "200": {
             "description": "A paginated list of webhook types available to subscribe on.",
@@ -189,19 +199,8 @@
             "schema": { "$ref": "#/definitions/error" }
           }
         },
-        "parameters": [],
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
-      },
-      "parameters": [
-        {
-          "name": "subject_type",
-          "in": "path",
-          "description": "A resource or subject type.",
-          "required": true,
-          "type": "string",
-          "enum": ["repository", "workspace"]
-        }
-      ]
+      }
     },
     "/repositories/{workspace}": {
       "get": {
@@ -1421,10 +1420,11 @@
     },
     "/repositories/{workspace}/{repo_slug}/commit/{commit}/properties/{app_key}/{property_name}": {
       "put": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "updateCommitHostedPropertyValue",
         "summary": "Update a commit application property",
-        "description": "Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nUpdate an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.\n",
         "parameters": [
           {
             "type": "string",
@@ -1473,10 +1473,11 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "delete": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "deleteCommitHostedPropertyValue",
         "summary": "Delete a commit application property",
-        "description": "Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nDelete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.\n",
         "parameters": [
           {
             "type": "string",
@@ -1518,6 +1519,7 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "get": {
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "The value of the property.",
@@ -1526,7 +1528,7 @@
         },
         "operationId": "getCommitHostedPropertyValue",
         "summary": "Get a commit application property",
-        "description": "Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nRetrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.\n",
         "parameters": [
           {
             "type": "string",
@@ -7868,10 +7870,11 @@
     },
     "/repositories/{workspace}/{repo_slug}/properties/{app_key}/{property_name}": {
       "put": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "updateRepositoryHostedPropertyValue",
         "summary": "Update a repository application property",
-        "description": "Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nUpdate an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.\n",
         "parameters": [
           {
             "type": "string",
@@ -7913,10 +7916,11 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "delete": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "deleteRepositoryHostedPropertyValue",
         "summary": "Delete a repository application property",
-        "description": "Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nDelete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.\n",
         "parameters": [
           {
             "type": "string",
@@ -7951,6 +7955,7 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "get": {
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "The value of the property.",
@@ -7959,7 +7964,7 @@
         },
         "operationId": "getRepositoryHostedPropertyValue",
         "summary": "Get a repository application property",
-        "description": "Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nRetrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.\n",
         "parameters": [
           {
             "type": "string",
@@ -9158,6 +9163,89 @@
         }
       ]
     },
+    "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/mergeability/checks": {
+      "get": {
+        "tags": ["Pullrequests"],
+        "description": "Returns the mergeability checks Bitbucket performs for this pull request, and whether each one\ncurrently allows the pull request to be merged - simulating what the merge endpoint checks before\nactually merging.\n\nChecks cover pull request state, the current user's merge permissions, Git conflicts, configured\nstandard and custom merge checks, and merge queue status when available. Each check's `blocking`\nattribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.\n\n`pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state,\npermission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge\nrestriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both\nomitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can't\nevaluate without attempting the merge (e.g. dependency-merge requirements) aren't included. See\n`PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that\nare expensive to evaluate.\n\nFor repositories with merge queues enabled, a `merge_queue_check` reports queue availability and\nwhether the pull request is already queued. It is included for open, non-draft pull requests when the\ndestination branch requires queueing, and for already-queued pull requests with a configured queue.\nThe check is omitted when no merge queue is configured for the destination branch. When the check is\npresent, `merge_queue` contains that configured queue's UUID, name and state. Already-queued pull requests\nreturn their blocking state check and any applicable queue check, without evaluating Git or other merge checks.\nA failed queue configuration read fails the whole request with `500`, as for custom merge check results.\n\nReturns `500` if custom merge checks are configured but their results aren't currently retrievable,\nsince the real merge action requires them too and would fail the same way.",
+        "summary": "List pull request mergeability checks",
+        "responses": {
+          "200": {
+            "description": "The collection of checks that determine whether the specified pull request can be merged.",
+            "schema": {
+              "$ref": "#/definitions/pullrequest_mergeability_checks"
+            }
+          },
+          "400": {
+            "description": "If `q` is an unsupported filter expression.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "401": {
+            "description": "If the request was not authenticated.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "If the authenticated user does not have access to the pull request.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "If the repository or pull request does not exist.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "429": {
+            "description": "If the mergeability request rate limit has been exceeded."
+          },
+          "500": {
+            "description": "If activated custom merge check results or enabled merge queue configuration could not be retrieved.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: `type!=\"git_mergeability_check\"` skips Git conflict evaluation, and `check.kind!=\"maximum_commits_behind\"` skips the bounded Git ancestry check behind that standard merge check. Combine both with `AND` (either order). Anything else returns `400 Bad Request`.",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "security": [
+          { "oauth2": ["pullrequest"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:pullrequest:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      },
+      "parameters": [
+        {
+          "name": "pull_request_id",
+          "in": "path",
+          "description": "The id of the pull request.",
+          "required": true,
+          "type": "integer"
+        },
+        {
+          "name": "repo_slug",
+          "in": "path",
+          "description": "This can either be the repository slug or the UUID of the repository,\nsurrounded by curly-braces, for example: `{repository UUID}`.\n",
+          "required": true,
+          "type": "string"
+        },
+        {
+          "name": "workspace",
+          "in": "path",
+          "description": "This can either be the workspace ID (slug) or the workspace UUID\nsurrounded by curly-braces, for example: `{workspace UUID}`.\n",
+          "required": true,
+          "type": "string"
+        }
+      ]
+    },
     "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/patch": {
       "get": {
         "tags": ["Pullrequests"],
@@ -9658,10 +9746,11 @@
     },
     "/repositories/{workspace}/{repo_slug}/pullrequests/{pullrequest_id}/properties/{app_key}/{property_name}": {
       "put": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "updatePullRequestHostedPropertyValue",
         "summary": "Update a pull request application property",
-        "description": "Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nUpdate an [application property](/cloud/bitbucket/application-properties/) value stored against a pull \nrequest.\n",
         "parameters": [
           {
             "type": "string",
@@ -9710,10 +9799,11 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "delete": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "deletePullRequestHostedPropertyValue",
         "summary": "Delete a pull request application property",
-        "description": "Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nDelete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull\nrequest.\n",
         "parameters": [
           {
             "type": "string",
@@ -9755,6 +9845,7 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "get": {
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "The value of the property.",
@@ -9763,7 +9854,7 @@
         },
         "operationId": "getPullRequestHostedPropertyValue",
         "summary": "Get a pull request application property",
-        "description": "Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nRetrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull\nrequest.\n",
         "parameters": [
           {
             "type": "string",
@@ -13071,10 +13162,11 @@
     },
     "/users/{selected_user}/properties/{app_key}/{property_name}": {
       "put": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "updateUserHostedPropertyValue",
         "summary": "Update a user application property",
-        "description": "Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nUpdate an [application property](/cloud/bitbucket/application-properties/) value stored against a user.\n",
         "parameters": [
           {
             "type": "string",
@@ -13109,10 +13201,11 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "delete": {
+        "deprecated": true,
         "responses": { "204": { "description": "An empty response." } },
         "operationId": "deleteUserHostedPropertyValue",
         "summary": "Delete a user application property",
-        "description": "Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nDelete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.\n",
         "parameters": [
           {
             "type": "string",
@@ -13140,6 +13233,7 @@
         "security": [{ "oauth2": [] }, { "basic": [] }, { "api_key": [] }]
       },
       "get": {
+        "deprecated": true,
         "responses": {
           "200": {
             "description": "The value of the property.",
@@ -13148,7 +13242,7 @@
         },
         "operationId": "retrieveUserHostedPropertyValue",
         "summary": "Get a user application property",
-        "description": "Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.",
+        "description": "This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).\n\nRetrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.\n",
         "parameters": [
           {
             "type": "string",
@@ -16712,35 +16806,47 @@
       "properties": {
         "repository": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "events": {
+            "links": {
               "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
+              "additionalProperties": false,
               "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
+                "events": {
+                  "type": "object",
+                  "title": "Link",
+                  "description": "A link to a resource related to this object.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "href": { "type": "string", "format": "uri" },
+                    "name": { "type": "string" }
+                  }
+                }
+              }
             }
-          },
-          "additionalProperties": false
+          }
         },
         "workspace": {
           "type": "object",
+          "additionalProperties": false,
           "properties": {
-            "events": {
+            "links": {
               "type": "object",
-              "title": "Link",
-              "description": "A link to a resource related to this object.",
+              "additionalProperties": false,
               "properties": {
-                "href": { "type": "string", "format": "uri" },
-                "name": { "type": "string" }
-              },
-              "additionalProperties": false
+                "events": {
+                  "type": "object",
+                  "title": "Link",
+                  "description": "A link to a resource related to this object.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "href": { "type": "string", "format": "uri" },
+                    "name": { "type": "string" }
+                  }
+                }
+              }
             }
-          },
-          "additionalProperties": false
+          }
         }
       },
       "additionalProperties": false
@@ -16749,6 +16855,7 @@
       "type": "object",
       "title": "Hook Event",
       "description": "An event, associated with a resource or subject type.",
+      "additionalProperties": false,
       "properties": {
         "event": {
           "type": "string",
@@ -16797,13 +16904,13 @@
           "type": "string",
           "description": "More detailed description of the webhook event type."
         }
-      },
-      "additionalProperties": false
+      }
     },
     "paginated_hook_events": {
       "type": "object",
       "title": "Paginated Hook Events",
       "description": "A paginated list of webhook types available to subscribe on.",
+      "additionalProperties": false,
       "properties": {
         "size": {
           "type": "integer",
@@ -16827,7 +16934,7 @@
         },
         "previous": {
           "type": "string",
-          "description": "Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
+          "description": "Link to previous page if it exists. A collection's first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.",
           "format": "uri"
         },
         "values": {
@@ -16836,8 +16943,7 @@
           "minItems": 0,
           "uniqueItems": true
         }
-      },
-      "additionalProperties": false
+      }
     },
     "application_property": {
       "additionalProperties": true,
@@ -18989,6 +19095,32 @@
         }
       }
     },
+    "merge_queue": {
+      "allOf": [
+        { "$ref": "#/definitions/object" },
+        {
+          "type": "object",
+          "title": "Merge Queue",
+          "description": "Identity and state of the merge queue configured for the destination branch.",
+          "properties": {
+            "uuid": {
+              "type": "string",
+              "description": "The merge queue UUID."
+            },
+            "name": {
+              "type": "string",
+              "description": "The merge queue name."
+            },
+            "state": {
+              "type": "string",
+              "description": "The configuration state returned by the merge queue service. Known values are `ACTIVE`, `PAUSED`, `DRAINING`, `SUSPENDED`, `INACTIVE`, and `UNKNOWN`. `ACTIVE` accepts entries; `PAUSED` accepts entries but pauses landing; `DRAINING` and `SUSPENDED` block entry; `INACTIVE` does not require queueing. Unknown values are returned unchanged and follow the existing queue behavior: only `DRAINING` and `SUSPENDED` block entry."
+            }
+          },
+          "required": ["uuid", "name", "state"],
+          "additionalProperties": true
+        }
+      ]
+    },
     "search_code_search_result": {
       "type": "object",
       "properties": {
@@ -19119,6 +19251,260 @@
         "permission": { "type": "string", "enum": ["read", "write", "admin"] }
       },
       "required": ["permission"],
+      "additionalProperties": false
+    },
+    "pullrequest_mergeability_check": {
+      "type": "object",
+      "title": "Pull Request Mergeability Check",
+      "description": "A mergeability check. The `type` identifies the concrete check and its additional fields.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "pullrequest_state_check",
+            "current_user_permission_check",
+            "git_mergeability_check",
+            "standard_merge_check",
+            "custom_pre_merge_check",
+            "custom_on_merge_check",
+            "merge_queue_check"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "Whether this check passed. `UNKNOWN` means the check could not be evaluated; it does not establish that the pull request is mergeable.",
+          "enum": ["PASSED", "FAILED", "PENDING", "SKIPPED", "UNKNOWN"]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether this check must pass for the pull request to be mergeable."
+        },
+        "blocking": {
+          "type": "boolean",
+          "description": "Whether this check is currently preventing the pull request from being merged."
+        }
+      },
+      "required": ["type", "status", "required", "blocking"],
+      "additionalProperties": true,
+      "discriminator": "type"
+    },
+    "pullrequest_state_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Pull Request State Check",
+          "description": "Whether the pull request is in a mergeable state (open).",
+          "properties": {
+            "type": { "type": "string", "enum": ["pullrequest_state_check"] },
+            "state": {
+              "type": "string",
+              "description": "The public state of the pull request. Note that a queued pull request is reported as `OPEN` here but as `blocking: true`, since it cannot be merged again while a merge is already in progress.",
+              "enum": [
+                "OPEN",
+                "DRAFT",
+                "MERGED",
+                "DECLINED",
+                "SUPERSEDED",
+                "UNKNOWN"
+              ]
+            }
+          },
+          "required": ["type", "state"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "current_user_permission_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Current User Permission Check",
+          "description": "Whether the requesting user has write access to the destination repository, is allowed to merge into the destination branch under any branch restrictions, and that the pull request's source repository still exists.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["current_user_permission_check"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "git_mergeability_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Git Mergeability Check",
+          "description": "The Git-level evaluation of the pull request's source and destination heads.",
+          "properties": {
+            "type": { "type": "string", "enum": ["git_mergeability_check"] },
+            "reason": {
+              "type": "string",
+              "description": "Present when `status` is `PASSED` or `FAILED`: the Git-level outcome for the selected source and destination heads. Omitted when `status` is `UNKNOWN` (Bitbucket could not evaluate Git mergeability, e.g. due to a timeout); this doesn't imply the pull request is conflict-free.",
+              "enum": ["clean", "conflicts", "merge_impossible"]
+            },
+            "links": {
+              "type": "object",
+              "description": "Present when this check is blocking: `{'details': {'href': '...'}}`, linking to this pull request's `conflicts` endpoint.",
+              "additionalProperties": true
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "standard_merge_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Standard Merge Check",
+          "description": "One per configured branch/merge restriction that applies to this pull request, identified by its `check.kind` (e.g. `minimum_approvals`, `minimum_successful_builds`, `resolved_tasks`). A restriction that isn't configured for this pull request is omitted entirely rather than reported as passing.",
+          "properties": {
+            "type": { "type": "string", "enum": ["standard_merge_check"] },
+            "required": {
+              "type": "boolean",
+              "description": "Whether merge-check enforcement is currently active for the pull request (a repository-wide setting), not a property of the individual check."
+            },
+            "blocking": {
+              "type": "boolean",
+              "description": "Whether this check is currently preventing the pull request from being merged."
+            },
+            "check": {
+              "type": "object",
+              "description": "Identifies which branch-restriction-backed check this is, as `{'type': 'standard_merge_check_definition', 'kind': '...'}`. See `check.kind` in the endpoint documentation for the full list of supported kinds.",
+              "additionalProperties": true
+            },
+            "requirement": {
+              "type": "object",
+              "description": "The configured threshold for this check, keyed by a check.kind-specific field name (e.g. `{'minimum_approvals': 2}`). The shape varies per `check.kind`.",
+              "additionalProperties": true
+            },
+            "observed": {
+              "type": "object",
+              "description": "The current observed value for this check, keyed by a check.kind-specific field name (e.g. `{'approval_count': 1}`). The shape varies per `check.kind`.",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "type",
+            "required",
+            "blocking",
+            "check",
+            "requirement",
+            "observed"
+          ],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "custom_merge_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Custom Merge Check",
+          "description": "One per configured custom merge check, if the workspace has activated custom merge checks - omitted entirely otherwise. `type` is `custom_pre_merge_check` for a persisted result of a check that already ran before the merge action, or `custom_on_merge_check` for a check that runs as part of the merge action itself (which may be known but not yet triggered). This endpoint never triggers or retries a custom check, it only reports results. If custom checks are activated but their results cannot currently be retrieved, the whole request fails with `500` instead of omitting them or fabricating a placeholder - merging already requires custom checks to be retrievable, so this endpoint can't accurately report mergeability either.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["custom_pre_merge_check", "custom_on_merge_check"]
+            },
+            "check": {
+              "type": "object",
+              "description": "Identifies which custom check this is, as `{'type': 'custom_merge_check_definition', 'id': '...', 'name': '...'}`, where `id` is the ARI of the custom check extension.",
+              "additionalProperties": true
+            },
+            "uuid": {
+              "type": "string",
+              "description": "Present when a persisted result exists: the persisted custom check result UUID. Omitted for on-merge checks known but not yet triggered."
+            },
+            "message": {
+              "type": "string",
+              "description": "Present when the custom check provides one; omitted when absent."
+            }
+          },
+          "required": ["type", "check"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "custom_pre_merge_check": {
+      "allOf": [
+        { "$ref": "#/definitions/custom_merge_check" },
+        {
+          "type": "object",
+          "title": "Custom Pre-merge Check",
+          "description": "The persisted result of a custom check that ran before the merge action.",
+          "properties": {
+            "type": { "type": "string", "enum": ["custom_pre_merge_check"] }
+          },
+          "required": ["type"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "custom_on_merge_check": {
+      "allOf": [
+        { "$ref": "#/definitions/custom_merge_check" },
+        {
+          "type": "object",
+          "title": "Custom On-merge Check",
+          "description": "A custom check that runs as part of the merge action and may not have been triggered yet.",
+          "properties": {
+            "type": { "type": "string", "enum": ["custom_on_merge_check"] }
+          },
+          "required": ["type"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "merge_queue_check": {
+      "allOf": [
+        { "$ref": "#/definitions/pullrequest_mergeability_check" },
+        {
+          "type": "object",
+          "title": "Merge Queue Check",
+          "description": "Whether the destination branch requires queueing and its merge queue accepts pull requests. Only `DRAINING` and `SUSPENDED` queues block entry; `INACTIVE` queues do not require queueing. Omitted when no queue is configured for the destination branch, or when no queue is required and the pull request is not already queued. A failed queue configuration read fails the whole request with `500`.",
+          "properties": {
+            "type": { "type": "string", "enum": ["merge_queue_check"] },
+            "required": {
+              "type": "boolean",
+              "description": "Whether the destination branch currently requires queueing."
+            },
+            "blocking": {
+              "type": "boolean",
+              "description": "Whether this check is currently preventing the pull request from being merged."
+            },
+            "queued": {
+              "type": "boolean",
+              "description": "Whether the pull request is already queued, according to its current lifecycle state."
+            },
+            "merge_queue": { "$ref": "#/definitions/merge_queue" }
+          },
+          "required": ["type", "required", "blocking", "queued", "merge_queue"],
+          "additionalProperties": true
+        }
+      ]
+    },
+    "pullrequest_mergeability_checks": {
+      "type": "object",
+      "title": "Pull Request Mergeability Checks",
+      "description": "The collection of checks that determine whether the specified pull request can be merged. Every check has a `type` identifying its shape - see `pullrequest_state_check`, `current_user_permission_check`, `git_mergeability_check`, `standard_merge_check`, `custom_merge_check`, and `merge_queue_check` for what each type covers.",
+      "properties": {
+        "size": { "type": "integer", "minimum": 0 },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/pullrequest_mergeability_check" },
+          "minItems": 0
+        }
+      },
+      "required": ["values"],
       "additionalProperties": false
     },
     "pullrequest_task_create": {
@@ -20883,6 +21269,16 @@
                   "additionalProperties": false
                 },
                 "decline": {
+                  "type": "object",
+                  "title": "Link",
+                  "description": "A link to a resource related to this object.",
+                  "properties": {
+                    "href": { "type": "string", "format": "uri" },
+                    "name": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                },
+                "mergeability_checks": {
                   "type": "object",
                   "title": "Link",
                   "description": "A link to a resource related to this object.",
@@ -22967,7 +23363,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "bfe4e1ee8053",
+  "x-revision": "cbb7fc945823",
   "x-atlassian-narrative": {
     "documents": [
       {

@@ -30,6 +30,10 @@ docs/CommitStatusesApi.md
 docs/CommitsApi.md
 docs/Commitstatus.md
 docs/Committer.md
+docs/CurrentUserPermissionCheck.md
+docs/CustomMergeCheck.md
+docs/CustomOnMergeCheck.md
+docs/CustomPreMergeCheck.md
 docs/DefaultReviewerAndType.md
 docs/DeployKey.md
 docs/Deployment.md
@@ -52,9 +56,12 @@ docs/Error.md
 docs/FileConflict.md
 docs/GPGAccountKey.md
 docs/GPGApi.md
+docs/GitMergeabilityCheck.md
 docs/Group.md
 docs/HookEvent.md
 docs/Link.md
+docs/MergeQueue.md
+docs/MergeQueueCheck.md
 docs/Object.md
 docs/PaginatedAccounts.md
 docs/PaginatedAnnotations.md
@@ -176,6 +183,9 @@ docs/PullrequestComment.md
 docs/PullrequestCommentTask.md
 docs/PullrequestEndpoint.md
 docs/PullrequestMergeParameters.md
+docs/PullrequestMergeabilityCheck.md
+docs/PullrequestMergeabilityChecks.md
+docs/PullrequestStateCheck.md
 docs/PullrequestTask.md
 docs/PullrequestTaskCreate.md
 docs/PullrequestTaskUpdate.md
@@ -207,6 +217,7 @@ docs/SnippetsApi.md
 docs/SourceApi.md
 docs/SshAccountKey.md
 docs/SshKey.md
+docs/StandardMergeCheck.md
 docs/SubjectTypes.md
 docs/Tag.md
 docs/Task.md
