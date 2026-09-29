@@ -416,6 +416,16 @@ function projectByFieldsRespectingWrapper(
 }
 
 async function runJq(data: unknown, expression: string): Promise<string> {
+  if (needsWindowsJqBunUpgrade(process.platform, Bun.version)) {
+    throw new BBError({
+      code: ErrorCode.JQ_FAILED,
+      message:
+        `Bun ${Bun.version} can leave --jq commands running indefinitely on Windows. ` +
+        'Upgrade Bun to 1.4.2 or newer.',
+      context: { expression, bunVersion: Bun.version },
+    });
+  }
+
   let jq: typeof import('jq-wasm');
   try {
     jq = await import('jq-wasm');
@@ -450,4 +460,21 @@ async function runJq(data: unknown, expression: string): Promise<string> {
     });
   }
   return result.stdout;
+}
+
+export function needsWindowsJqBunUpgrade(
+  platform: NodeJS.Platform,
+  version: string
+): boolean {
+  if (platform !== 'win32') return false;
+
+  const match = /^(\d+)\.(\d+)\.(\d+)(?:$|[-+])/.exec(version);
+  if (!match) return false;
+
+  const major = Number.parseInt(match[1]!, 10);
+  const minor = Number.parseInt(match[2]!, 10);
+  const patch = Number.parseInt(match[3]!, 10);
+  return (
+    major < 1 || (major === 1 && (minor < 4 || (minor === 4 && patch < 2)))
+  );
 }
