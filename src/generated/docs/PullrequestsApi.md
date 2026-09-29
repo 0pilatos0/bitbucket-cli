@@ -31,6 +31,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet**](#repositoriesworkspacereposlugpullrequestspullrequestidget) | **GET** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id} | Get a pull request|
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost**](#repositoriesworkspacereposlugpullrequestspullrequestidmergepost) | **POST** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge | Merge a pull request|
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGet**](#repositoriesworkspacereposlugpullrequestspullrequestidmergetaskstatustaskidget) | **GET** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge/task-status/{task_id} | Get the merge task status for a pull request|
+|[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet**](#repositoriesworkspacereposlugpullrequestspullrequestidmergeabilitychecksget) | **GET** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/mergeability/checks | List pull request mergeability checks|
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPatchGet**](#repositoriesworkspacereposlugpullrequestspullrequestidpatchget) | **GET** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/patch | Get the patch for a pull request|
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut**](#repositoriesworkspacereposlugpullrequestspullrequestidput) | **PUT** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id} | Update a pull request|
 |[**repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdRequestChangesDelete**](#repositoriesworkspacereposlugpullrequestspullrequestidrequestchangesdelete) | **DELETE** /repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/request-changes | Remove change request for a pull request|
@@ -1658,6 +1659,72 @@ void (empty response body)
 |**400** | If the provided task ID does not relate to this pull request, or if something went wrong during the merge operation |  -  |
 |**403** | The user making the request does not have permission to the repo and is different from the user who queued the task |  -  |
 |**409** | Unable to merge because one of the refs involved changed while attempting to merge |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet**
+> PullrequestMergeabilityChecks repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet()
+
+Returns the mergeability checks Bitbucket performs for this pull request, and whether each one currently allows the pull request to be merged - simulating what the merge endpoint checks before actually merging.  Checks cover pull request state, the current user\'s merge permissions, Git conflicts, configured standard and custom merge checks, and merge queue status when available. Each check\'s `blocking` attribute indicates whether it currently prevents merging. A failed check does not necessarily block a merge.  `pullrequest_state_check`, `current_user_permission_check`, and `git_mergeability_check` cover state, permission, and Git eligibility. One `standard_merge_check` is included per configured branch/merge restriction, and one `custom_pre_merge_check`/`custom_on_merge_check` per activated custom check - both omitted entirely, not reported as passing, when not configured. Not exhaustive: conditions Bitbucket can\'t evaluate without attempting the merge (e.g. dependency-merge requirements) aren\'t included. See `PullRequestMergeabilityCheckSchema` for per-check fields, and `q` below to exclude the checks that are expensive to evaluate.  For repositories with merge queues enabled, a `merge_queue_check` reports queue availability and whether the pull request is already queued. It is included for open, non-draft pull requests when the destination branch requires queueing, and for already-queued pull requests with a configured queue. The check is omitted when no merge queue is configured for the destination branch. When the check is present, `merge_queue` contains that configured queue\'s UUID, name and state. Already-queued pull requests return their blocking state check and any applicable queue check, without evaluating Git or other merge checks. A failed queue configuration read fails the whole request with `500`, as for custom merge check results.  Returns `500` if custom merge checks are configured but their results aren\'t currently retrievable, since the real merge action requires them too and would fail the same way.
+
+### Example
+
+```typescript
+import {
+    PullrequestsApi,
+    Configuration
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new PullrequestsApi(configuration);
+
+let pullRequestId: number; //The id of the pull request. (default to undefined)
+let repoSlug: string; //This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: `{repository UUID}`. (default to undefined)
+let workspace: string; //This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: `{workspace UUID}`. (default to undefined)
+let q: string; //Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: `type!=\"git_mergeability_check\"` skips Git conflict evaluation, and `check.kind!=\"maximum_commits_behind\"` skips the bounded Git ancestry check behind that standard merge check. Combine both with `AND` (either order). Anything else returns `400 Bad Request`. (optional) (default to undefined)
+
+const { status, data } = await apiInstance.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeabilityChecksGet(
+    pullRequestId,
+    repoSlug,
+    workspace,
+    q
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **pullRequestId** | [**number**] | The id of the pull request. | defaults to undefined|
+| **repoSlug** | [**string**] | This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. | defaults to undefined|
+| **workspace** | [**string**] | This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. | defaults to undefined|
+| **q** | [**string**] | Only a limited subset of BBQL is supported here. Checks that are expensive to calculate can be excluded: &#x60;type!&#x3D;\&quot;git_mergeability_check\&quot;&#x60; skips Git conflict evaluation, and &#x60;check.kind!&#x3D;\&quot;maximum_commits_behind\&quot;&#x60; skips the bounded Git ancestry check behind that standard merge check. Combine both with &#x60;AND&#x60; (either order). Anything else returns &#x60;400 Bad Request&#x60;. | (optional) defaults to undefined|
+
+
+### Return type
+
+**PullrequestMergeabilityChecks**
+
+### Authorization
+
+[api_key](../README.md#api_key), [oauth2](../README.md#oauth2), [basic](../README.md#basic)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | The collection of checks that determine whether the specified pull request can be merged. |  -  |
+|**400** | If &#x60;q&#x60; is an unsupported filter expression. |  -  |
+|**401** | If the request was not authenticated. |  -  |
+|**403** | If the authenticated user does not have access to the pull request. |  -  |
+|**404** | If the repository or pull request does not exist. |  -  |
+|**429** | If the mergeability request rate limit has been exceeded. |  -  |
+|**500** | If activated custom merge check results or enabled merge queue configuration could not be retrieved. |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

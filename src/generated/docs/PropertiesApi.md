@@ -20,7 +20,7 @@ All URIs are relative to *https://api.bitbucket.org/2.0*
 # **deleteCommitHostedPropertyValue**
 > deleteCommitHostedPropertyValue()
 
-Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
 
 ### Example
 
@@ -83,7 +83,7 @@ void (empty response body)
 # **deletePullRequestHostedPropertyValue**
 > deletePullRequestHostedPropertyValue()
 
-Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
 
 ### Example
 
@@ -146,7 +146,7 @@ void (empty response body)
 # **deleteRepositoryHostedPropertyValue**
 > deleteRepositoryHostedPropertyValue()
 
-Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
 
 ### Example
 
@@ -206,7 +206,7 @@ void (empty response body)
 # **deleteUserHostedPropertyValue**
 > deleteUserHostedPropertyValue()
 
-Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Delete an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
 
 ### Example
 
@@ -263,7 +263,7 @@ void (empty response body)
 # **getCommitHostedPropertyValue**
 > ApplicationProperty getCommitHostedPropertyValue()
 
-Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
 
 ### Example
 
@@ -326,7 +326,7 @@ const { status, data } = await apiInstance.getCommitHostedPropertyValue(
 # **getPullRequestHostedPropertyValue**
 > ApplicationProperty getPullRequestHostedPropertyValue()
 
-Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
 
 ### Example
 
@@ -389,7 +389,7 @@ const { status, data } = await apiInstance.getPullRequestHostedPropertyValue(
 # **getRepositoryHostedPropertyValue**
 > ApplicationProperty getRepositoryHostedPropertyValue()
 
-Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
 
 ### Example
 
@@ -449,7 +449,7 @@ const { status, data } = await apiInstance.getRepositoryHostedPropertyValue(
 # **retrieveUserHostedPropertyValue**
 > ApplicationProperty retrieveUserHostedPropertyValue()
 
-Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Retrieve an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
 
 ### Example
 
@@ -506,7 +506,7 @@ const { status, data } = await apiInstance.retrieveUserHostedPropertyValue(
 # **updateCommitHostedPropertyValue**
 > updateCommitHostedPropertyValue(body)
 
-Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a commit.
 
 ### Example
 
@@ -573,7 +573,7 @@ void (empty response body)
 # **updatePullRequestHostedPropertyValue**
 > updatePullRequestHostedPropertyValue(body)
 
-Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull request.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a pull  request.
 
 ### Example
 
@@ -640,7 +640,7 @@ void (empty response body)
 # **updateRepositoryHostedPropertyValue**
 > updateRepositoryHostedPropertyValue(body)
 
-Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a repository.
 
 ### Example
 
@@ -704,7 +704,7 @@ void (empty response body)
 # **updateUserHostedPropertyValue**
 > updateUserHostedPropertyValue(body)
 
-Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
+This API will be deprecated on January 31, 2027 as part of [end of support for Connect app](https://community.developer.atlassian.com/t/bitbucket-cloud-announcing-connect-end-of-support-timeline-and-next-steps/98760).  Update an [application property](/cloud/bitbucket/application-properties/) value stored against a user.
 
 ### Example
 

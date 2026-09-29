@@ -14,6 +14,8 @@
 //     they accept but upstream does not declare, so the generated methods
 //     carry a typed payload; its `events` drops `uniqueItems`, which the
 //     generator types as a `Set` that JSON-serializes to `{}`.
+//   - new upstream descriptions with trailing newlines are trimmed before
+//     generation so they do not leave whitespace at the end of JSDoc lines.
 //
 // Everything else upstream flattens to plain `object` (links, rendered) is
 // accepted as-is: it is a deliberate upstream spec decision, not an accident.
@@ -252,6 +254,28 @@ if (webhookEvents?.uniqueItems !== true) {
   );
 }
 delete webhookEvents.uniqueItems;
+
+for (const path of Object.values(spec.paths)) {
+  for (const operation of Object.values(path)) {
+    if (
+      typeof operation.description === 'string' &&
+      operation.description.startsWith(
+        'This API will be deprecated on January 31, 2027'
+      )
+    ) {
+      operation.description = operation.description.trimEnd();
+    }
+  }
+}
+
+const mergeabilityPath = spec.paths[
+  '/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/mergeability/checks'
+] as { parameters?: SpecParameter[] } | undefined;
+for (const parameter of mergeabilityPath?.parameters ?? []) {
+  if (typeof parameter.description === 'string') {
+    parameter.description = parameter.description.trimEnd();
+  }
+}
 
 writeFileSync(outPath, `${JSON.stringify(spec, null, 2)}\n`);
 console.log(
