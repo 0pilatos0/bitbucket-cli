@@ -4,7 +4,27 @@
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import chalk from 'chalk';
-import { OutputService } from '../../src/services/output.service.js';
+import {
+  OutputService,
+  needsWindowsJqBunUpgrade,
+} from '../../src/services/output.service.js';
+
+describe('Windows jq runtime requirement', () => {
+  it('requires an upgrade before Bun 1.4.2 on Windows', () => {
+    expect(needsWindowsJqBunUpgrade('win32', '1.3.14')).toBe(true);
+    expect(needsWindowsJqBunUpgrade('win32', '1.4.0')).toBe(true);
+    expect(needsWindowsJqBunUpgrade('win32', '1.4.1')).toBe(true);
+    expect(needsWindowsJqBunUpgrade('win32', '1.4.2')).toBe(false);
+    expect(needsWindowsJqBunUpgrade('win32', '1.4.2+build')).toBe(false);
+    expect(needsWindowsJqBunUpgrade('win32', '2.0.0')).toBe(false);
+  });
+
+  it('does not restrict other platforms or unknown versions', () => {
+    expect(needsWindowsJqBunUpgrade('darwin', '1.3.14')).toBe(false);
+    expect(needsWindowsJqBunUpgrade('linux', '1.3.14')).toBe(false);
+    expect(needsWindowsJqBunUpgrade('win32', 'unknown')).toBe(false);
+  });
+});
 
 describe('OutputService', () => {
   let output: OutputService;

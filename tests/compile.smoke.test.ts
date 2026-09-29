@@ -29,15 +29,13 @@ let tmpDir = '';
 let binary = '';
 let homeDir = '';
 
-async function runProcess(
-  executable: string,
+async function runBinary(
   args: string[],
-  extraEnv: Record<string, string> = {},
-  cwd = homeDir
+  extraEnv: Record<string, string> = {}
 ): Promise<{ status: number; stdout: string; stderr: string }> {
   const startedAt = Date.now();
-  const child = spawn(executable, args, {
-    cwd,
+  const child = spawn(binary, args, {
+    cwd: homeDir,
     env: {
       HOME: homeDir,
       USERPROFILE: homeDir,
@@ -129,13 +127,6 @@ async function runProcess(
   };
 }
 
-function runBinary(
-  args: string[],
-  extraEnv: Record<string, string> = {}
-): Promise<{ status: number; stdout: string; stderr: string }> {
-  return runProcess(binary, args, extraEnv);
-}
-
 describe.skipIf(
   process.env.COMPILE_SMOKE !== '1' || !isCompileTarget(hostTarget)
 )(`compiled ${hostTarget} binary`, () => {
@@ -189,51 +180,6 @@ describe.skipIf(
       expect(result.status).toBe(0);
     },
     RUN_TIMEOUT_MS + 5_000
-  );
-
-  it.skipIf(process.platform !== 'win32')(
-    'repeatedly exits after plain JSON output on Windows',
-    async () => {
-      for (let attempt = 1; attempt <= WINDOWS_JQ_ATTEMPTS; attempt++) {
-        try {
-          const result = await runBinary(['config', 'list', '--json']);
-          expect(result.status).toBe(0);
-          expect(result.stderr).toBe('');
-          expect(typeof JSON.parse(result.stdout).configPath).toBe('string');
-        } catch (error) {
-          throw new Error(`plain JSON attempt ${attempt}: ${String(error)}`);
-        }
-      }
-    },
-    10 * 60_000
-  );
-
-  it.skipIf(process.platform !== 'win32')(
-    'repeatedly exits after a minimal jq-wasm call on Windows',
-    async () => {
-      const script =
-        "const jq = await import('jq-wasm'); " +
-        "const result = await jq.raw({ configPath: 'x' }, '.configPath | type'); " +
-        'console.log(result.stdout.trim());';
-      for (let attempt = 1; attempt <= WINDOWS_JQ_ATTEMPTS; attempt++) {
-        try {
-          const result = await runProcess(
-            process.execPath,
-            ['-e', script],
-            {},
-            REPO_ROOT
-          );
-          expect(result).toEqual({
-            status: 0,
-            stdout: '"string"\n',
-            stderr: '',
-          });
-        } catch (error) {
-          throw new Error(`minimal jq attempt ${attempt}: ${String(error)}`);
-        }
-      }
-    },
-    10 * 60_000
   );
 
   it.skipIf(process.platform !== 'win32')(

@@ -452,6 +452,13 @@ bb pr list --json --jq '.pullRequests[].title'   # correct
 bb api /repositories/my-ws --jq '.values[].name' # allowed without --json
 ```
 
+### `--jq` prints a result but does not exit on Windows
+
+We reproduced this with Bun 1.3.14 on Windows. The jq result appears, but the
+process can remain alive indefinitely. The npm package now requires Bun 1.4.2
+or newer for `--jq` on Windows. Check `bun --version`, then run `bun upgrade`
+if needed. Standalone Windows binaries include their own Bun runtime.
+
 ### Empty `--json` field list
 
 ```bash
