@@ -86,17 +86,10 @@ Commit the generated file in `.changeset/` alongside your code changes.
 
 ## Dependency Updates
 
-Dependency maintenance is automated with [Renovate](https://docs.renovatebot.com/)
-(`renovate.json`), so you generally **don't bump these by hand**:
-
-- npm dependencies for both the root package and `docs/`.
-- GitHub Action versions, kept pinned to commit SHAs with a `# vX` comment.
-- The pinned `BUN_VERSION` used across the CI workflows.
-
-Renovate batches non-major updates into a single PR on a weekly schedule, opens
-separate labelled PRs for major upgrades, and fast-tracks security fixes. It runs
-on a weekly schedule with monthly `bun.lock` maintenance. We use Renovate rather
-than Dependabot for its Bun lockfile support.
+Dependencies are updated by hand. Run `bun outdated` in the root and in `docs/`,
+bump what you need, and commit the manifest together with `bun.lock`. GitHub
+Actions stay pinned to commit SHAs with a `# vX` comment, and `BUN_VERSION` is
+pinned in each workflow under `.github/workflows/`.
 
 ## Release Process
 
