@@ -7,7 +7,7 @@ import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 There are two ways to install `bb`:
 
-- **Standalone binary**: one self-contained executable per platform, attached to each [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) after v2.1.1. Needs no Bun, Node.js or npm.
+- **Standalone binary**: one self-contained executable per platform, attached to each [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) since v2.2.0. Needs no Bun, Node.js or npm.
 - **Package manager**: the npm package, which runs on the [Bun](https://bun.sh) runtime.
 
 Either way, `bb` needs Git to detect the workspace and repository of the current directory.
@@ -80,7 +80,7 @@ gh attestation verify bb-linux-x64 --repo 0pilatos0/bitbucket-cli
 
 ## Package manager
 
-The npm package runs on the [Bun](https://bun.sh) runtime 1.0 or higher, not Node.js. Install Bun if `bun --version` fails:
+The npm package runs on the [Bun](https://bun.sh) runtime 1.1.30 or newer, not Node.js. Install Bun if `bun --version` fails:
 
 ```bash
 curl -fsSL https://bun.sh/install | bash
