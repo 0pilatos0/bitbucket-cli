@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.2.2
+
+### Patch Changes
+
+- [#347](https://github.com/0pilatos0/bitbucket-cli/pull/347) [`865b9ff`](https://github.com/0pilatos0/bitbucket-cli/commit/865b9ff383723ae84bc0c01fe5990f20ef28ba28) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the pinned Bitbucket Cloud spec and regenerate the API client. This adds the pull request mergeability checks endpoint and models, names the webhook event operations explicitly, and marks Connect app property operations as deprecated.
+
+- [#349](https://github.com/0pilatos0/bitbucket-cli/pull/349) [`08f650f`](https://github.com/0pilatos0/bitbucket-cli/commit/08f650fdec5d748e1ab394fe7d5bc8ea5f393989) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Prevent `--jq` from hanging on Windows under older Bun versions. Require Bun 1.4.2 or newer for that command, and build standalone releases with Bun 1.4.2.
+
 ## 2.2.1
 
 ### Patch Changes
