@@ -5,154 +5,189 @@
 <h1 align="center">Bitbucket CLI</h1>
 
 <p align="center">
-  <strong>Fast, scriptable CLI for Bitbucket Cloud</strong>
-</p>
-
-<p align="center">
-  <em>Inspired by GitHub's <code>gh</code> CLI - the same great experience for Bitbucket</em>
+  <strong>Bitbucket Cloud from your terminal: pull requests, pipelines, repositories and more, with JSON output on every command.</strong>
 </p>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@pilatos/bitbucket-cli"><img src="https://img.shields.io/npm/v/@pilatos/bitbucket-cli.svg?style=flat-square&color=blue" alt="npm version"></a>
   <a href="https://www.npmjs.com/package/@pilatos/bitbucket-cli"><img src="https://img.shields.io/npm/dm/@pilatos/bitbucket-cli.svg?style=flat-square&color=blue" alt="npm downloads"></a>
+  <a href="https://github.com/0pilatos0/bitbucket-cli/releases/latest"><img src="https://img.shields.io/github/v/release/0pilatos0/bitbucket-cli.svg?style=flat-square&color=blue&label=binaries" alt="Latest release"></a>
   <a href="https://codecov.io/gh/0pilatos0/bitbucket-cli"><img src="https://codecov.io/gh/0pilatos0/bitbucket-cli/graph/badge.svg?token=0J58HCH1PF&style=flat-square" alt="codecov"></a>
   <a href="https://github.com/0pilatos0/bitbucket-cli/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License"></a>
-  <a href="https://github.com/0pilatos0/bitbucket-cli/issues"><img src="https://img.shields.io/github/issues/0pilatos0/bitbucket-cli.svg?style=flat-square" alt="GitHub issues"></a>
 </p>
 
 <p align="center">
   <sub>
     <a href="https://bitbucket-cli.paulvanderlei.com">Docs</a> ·
     <a href="https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/">Quick Start</a> ·
-    <a href="https://bitbucket-cli.paulvanderlei.com/commands/auth/">Command Reference</a> ·
+    <a href="https://bitbucket-cli.paulvanderlei.com/commands/pr/">Command Reference</a> ·
+    <a href="https://bitbucket-cli.paulvanderlei.com/help/changelog/">Changelog</a> ·
     <a href="https://github.com/0pilatos0/bitbucket-cli/issues">Issues</a>
   </sub>
 </p>
 
 <p align="center">
   <sub>
-    <strong>Note:</strong> This is an <strong>unofficial</strong>, community-maintained CLI tool.<br>
-    It is not affiliated with or endorsed by Atlassian or Bitbucket.
+    <strong>Note:</strong> This is an <strong>unofficial</strong>, community-maintained CLI for Bitbucket Cloud.<br>
+    It is not affiliated with or endorsed by Atlassian. Bitbucket Server and Data Center are not supported.
   </sub>
 </p>
 
 ---
 
-## At a glance
+## Why `bb`
 
-- Stay in the terminal for repo, PR, and snippet workflows
-- JSON output for scripting and automation
-- Auto-detects workspace and repo from your git directory
+- **The whole pull request loop**: create, review, comment, resolve threads, approve and merge without leaving the terminal
+- **CI included**: trigger pipelines, follow their logs, inspect deployments and set build statuses
+- **Repository admin**: webhooks, branch restrictions, default reviewers, downloads, and your SSH and GPG keys
+- **Built for scripts and AI agents**: `--json` on every command, field projection, and a built-in `--jq` (no `jq` binary needed)
+- **Zero setup per repo**: workspace and repository are picked up from your git remote
+- **Escape hatch**: `bb api` calls any Bitbucket Cloud 2.0 endpoint with your credentials
 
 ---
 
 ## Install
 
-> **No Bun?** [GitHub Releases](https://github.com/0pilatos0/bitbucket-cli/releases) after v2.1.1 ship standalone `bb` binaries for Linux, macOS and Windows with a `SHA256SUMS` file. See [Installation](https://bitbucket-cli.paulvanderlei.com/getting-started/installation/#standalone-binary) to download and verify one.
+**Standalone binary** (no runtime needed). Every [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) since v2.2.0 ships `bb` for Linux, macOS and Windows, with a `SHA256SUMS` file and build provenance attestations:
 
-The npm package requires the [Bun](https://bun.sh) runtime 1.0 or higher. It is installed via npm but runs on Bun; Node.js is not supported.
+```bash
+# macOS Apple silicon; see the installation guide for other platforms and checksum verification
+curl -fsSL -o bb https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/bb-darwin-arm64
+chmod +x bb && sudo mv bb /usr/local/bin/bb
+```
 
-1. **Install Bun** (if `bun --version` fails):
+**npm package**, which runs on [Bun](https://bun.sh) 1.1.30 or newer (not Node.js):
 
-   ```bash
-   curl -fsSL https://bun.sh/install | bash
-   ```
+```bash
+curl -fsSL https://bun.sh/install | bash   # if `bun --version` fails
+npm install -g @pilatos/bitbucket-cli      # or: bun install -g / pnpm add -g
+```
 
-2. **Install the CLI:**
+On Windows, `--jq` needs Bun 1.4.2 or newer.
 
-   ```bash
-   npm install -g @pilatos/bitbucket-cli
-   bb --version
-   ```
+Then turn on tab completion (optional, recommended) and restart your shell:
 
-3. **Tab completion** (optional, recommended):
+```bash
+bb completion install
+```
 
-   ```bash
-   bb completion install
-   ```
-
-   Then restart your shell.
+Full details: [Installation](https://bitbucket-cli.paulvanderlei.com/getting-started/installation/).
 
 ---
 
 ## Quick Start
 
 ```bash
-bb auth login
-bb repo clone myworkspace/myrepo
+bb auth login                  # opens your browser to sign in
+cd your-bitbucket-checkout
 bb pr list
 ```
 
----
-
-## Common Commands
-
-```bash
-bb repo list
-bb pr create --title "Add feature"
-bb pr approve 42
-bb browse 42                  # open PR #42 in your browser
-bb browse src/cli.ts:20       # open a file at a specific line
-bb api /user                  # call any Bitbucket API endpoint (escape hatch)
-bb config set defaultWorkspace myworkspace
+```text
+ID   TITLE                                   AUTHOR        BRANCHES
+---  --------------------------------------  ------------  -----------------------
+#47  Stream pipeline logs while a step runs  Ada Lovelace  feat/stream-logs → main
+#46  Retry on 429 rate limits                Grace Hopper  fix/retry-429 → main
 ```
 
-**Global options** (work on every command): `--json [fields]`, `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--no-input`, `--limit`, `--all`, `--locale`, `-w, --workspace`, `-r, --repo`. Full reference: [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
-
-### Scripting with `--json` and `--jq`
-
-`--json` accepts an optional comma-separated field list to project the output, and `--jq` filters the JSON in-process (no external `jq` binary required):
+A few more to get a feel for it:
 
 ```bash
-# Project to specific fields
+bb pr create --title "Add feature"     # from the current branch
+bb pr checkout 46                      # review it locally
+bb pr approve 46
+bb pr merge 47 --strategy squash --close-source-branch
+bb pipeline run --branch main
+bb pipeline logs 313
+bb repo cat package.json --ref main    # read a file without cloning
+bb browse 42                           # open PR #42 in your browser
+bb api /user                           # any Bitbucket API endpoint
+```
+
+---
+
+## Commands
+
+| Command                                                                                                                                                                                                                                                                                  | What it does                                                                  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`pr`](https://bitbucket-cli.paulvanderlei.com/commands/pr/)                                                                                                                                                                                                                             | Pull requests: create, edit, review, comments, reviewers, checks, diff, merge |
+| [`repo`](https://bitbucket-cli.paulvanderlei.com/commands/repo/)                                                                                                                                                                                                                         | Clone, create, list, delete; read files and folders; downloads                |
+| [`pipeline`](https://bitbucket-cli.paulvanderlei.com/commands/pipeline/)                                                                                                                                                                                                                 | List, run, stop and view logs of Bitbucket Pipelines                          |
+| [`deployment`](https://bitbucket-cli.paulvanderlei.com/commands/deployment/)                                                                                                                                                                                                             | Deployments and environments                                                  |
+| [`commit`](https://bitbucket-cli.paulvanderlei.com/commands/commit/)                                                                                                                                                                                                                     | List and inspect commits                                                      |
+| [`status`](https://bitbucket-cli.paulvanderlei.com/commands/status/)                                                                                                                                                                                                                     | Read and set build statuses on a commit                                       |
+| [`branch-restriction`](https://bitbucket-cli.paulvanderlei.com/commands/branch-restriction/)                                                                                                                                                                                             | Branch protection rules                                                       |
+| [`webhook`](https://bitbucket-cli.paulvanderlei.com/commands/webhook/)                                                                                                                                                                                                                   | Repository and workspace webhooks                                             |
+| [`search`](https://bitbucket-cli.paulvanderlei.com/commands/search/)                                                                                                                                                                                                                     | Code search across a workspace                                                |
+| [`snippet`](https://bitbucket-cli.paulvanderlei.com/commands/snippet/)                                                                                                                                                                                                                   | Snippets and their comments                                                   |
+| [`workspace`](https://bitbucket-cli.paulvanderlei.com/commands/workspace/) / [`project`](https://bitbucket-cli.paulvanderlei.com/commands/project/)                                                                                                                                      | Discover workspaces; list, view and create projects                           |
+| [`ssh-key`](https://bitbucket-cli.paulvanderlei.com/commands/ssh-key/) / [`gpg-key`](https://bitbucket-cli.paulvanderlei.com/commands/gpg-key/)                                                                                                                                          | Keys on your own account                                                      |
+| [`browse`](https://bitbucket-cli.paulvanderlei.com/commands/browse/)                                                                                                                                                                                                                     | Open a repo, file, PR or commit in your browser                               |
+| [`api`](https://bitbucket-cli.paulvanderlei.com/commands/api/)                                                                                                                                                                                                                           | Authenticated request to any Bitbucket Cloud 2.0 endpoint                     |
+| [`auth`](https://bitbucket-cli.paulvanderlei.com/commands/auth/), [`config`](https://bitbucket-cli.paulvanderlei.com/commands/config/), [`alias`](https://bitbucket-cli.paulvanderlei.com/commands/alias/), [`completion`](https://bitbucket-cli.paulvanderlei.com/commands/completion/) | Login, settings, command shortcuts, shell completion                          |
+
+Every command takes `-w/--workspace` and `-r/--repo` to point somewhere other than the current checkout. Run `bb help <command>` for flags and examples, or see [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
+
+---
+
+## Scripting with `--json` and `--jq`
+
+`--json` accepts an optional comma-separated field list, and `--jq` filters the result in-process:
+
+```bash
+# Only the fields you need
 bb pr list --json id,title,state
 
-# Filter through built-in jq
-bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
+# Filter with the built-in jq
+bb pr list --json --jq '.pullRequests[] | select(.author.display_name == "Ada Lovelace") | .id'
+
+# Capture a value
+build=$(bb pipeline run --branch main --json --jq '.pipeline.build_number')
 ```
 
-See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/) and the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) for more.
-
----
-
-## Docs
-
-Full documentation: **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.paulvanderlei.com)**
-
-- [Quick Start Guide](https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/)
-- [Command Reference](https://bitbucket-cli.paulvanderlei.com/commands/auth/)
-- [Guides](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) (Scripting, CI/CD)
-- AI assistant integration (Claude Code, Cursor, Windsurf): see [Guides &gt; AI Agents](https://bitbucket-cli.paulvanderlei.com/guides/ai-agents/)
-- [Changelog](https://bitbucket-cli.paulvanderlei.com/help/changelog/) — what's new in recent releases
-- [Help](https://bitbucket-cli.paulvanderlei.com/help/troubleshooting/) (Troubleshooting, FAQ)
+Commands never prompt when stdin or stdout is not a terminal, in CI, with `--json`, or with `--no-input`. See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/), the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) and [CI/CD](https://bitbucket-cli.paulvanderlei.com/guides/cicd/).
 
 ---
 
 ## Authentication
 
-- Create a token: [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-- Authenticate: `bb auth login`
+- **OAuth (default)**: `bb auth login` opens your browser. Tokens refresh automatically. It needs a browser that can reach `localhost`, so it doesn't work over SSH or in containers.
+- **API token** (CI and headless hosts): create one in your [Bitbucket settings](https://bitbucket.org/account/settings/api-tokens/), then:
 
-> **Note:** Bitbucket app passwords are [deprecated](https://bitbucket.org/blog/deprecating-app-passwords) (new ones can no longer be created). Use OAuth or API tokens instead.
+  ```bash
+  echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+  ```
+
+OAuth doesn't cover `pipeline`, `deployment`, `snippet`, `project`, `repo delete` or adding and deleting keys. Use an API token for those; see [Token Scopes](https://bitbucket-cli.paulvanderlei.com/reference/token-scopes/).
+
+Bitbucket app passwords [stopped working on June 9, 2026](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation). If you still log in with one, switch to OAuth or an API token.
+
+More: [Authentication](https://bitbucket-cli.paulvanderlei.com/getting-started/authentication/).
 
 ---
 
-## Environment Variables
+## Configuration
 
-| Variable             | Description                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `BB_USERNAME`        | Bitbucket username (fallback for `bb auth login`)                                                                               |
-| `BB_API_TOKEN`       | Bitbucket API token (fallback for `bb auth login`; for CI)                                                                      |
-| `BB_WORKSPACE`       | Default workspace; overrides `defaultWorkspace` config                                                                          |
-| `BB_LOCALE`          | BCP-47 locale for date/time formatting (e.g. `de-DE`); `--locale` wins                                                          |
-| `BB_NO_UNICODE`      | Use ASCII fallbacks for symbols when set (any non-empty value)                                                                  |
-| `BB_PROMPT_DISABLED` | Never prompt, even in a terminal (any non-empty value); same as `--no-input`. `bb completion install` still asks for your shell |
-| `BB_DEBUG`           | HTTP debug tracing: `http` (status + timing) or `verbose` (+ bodies)                                                            |
-| `DEBUG`              | Alias for `BB_DEBUG=verbose`; must equal exactly `true`                                                                         |
-| `NO_COLOR`           | Disable color output when set                                                                                                   |
-| `FORCE_COLOR`        | Force color output when set (and not `0`)                                                                                       |
+The variables you're most likely to need:
 
-Full reference: [Environment variables](https://bitbucket-cli.paulvanderlei.com/reference/environment-variables/).
+| Variable                       | Description                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------ |
+| `BB_USERNAME` / `BB_API_TOKEN` | Credentials picked up by `bb auth login`, handy in CI                          |
+| `BB_WORKSPACE`                 | Default workspace when you're not inside a checkout                            |
+| `BB_DEBUG`                     | `http` traces every API call with status and timing; `verbose` adds the bodies |
+
+Persistent settings live in `bb config` (for example `bb config set defaultWorkspace myworkspace`). Everything else, including timeouts, locale and color: [Environment Variables](https://bitbucket-cli.paulvanderlei.com/reference/environment-variables/) and [Configuration](https://bitbucket-cli.paulvanderlei.com/reference/configuration/).
+
+---
+
+## Documentation
+
+Full docs live at **[bitbucket-cli.paulvanderlei.com](https://bitbucket-cli.paulvanderlei.com)**:
+
+- [Quick Start](https://bitbucket-cli.paulvanderlei.com/getting-started/quickstart/) and [Command Reference](https://bitbucket-cli.paulvanderlei.com/commands/pr/)
+- Guides: [Scripting](https://bitbucket-cli.paulvanderlei.com/guides/scripting/), [CI/CD](https://bitbucket-cli.paulvanderlei.com/guides/cicd/), [AI agents](https://bitbucket-cli.paulvanderlei.com/guides/ai-agents/) (Claude Code, opencode, Cursor, Windsurf)
+- [Recipes](https://bitbucket-cli.paulvanderlei.com/recipes/) for common automation
+- [Troubleshooting](https://bitbucket-cli.paulvanderlei.com/help/troubleshooting/), [FAQ](https://bitbucket-cli.paulvanderlei.com/help/faq/) and [Changelog](https://bitbucket-cli.paulvanderlei.com/help/changelog/)
 
 ---
 
@@ -165,11 +200,11 @@ Read the [Contributing Guide](CONTRIBUTING.md) to get started.
 ## Acknowledgments
 
 - Inspired by [GitHub CLI (`gh`)](https://cli.github.com/)
-- Built with [Commander.js](https://github.com/tj/commander.js)
-- Uses the [Bitbucket Cloud REST API](https://developer.atlassian.com/cloud/bitbucket/rest/)
+- Runs on [Bun](https://bun.sh), built with [Commander.js](https://github.com/tj/commander.js)
+- API client generated from the [Bitbucket Cloud REST API](https://developer.atlassian.com/cloud/bitbucket/rest/) OpenAPI spec
 
 ---
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE) for details.

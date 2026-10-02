@@ -2,7 +2,7 @@
 title: Troubleshooting
 description: Common issues and their solutions
 banner:
-  content: 'Bitbucket app passwords are deprecated and cannot be created. Use API tokens instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
+  content: 'Bitbucket app passwords stopped working on June 9, 2026. Use OAuth or an API token instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
 Find your error message below. Errors go to stderr and exit 1, with a `✗`
@@ -117,7 +117,7 @@ Close the other `bb auth login` (or whatever holds the port) and retry.
 
 1. Confirm it is an **API token**, minted at
    [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/).
-   App passwords live at a different URL and are deprecated.
+   App passwords live at a different URL and no longer work.
 
 2. Check the scopes cover what you are running — see
    [Token Scopes](/reference/token-scopes/). A missing scope surfaces as a 403
