@@ -61,10 +61,13 @@ import type { UploadDownloadCommand } from '../commands/repo/downloads.upload.co
 import type { DeleteDownloadCommand } from '../commands/repo/downloads.delete.command.js';
 import type { CreatePRCommand } from '../commands/pr/create.command.js';
 import type { ListPRsCommand } from '../commands/pr/list.command.js';
+import type { StatusPRCommand } from '../commands/pr/status.command.js';
 import type { ViewPRCommand } from '../commands/pr/view.command.js';
 import type { EditPRCommand } from '../commands/pr/edit.command.js';
 import type { MergePRCommand } from '../commands/pr/merge.command.js';
 import type { ApprovePRCommand } from '../commands/pr/approve.command.js';
+import type { UnapprovePRCommand } from '../commands/pr/unapprove.command.js';
+import type { RequestChangesPRCommand } from '../commands/pr/request-changes.command.js';
 import type { DeclinePRCommand } from '../commands/pr/decline.command.js';
 import type { ReadyPRCommand } from '../commands/pr/ready.command.js';
 import type { CheckoutPRCommand } from '../commands/pr/checkout.command.js';
@@ -219,10 +222,15 @@ export const ServiceTokens = {
   // Commands - PR
   CreatePRCommand: token<CreatePRCommand>('CreatePRCommand'),
   ListPRsCommand: token<ListPRsCommand>('ListPRsCommand'),
+  StatusPRCommand: token<StatusPRCommand>('StatusPRCommand'),
   ViewPRCommand: token<ViewPRCommand>('ViewPRCommand'),
   EditPRCommand: token<EditPRCommand>('EditPRCommand'),
   MergePRCommand: token<MergePRCommand>('MergePRCommand'),
   ApprovePRCommand: token<ApprovePRCommand>('ApprovePRCommand'),
+  UnapprovePRCommand: token<UnapprovePRCommand>('UnapprovePRCommand'),
+  RequestChangesPRCommand: token<RequestChangesPRCommand>(
+    'RequestChangesPRCommand'
+  ),
   DeclinePRCommand: token<DeclinePRCommand>('DeclinePRCommand'),
   ReadyPRCommand: token<ReadyPRCommand>('ReadyPRCommand'),
   CheckoutPRCommand: token<CheckoutPRCommand>('CheckoutPRCommand'),
