@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { DeclinePRCommand } from '../../../src/commands/pr/decline.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
 } from '../../setup.js';
 import { createMockPullrequestsApi } from './fakes.js';
@@ -18,6 +19,7 @@ describe('DeclinePRCommand', () => {
     const command = new DeclinePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -37,6 +39,7 @@ describe('DeclinePRCommand', () => {
     const command = new DeclinePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 

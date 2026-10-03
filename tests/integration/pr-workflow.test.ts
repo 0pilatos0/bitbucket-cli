@@ -349,6 +349,7 @@ describe('pr review actions', () => {
     const command = new UnapprovePRCommand(
       build(PullrequestsApi),
       repoContext(),
+      createMockGitService(),
       output
     );
 
@@ -362,11 +363,40 @@ describe('pr review actions', () => {
     );
   });
 
+  it('unapprove without an id acts on the open PR for the current branch', async () => {
+    const { server, output, build } = await startHarness([
+      pullRequestsRoute(() => [
+        {
+          ...pr(7, 'Add login', 'feature/login'),
+          source: {
+            branch: { name: 'feature/login' },
+            repository: { full_name: 'acme/app' },
+          },
+        },
+      ]),
+      ...reviewRoutes,
+    ]);
+    const command = new UnapprovePRCommand(
+      build(PullrequestsApi),
+      repoContext(),
+      createMockGitService({ currentBranch: 'feature/login' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(server.requests.map((r) => `${r.method} ${r.path}`)).toEqual([
+      'GET /repositories/acme/app/pullrequests',
+      'DELETE /repositories/acme/app/pullrequests/7/approve',
+    ]);
+  });
+
   it('request-changes POSTs, and --undo DELETEs', async () => {
     const { server, output, build } = await startHarness(reviewRoutes);
     const command = new RequestChangesPRCommand(
       build(PullrequestsApi),
       repoContext(),
+      createMockGitService(),
       output
     );
 

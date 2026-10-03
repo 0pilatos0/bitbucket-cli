@@ -46,6 +46,19 @@ See [Global flags](/reference/global-flags/) for JSON output, workspace/reposito
   />
 </CardGrid>
 
+## Pull request from the current branch
+
+Commands that act on one pull request take its ID as an optional `[id]`: `view`, `activity`, `checks`, `edit`, `merge`, `approve`, `decline`, `ready`, `diff`, and `comments list`. Leave it out and the CLI asks Bitbucket for the open pull request whose source branch is your current git branch, in the repository your checkout's `origin` points at. That keeps a fork's `main` from matching your `main`, and still works from a fork with `--repo` set to upstream.
+
+```bash
+git switch feature/login
+bb pr view      # the open PR from feature/login
+bb pr checks
+bb pr merge --strategy squash
+```
+
+It only picks a pull request when exactly one matches. No match, several matches (the same branch opened against two destinations), or a detached `HEAD` all stop with an error asking for the ID. `bb pr checkout`, `bb pr reviewers` and the other `bb pr comments` subcommands still need the ID.
+
 ## Most-used commands
 
 | Task                                                | Command                                             |
@@ -58,6 +71,7 @@ See [Global flags](/reference/global-flags/) for JSON output, workspace/reposito
 | List PRs where you are a reviewer                   | `bb pr list --reviewer @me`                         |
 | Your PRs, review requests and current branch PR     | `bb pr status`                                      |
 | View PR details                                     | `bb pr view 42`                                     |
+| View the PR for the current branch                  | `bb pr view`                                        |
 | View checks                                         | `bb pr checks 42`                                   |
 | Review diff                                         | `bb pr diff 42 --stat`                              |
 | Checkout PR locally                                 | `bb pr checkout 42`                                 |

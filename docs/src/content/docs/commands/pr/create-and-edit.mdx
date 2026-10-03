@@ -105,7 +105,7 @@ Edit an existing pull request's title or description.
 bb pr edit [id] [options]
 ```
 
-`[id]` is the PR number. Omit it to auto-detect the open PR whose source branch matches your current git branch.
+`[id]` is the PR number. Omit it to use the open PR whose source branch is your current git branch ([how it is picked](/commands/pr/#pull-request-from-the-current-branch)).
 
 ### Options
 
@@ -265,16 +265,19 @@ Requesting your review
 View pull request details.
 
 ```bash
-bb pr view <id> [options]
+bb pr view [id] [options]
 ```
 
-`<id>` is the PR number.
+`[id]` is the PR number. Omit it to use the open PR for your current branch.
 
 ### Examples
 
 ```bash
 # View PR #42 in current repository
 bb pr view 42
+
+# View the open PR for the current branch
+bb pr view
 
 # View PR in specific repository
 bb pr view 42 -w myworkspace -r myrepo
