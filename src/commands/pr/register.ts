@@ -9,6 +9,7 @@ import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
 import { PR_STATES } from '../../types/pr.js';
 import { COLOR_WHENS } from './diff.command.js';
+import { PR_ID_ARGUMENT_DESCRIPTION } from './shared.js';
 import { registerPrCommentsCommands } from './comments.register.js';
 import { registerPrReviewersCommands } from './reviewers.register.js';
 
@@ -136,12 +137,13 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('view <id>')
+    .command('view')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('View pull request details')
     .addHelpText(
       'after',
       buildHelpText({
-        examples: ['bb pr view 42', 'bb pr view 42 --json'],
+        examples: ['bb pr view', 'bb pr view 42', 'bb pr view 42 --json'],
       })
     )
     .action(async (id, options) => {
@@ -152,7 +154,8 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('activity <id>')
+    .command('activity')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Show pull request activity log')
     .option('--limit <number>', 'Maximum number of activity entries', '25')
     .option('--all', 'Show all activity entries (overrides --limit)')
@@ -164,6 +167,7 @@ export function registerPrCommands(
       'after',
       buildHelpText({
         examples: [
+          'bb pr activity',
           'bb pr activity 42',
           'bb pr activity 42 --type comment,approval',
           'bb pr activity 42 --all',
@@ -191,12 +195,13 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('checks <id>')
+    .command('checks')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Show CI/CD checks and build status for a pull request')
     .addHelpText(
       'after',
       buildHelpText({
-        examples: ['bb pr checks 42', 'bb pr checks 42 --json'],
+        examples: ['bb pr checks', 'bb pr checks 42', 'bb pr checks 42 --json'],
       })
     )
     .action(async (id, options) => {
@@ -207,7 +212,8 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('edit [id]')
+    .command('edit')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Edit a pull request')
     .option('-t, --title <title>', 'New pull request title')
     .option('-b, --body <body>', 'New pull request description')
@@ -232,7 +238,8 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('merge <id>')
+    .command('merge')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Merge a pull request')
     .option('-m, --message <message>', 'Merge commit message')
     .option('--close-source-branch', 'Delete the source branch after merging')
@@ -247,6 +254,7 @@ export function registerPrCommands(
       'after',
       buildHelpText({
         examples: [
+          'bb pr merge',
           'bb pr merge 42',
           'bb pr merge 42 --strategy squash --close-source-branch',
           'bb pr merge 42 -m "Merge feature X"',
@@ -268,13 +276,15 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('approve <id>')
+    .command('approve')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Approve a pull request')
     .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pr approve',
           'bb pr approve 42',
           'bb pr approve 42 --json',
           'bb pr approve 42 -w my-workspace -r my-repo',
@@ -289,13 +299,15 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('decline <id>')
+    .command('decline')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Decline a pull request')
     .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pr decline',
           'bb pr decline 42',
           'bb pr decline 42 --json',
           'bb pr decline 42 -w my-workspace -r my-repo',
@@ -310,13 +322,15 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('ready <id>')
+    .command('ready')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Mark a draft pull request as ready for review')
     .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pr ready',
           'bb pr ready 42',
           'bb pr ready 42 --json',
           'bb pr ready 42 -w my-workspace -r my-repo',
@@ -350,7 +364,8 @@ export function registerPrCommands(
     });
 
   prCmd
-    .command('diff [id]')
+    .command('diff')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('View pull request diff')
     .addOption(
       withCompletionChoices(

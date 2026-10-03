@@ -9,15 +9,13 @@ import type {
   IOutputService,
   IGitService,
 } from '../../core/interfaces/services.js';
-import type { Pullrequest, PullrequestsApi } from '../../generated/api.js';
-import { collectPages, MAX_PAGE_LENGTH } from '../../services/pagination.js';
+import type { PullrequestsApi } from '../../generated/api.js';
 import {
-  getBranchName,
   getLinkHref,
   parseDiffstatFiles,
 } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
-import { BBError, ErrorCode } from '../../types/errors.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 /**
  * Allowed `--color <when>` values. Single-sourced here (like `PIPELINE_SORTS`
@@ -66,46 +64,15 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
       context
     );
 
-    let prId: number;
-    if (options.id) {
-      prId = this.parsePositiveInt(options.id, 'id');
-    } else {
-      const currentBranch = await this.gitService.getCurrentBranch();
-
-      const matches = await collectPages<Pullrequest>({
-        limit: 1,
-        pageSize: MAX_PAGE_LENGTH,
-        fetchPage: async (page, pagelen) => {
-          const response =
-            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-              {
-                workspace: repoContext.workspace,
-                repoSlug: repoContext.repoSlug,
-                state: 'OPEN',
-              },
-              {
-                params: { page, pagelen },
-              }
-            );
-
-          return response.data;
-        },
-        shouldInclude: (pullRequest) => {
-          return getBranchName(pullRequest.source) === currentBranch;
-        },
-      });
-      const pr = matches[0];
-
-      if (!pr) {
-        throw new BBError({
-          code: ErrorCode.API_NOT_FOUND,
-          message: `No open pull request found for branch "${currentBranch}"`,
-          context: { branch: currentBranch },
-        });
-      }
-
-      prId = pr.id!;
-    }
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveInt(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     if (options.web) {
       const webUrl = await this.getWebDiffUrl(

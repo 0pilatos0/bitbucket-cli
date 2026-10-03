@@ -14,10 +14,10 @@ On these four commands the field list is matched against the result envelope sho
 ## `bb pr merge`
 
 ```bash
-bb pr merge <id> [options]
+bb pr merge [id] [options]
 ```
 
-`<id>` is the pull request ID.
+`[id]` is the pull request ID. Omit it to merge the open PR for your current branch ([how it is picked](/commands/pr/#pull-request-from-the-current-branch)).
 
 ### Options
 
@@ -66,12 +66,13 @@ bb pr merge 42 --json --jq '.pullRequest.merge_commit.hash' | tr -d '"'
 
 ## `bb pr approve`, `bb pr decline`, `bb pr ready`
 
-Each takes a pull request ID. The only command-specific option is `--dry-run`, which prints the write request instead of sending it ([details](/reference/global-flags/#--dry-run)).
+Each takes an optional pull request ID; without one they act on the open PR for your current branch. The only command-specific option is `--dry-run`, which prints the write request instead of sending it ([details](/reference/global-flags/#--dry-run)).
 
 ```bash
 bb pr approve 42   # Approve
 bb pr decline 42   # Decline
 bb pr ready 42     # Clear the draft flag, marking the PR ready for review
+bb pr approve      # Approve the open PR for the current branch
 
 # Any of them against an explicit repository
 bb pr approve 42 -w myworkspace -r myrepo

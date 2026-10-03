@@ -527,6 +527,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerCommand(container, ServiceTokens.ViewPRCommand, ViewPRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.EditPRCommand, EditPRCommand, [
@@ -538,21 +539,25 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerCommand(container, ServiceTokens.MergePRCommand, MergePRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.ApprovePRCommand, ApprovePRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.DeclinePRCommand, DeclinePRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.ReadyPRCommand, ReadyPRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
@@ -580,6 +585,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );
@@ -595,6 +601,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );
@@ -692,7 +699,9 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   );
   registerCommand(container, ServiceTokens.ChecksPRCommand, ChecksPRCommand, [
     ServiceTokens.CommitStatusesApi,
+    ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
 
