@@ -722,6 +722,7 @@ exports[`command tree snapshot bb pr create 1`] = `
     "contextOptions": undefined,
     "options": {
       "body": "body-value",
+      "bodyFile": "bodyFile-value",
       "closeSourceBranch": true,
       "defaultReviewers": true,
       "destination": "destination-value",
@@ -744,8 +745,9 @@ Create a pull request
 Options:
   -t, --title <title>         Pull request title
   -b, --body <body>           Pull request description
+  -F, --body-file <file>      Read description from file (- for stdin)
   -s, --source <branch>       Source branch (default: current branch)
-  -d, --destination <branch>  Destination branch (default: main)
+  -d, --destination <branch>  Destination branch (default: repo's main branch)
   --close-source-branch       Close source branch after merge
   --draft                     Create the pull request as draft
   --reviewer <user>           Add a reviewer by nickname, display name, email,
@@ -759,6 +761,8 @@ Options:
 
 Examples:
   $ bb pr create -t "My PR" -b "Description"
+  $ bb pr create -t "My PR" -F description.md
+  $ git log -1 --format=%b | bb pr create -t "My PR" -F -
   $ bb pr create -t "My PR" --draft
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
@@ -768,7 +772,7 @@ Examples:
 
 Defaults:
   --source  current git branch
-  --destination  main
+  --destination  repository's main branch
   --default-reviewers  false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)
 
 See also:
@@ -965,7 +969,8 @@ Arguments:
 Options:
   -t, --title <title>     New pull request title
   -b, --body <body>       New pull request description
-  -F, --body-file <file>  Read description from file
+  -F, --body-file <file>  Read description from file (- for stdin; overrides
+                          --body)
   --dry-run               Print the write request instead of sending it
   -h, --help              display help for command
 
@@ -1218,11 +1223,11 @@ Options:
 
 Commands:
   list [options] [id]                             List comments on a pull request
-  add [options] <id> <message>                    Add a comment to a pull request
+  add [options] <id> [message]                    Add a comment to a pull request
   edit [options] <pr-id> <comment-id> <message>   Edit a comment on a pull request
   delete [options] <pr-id> <comment-id>           Delete a comment on a pull request
   view <pr-id> <comment-id>                       View a single comment on a pull request
-  reply [options] <pr-id> <comment-id> <message>  Reply to a comment on a pull request
+  reply [options] <pr-id> <comment-id> [message]  Reply to a comment on a pull request
   resolve [options] <pr-id> <comment-id>          Resolve a comment thread on a pull request
   unresolve [options] <pr-id> <comment-id>        Reopen a resolved comment thread on a pull request
   help [command]                                  display help for command
@@ -1282,6 +1287,7 @@ exports[`command tree snapshot bb pr comments add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
       "dryRun": true,
       "file": "file-value",
       "id": "id-value",
@@ -1293,20 +1299,22 @@ exports[`command tree snapshot bb pr comments add 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments add [options] <id> <message>
+"Usage: bb pr comments add [options] <id> [message]
 
 Add a comment to a pull request
 
 Options:
-  --file <path>         File path in the diff for inline comment
-  --line-to <number>    Line number in the new file version
-  --line-from <number>  Line number in the old file version
-  --dry-run             Print the write request instead of sending it
-  -h, --help            display help for command
+  -F, --body-file <file>  Read comment text from file (- for stdin)
+  --file <path>           File path in the diff for inline comment
+  --line-to <number>      Line number in the new file version
+  --line-from <number>    Line number in the old file version
+  --dry-run               Print the write request instead of sending it
+  -h, --help              display help for command
 
 Examples:
   $ bb pr comments add 42 "LGTM"
   $ bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10
+  $ bb pr comments add 42 -F review.md
 
 "
 ,
@@ -1408,7 +1416,9 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
       "commentId": "comment-id-value",
+      "dryRun": true,
       "message": "message-value",
       "prId": "pr-id-value",
     },
@@ -1416,17 +1426,19 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments reply [options] <pr-id> <comment-id> <message>
+"Usage: bb pr comments reply [options] <pr-id> <comment-id> [message]
 
 Reply to a comment on a pull request
 
 Options:
-  --dry-run   Print the write request instead of sending it
-  -h, --help  display help for command
+  -F, --body-file <file>  Read reply text from file (- for stdin)
+  --dry-run               Print the write request instead of sending it
+  -h, --help              display help for command
 
 Examples:
   $ bb pr comments reply 42 12345 "Good catch, fixed."
   $ bb pr comments reply 42 12345 "Fixed in the latest push" --json
+  $ echo "Fixed, thanks" | bb pr comments reply 42 12345 -F -
 
 "
 ,
