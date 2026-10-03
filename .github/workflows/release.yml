@@ -273,10 +273,11 @@ jobs:
       actions: write
 
     steps:
-      - name: Dispatch CI and Docs lint
+      - name: Dispatch CI, Docs lint and Changeset
         run: |
           gh workflow run ci.yml --ref "$RELEASE_BRANCH"
           gh workflow run docs-lint.yml --ref "$RELEASE_BRANCH"
+          gh workflow run changeset.yml --ref "$RELEASE_BRANCH"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

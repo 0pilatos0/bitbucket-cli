@@ -38,7 +38,8 @@ For setup, conventions, and the changeset workflow see CONTRIBUTING.md and AGENT
 <!-- See CONTRIBUTING.md#3-add-a-changeset for when this is required. -->
 
 - [ ] I ran `bun run changeset` and committed the file, **or**
-- [ ] This change does not affect users (CI, tests, internal docs only)
+- [ ] This change does not affect users (CI, tests, internal docs only;
+      a `src/` change also needs the `no-changeset` label)
 
 ## Checklist
 
