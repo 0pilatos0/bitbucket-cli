@@ -8,8 +8,9 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi, UsersApi } from '../../generated/api.js';
+import type { PullrequestsApi } from '../../generated/api.js';
 import { updatePullRequestReviewers } from '../../services/reviewer.service.js';
+import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface RemoveReviewerPROptions extends GlobalOptions {
@@ -26,7 +27,7 @@ export class RemoveReviewerPRCommand extends BaseCommand<
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
-    private readonly usersApi: UsersApi,
+    private readonly userResolver: UserResolverService,
     private readonly contextService: IContextService,
     output: IOutputService
   ) {
@@ -44,11 +45,10 @@ export class RemoveReviewerPRCommand extends BaseCommand<
 
     const prId = this.parsePositiveIntArg(options.id, 'id');
 
-    // Look up the user to get their UUID
-    const userResponse = await this.usersApi.usersSelectedUserGet({
-      selectedUser: options.username,
-    });
-    const user = userResponse.data;
+    const user = await this.userResolver.resolve(
+      repoContext.workspace,
+      options.username
+    );
 
     const updatedPr = await updatePullRequestReviewers(
       this.pullrequestsApi,
@@ -71,7 +71,7 @@ export class RemoveReviewerPRCommand extends BaseCommand<
     }
 
     this.output.success(
-      `Removed ${options.username} as reviewer from pull request #${prId}`
+      `Removed ${user.displayName ?? options.username} as reviewer from pull request #${prId}`
     );
   }
 }

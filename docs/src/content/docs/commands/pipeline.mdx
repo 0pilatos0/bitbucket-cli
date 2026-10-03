@@ -52,9 +52,9 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
 
 ### Notes
 
-- Columns: build number, status (colored), ref (truncated to 40 characters;
-  disable with `--no-truncate`), trigger, created date, and duration for
-  completed runs.
+- Columns: build number, status (colored), ref (shortened to fit the
+  terminal; disable with `--no-truncate`), trigger, created date (relative on a
+  terminal), and duration for completed runs.
 - `--limit` is enforced across paginated responses. When results are capped the
   CLI prints `Showing 25 pipelines. Use --limit <n> or --all to see more.`
   (suppressed with `--json`).
@@ -207,8 +207,10 @@ bb pipeline logs 42 --json --jq '.log'
 - Every step is selectable even on large runs, the CLI follows the steps
   endpoint's pagination, so indexes and UUIDs beyond the API's default page
   size of 10 work.
-- The log is printed verbatim to stdout, so it pipes cleanly into `grep`,
-  `less`, or a file.
+- The log is printed verbatim to stdout, so it pipes cleanly into `grep` or a
+  file. On a terminal it opens in your pager (`less -FRX` unless
+  [`BB_PAGER` or `PAGER`](/reference/environment-variables/#pager) says
+  otherwise).
 - Four failure modes, a queued run with no steps yet, an out-of-range `--step`
   index, a `--step` UUID that matches nothing, and a step that has produced no
   log yet, each get their own message, in that order:

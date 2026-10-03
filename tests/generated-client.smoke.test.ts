@@ -4,16 +4,21 @@
  * Only a subset of the generated *Api classes is wired into commands, so the
  * rest are never imported at runtime — a broken class (missing export, import
  * cycle, runtime error at module load) would go unnoticed by command tests.
- * This suite imports every class and asserts each one is constructible.
+ * This suite imports every class and asserts each one is constructible, and
+ * that the generator writes only the client sources.
  */
 
 import { describe, expect, it } from 'bun:test';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import * as api from '../src/generated/api.js';
 import * as barrel from '../src/generated/index.js';
 
 // Floor below the 23 classes generated today; guards against a spec update
 // silently gutting the client without a hardcoded list that would then rot.
 const MIN_API_CLASSES = 20;
+
+const GENERATED_DIR = resolve(import.meta.dir, '../src/generated');
 
 function apiClassNames(): string[] {
   return Object.keys(api).filter((name) => name.endsWith('Api'));
@@ -49,5 +54,12 @@ describe('generated API client', () => {
       const apiBinding = api[name as keyof typeof api];
       expect(barrelBinding).toBe(apiBinding);
     }
+  });
+
+  // openapitools.json turns off the generator's markdown docs and git_push.sh.
+  it('generates only the client sources, without docs or git_push.sh', () => {
+    expect(existsSync(resolve(GENERATED_DIR, 'api.ts'))).toBe(true);
+    expect(existsSync(resolve(GENERATED_DIR, 'docs'))).toBe(false);
+    expect(existsSync(resolve(GENERATED_DIR, 'git_push.sh'))).toBe(false);
   });
 });

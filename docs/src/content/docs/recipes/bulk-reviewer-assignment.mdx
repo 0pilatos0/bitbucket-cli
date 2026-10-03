@@ -7,7 +7,7 @@ Assign reviewers to existing open pull requests without removing the reviewers a
 
 ## Identifying reviewers
 
-`bb pr reviewers add` takes an account ID (`712020:3cfed7e0-...`) or a braced UUID (`{c1cb1bb5-...}`). Bitbucket Cloud no longer resolves login names here, so a pool of `alice bob charlie` fails with a 404 on every call. See [Identifying users](/commands/pr/reviewers/#identifying-users) for how to look the IDs up once.
+`bb pr reviewers add` takes a nickname, display name, email, `@me`, account ID (`712020:3cfed7e0-...`) or braced UUID (`{c1cb1bb5-...}`). Names cost a workspace member lookup on every call, so the scripts below keep the pool as account IDs. See [Identifying users](/commands/pr/reviewers/#identifying-users) for the rules and for how to look the IDs up.
 
 These scripts use account IDs only and compare them with `author.account_id`. Do not mix UUIDs or display names into the pool. Missing author IDs stop the run before any assignments.
 

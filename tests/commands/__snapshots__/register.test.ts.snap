@@ -18,6 +18,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -99,6 +104,11 @@ Global Options:
                                   — runs in-process via embedded jq, requires
                                   --json (e.g. '.pullRequests[] | select(.state
                                   == "OPEN") | .title')
+  --raw-output                    With --jq, print string results without JSON
+                                  quotes (like jq -r)
+  --lean                          Trim JSON output: keep only the web URL
+                                  (links.html) from each Bitbucket links map;
+                                  requires --json
   --no-color                      Disable color output
   --no-unicode                    Use ASCII fallbacks for symbols (separators,
                                   arrows, status icons) — also enabled by
@@ -157,6 +167,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -207,6 +222,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -257,6 +277,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -309,6 +334,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -358,6 +388,11 @@ Global Options:
                                  — runs in-process via embedded jq, requires
                                  --json (e.g. '.pullRequests[] | select(.state
                                  == "OPEN") | .title')
+  --raw-output                   With --jq, print string results without JSON
+                                 quotes (like jq -r)
+  --lean                         Trim JSON output: keep only the web URL
+                                 (links.html) from each Bitbucket links map;
+                                 requires --json
   --no-color                     Disable color output
   --no-unicode                   Use ASCII fallbacks for symbols (separators,
                                  arrows, status icons) — also enabled by
@@ -399,6 +434,7 @@ exports[`command tree snapshot bb repo clone 1`] = `
   "dispatch": {
     "options": {
       "directory": "directory-value",
+      "protocol": "protocol-value",
       "repository": "repository-value",
     },
     "token": "CloneCommand",
@@ -411,6 +447,8 @@ Clone a Bitbucket repository
 
 Options:
   -d, --directory <dir>        Directory to clone into
+  --protocol <protocol>        Clone over ssh or https (default: gitProtocol
+                               config, else ssh) (choices: "ssh", "https")
   -h, --help                   display help for command
 
 Global Options:
@@ -421,6 +459,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -442,6 +485,10 @@ Global Options:
 Examples:
   $ bb repo clone workspace/repo-name
   $ bb repo clone workspace/repo-name -d my-directory
+  $ bb repo clone workspace/repo-name --protocol https
+
+Valid --protocol values:
+  ssh, https
 
 "
 ,
@@ -482,6 +529,11 @@ Global Options:
                                    expression — runs in-process via embedded jq,
                                    requires --json (e.g. '.pullRequests[] |
                                    select(.state == "OPEN") | .title')
+  --raw-output                     With --jq, print string results without JSON
+                                   quotes (like jq -r)
+  --lean                           Trim JSON output: keep only the web URL
+                                   (links.html) from each Bitbucket links map;
+                                   requires --json
   --no-color                       Disable color output
   --no-unicode                     Use ASCII fallbacks for symbols (separators,
                                    arrows, status icons) — also enabled by
@@ -543,6 +595,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -601,6 +658,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -657,6 +719,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -713,6 +780,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -778,6 +850,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -829,6 +906,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -887,6 +969,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -941,6 +1028,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -996,6 +1088,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1040,6 +1137,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1099,6 +1201,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1158,6 +1265,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1213,6 +1325,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1257,6 +1374,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1328,8 +1450,9 @@ Options:
   -d, --destination <branch>   Destination branch (default: main)
   --close-source-branch        Close source branch after merge
   --draft                      Create the pull request as draft
-  --reviewer <user>            Add a reviewer by account ID or {uuid}
-                               (repeatable) (default: [])
+  --reviewer <user>            Add a reviewer by nickname, display name, email,
+                               @me, account ID or {uuid} (repeatable) (default:
+                               [])
   --default-reviewers          Include the repository's default reviewers
   --no-default-reviewers       Skip the repository's default reviewers even when
                                prCreateIncludeDefaultReviewers is true
@@ -1343,6 +1466,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1367,6 +1495,7 @@ Examples:
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
   $ bb pr create -t "My PR" --default-reviewers
+  $ bb pr create -t "My PR" --reviewer jdoe --reviewer "Jane Smith"
   $ bb pr create -t "My PR" --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 Defaults:
@@ -1419,6 +1548,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1486,6 +1620,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1546,6 +1685,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1607,6 +1751,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1666,6 +1815,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1729,6 +1883,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1789,6 +1948,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1843,6 +2007,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1897,6 +2066,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -1951,6 +2125,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2013,6 +2192,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2062,6 +2246,8 @@ Options:
 Global Options:
   --json [fields]                        Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
   --jq <expression>                      Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
+  --raw-output                           With --jq, print string results without JSON quotes (like jq -r)
+  --lean                                 Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
   --no-color                             Disable color output
   --no-unicode                           Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
   --no-truncate                          Show full values in table output without truncation
@@ -2120,6 +2306,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2186,6 +2377,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2241,6 +2437,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2297,6 +2498,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2351,6 +2557,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2406,6 +2617,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2460,6 +2676,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2514,6 +2735,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2559,6 +2785,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2579,10 +2810,12 @@ Global Options:
 
 Commands:
   list <id>                    List reviewers on a pull request
-  add <id> <user>              Add a reviewer to a pull request (user is an
-                               account ID or {uuid})
-  remove <id> <user>           Remove a reviewer from a pull request (user is an
-                               account ID or {uuid})
+  add <id> <user>              Add a reviewer to a pull request (user is a
+                               nickname, display name, email, @me, account ID or
+                               {uuid})
+  remove <id> <user>           Remove a reviewer from a pull request (user is a
+                               nickname, display name, email, @me, account ID or
+                               {uuid})
   help [command]               display help for command
 "
 ,
@@ -2615,6 +2848,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2656,7 +2894,8 @@ exports[`command tree snapshot bb pr reviewers add 1`] = `
   "help": 
 "Usage: bb pr reviewers add [options] <id> <user>
 
-Add a reviewer to a pull request (user is an account ID or {uuid})
+Add a reviewer to a pull request (user is a nickname, display name, email, @me,
+account ID or {uuid})
 
 Options:
   -h, --help                   display help for command
@@ -2669,6 +2908,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2688,6 +2932,9 @@ Global Options:
                                BB_ACCOUNT; see bb auth switch)
 
 Examples:
+  $ bb pr reviewers add 42 jdoe
+  $ bb pr reviewers add 42 "Jane Doe"
+  $ bb pr reviewers add 42 @me
   $ bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
   $ bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
@@ -2710,7 +2957,8 @@ exports[`command tree snapshot bb pr reviewers remove 1`] = `
   "help": 
 "Usage: bb pr reviewers remove [options] <id> <user>
 
-Remove a reviewer from a pull request (user is an account ID or {uuid})
+Remove a reviewer from a pull request (user is a nickname, display name, email,
+@me, account ID or {uuid})
 
 Options:
   -h, --help                   display help for command
@@ -2723,6 +2971,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2742,6 +2995,7 @@ Global Options:
                                BB_ACCOUNT; see bb auth switch)
 
 Examples:
+  $ bb pr reviewers remove 42 jdoe
   $ bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
   $ bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
@@ -2768,6 +3022,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2834,6 +3093,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2899,6 +3163,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -2964,6 +3233,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3031,6 +3305,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3087,6 +3366,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3140,6 +3424,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3193,6 +3482,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3233,6 +3527,8 @@ Options:
 Global Options:
   --json [fields]                             Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
   --jq <expression>                           Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
+  --raw-output                                With --jq, print string results without JSON quotes (like jq -r)
+  --lean                                      Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
   --no-color                                  Disable color output
   --no-unicode                                Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
   --no-truncate                               Show full values in table output without truncation
@@ -3283,6 +3579,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3343,6 +3644,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3399,6 +3705,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3455,6 +3766,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3500,6 +3816,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3575,6 +3896,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3640,6 +3966,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3705,6 +4036,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3763,6 +4099,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3819,6 +4160,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3866,6 +4212,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3927,6 +4278,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -3986,6 +4342,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4032,6 +4393,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4091,6 +4457,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4161,6 +4532,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4211,6 +4587,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4269,6 +4650,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4325,6 +4711,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4374,6 +4765,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4432,6 +4828,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4489,6 +4890,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4552,6 +4958,11 @@ Global Options:
                                    expression — runs in-process via embedded jq,
                                    requires --json (e.g. '.pullRequests[] |
                                    select(.state == "OPEN") | .title')
+  --raw-output                     With --jq, print string results without JSON
+                                   quotes (like jq -r)
+  --lean                           Trim JSON output: keep only the web URL
+                                   (links.html) from each Bitbucket links map;
+                                   requires --json
   --no-color                       Disable color output
   --no-unicode                     Use ASCII fallbacks for symbols (separators,
                                    arrows, status icons) — also enabled by
@@ -4601,6 +5012,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4661,6 +5077,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4714,6 +5135,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4776,6 +5202,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4840,6 +5271,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -4936,6 +5372,11 @@ Global Options:
                                    expression — runs in-process via embedded jq,
                                    requires --json (e.g. '.pullRequests[] |
                                    select(.state == "OPEN") | .title')
+  --raw-output                     With --jq, print string results without JSON
+                                   quotes (like jq -r)
+  --lean                           Trim JSON output: keep only the web URL
+                                   (links.html) from each Bitbucket links map;
+                                   requires --json
   --no-color                       Disable color output
   --no-unicode                     Use ASCII fallbacks for symbols (separators,
                                    arrows, status icons) — also enabled by
@@ -5004,6 +5445,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5055,6 +5501,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5133,6 +5584,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5194,6 +5650,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5283,6 +5744,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5346,6 +5812,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5391,6 +5862,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5449,6 +5925,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5506,6 +5987,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5561,6 +6047,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5606,6 +6097,11 @@ Global Options:
                                   — runs in-process via embedded jq, requires
                                   --json (e.g. '.pullRequests[] | select(.state
                                   == "OPEN") | .title')
+  --raw-output                    With --jq, print string results without JSON
+                                  quotes (like jq -r)
+  --lean                          Trim JSON output: keep only the web URL
+                                  (links.html) from each Bitbucket links map;
+                                  requires --json
   --no-color                      Disable color output
   --no-unicode                    Use ASCII fallbacks for symbols (separators,
                                   arrows, status icons) — also enabled by
@@ -5663,6 +6159,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5718,6 +6219,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5772,6 +6278,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5817,6 +6328,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5875,6 +6391,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5932,6 +6453,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -5989,6 +6515,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6071,6 +6602,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6113,7 +6649,7 @@ exports[`command tree snapshot bb api 1`] = `
 {
   "dispatch": {
     "contextOptions": {
-      "allowJqWithoutJson": true,
+      "outputIsJson": true,
     },
     "options": {
       "endpoint": "endpoint-value",
@@ -6178,6 +6714,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6236,6 +6777,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6299,6 +6845,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6353,6 +6904,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6405,6 +6961,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6450,6 +7011,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6503,6 +7069,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6525,7 +7096,7 @@ Examples:
   $ bb config get defaultWorkspace
 
 Readable config keys:
-  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 
 "
 ,
@@ -6558,6 +7129,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6581,9 +7157,10 @@ Examples:
   $ bb config set skipVersionCheck true
   $ bb config set versionCheckInterval 7
   $ bb config set credentialStorage keychain
+  $ bb config set gitProtocol https
 
 Settable config keys:
-  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false)
+  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false), gitProtocol (ssh/https)
 
 See also:
   Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
@@ -6616,6 +7193,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6661,6 +7243,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6682,6 +7269,10 @@ Global Options:
 Commands:
   install                      Install shell completions for bash, zsh, or fish
   uninstall                    Uninstall shell completions
+  bash                         Print the completion script for bash
+  zsh                          Print the completion script for zsh
+  fish                         Print the completion script for fish
+  powershell                   Print the completion script for powershell
   help [command]               display help for command
 "
 ,
@@ -6711,6 +7302,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6764,6 +7360,11 @@ Global Options:
                                runs in-process via embedded jq, requires --json
                                (e.g. '.pullRequests[] | select(.state == "OPEN")
                                | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
   --no-color                   Disable color output
   --no-unicode                 Use ASCII fallbacks for symbols (separators,
                                arrows, status icons) — also enabled by
@@ -6788,6 +7389,234 @@ Examples:
 
 Supported shells:
   bash, zsh, fish
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion bash 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "bash",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion bash [options]
+
+Print the completion script for bash
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb completion bash
+  $ echo 'source <(bb completion bash)' >> ~/.bashrc
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion zsh 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "zsh",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion zsh [options]
+
+Print the completion script for zsh
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb completion zsh
+  $ echo 'source <(bb completion zsh)' >> ~/.zshrc
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion fish 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "fish",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion fish [options]
+
+Print the completion script for fish
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb completion fish
+  $ bb completion fish > ~/.config/fish/completions/bb.fish
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion powershell 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "powershell",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion powershell [options]
+
+Print the completion script for powershell
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb completion powershell
+  $ Add-Content $PROFILE 'bb completion powershell | Out-String | Invoke-Expression'
 
 "
 ,

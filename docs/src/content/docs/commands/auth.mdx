@@ -134,9 +134,9 @@ current account name) and `accounts` (all saved names). With no credentials,
 the command reports `Not logged in` and JSON is
 `{ "authenticated": false, "account": "default", "accounts": [] }`.
 
-`auth status --json` reports `method: "basic"` for API tokens, while
-`auth login --json` reports `method: "api_token"`. Check `authenticated` first,
-then use the command's documented method value. See [JSON
+`auth status --json` and `auth login --json` both report `method` as
+`"api_token"` or `"oauth"`. Earlier releases reported `"basic"` from
+`auth status` for API tokens. See [JSON
 output](/reference/json-output/#pattern-5-auth--config-custom).
 
 ## `bb auth switch`

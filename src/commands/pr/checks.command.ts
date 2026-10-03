@@ -70,7 +70,7 @@ export class ChecksPRCommand extends BaseCommand<
     }
 
     this.renderHeader(prId, statuses.length);
-    this.renderStatuses(statuses, summary, context.globalOptions);
+    this.renderStatuses(statuses, summary);
   }
 
   private formatStatusForJson(status: Commitstatus): Record<string, unknown> {
@@ -96,8 +96,7 @@ export class ChecksPRCommand extends BaseCommand<
 
   private renderStatuses(
     statuses: Commitstatus[],
-    summary: { successful: number; failed: number; pending: number },
-    globalOptions: GlobalOptions
+    summary: { successful: number; failed: number; pending: number }
   ): void {
     const rows = statuses.map((status) => {
       const stateIcon = this.getStateIcon(status.state);
@@ -108,12 +107,16 @@ export class ChecksPRCommand extends BaseCommand<
       return [
         `${stateIcon} ${stateLabel}`,
         this.output.bold(name),
-        this.truncateText(description, 40, globalOptions),
-        status.updated_on ? this.output.formatDate(status.updated_on) : '-',
+        description,
+        status.updated_on
+          ? this.output.formatRelativeDate(status.updated_on)
+          : '-',
       ];
     });
 
-    this.output.table(['STATUS', 'NAME', 'DESCRIPTION', 'UPDATED'], rows);
+    this.output.table(['STATUS', 'NAME', 'DESCRIPTION', 'UPDATED'], rows, {
+      flexColumns: [1, 2],
+    });
 
     // Show summary
     this.output.text('');

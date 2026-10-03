@@ -60,13 +60,10 @@ export class ListProjectsCommand extends BaseCommand<
           this.output.bold(project.key ?? ''),
           project.name ?? '',
           project.is_private ? 'private' : 'public',
-          this.truncateText(
-            project.description ?? '',
-            50,
-            context.globalOptions
-          ),
-          this.output.formatDate(project.updated_on ?? ''),
+          project.description ?? '',
+          this.output.formatRelativeDate(project.updated_on ?? ''),
         ],
+        flexColumns: [1, 3],
         noun: 'projects',
       },
       context

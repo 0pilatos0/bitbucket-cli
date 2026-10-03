@@ -88,12 +88,21 @@ export interface ISecretStorage {
 /**
  * Git service interface
  */
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 export interface IGitService {
   isRepository(): Promise<boolean>;
   clone(url: string, destination?: string): Promise<void>;
-  fetch(remote?: string): Promise<void>;
+  fetch(remote: string, refspecs?: string[]): Promise<void>;
   checkout(branch: string): Promise<void>;
   checkoutNewBranch(branch: string, startPoint?: string): Promise<void>;
+  fastForward(ref: string): Promise<void>;
+  branchExists(branch: string): Promise<boolean>;
+  isAncestor(ancestor: string, descendant: string): Promise<boolean>;
+  getRemotes(): Promise<GitRemote[]>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
   getRemoteUrl(remote?: string): Promise<string>;
@@ -172,6 +181,10 @@ export interface JsonFormatOptions {
   json?: boolean;
   fields?: string[];
   jq?: string;
+  /** Print `--jq` string results without JSON quotes (jq `-r`). */
+  rawOutput?: boolean;
+  /** Prune every `links` map down to its `html` entry. */
+  lean?: boolean;
 }
 
 /**
@@ -228,6 +241,15 @@ export interface IPromptService {
   ): Promise<T>;
 }
 
+export interface TableOptions {
+  /**
+   * Columns (0-based) that may be shortened to fit the terminal width, such
+   * as titles and descriptions. Ids, hashes and URLs should stay out so they
+   * remain copyable. Without any, the table keeps its natural width.
+   */
+  flexColumns?: number[];
+}
+
 /**
  * Output service interface for formatting and displaying output
  */
@@ -242,7 +264,18 @@ export interface IOutputService {
    * the animation in JSON mode, non-TTY streams, and tests.
    */
   spinner(text: string): ISpinner;
-  table(headers: string[], rows: string[][]): void;
+  /**
+   * Print rows as an aligned table on a terminal, fitted to its width unless
+   * `--no-truncate` is set. When stdout is not a terminal, print tab-separated
+   * rows without a header instead.
+   */
+  table(headers: string[], rows: string[][], options?: TableOptions): void;
+  /**
+   * Run `run` with its stdout sent through the user's pager (`BB_PAGER`,
+   * `PAGER`, default `less -FRX`). Paging only applies on a terminal and
+   * outside JSON mode; otherwise output is written directly.
+   */
+  withPager<T>(run: () => Promise<T>): Promise<T>;
   success(message: string): void;
   error(message: string): void;
   warning(message: string): void;
@@ -296,4 +329,9 @@ export interface IOutputService {
   blue(text: string): string;
   underline(text: string): string;
   formatDate(date: string | Date): string;
+  /**
+   * Relative time ("3 days ago") on a terminal and an ISO 8601 timestamp when
+   * piped; `-` for a missing or invalid date. Used for date columns in tables.
+   */
+  formatRelativeDate(date: string | Date): string;
 }

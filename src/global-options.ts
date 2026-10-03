@@ -16,6 +16,14 @@ export function addGlobalOptions(program: Command): Command {
       '--jq <expression>',
       'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
     )
+    .option(
+      '--raw-output',
+      'With --jq, print string results without JSON quotes (like jq -r)'
+    )
+    .option(
+      '--lean',
+      'Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json'
+    )
     .option('--no-color', 'Disable color output')
     .option(
       '--no-unicode',
