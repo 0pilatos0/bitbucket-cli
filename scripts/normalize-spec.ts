@@ -257,11 +257,14 @@ delete webhookEvents.uniqueItems;
 
 for (const path of Object.values(spec.paths)) {
   for (const operation of Object.values(path)) {
+    const isWebhook =
+      Array.isArray(operation.tags) && operation.tags.includes('Webhooks');
     if (
       typeof operation.description === 'string' &&
-      operation.description.startsWith(
+      (operation.description.startsWith(
         'This API will be deprecated on January 31, 2027'
-      )
+      ) ||
+        isWebhook)
     ) {
       operation.description = operation.description.trimEnd();
     }
