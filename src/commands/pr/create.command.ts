@@ -15,9 +15,9 @@ import type {
   Account,
   PullrequestsApi,
   Pullrequest,
-  UsersApi,
 } from '../../generated/api.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
+import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
@@ -43,7 +43,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
-    private readonly usersApi: UsersApi,
+    private readonly userResolver: UserResolverService,
     private readonly contextService: IContextService,
     private readonly gitService: IGitService,
     private readonly defaultReviewerService: DefaultReviewerService,
@@ -224,16 +224,13 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
 
     for (const username of explicitUsernames) {
-      const userResponse = await this.usersApi.usersSelectedUserGet({
-        selectedUser: username,
-      });
-      const user = userResponse.data;
-      if (!user.uuid) {
-        continue;
-      }
+      const user = await this.userResolver.resolve(
+        repoContext.workspace,
+        username
+      );
       byUuid.set(user.uuid, {
         uuid: user.uuid,
-        label: user.display_name ?? username,
+        label: user.displayName ?? username,
       });
     }
 
@@ -241,7 +238,7 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       return [];
     }
 
-    const authorUuid = await this.getAuthorUuid();
+    const authorUuid = await this.getAuthorUuid(repoContext.workspace);
     if (authorUuid) {
       byUuid.delete(authorUuid);
     }
@@ -249,10 +246,9 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     return Array.from(byUuid.values());
   }
 
-  private async getAuthorUuid(): Promise<string | undefined> {
+  private async getAuthorUuid(workspace: string): Promise<string | undefined> {
     try {
-      const response = await this.usersApi.userGet();
-      return response.data.uuid;
+      return (await this.userResolver.resolve(workspace, '@me')).uuid;
     } catch {
       // If the /user lookup fails we accept the risk that Bitbucket will
       // reject the PR with a 400 — better than failing the whole create.

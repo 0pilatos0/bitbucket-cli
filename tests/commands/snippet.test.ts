@@ -24,6 +24,8 @@ import {
 import type { SnippetsApi, Snippet } from '../../src/generated/api.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import type { ISnippetFilesService } from '../../src/core/interfaces/services.js';
+import { getTableRows } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 // --- Mock data ---
 
@@ -68,40 +70,6 @@ const mockComment = {
 };
 
 // --- Helpers ---
-
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  if (!axiosOptions || typeof axiosOptions !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-  const params = (axiosOptions as { params?: unknown }).params;
-  if (!params || typeof params !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-  const pageValue = (params as { page?: unknown }).page;
-  const pagelenValue = (params as { pagelen?: unknown }).pagelen;
-  const page =
-    typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
-      ? pageValue
-      : 1;
-  const pagelen =
-    typeof pagelenValue === 'number' &&
-    Number.isFinite(pagelenValue) &&
-    pagelenValue > 0
-      ? pagelenValue
-      : 25;
-  return { page, pagelen };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
 
 interface MockSnippetFilesServiceRecord {
   create?: {
@@ -161,7 +129,7 @@ function createMockSnippetsApi(
     onCommentEditCall?: (request: unknown) => void;
   } = {}
 ): SnippetsApi {
-  return {
+  return fakeApi<SnippetsApi>({
     snippetsWorkspaceGet: async (_request: unknown, axiosOptions?: unknown) => {
       const { page, pagelen } = extractPaginationParams(axiosOptions);
       const start = (page - 1) * pagelen;
@@ -221,7 +189,7 @@ function createMockSnippetsApi(
     snippetsWorkspaceEncodedIdCommentsCommentIdDelete: async () => ({
       data: undefined,
     }),
-  } as unknown as SnippetsApi;
+  });
 }
 
 function makeContext(json = false): CommandContext {
@@ -402,10 +370,10 @@ describe('ViewSnippetCommand', () => {
     const contextService = createMockContextService({
       defaultWorkspace: 'workspace',
     });
-    const api = {
+    const api = fakeApi<SnippetsApi>({
       ...createMockSnippetsApi(),
       snippetsWorkspaceEncodedIdGet: async () => ({ data: snippetNoHtml }),
-    } as unknown as SnippetsApi;
+    });
     const { service } = createMockSnippetFilesService();
     const cmd = new ViewSnippetCommand(api, service, contextService, output);
 

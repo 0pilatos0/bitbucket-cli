@@ -1,13 +1,16 @@
 ---
 title: Completion Commands
-description: Install or remove bb tab completion for bash, zsh, and fish, and see exactly what the completer suggests.
+description: Install or remove bb tab completion for bash, zsh, and fish, print the script for any shell including PowerShell, and see exactly what the completer suggests.
 ---
 
-Tab completion for bash, zsh, and fish.
+Tab completion for bash, zsh, fish, and PowerShell. `bb completion install`
+sets up bash, zsh, or fish for you; `bb completion <shell>` prints the script
+so you can load it yourself, and is the way to get PowerShell completion.
 
 Global options: every global flag is accepted here (see
 [Global Flags](/reference/global-flags/)). Only `--json`, `--no-color` and
-`--no-unicode` change anything; `--jq` needs `--json`, and
+`--no-unicode` change anything; `--jq`, `--raw-output` and `--lean` need
+`--json` (`--raw-output` also needs `--jq`), and
 `--no-truncate`/`--locale`/`-w`/`-r` have no output to affect.
 
 ## `bb completion install`
@@ -71,6 +74,47 @@ with a single object:
 }
 ```
 
+## `bb completion <shell>`
+
+```bash
+bb completion bash
+bb completion zsh
+bb completion fish
+bb completion powershell
+```
+
+Prints the completion script for that shell to stdout and changes nothing on
+disk. No prompt, so it's safe in scripts and dotfile setups. Load it from your
+shell's startup file:
+
+| Shell      | Add this                                                                                       |
+| ---------- | ---------------------------------------------------------------------------------------------- |
+| bash       | `source <(bb completion bash)` in `~/.bashrc`                                                  |
+| zsh        | `source <(bb completion zsh)` in `~/.zshrc`, after `compinit`                                  |
+| fish       | `bb completion fish > ~/.config/fish/completions/bb.fish` (once)                                |
+| PowerShell | `bb completion powershell \| Out-String \| Invoke-Expression` in your `$PROFILE`               |
+
+For PowerShell, this one-liner appends that line to your profile:
+
+```powershell
+Add-Content $PROFILE 'bb completion powershell | Out-String | Invoke-Expression'
+```
+
+PowerShell completion is tested on PowerShell 7 (any OS) and shows each
+command's and flag's help text as a tooltip. Windows PowerShell 5.1 is untested.
+
+With `--json` you get the script inside an envelope:
+
+```json
+{
+  "shell": "powershell",
+  "script": "###-begin-bb-completion-###\n..."
+}
+```
+
+`bb completion uninstall` only removes what `bb completion install` set up. To
+undo `bb completion <shell>`, delete the line you added.
+
 ## `bb completion uninstall`
 
 ```bash
@@ -99,14 +143,16 @@ commands and flags the CLI actually ships.
 
 - **Commands and subcommands**; every command in the tree, at every depth.
 - **Options**; every flag on the command plus the inherited globals (`--json`,
-  `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale`,
+  `--jq`, `--raw-output`, `--lean`, `--no-color`, `--no-unicode`,
+  `--no-truncate`, `--locale`,
   `--workspace`, `--repo`, `--help`), plus `--version` on the bare `bb`. Only
   long forms are suggested; short aliases like `-w` still work but are never
   offered.
 - **Flag values** for options with a fixed set of choices.
 
 Commands and flags carry their help text as a completion description. zsh and
-fish display it alongside the name; bash shows bare names. Enum **values** never
+fish display it alongside the name, PowerShell as a tooltip; bash shows bare
+names. Enum **values** never
 carry a description, so they are bare in every shell.
 
 ### Flag-value completion
@@ -148,8 +194,9 @@ $ bb pr create --<Tab>
 --title                 --body          --source       --destination
 --close-source-branch   --draft         --reviewer     --default-reviewers
 --no-default-reviewers
---json                  --jq            --no-color     --no-unicode
---no-truncate           --locale        --workspace    --repo         --help
+--json                  --jq            --raw-output   --lean
+--no-color              --no-unicode    --no-truncate  --locale
+--workspace             --repo          --help
 ```
 
 ### Related
