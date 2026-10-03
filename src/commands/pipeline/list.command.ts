@@ -124,18 +124,15 @@ export class ListPipelinesCommand extends BaseCommand<
           return [
             `#${pipeline.build_number ?? '?'}`,
             colorPipelineStatus(this.output, pipelineStatus),
-            this.truncateText(
-              getPipelineRef(pipeline),
-              40,
-              context.globalOptions
-            ),
+            getPipelineRef(pipeline),
             getPipelineTrigger(pipeline),
             pipeline.created_on
-              ? this.output.formatDate(pipeline.created_on)
+              ? this.output.formatRelativeDate(pipeline.created_on)
               : '-',
             completed ? formatDuration(pipeline.build_seconds_used) : '-',
           ];
         },
+        flexColumns: [2],
         noun: 'pipelines',
       },
       context

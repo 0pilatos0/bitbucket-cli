@@ -464,7 +464,9 @@ describe('createApiClient - interceptor edges', () => {
     const error = await client.get('/test').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(BBError);
     expect((error as BBError).code).toBe(ErrorCode.UNKNOWN);
-    expect((error as BBError).message).toBe('Auth required');
+    expect((error as BBError).message).toBe(
+      "Authentication required. Run 'bb auth login'."
+    );
     expect((error as BBError).cause).toMatchObject({ code: 1001 });
     expect(mockAdapter.getCallCount()).toBe(0);
   });

@@ -4,8 +4,10 @@
 
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import {
+  detectInstallChannel,
   isStandaloneBinary,
   VersionService,
+  type InstallChannel,
 } from '../../src/services/version.service.js';
 import { createMockConfigService } from '../setup.js';
 import type { BBConfig } from '../../src/types/config.js';
@@ -65,6 +67,50 @@ describe('isStandaloneBinary', () => {
     ['C:\\Users\\me\\.bun\\bin\\bb.exe', false],
   ])('%s -> %p', (mainPath, expected) => {
     expect(isStandaloneBinary(mainPath)).toBe(expected);
+  });
+});
+
+describe('detectInstallChannel', () => {
+  it.each<[string, InstallChannel]>([
+    ['/$bunfs/root/bb', 'standalone'],
+    ['B:\\~BUN\\root\\bb.exe', 'standalone'],
+    ['/usr/local/lib/node_modules/@pilatos/bitbucket-cli/dist/index.js', 'npm'],
+    [
+      'C:\\Users\\me\\AppData\\Roaming\\npm\\node_modules\\@pilatos\\bitbucket-cli\\dist\\index.js',
+      'npm',
+    ],
+    [
+      '/home/me/.local/share/pnpm/global/5/.pnpm/@pilatos+bitbucket-cli@2.2.2/node_modules/@pilatos/bitbucket-cli/dist/index.js',
+      'pnpm',
+    ],
+    [
+      'C:\\Users\\me\\AppData\\Local\\pnpm\\global\\5\\.pnpm\\@pilatos+bitbucket-cli@2.2.2\\node_modules\\@pilatos\\bitbucket-cli\\dist\\index.js',
+      'pnpm',
+    ],
+    [
+      '/home/me/.bun/install/global/node_modules/@pilatos/bitbucket-cli/dist/index.js',
+      'bun',
+    ],
+    [
+      'C:\\Users\\me\\.bun\\install\\global\\node_modules\\@pilatos\\bitbucket-cli\\dist\\index.js',
+      'bun',
+    ],
+    [
+      '/tmp/bunx-501-@pilatos/bitbucket-cli@latest/node_modules/@pilatos/bitbucket-cli/dist/index.js',
+      'bun',
+    ],
+    [
+      '/home/me/Library/pnpm/store/v11/links/@pilatos/bitbucket-cli/2.2.2/6a1b/node_modules/@pilatos/bitbucket-cli/dist/index.js',
+      'pnpm',
+    ],
+    [
+      'C:\\Users\\me\\AppData\\Local\\pnpm\\store\\v11\\links\\@pilatos\\bitbucket-cli\\2.2.2\\6a1b\\node_modules\\@pilatos\\bitbucket-cli\\dist\\index.js',
+      'pnpm',
+    ],
+    ['/home/me/src/bitbucket-cli/dist/index.js', 'bun'],
+    ['/home/me/src/bitbucket-cli/src/index.ts', 'bun'],
+  ])('%s -> %s', (mainPath, expected) => {
+    expect(detectInstallChannel(mainPath)).toBe(expected);
   });
 });
 
@@ -174,28 +220,22 @@ describe('VersionService', () => {
   });
 
   describe('getUpdateHint', () => {
-    it('suggests bun install for a package install', () => {
-      const pkg = new VersionService(
+    it.each([
+      ['npm', "Run 'npm install -g @pilatos/bitbucket-cli' to update"],
+      ['pnpm', "Run 'pnpm add -g @pilatos/bitbucket-cli' to update"],
+      ['bun', "Run 'bun install -g @pilatos/bitbucket-cli' to update"],
+      [
+        'standalone',
+        'Download the new binary from https://github.com/0pilatos0/bitbucket-cli/releases/latest',
+      ],
+    ] as const)('%s install -> %s', (channel, hint) => {
+      const svc = new VersionService(
         createMockConfigService(mockConfig),
         '1.0.0',
-        false
+        channel
       );
 
-      expect(pkg.getUpdateHint()).toBe(
-        "Run 'bun install -g @pilatos/bitbucket-cli' to update"
-      );
-    });
-
-    it('points a standalone binary at the latest release', () => {
-      const binary = new VersionService(
-        createMockConfigService(mockConfig),
-        '1.0.0',
-        true
-      );
-
-      expect(binary.getUpdateHint()).toBe(
-        'Download the new binary from https://github.com/0pilatos0/bitbucket-cli/releases/latest'
-      );
+      expect(svc.getUpdateHint()).toBe(hint);
     });
   });
 

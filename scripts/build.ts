@@ -65,7 +65,6 @@ const bundle = spawnSync(
     '--target',
     'bun',
     '--minify',
-    '--sourcemap',
     '--external',
     'tabtab/lib/*.js',
   ],

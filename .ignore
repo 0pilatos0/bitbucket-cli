@@ -1,0 +1,7 @@
+# Search ignore for ripgrep, fd and agent search tools (git still tracks these).
+# Bulky generated or historical files that drown out real hits.
+src/generated/docs/
+specs/
+CHANGELOG.md
+coverage/
+docs/dist/

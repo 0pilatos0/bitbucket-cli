@@ -39,6 +39,18 @@ function createMockGitService(options: {
     async getCurrentCommit() {
       return 'abcdef0123456789abcdef0123456789abcdef01';
     },
+    async fastForward() {
+      // Mock implementation
+    },
+    async branchExists() {
+      return false;
+    },
+    async isAncestor() {
+      return true;
+    },
+    async getRemotes() {
+      return [];
+    },
     async getRemoteUrl() {
       if (options.remoteError) {
         throw {
@@ -63,6 +75,9 @@ function createMockConfigService(config: BBConfig = {}): IConfigService {
   return {
     async getConfig() {
       return currentConfig;
+    },
+    async updateConfig(update: (config: BBConfig) => BBConfig) {
+      currentConfig = update(currentConfig);
     },
     async clearConfig() {
       currentConfig = {};

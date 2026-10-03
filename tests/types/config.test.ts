@@ -98,6 +98,11 @@ describe('normalizeReadableConfigValue', () => {
     ).toBe(true);
   });
 
+  it('accepts only known gitProtocol values', () => {
+    expect(normalizeReadableConfigValue('gitProtocol', 'https')).toBe('https');
+    expect(normalizeReadableConfigValue('gitProtocol', 'ftp')).toBeUndefined();
+  });
+
   it('returns string values for username and defaultWorkspace', () => {
     expect(normalizeReadableConfigValue('username', 'paul')).toBe('paul');
     expect(normalizeReadableConfigValue('defaultWorkspace', 'acme')).toBe(
@@ -159,6 +164,14 @@ describe('parseSettableConfigValue extended cases', () => {
     expect(() =>
       parseSettableConfigValue('prCreateIncludeDefaultReviewers', 'yes')
     ).toThrow("Invalid value for 'prCreateIncludeDefaultReviewers'");
+  });
+
+  it('parses gitProtocol as ssh or https', () => {
+    expect(parseSettableConfigValue('gitProtocol', 'ssh')).toBe('ssh');
+    expect(parseSettableConfigValue('gitProtocol', 'https')).toBe('https');
+    expect(() => parseSettableConfigValue('gitProtocol', 'git')).toThrow(
+      "Invalid value for 'gitProtocol'. Expected 'ssh' or 'https'."
+    );
   });
 
   it('throws BBError with VALIDATION_INVALID and context for invalid input', () => {

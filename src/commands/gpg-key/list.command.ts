@@ -49,10 +49,13 @@ export class ListGpgKeysCommand extends BaseCommand<ListGpgKeysOptions, void> {
         mapRow: (key) => [
           key.fingerprint ?? '-',
           key.key_id ?? '-',
-          this.truncateText(key.name || '-', 30, context.globalOptions),
-          key.added_on ? this.output.formatDate(key.added_on) : '-',
-          key.expires_on ? this.output.formatDate(key.expires_on) : 'never',
+          key.name || '-',
+          key.added_on ? this.output.formatRelativeDate(key.added_on) : '-',
+          key.expires_on
+            ? this.output.formatRelativeDate(key.expires_on)
+            : 'never',
         ],
+        flexColumns: [2],
         noun: 'GPG keys',
       },
       context

@@ -48,13 +48,19 @@
 
 ## Install
 
-**Standalone binary** (no runtime needed). Every [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) since v2.2.0 ships `bb` for Linux, macOS and Windows, with a `SHA256SUMS` file and build provenance attestations:
+**Standalone binary** (no runtime needed). Every [GitHub Release](https://github.com/0pilatos0/bitbucket-cli/releases) since v2.2.0 ships `bb` for Linux, macOS and Windows, with a `SHA256SUMS` file and build provenance attestations. The install script picks your platform and verifies the checksum:
 
 ```bash
-# macOS Apple silicon; see the installation guide for other platforms and checksum verification
-curl -fsSL -o bb https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/bb-darwin-arm64
-chmod +x bb && sudo mv bb /usr/local/bin/bb
+# Linux and macOS
+curl -fsSL https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/install.sh | sh
 ```
+
+```powershell
+# Windows
+irm https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/install.ps1 | iex
+```
+
+See the [installation guide](https://bitbucket-cli.paulvanderlei.com/getting-started/installation/) for options, archives and manual downloads.
 
 **npm package**, which runs on [Bun](https://bun.sh) 1.1.30 or newer (not Node.js):
 
