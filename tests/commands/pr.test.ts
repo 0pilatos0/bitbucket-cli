@@ -45,8 +45,11 @@ import type {
   Commitstatus,
   PaginatedCommitstatuses,
   UsersApi,
+  WorkspacesApi,
+  Account,
 } from '../../src/generated/api.js';
 import type { AxiosResponse } from 'axios';
+import { UserResolverService } from '../../src/services/user-resolver.service.js';
 
 // Mock data for diffstat
 const mockDiffStat = {
@@ -622,6 +625,58 @@ function createMockCommitStatusesApi(
   return mockApi as unknown as CommitStatusesApi;
 }
 
+/**
+ * Resolves `@me` through the mocked `GET /user` and everything else through
+ * `GET /users/{id}`; the name/email rules are covered in
+ * user-resolver.service.test.ts and by createMembersResolver below.
+ */
+function createUserResolverStub(usersApi: UsersApi): UserResolverService {
+  return {
+    async resolve(_workspace: string, user: string) {
+      const { data } =
+        user === '@me'
+          ? await usersApi.userGet()
+          : await usersApi.usersSelectedUserGet({ selectedUser: user });
+      return { uuid: data.uuid!, displayName: data.display_name };
+    },
+  } as unknown as UserResolverService;
+}
+
+/** A real resolver whose workspace member list is `members`. */
+function createMembersResolver(
+  usersApi: UsersApi,
+  members: Account[]
+): { resolver: UserResolverService; workspaces: string[] } {
+  const workspaces: string[] = [];
+  const workspacesApi = {
+    async workspacesWorkspaceMembersGet(request: { workspace: string }) {
+      workspaces.push(request.workspace);
+      return createAxiosResponse({
+        values: members.map((user) => ({ type: 'workspace_membership', user })),
+      });
+    },
+  } as unknown as WorkspacesApi;
+  return {
+    resolver: new UserResolverService(usersApi, workspacesApi),
+    workspaces,
+  };
+}
+
+const JOHN_PARK_A = {
+  type: 'user',
+  uuid: '{john-a}',
+  account_id: '712020:john-a',
+  display_name: 'John Park',
+  nickname: 'jpark',
+} as Account;
+const JOHN_PARK_B = {
+  type: 'user',
+  uuid: '{john-b}',
+  account_id: '712020:john-b',
+  display_name: 'John Park',
+  nickname: 'johnp',
+} as Account;
+
 function createMockUsersApi(
   options: { uuid?: string; throwOnGetUser?: boolean } = {}
 ): UsersApi {
@@ -795,7 +850,25 @@ describe('ListPRsCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should truncate long titles by default', async () => {
+  it('should show when each pull request was last updated', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [{ ...mockPullRequest, id: 1 }],
+    });
+    const output = createMockOutputService();
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      createMockUsersApi({ uuid: '{user-uuid}' }),
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(output.logs).toContain('table:ID,TITLE,AUTHOR,BRANCHES,UPDATED');
+    expect(getTableRows(output.logs)[0]?.[4]).toBe(mockPullRequest.updated_on);
+  });
+
+  it('should pass long titles whole so the table can fit them', async () => {
     const longTitle = 'A'.repeat(80);
     const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -813,29 +886,6 @@ describe('ListPRsCommand', () => {
       output
     );
     await command.execute({}, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[1]).toBe('A'.repeat(47) + '...');
-  });
-
-  it('should show full titles when noTruncate is set', async () => {
-    const longTitle = 'A'.repeat(80);
-    const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
-    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-
-    const command = new ListPRsCommand(
-      pullrequestsApi,
-      usersApi,
-      contextService,
-      output
-    );
-    await command.execute({}, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[1]).toBe(longTitle);
@@ -1381,7 +1431,7 @@ describe('ActivityPRCommand', () => {
     ).rejects.toThrow(/--id must be a positive integer/);
   });
 
-  it('should truncate long comment activity by default', async () => {
+  it('should pass long comment activity whole so the table can fit it', async () => {
     const longContent = 'D'.repeat(120);
     const pullrequestsApi = createMockPullrequestsApi({
       activityPages: [
@@ -1409,39 +1459,6 @@ describe('ActivityPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[3]).toBe('#99 ' + 'D'.repeat(77) + '...');
-  });
-
-  it('should show full comment activity when noTruncate is set', async () => {
-    const longContent = 'D'.repeat(120);
-    const pullrequestsApi = createMockPullrequestsApi({
-      activityPages: [
-        [
-          {
-            comment: {
-              id: 99,
-              content: { raw: longContent },
-              user: mockUser,
-              created_on: '2024-01-01T00:00:00.000Z',
-            },
-          },
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ActivityPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[3]).toBe('#99 ' + longContent);
@@ -1610,7 +1627,7 @@ describe('ListCommentsPRCommand', () => {
     expect(rows).toHaveLength(2);
   });
 
-  it('should truncate long comment content by default', async () => {
+  it('should pass long comment content whole so the table can fit it', async () => {
     const longContent = 'B'.repeat(120);
     const comments: PullrequestComment[] = [
       {
@@ -1635,36 +1652,6 @@ describe('ListCommentsPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('B'.repeat(57) + '...');
-  });
-
-  it('should show full comment content when noTruncate is set', async () => {
-    const longContent = 'B'.repeat(120);
-    const comments: PullrequestComment[] = [
-      {
-        id: 1,
-        type: 'pullrequest_comment',
-        content: { raw: longContent },
-        user: mockUser,
-        created_on: '2024-01-01T00:00:00.000Z',
-        deleted: false,
-      } as PullrequestComment,
-    ];
-    const pullrequestsApi = createMockPullrequestsApi({ comments });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ListCommentsPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longContent);
@@ -2000,7 +1987,7 @@ describe('ChecksPRCommand', () => {
     ).toBe(true);
   });
 
-  it('should truncate long check descriptions by default', async () => {
+  it('should pass long check descriptions whole so the table can fit them', async () => {
     const longDescription = 'C'.repeat(80);
     const commitStatusesApi = createMockCommitStatusesApi({
       statuses: [
@@ -2026,37 +2013,6 @@ describe('ChecksPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('C'.repeat(37) + '...');
-  });
-
-  it('should show full check descriptions when noTruncate is set', async () => {
-    const longDescription = 'C'.repeat(80);
-    const commitStatusesApi = createMockCommitStatusesApi({
-      statuses: [
-        {
-          type: 'commit_status',
-          key: 'build',
-          name: 'Build',
-          state: 'SUCCESSFUL',
-          description: longDescription,
-          updated_on: '2024-01-01T00:00:00.000Z',
-        },
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ChecksPRCommand(
-      commitStatusesApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longDescription);
@@ -2097,12 +2053,15 @@ interface CreatePRHarnessOptions {
   config?: Parameters<typeof createMockConfigService>[0];
   capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
   createPRThrows?: boolean;
+  /** Resolve `--reviewer` names against these workspace members. */
+  members?: Account[];
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
   command: CreatePRCommand;
   output: ReturnType<typeof createMockOutputService>;
   captured: { body?: import('../../src/generated/api.js').Pullrequest };
+  memberWorkspaces: string[];
 } {
   const captured: {
     body?: import('../../src/generated/api.js').Pullrequest;
@@ -2179,9 +2138,13 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
 
   const output = createMockOutputService();
 
+  const membersResolver = options.members
+    ? createMembersResolver(usersApi, options.members)
+    : undefined;
+
   const command = new CreatePRCommand(
     pullrequestsApi,
-    usersApi,
+    membersResolver?.resolver ?? createUserResolverStub(usersApi),
     contextService,
     gitService,
     defaultReviewerService,
@@ -2189,7 +2152,12 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     output
   );
 
-  return { command, output, captured };
+  return {
+    command,
+    output,
+    captured,
+    memberWorkspaces: membersResolver?.workspaces ?? [],
+  };
 }
 
 describe('CreatePRCommand', () => {
@@ -2423,6 +2391,33 @@ describe('CreatePRCommand', () => {
       )
     ).toBe(true);
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+  });
+
+  it('should resolve --reviewer names in the repo workspace and drop @me as the author', async () => {
+    const { command, captured, memberWorkspaces } = buildCreatePRCommand({
+      members: [JOHN_PARK_A, JOHN_PARK_B],
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute(
+      { title: 'My PR', reviewer: ['jpark', '@me'] },
+      { globalOptions: {} }
+    );
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    expect(uuids).toEqual(['{john-a}']);
+    expect(memberWorkspaces).toEqual(['workspace']);
+  });
+
+  it('should not create the PR when a --reviewer name is ambiguous', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      members: [JOHN_PARK_A, JOHN_PARK_B],
+    });
+    await expect(
+      command.execute(
+        { title: 'My PR', reviewer: ['John Park'] },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow("'John Park' matches 2 members");
+    expect(captured.body).toBeUndefined();
   });
 
   it('should run a spinner for the duration of the API call', async () => {
@@ -4975,7 +4970,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -4986,7 +4981,7 @@ describe('AddReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Added newuser as reviewer to pull request #42')
+        log.includes('Added Test User as reviewer to pull request #42')
       )
     ).toBe(true);
   });
@@ -5011,7 +5006,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5022,7 +5017,7 @@ describe('AddReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Added newuser as reviewer to pull request #42')
+        log.includes('Added Test User as reviewer to pull request #42')
       )
     ).toBe(true);
   });
@@ -5047,7 +5042,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5057,7 +5052,7 @@ describe('AddReviewerPRCommand', () => {
     );
 
     expect(
-      output.logs.some((log) => log.includes('Added sameuser as reviewer'))
+      output.logs.some((log) => log.includes('Added Test User as reviewer'))
     ).toBe(true);
   });
 
@@ -5079,7 +5074,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5109,7 +5104,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5117,6 +5112,38 @@ describe('AddReviewerPRCommand', () => {
     await expect(
       command.execute({ id: '42', username: 'unknown' }, { globalOptions: {} })
     ).rejects.toThrow('User not found');
+  });
+});
+
+describe('AddReviewerPRCommand name resolution', () => {
+  it('should leave the PR untouched when the name is ambiguous', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    let putCalled = false;
+    pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut =
+      async () => {
+        putCalled = true;
+        throw new Error('unexpected PUT');
+      };
+    const { resolver, workspaces } = createMembersResolver(
+      createMockUsersApi(),
+      [JOHN_PARK_A, JOHN_PARK_B]
+    );
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      resolver,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockOutputService()
+    );
+
+    const error = await command
+      .execute({ id: '42', username: 'John Park' }, { globalOptions: {} })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect((error as BBError).message).toContain('712020:john-a');
+    expect(workspaces).toEqual(['workspace']);
+    expect(putCalled).toBe(false);
   });
 });
 
@@ -5146,7 +5173,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5157,7 +5184,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed removeuser as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -5182,7 +5209,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5193,7 +5220,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed onlyuser as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -5218,7 +5245,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5229,7 +5256,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed ghost as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -5254,7 +5281,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -5284,7 +5311,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );

@@ -15,12 +15,31 @@ This page covers reviewers on **existing** pull requests. To manage the reposito
 
 ## Identifying users
 
-Bitbucket Cloud no longer accepts the legacy `username` (login name) when modifying reviewers. The `<user>` positional accepts either:
+The `<user>` positional (and `bb pr create --reviewer`) accepts any of these:
 
-- An **account ID**, e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`
-- A **UUID** wrapped in braces, e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`
+| Form                          | Example                                       | How it is resolved                                    |
+| ----------------------------- | --------------------------------------------- | ----------------------------------------------------- |
+| `@me`                         | `@me`                                         | The authenticated account (`GET /user`)               |
+| Account ID                    | `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f` | Looked up directly                                    |
+| UUID in braces                | `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`      | Looked up directly                                    |
+| Email                         | `jane@example.com`                            | Workspace members filtered by email (admins only)     |
+| Nickname or display name      | `jdoe`, `"Jane Doe"`                          | Exact, case-insensitive match on workspace members    |
 
-Both forms come back from `bb pr reviewers list --json`, as the `account_id` and `uuid` fields:
+Names are matched against the members of the PR's workspace. A nickname match wins over a display name match. The member list is fetched once per command run (one request per 50 members) and reused for every name you pass. An email asks Bitbucket for that member directly and only counts if the member Bitbucket returns has that email.
+
+- **No match** fails with `No member of workspace '<ws>' has the nickname or display name '<name>'` (error code 2002).
+- **Several matches** (two people called "John Park") fail with error code 5002 and list every candidate with its account ID, so you can rerun with the ID:
+
+  ```text
+  'John Park' matches 2 members of workspace 'myworkspace':
+    John Park  nickname: jpark  712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f
+    John Park  nickname: johnp  712020:9a1b2c3d-0ed6-49fc-bb35-410a00ccee6f
+  Pass one of the account IDs above instead.
+  ```
+
+- **Email** lookups only work when Bitbucket lets you filter members by email, which it allows for workspace admins and workspace or integration tokens. Bitbucket never returns email addresses, so for everyone else an email simply finds no match; use a name or ID instead.
+
+Account IDs and UUIDs also come back from `bb pr reviewers list --json`, as the `account_id` and `uuid` fields, which is the most reliable form for scripts:
 
 ```bash
 # One object per reviewer: [{"account_id": "712020:3cfed..."}, …]
@@ -45,7 +64,7 @@ See [`bb pr create`](/commands/pr/create-and-edit/#bb-pr-create) for matching `-
 | `add <id> <user>`    | Add a reviewer to a pull request      |
 | `remove <id> <user>` | Remove a reviewer from a pull request |
 
-None of the three take command-specific options, only the global ones. `<id>` is the pull request ID; `<user>` is an account ID or a braced UUID.
+None of the three take command-specific options, only the global ones. `<id>` is the pull request ID; `<user>` is any of the [forms above](#identifying-users).
 
 ---
 
@@ -87,13 +106,20 @@ Human output is a two-column table of display name and account ID. If the pull r
 
 ## `bb pr reviewers add`
 
-Add a reviewer using an [account ID or UUID](#identifying-users).
+Add a reviewer by [nickname, display name, email, `@me`, account ID or UUID](#identifying-users).
 
 ```bash
 bb pr reviewers add <id> <user>
 ```
 
 ```bash
+# By nickname or display name
+bb pr reviewers add 42 jdoe
+bb pr reviewers add 42 "Jane Doe"
+
+# Yourself
+bb pr reviewers add 42 @me
+
 # By account ID
 bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
 
@@ -107,13 +133,16 @@ Adding someone who is already a reviewer succeeds and changes nothing.
 
 ## `bb pr reviewers remove`
 
-Remove a reviewer by account ID or UUID. Same `<user>` rules as `add`.
+Remove a reviewer. Same `<user>` rules as `add`.
 
 ```bash
 bb pr reviewers remove <id> <user>
 ```
 
 ```bash
+# By nickname
+bb pr reviewers remove 42 jdoe
+
 # By account ID
 bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
 
@@ -141,4 +170,4 @@ Both commands emit the same envelope. `reviewer.username` echoes the `<user>` va
 
 ## When the user lookup fails
 
-Both commands resolve `<user>` through Bitbucket's user endpoint before touching the pull request. A bad account ID or UUID fails there with a 404, carrying whatever message Bitbucket returns. The CLI appends its generic 404 hint, which mentions `--workspace` and `--repo`, but for these two commands the wrong value is almost always the `<user>` argument, not the repository.
+Both commands resolve `<user>` before touching the pull request, so a failed lookup never changes the reviewer list. Names and emails fail with the messages described under [Identifying users](#identifying-users). A bad account ID or UUID fails at Bitbucket's user endpoint with a 404, carrying whatever message Bitbucket returns. The CLI appends its generic 404 hint, which mentions `--workspace` and `--repo`, but for these two commands the wrong value is almost always the `<user>` argument, not the repository.

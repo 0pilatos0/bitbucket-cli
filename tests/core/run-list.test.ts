@@ -250,7 +250,7 @@ describe('BaseCommand.runList', () => {
       );
 
       expect(output.logs).toContain(
-        'text:Showing 1 items. Use --limit <n> or --all to see more.'
+        'stderr:Showing 1 items. Use --limit <n> or --all to see more.'
       );
     });
 

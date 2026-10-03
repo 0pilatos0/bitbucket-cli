@@ -33,6 +33,7 @@ export class LogsPipelineCommand extends BaseCommand<
 > {
   public readonly name = 'logs';
   public readonly description = 'Print the log of a pipeline step';
+  protected override readonly usesPager = true;
 
   constructor(
     private readonly pipelinesApi: PipelinesApi,

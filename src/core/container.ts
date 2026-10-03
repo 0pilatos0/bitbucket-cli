@@ -177,6 +177,9 @@ export const ServiceTokens = {
   // Services - Default Reviewers
   DefaultReviewerService: 'DefaultReviewerService',
 
+  // Services - User reference resolution (@me, IDs, names, emails)
+  UserResolverService: 'UserResolverService',
+
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: 'UrlBuilderService',
 

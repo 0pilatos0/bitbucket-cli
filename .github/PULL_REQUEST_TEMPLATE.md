@@ -28,9 +28,7 @@ For setup, conventions, and the changeset workflow see CONTRIBUTING.md and AGENT
 
 <!-- How did you verify this works? Include commands run and any relevant output. -->
 
-- [ ] `bun test` passes
-- [ ] `bun run lint` passes
-- [ ] `bun run format:check` passes
+- [ ] `bun run check` passes (lint, lint:docs, format:check, tests)
 - [ ] Manually exercised the affected command(s)
 
 ## Changeset
@@ -42,10 +40,7 @@ For setup, conventions, and the changeset workflow see CONTRIBUTING.md and AGENT
 
 ## Checklist
 
-- [ ] Branch is named `feat/...` or `fix/...`
-- [ ] No edits to `src/generated/` (regenerated via `bun run generate:api` if needed)
-- [ ] Output uses `IOutputService` (no `console.*`)
-- [ ] Expected failures use `BBError` / `ErrorCode`
+- [ ] Follows [AGENTS.md](https://github.com/0pilatos0/bitbucket-cli/blob/main/AGENTS.md) (no hand edits to `src/generated/`, output via `IOutputService`, errors via `BBError`)
 - [ ] Docs updated if user-facing behavior changed
 
 ## Screenshots / output
