@@ -8,10 +8,10 @@ import { Aside } from '@astrojs/starlight/components';
 All commands support the global `--json` flag, with optional field selection
 and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting).
 
-With debug tracing off, `--json` writes command data to stdout and command
-errors to stderr. Update banners and retry notices are suppressed. HTTP debug
-traces share stdout, even with `--json`; leave `BB_DEBUG` and `DEBUG` unset
-when capturing JSON. Parser errors such as unknown flags can still be plain text.
+`--json` writes command data to stdout and command errors to stderr. Update
+banners and retry notices are suppressed. HTTP debug traces from `BB_DEBUG`
+also go to stderr, so stdout stays parseable with tracing on. Parser errors
+such as unknown flags can still be plain text.
 
 JSON is pretty-printed with two-space indentation when stdout is a terminal,
 and compact (one line, no indentation) when stdout is a pipe or a file. The
@@ -485,11 +485,12 @@ Some action commands include the full resource in the response:
 Two action-style commands do **not** emit `success`; branch on their own key
 instead:
 
-- `auth login` → `{ "authenticated": true, "method": "oauth" | "api_token", "user": {...} }`
+- `auth login` → `{ "authenticated": true, "method": "oauth" | "api_token", "account": "...", "user": {...} }`
 - `pipeline stop` → `{ "workspace": "...", "repoSlug": "...", "pipelineId": "...", "stopped": true }`
 
-(`auth logout` does emit `success`: `{ "authenticated": false, "success": true }`,
-plus `"revokeFailed": true` when the OAuth token could not be revoked.)
+(`auth logout` does emit `success`: `{ "authenticated": false, "success": true, "account": "..." }`,
+plus `"switchedTo"` when another saved account became active and
+`"revokeFailed": true` when the OAuth token could not be revoked.)
 
 ---
 
@@ -581,6 +582,8 @@ These commands have unique output shapes:
 ```json
 {
   "authenticated": true,
+  "account": "default",
+  "accounts": ["default"],
   "method": "oauth",
   "user": {
     "username": "myuser",
@@ -593,10 +596,11 @@ These commands have unique output shapes:
 ```
 
 `tokenExpiresAt` (a Unix timestamp in seconds) is present only for OAuth
-credentials. When no credentials are stored the whole payload is:
+credentials. `account` is the account in use and `accounts` lists every saved
+account. When the current account has no credentials the payload is:
 
 ```json
-{ "authenticated": false }
+{ "authenticated": false, "account": "default", "accounts": [] }
 ```
 
 `method` is `"api_token"` or `"oauth"`, the same values `auth login --json`

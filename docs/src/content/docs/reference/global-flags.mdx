@@ -22,6 +22,7 @@ prints. `--limit` and `--all` look global but are not; see
 | `--locale <locale>`           | BCP-47       | system                    | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`.                     |
 | `-w, --workspace <workspace>` | string       | git remote / env / config | Override the workspace.                                                                                                                               |
 | `-r, --repo <repo>`           | string       | git remote                | Override the repository.                                                                                                                              |
+| `--account <name>`            | string       | active account            | Use this saved account. Also honoured: `BB_ACCOUNT`.                                                                                                  |
 | `-h, --help`                  | boolean      | n/a                       | Print help for the command.                                                                                                                           |
 | `-V, --version`               | boolean      | n/a                       | Print the CLI version.                                                                                                                                |
 
@@ -265,6 +266,22 @@ The full order is in
 [Environment Variables](/reference/environment-variables/#resolution-order),
 with worked examples in
 [Understanding Repository Context](/guides/repository-context/).
+
+## Account flag
+
+### `--account <name>`
+
+Run one command as another saved account without changing the active one:
+
+```bash
+bb --account personal pr list
+BB_ACCOUNT=personal bb pr list   # same, for a whole shell or CI job
+```
+
+The flag beats `BB_ACCOUNT`, which beats the account picked with
+`bb auth switch`. On `bb auth login` it names the account to create or
+re-authenticate. See
+[Multiple accounts](/getting-started/authentication/#multiple-accounts).
 
 ## Locale flag
 
