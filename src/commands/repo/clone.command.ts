@@ -5,14 +5,22 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
+  IConfigService,
   IGitService,
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
+import {
+  buildCloneUrl,
+  getConfiguredProtocol,
+} from '../../services/clone-url.js';
+import { GIT_PROTOCOLS } from '../../types/config.js';
+import type { GitProtocol } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface CloneOptions {
   directory?: string;
+  protocol?: string;
 }
 
 export class CloneCommand extends BaseCommand<
@@ -25,6 +33,7 @@ export class CloneCommand extends BaseCommand<
   constructor(
     private readonly gitService: IGitService,
     private readonly contextService: IContextService,
+    private readonly configService: IConfigService,
     output: IOutputService
   ) {
     super(output);
@@ -36,13 +45,9 @@ export class CloneCommand extends BaseCommand<
   ): Promise<void> {
     const { repository, directory } = options;
 
-    const repoUrl = await this.resolveRepositoryUrl(repository);
-    const spinner = this.output.spinner(`Cloning ${repository}...`).start();
-    try {
-      await this.gitService.clone(repoUrl, directory);
-    } finally {
-      spinner.stop();
-    }
+    const protocol = await this.resolveProtocol(options.protocol);
+    const repoUrl = await this.resolveRepositoryUrl(repository, protocol);
+    await this.gitService.clone(repoUrl, directory);
 
     const targetDir = directory || this.extractRepoName(repository);
 
@@ -59,7 +64,17 @@ export class CloneCommand extends BaseCommand<
     this.output.success(`Cloned ${repository} into ${targetDir}`);
   }
 
-  private async resolveRepositoryUrl(repository: string): Promise<string> {
+  private async resolveProtocol(flag?: string): Promise<GitProtocol> {
+    if (flag !== undefined) {
+      return this.parseEnumOption(flag, 'protocol', GIT_PROTOCOLS);
+    }
+    return getConfiguredProtocol(await this.configService.getConfig());
+  }
+
+  private async resolveRepositoryUrl(
+    repository: string,
+    protocol: GitProtocol
+  ): Promise<string> {
     if (repository.includes('://') || repository.startsWith('git@')) {
       return repository;
     }
@@ -83,7 +98,7 @@ export class CloneCommand extends BaseCommand<
       });
     }
 
-    return `git@bitbucket.org:${workspace}/${repoSlug}.git`;
+    return buildCloneUrl(`${workspace}/${repoSlug}`, protocol);
   }
 
   private extractRepoName(repository: string): string {

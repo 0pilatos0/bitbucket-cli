@@ -26,15 +26,16 @@ const isCompleting =
   process.argv.includes('--get-yargs-completions');
 
 if (!isCompleting) {
-  const { expandAliasArgv, loadAliases } = await import('./alias.js');
+  const { expandAliasArgv, loadAliases, shellAliasArgv } =
+    await import('./alias.js');
   try {
     const expansion = expandAliasArgv(process.argv, await loadAliases());
     if (expansion.kind === 'shell') {
-      // `!`-prefixed alias: hand the body to sh with the remaining argv as
-      // shell positional parameters ($0 is the conventional command label),
-      // then exit with the child's status — Commander never runs.
+      // `!`-prefixed alias: hand the body to a shell with the remaining argv
+      // as its arguments, then exit with the child's status — Commander
+      // never runs.
       const result = Bun.spawnSync(
-        ['sh', '-c', expansion.command, 'bb-alias', ...expansion.args],
+        shellAliasArgv(expansion.command, expansion.args),
         { stdio: ['inherit', 'inherit', 'inherit'] }
       );
       process.exit(result.exitCode);

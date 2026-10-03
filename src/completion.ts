@@ -171,3 +171,32 @@ export function generateCompletions(
   }
   return [...byName.values()];
 }
+
+/**
+ * Formats candidates the way each completion script parses them, matching
+ * tabtab.log(): zsh `name:description` (colons in the name escaped), fish and
+ * PowerShell `name<TAB>description`, bash bare names starting with the word
+ * being completed. Other shells get bare names. One candidate per line.
+ */
+export function formatCompletions(
+  items: CompletionItem[],
+  shell: string,
+  lastWord: string
+): string {
+  const lines = items.map(({ name, description }) => {
+    if (!description) {
+      return name;
+    }
+    if (shell === 'zsh') {
+      return `${name.replace(/:/g, '\\:')}:${description}`;
+    }
+    if (shell === 'fish' || shell === 'powershell') {
+      return `${name}\t${description}`;
+    }
+    return name;
+  });
+  return lines
+    .filter((line) => shell !== 'bash' || line.startsWith(lastWord))
+    .map((line) => `${line}\n`)
+    .join('');
+}

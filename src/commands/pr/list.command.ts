@@ -89,7 +89,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
           },
         },
         emptyMessage: `No ${state.toLowerCase()} pull requests found`,
-        tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES'],
+        tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES', 'UPDATED'],
         mapRow: (pr: Pullrequest) => {
           const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
           const source = pr.source as
@@ -98,11 +98,13 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
             { branch?: { name?: string } } | undefined;
           return [
             `#${pr.id}`,
-            this.truncateText(title ?? '', 50, context.globalOptions),
+            title ?? '',
             pr.author?.display_name ?? 'Unknown',
             `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
+            pr.updated_on ? this.output.formatRelativeDate(pr.updated_on) : '-',
           ];
         },
+        flexColumns: [1, 3],
         noun: 'pull requests',
       },
       context

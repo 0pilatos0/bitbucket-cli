@@ -6,6 +6,9 @@ import { BBError, ErrorCode } from './errors.js';
 
 export type AuthMethod = 'basic' | 'oauth';
 
+export const GIT_PROTOCOLS = ['ssh', 'https'] as const;
+export type GitProtocol = (typeof GIT_PROTOCOLS)[number];
+
 export const CREDENTIAL_STORAGE_VALUES = ['file', 'keychain'] as const;
 export type CredentialStorage = (typeof CREDENTIAL_STORAGE_VALUES)[number];
 
@@ -38,6 +41,7 @@ export interface BBConfig extends Omit<AccountConfig, 'storage'> {
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
   prCreateIncludeDefaultReviewers?: boolean;
+  gitProtocol?: GitProtocol;
   aliases?: Record<string, string>;
 }
 
@@ -67,6 +71,8 @@ export interface GlobalOptions {
   json?: boolean;
   jsonFields?: string[];
   jq?: string;
+  rawOutput?: boolean;
+  lean?: boolean;
   noColor?: boolean;
   noUnicode?: boolean;
   noTruncate?: boolean;
@@ -93,6 +99,7 @@ export const CONFIG_KEYS = [
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
+  'gitProtocol',
   'aliases',
 ] as const;
 export type ConfigKey = (typeof CONFIG_KEYS)[number];
@@ -103,6 +110,7 @@ export const SETTABLE_CONFIG_KEYS = [
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
+  'gitProtocol',
 ] as const;
 export type SettableConfigKey = (typeof SETTABLE_CONFIG_KEYS)[number];
 
@@ -113,6 +121,7 @@ export const READABLE_CONFIG_KEYS = [
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
+  'gitProtocol',
 ] as const;
 export type ReadableConfigKey = (typeof READABLE_CONFIG_KEYS)[number];
 
@@ -217,7 +226,25 @@ export function parseSettableConfigValue<K extends SettableConfigKey>(
       }
       return parsed as BBConfig[K];
     }
+    case 'gitProtocol': {
+      const parsed = coerceGitProtocolValue(value.trim().toLowerCase());
+      if (parsed === undefined) {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message:
+            "Invalid value for 'gitProtocol'. Expected 'ssh' or 'https'.",
+          context: { key, value },
+        });
+      }
+      return parsed as BBConfig[K];
+    }
   }
+}
+
+export function coerceGitProtocolValue(
+  value: unknown
+): GitProtocol | undefined {
+  return GIT_PROTOCOLS.find((protocol) => protocol === value);
 }
 
 export function coerceBooleanConfigValue(value: unknown): boolean | undefined {
@@ -266,6 +293,8 @@ export function normalizeReadableConfigValue(
       return coerceBooleanConfigValue(value);
     case 'versionCheckInterval':
       return coerceVersionCheckIntervalValue(value);
+    case 'gitProtocol':
+      return coerceGitProtocolValue(value);
     case 'credentialStorage':
       return parseCredentialStorage(value);
     case 'username':

@@ -9,6 +9,11 @@
         "generatorName": "typescript-axios",
         "output": "src/generated",
         "inputSpec": "specs/bitbucket-cloud.normalized.json",
+        "globalProperty": {
+          "apiDocs": false,
+          "modelDocs": false
+        },
+        "openapiGeneratorIgnoreList": "git_push.sh",
         "additionalProperties": {
           "supportsES6": true,
           "typescriptThreePlus": true,
