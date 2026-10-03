@@ -217,6 +217,7 @@ exports[`command tree snapshot bb repo clone 1`] = `
   "dispatch": {
     "options": {
       "directory": "directory-value",
+      "protocol": "protocol-value",
       "repository": "repository-value",
     },
     "token": "CloneCommand",
@@ -229,11 +230,17 @@ Clone a Bitbucket repository
 
 Options:
   -d, --directory <dir>  Directory to clone into
+  --protocol <protocol>  Clone over ssh or https (default: gitProtocol config,
+                         else ssh) (choices: "ssh", "https")
   -h, --help             display help for command
 
 Examples:
   $ bb repo clone workspace/repo-name
   $ bb repo clone workspace/repo-name -d my-directory
+  $ bb repo clone workspace/repo-name --protocol https
+
+Valid --protocol values:
+  ssh, https
 
 "
 ,
@@ -2863,7 +2870,7 @@ exports[`command tree snapshot bb api 1`] = `
 {
   "dispatch": {
     "contextOptions": {
-      "allowJqWithoutJson": true,
+      "outputIsJson": true,
     },
     "options": {
       "endpoint": "endpoint-value",
@@ -3093,7 +3100,7 @@ Examples:
   $ bb config get defaultWorkspace
 
 Readable config keys:
-  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 
 "
 ,
@@ -3123,9 +3130,10 @@ Examples:
   $ bb config set skipVersionCheck true
   $ bb config set versionCheckInterval 7
   $ bb config set credentialStorage keychain
+  $ bb config set gitProtocol https
 
 Settable config keys:
-  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false)
+  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false), gitProtocol (ssh/https)
 
 See also:
   Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/

@@ -2,7 +2,7 @@
  * Git service implementation
  */
 
-import type { IGitService } from '../core/interfaces/services.js';
+import type { GitRemote, IGitService } from '../core/interfaces/services.js';
 import { GitError, BBError, ErrorCode } from '../types/errors.js';
 
 export interface GitExecResult {
@@ -12,10 +12,10 @@ export interface GitExecResult {
 }
 
 /**
- * Default timeout for `git` subprocess calls. Network-bound commands like
- * `git clone` or `git fetch` against a slow remote can legitimately take a
- * while, so this default is generous; callers that want a tighter bound can
- * pass `cwd` plus a custom `timeoutMs`.
+ * Timeout for the quick, local `git` calls whose output we capture. Network
+ * commands (clone, fetch) run through `execStreaming()` without a timeout:
+ * their duration scales with repository size and the user sees git's own
+ * progress, so they can interrupt it themselves.
  */
 const DEFAULT_GIT_TIMEOUT_MS = 60_000;
 
@@ -76,6 +76,30 @@ export class GitService implements IGitService {
     }
   }
 
+  /**
+   * Run a long-running git command with its progress and errors shown on the
+   * user's terminal. git's stdout goes to our stderr so `--json` output stays
+   * parseable; stdin is inherited so git can ask for credentials.
+   */
+  private async execStreaming(args: string[]): Promise<void> {
+    const proc = Bun.spawn(['git', ...args], {
+      cwd: this.cwd,
+      env: this.env,
+      stdin: 'inherit',
+      stdout: 2,
+      stderr: 'inherit',
+    });
+    const exitCode = await proc.exited;
+
+    if (exitCode !== 0) {
+      throw new GitError(
+        `git ${args[0]} failed with exit code ${exitCode}; see git's output above`,
+        `git ${args.join(' ')}`,
+        exitCode
+      );
+    }
+  }
+
   private async execOrError(args: string[], cwd?: string): Promise<string> {
     const result = await this.exec(args, cwd);
 
@@ -100,11 +124,11 @@ export class GitService implements IGitService {
     if (destination) {
       args.push(destination);
     }
-    await this.execOrError(args);
+    await this.execStreaming(args);
   }
 
-  public async fetch(remote: string = 'origin'): Promise<void> {
-    await this.execOrError(['fetch', remote]);
+  public async fetch(remote: string, refspecs: string[] = []): Promise<void> {
+    await this.execStreaming(['fetch', remote, ...refspecs]);
   }
 
   public async checkout(branch: string): Promise<void> {
@@ -120,6 +144,45 @@ export class GitService implements IGitService {
       args.push(startPoint);
     }
     await this.execOrError(args);
+  }
+
+  public async fastForward(ref: string): Promise<void> {
+    await this.execOrError(['merge', '--ff-only', ref]);
+  }
+
+  public async branchExists(branch: string): Promise<boolean> {
+    const result = await this.exec([
+      'show-ref',
+      '--verify',
+      '--quiet',
+      `refs/heads/${branch}`,
+    ]);
+    return result.exitCode === 0;
+  }
+
+  public async isAncestor(
+    ancestor: string,
+    descendant: string
+  ): Promise<boolean> {
+    const result = await this.exec([
+      'merge-base',
+      '--is-ancestor',
+      ancestor,
+      descendant,
+    ]);
+    return result.exitCode === 0;
+  }
+
+  public async getRemotes(): Promise<GitRemote[]> {
+    const output = await this.execOrError(['remote', '-v']);
+    const remotes: GitRemote[] = [];
+    for (const line of output.split('\n')) {
+      const match = /^(\S+)\t(.+) \(fetch\)$/.exec(line);
+      if (match) {
+        remotes.push({ name: match[1]!, url: match[2]! });
+      }
+    }
+    return remotes;
   }
 
   public async getCurrentBranch(): Promise<string> {

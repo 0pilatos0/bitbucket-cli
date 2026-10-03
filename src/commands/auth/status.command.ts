@@ -84,7 +84,9 @@ export class StatusCommand extends BaseCommand<void, void> {
           authenticated: true,
           account,
           accounts,
-          method: authMethod,
+          // Same public names as `auth login --json`; the config stores
+          // API-token auth as `basic` after its HTTP scheme.
+          method: authMethod === 'oauth' ? 'oauth' : 'api_token',
           user: {
             username: user.username,
             displayName: user.display_name,

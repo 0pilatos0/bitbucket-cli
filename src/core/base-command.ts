@@ -127,6 +127,8 @@ export abstract class BaseCommand<
       json: !!context.globalOptions.json,
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
+      rawOutput: context.globalOptions.rawOutput,
+      lean: context.globalOptions.lean,
     });
 
     try {

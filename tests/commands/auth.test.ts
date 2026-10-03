@@ -802,6 +802,28 @@ describe('StatusCommand', () => {
     expect(parsed.tokenExpiresAt).toBeDefined();
   });
 
+  it('reports API-token credentials as method api_token in JSON output, like auth login', async () => {
+    const configService = createMockConfigService({
+      authMethod: 'basic',
+      username: 'testuser',
+      apiToken: 'testpass',
+    });
+    const output = createMockOutputService();
+    const usersApi = fakeUsersApi();
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((l) => l.startsWith('json:'));
+    const parsed = JSON.parse(jsonLog!.replace('json:', ''));
+    expect(parsed.method).toBe('api_token');
+  });
+
   it('should show not logged in when json flag is set and no credentials', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
