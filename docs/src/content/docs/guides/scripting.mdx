@@ -34,6 +34,9 @@ bb pr list --json --all
 bb pr list --json --limit 100
 ```
 
+Output of any size reaches a pipe in full, so `bb pr list --json --all | jq`
+works the same as redirecting to a file, even when the reader is slow.
+
 These flags belong to specific commands, not every list operation. Check
 `bb <group> <command> --help` or the
 [list-command flag reference](/reference/global-flags/#list-command-flags).
