@@ -108,12 +108,12 @@ Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option                 | Description                                                                 |
-| ---------------------- | --------------------------------------------------------------------------- |
+| Option                   | Description                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------- |
 | `-F, --body-file <file>` | Read the comment text from a file, or `-` for stdin (instead of `<message>`) |
-| `--file <path>`        | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
-| `--line-to <number>`   | Line number in the new version of the file (requires `--file`)              |
-| `--line-from <number>` | Line number in the old version of the file (requires `--file`)              |
+| `--file <path>`          | File path for an inline comment (requires `--line-to` and/or `--line-from`)  |
+| `--line-to <number>`     | Line number in the new version of the file (requires `--file`)               |
+| `--line-from <number>`   | Line number in the old version of the file (requires `--file`)               |
 
 ### Examples
 
@@ -141,7 +141,6 @@ EOF
 
 - Pass the text as `<message>` or with `-F/--body-file`, not both. Blank text is rejected before anything is sent
 - `-F/--body-file` is the comment text; `--file` is the diff path an inline comment anchors to
-
 - `--file` is required when using `--line-to` or `--line-from`
 - At least one of `--line-to` or `--line-from` is required when using `--file`
 - Line numbers must be positive integers
@@ -230,7 +229,6 @@ EOF
 ### Notes
 
 - Pass the text as `<message>` or with `-F/--body-file`, not both. Blank text is rejected before anything is sent
-
 - Use `bb pr comments list <id>` to find the comment ID to reply to
 - How Bitbucket anchors a reply to an inline comment is decided server-side
 

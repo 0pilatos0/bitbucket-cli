@@ -2101,6 +2101,7 @@ interface CreatePRHarnessOptions {
   capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
   createPRThrows?: boolean;
   stdin?: string;
+  noRepoContext?: boolean;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -2163,10 +2164,9 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     },
   } as unknown as UsersApi;
 
-  const contextService = createMockContextService({
-    workspace: 'workspace',
-    repoSlug: 'repo',
-  });
+  const contextService = options.noRepoContext
+    ? createMockContextService()
+    : createMockContextService({ workspace: 'workspace', repoSlug: 'repo' });
 
   const gitService = createMockGitService({
     currentBranch: options.currentBranch ?? 'feature-branch',
@@ -2265,13 +2265,49 @@ describe('CreatePRCommand', () => {
     });
 
     it('only asks for the title when --body-file is given', async () => {
-      const prompt = createMockPromptService(['Prompted title']);
+      const dir = mkdtempSync(join(tmpdir(), 'bb-pr-create-'));
+      const path = join(dir, 'body.md');
+      writeFileSync(path, markdown);
+      try {
+        const prompt = createMockPromptService(['Prompted title']);
+        const { command, captured } = buildCreatePRCommand();
+
+        await command.execute(
+          { bodyFile: path },
+          { globalOptions: {}, prompt }
+        );
+
+        expect(prompt.calls).toEqual(['text:Title']);
+        expect(captured.body?.description).toBe(markdown);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('requires --title with -F - instead of prompting', async () => {
+      const prompt = createMockPromptService();
       const { command, captured } = buildCreatePRCommand({ stdin: markdown });
 
-      await command.execute({ bodyFile: '-' }, { globalOptions: {}, prompt });
+      const error = await command
+        .execute({ bodyFile: '-' }, { globalOptions: {}, prompt })
+        .catch((e: unknown) => e);
 
-      expect(prompt.calls).toEqual(['text:Title']);
-      expect(captured.body?.description).toBe(markdown);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect(prompt.calls).toEqual([]);
+      expect(captured.body).toBeUndefined();
+    });
+
+    it('rejects --body with --body-file before resolving the repository', async () => {
+      const { command } = buildCreatePRCommand({ noRepoContext: true });
+
+      const error = await command
+        .execute(
+          { title: 'My PR', body: 'inline', bodyFile: 'body.md' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
     });
   });
 
@@ -4843,6 +4879,42 @@ describe('ReplyCommentPRCommand', () => {
       content: { raw: 'Fixed in `abc123`.\n' },
       parent: { id: 7 },
     });
+  });
+
+  it('should post the file content for --body-file <path>', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bb-pr-reply-'));
+    const path = join(dir, 'reply.md');
+    writeFileSync(path, 'Done.\n\n- [x] `retry` capped\n');
+    try {
+      const pullrequestsApi = createMockPullrequestsApi();
+      const { command } = makeCommand(pullrequestsApi);
+
+      await command.execute(
+        { prId: '42', commentId: '7', bodyFile: path },
+        { globalOptions: {} }
+      );
+
+      expect(pullrequestsApi.lastCommentBody?.content).toEqual({
+        raw: 'Done.\n\n- [x] `retry` capped\n',
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('should reject a message together with --body-file', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command } = makeCommand(pullrequestsApi);
+
+    const error = await command
+      .execute(
+        { prId: '42', commentId: '7', message: 'inline', bodyFile: 'x.md' },
+        { globalOptions: {} }
+      )
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(pullrequestsApi.lastCommentBody).toBeUndefined();
   });
 
   it('should post a reply carrying the parent id and show success', async () => {

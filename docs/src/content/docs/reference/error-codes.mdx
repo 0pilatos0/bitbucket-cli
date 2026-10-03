@@ -367,11 +367,11 @@ bb pr list --state open
 The `context` field carries the offending path, so scripts can tell this apart
 from a generic `VALIDATION_INVALID`. The key depends on the command:
 
-| Key        | Set by                                         |
-| ---------- | ---------------------------------------------- |
-| `file`     | `bb snippet create/edit/view`                  |
+| Key        | Set by                                                              |
+| ---------- | ------------------------------------------------------------------- |
+| `file`     | `bb snippet create/edit/view`                                       |
 | `bodyFile` | `--body-file` on `bb pr create/edit` and `bb pr comments add/reply` |
-| `path`     | `bb api -F key=@file`, `bb api --input <file>` |
+| `path`     | `bb api -F key=@file`, `bb api --input <file>`                      |
 
 `bb snippet view --file` also attaches `available`, the list of filenames the
 snippet actually contains.

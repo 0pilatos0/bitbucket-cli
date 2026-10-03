@@ -100,7 +100,8 @@ See [`bb repo default-reviewers`](/commands/repo/default-reviewers/) to inspect 
 ### Notes
 
 - `-F/--body-file` sends the file content exactly as written, so markdown with backticks, quotes or `$` needs no shell escaping
-- Passing both `-b/--body` and `-F/--body-file` fails with `Cannot combine --body with --body-file.`
+- Passing both `-b/--body` and `-F/--body-file` fails with `Cannot combine --body with --body-file. Pass one or the other.`
+- `-F -` reads stdin, so it can't also answer the title prompt: pass `--title` with it
 - An unreadable path fails with `Failed to read file '<path>': <reason>`
 
 ---
