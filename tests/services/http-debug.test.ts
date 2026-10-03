@@ -4,6 +4,7 @@ import {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios';
+import { fileURLToPath } from 'node:url';
 import {
   createHttpDebugLogger,
   isDebugEnabled,
@@ -383,10 +384,9 @@ describe('HTTP debug streams', () => {
   it.each(['off', 'http', 'verbose'] as const)(
     'keeps stdout parseable with debug level %s',
     async (level) => {
-      const modulePath = new URL(
-        '../../src/services/http-debug.ts',
-        import.meta.url
-      ).pathname;
+      const modulePath = fileURLToPath(
+        new URL('../../src/services/http-debug.ts', import.meta.url)
+      );
       const child = Bun.spawn(
         [
           process.execPath,
