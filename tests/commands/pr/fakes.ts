@@ -43,7 +43,6 @@ export interface PullrequestsApiRecorder {
 export function createMockPullrequestsApi(
   options: {
     pullRequests?: Pullrequest[];
-    pullRequestPages?: Pullrequest[][];
     activityPages?: Array<Array<Record<string, unknown>>>;
     comments?: PullrequestComment[];
     commentsPages?: PullrequestComment[][];
@@ -76,9 +75,6 @@ export function createMockPullrequestsApi(
   } = {}
 ): PullrequestsApi & PullrequestsApiRecorder {
   const prs = options.pullRequests ?? [mockPullRequest];
-  const allPullRequests = options.pullRequestPages
-    ? options.pullRequestPages.flat()
-    : prs;
   const defaultActivities: Array<Record<string, unknown>> = [
     {
       comment: {
@@ -112,21 +108,32 @@ export function createMockPullrequestsApi(
       options.onListCall?.(request, axiosOptions);
 
       const { page, pagelen } = extractPaginationParams(axiosOptions);
-      let pageValues: Pullrequest[];
-      let totalSize: number;
-      let hasNext: boolean;
 
-      if (options.pullRequestPages) {
-        pageValues = options.pullRequestPages[page - 1] ?? [];
-        totalSize = options.pullRequestPages.flat().length;
-        hasNext = page < options.pullRequestPages.length;
-      } else {
-        const start = (page - 1) * pagelen;
-        const end = start + pagelen;
-        pageValues = prs.slice(start, end);
-        totalSize = prs.length;
-        hasNext = end < prs.length;
+      const query = (axiosOptions as RawAxiosRequestConfig | undefined)?.params
+        ?.q as string | undefined;
+      const branchLiteral = query?.match(
+        /^source\.branch\.name = (".*")$/
+      )?.[1];
+      if (branchLiteral !== undefined) {
+        const branch = JSON.parse(branchLiteral) as string;
+        const matches = prs.filter(
+          (pr) =>
+            (pr.source as { branch?: { name?: string } } | undefined)?.branch
+              ?.name === branch
+        );
+        return axiosResponse<PaginatedPullrequests>({
+          values: new Set(matches),
+          page: 1,
+          pagelen,
+          size: matches.length,
+        });
       }
+
+      const start = (page - 1) * pagelen;
+      const end = start + pagelen;
+      const pageValues = prs.slice(start, end);
+      const totalSize = prs.length;
+      const hasNext = end < prs.length;
 
       const paginated: PaginatedPullrequests = {
         values: new Set(pageValues),
@@ -147,7 +154,7 @@ export function createMockPullrequestsApi(
       if (options.throwOnGet) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -188,7 +195,7 @@ export function createMockPullrequestsApi(
         throw new Error('API Error');
       }
       mockApi.lastMergeBody = params.body;
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -219,7 +226,7 @@ export function createMockPullrequestsApi(
       if (options.throwOnDecline) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -237,7 +244,7 @@ export function createMockPullrequestsApi(
         throw new Error('API Error');
       }
       mockApi.lastPutBody = params.body;
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -256,7 +263,7 @@ export function createMockPullrequestsApi(
       if (options.throwOnDiff) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -269,7 +276,7 @@ export function createMockPullrequestsApi(
       if (options.throwOnDiffstat) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }

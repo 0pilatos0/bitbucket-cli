@@ -6,6 +6,7 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type {
@@ -18,6 +19,7 @@ import {
 } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface ListCommentsPROptions extends GlobalOptions {
   limit?: string;
@@ -27,7 +29,7 @@ export interface ListCommentsPROptions extends GlobalOptions {
 }
 
 export class ListCommentsPRCommand extends BaseCommand<
-  { id: string } & ListCommentsPROptions,
+  { id?: string } & ListCommentsPROptions,
   void
 > {
   public readonly name = 'comments';
@@ -36,13 +38,14 @@ export class ListCommentsPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & ListCommentsPROptions,
+    options: { id?: string } & ListCommentsPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -50,7 +53,15 @@ export class ListCommentsPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveInt(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     if (options.resolved && options.unresolved) {
       throw new BBError({
