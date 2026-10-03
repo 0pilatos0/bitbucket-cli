@@ -13,6 +13,7 @@ import { registerCommitCommands } from './commit/register.js';
 import { registerCompletionCommands } from './completion/register.js';
 import { registerConfigCommands } from './config/register.js';
 import { registerDeploymentCommands } from './deployment/register.js';
+import { registerDoctorCommand } from './doctor.register.js';
 import { registerGpgKeyCommands } from './gpg-key/register.js';
 import { registerPipelineCommands } from './pipeline/register.js';
 import { registerPrCommands } from './pr/register.js';
@@ -46,6 +47,7 @@ const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
   registerApiCommand,
   registerAliasCommands,
   registerConfigCommands,
+  registerDoctorCommand,
   registerCompletionCommands,
 ];
 

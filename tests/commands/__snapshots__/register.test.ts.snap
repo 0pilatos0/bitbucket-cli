@@ -69,7 +69,8 @@ exports[`command tree snapshot bb auth login 1`] = `
   },
   "help": 
 "
-Interactive: choose OAuth or an API token. Non-interactive default: OAuth.
+Interactive: choose OAuth or an API token. Without a terminal, use an API
+token (BB_API_TOKEN, --with-token, or -u with -p); browser login fails with 1001.
 For CI/CD: API token via --app-password or BB_API_TOKEN env var.
 For headless/secret-safe: pipe the token in with --with-token.
 OAuth needs a loopback browser (http://localhost:19872/callback); there
@@ -501,6 +502,7 @@ exports[`command tree snapshot bb repo create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "name": "name-value",
       "private": true,
       "project": "project-value",
@@ -519,6 +521,7 @@ Options:
   --private                        Create a private repository (default)
   --public                         Create a public repository
   -p, --project <project>          Project key
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Global Options:
@@ -696,6 +699,7 @@ exports[`command tree snapshot bb repo delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "repository": "repository-value",
       "yes": true,
     },
@@ -709,6 +713,7 @@ Delete a repository
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -931,7 +936,7 @@ Global Options:
 
 Commands:
   list [options]               List default reviewers for a repository
-  add <user>                   Add a default reviewer to a repository (accepts
+  add [options] <user>         Add a default reviewer to a repository (accepts
                                account ID or {uuid})
   remove [options] <user>      Remove a default reviewer from a repository
                                (accepts account ID or {uuid})
@@ -1007,6 +1012,7 @@ exports[`command tree snapshot bb repo default-reviewers add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "username": "user-value",
     },
     "token": "AddDefaultReviewerCommand",
@@ -1018,6 +1024,7 @@ exports[`command tree snapshot bb repo default-reviewers add 1`] = `
 Add a default reviewer to a repository (accepts account ID or {uuid})
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1065,6 +1072,7 @@ exports[`command tree snapshot bb repo default-reviewers remove 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "username": "user-value",
       "yes": true,
     },
@@ -1078,6 +1086,7 @@ Remove a default reviewer from a repository (accepts account ID or {uuid})
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1162,7 +1171,7 @@ Global Options:
 
 Commands:
   list [options]               List download artifacts of a repository
-  upload <files...>            Upload files as download artifacts (replaces
+  upload [options] <files...>  Upload files as download artifacts (replaces
                                artifacts with the same name)
   delete [options] <filename>  Delete a download artifact from a repository
   help [command]               display help for command
@@ -1242,6 +1251,7 @@ exports[`command tree snapshot bb repo downloads upload 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "files": [
         "files-value",
       ],
@@ -1255,6 +1265,7 @@ exports[`command tree snapshot bb repo downloads upload 1`] = `
 Upload files as download artifacts (replaces artifacts with the same name)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1302,6 +1313,7 @@ exports[`command tree snapshot bb repo downloads delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "filename": "filename-value",
       "yes": true,
     },
@@ -1315,6 +1327,7 @@ Delete a download artifact from a repository
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1406,9 +1419,9 @@ Commands:
                                request
   edit [options] [id]          Edit a pull request
   merge [options] [id]         Merge a pull request
-  approve [id]                 Approve a pull request
-  decline [id]                 Decline a pull request
-  ready [id]                   Mark a draft pull request as ready for review
+  approve [options] [id]       Approve a pull request
+  decline [options] [id]       Decline a pull request
+  ready [options] [id]         Mark a draft pull request as ready for review
   checkout <id>                Checkout a pull request locally
   diff [options] [id]          View pull request diff
   comments                     Manage pull request comments
@@ -1425,10 +1438,12 @@ exports[`command tree snapshot bb pr create 1`] = `
     "contextOptions": undefined,
     "options": {
       "body": "body-value",
+      "bodyFile": "bodyFile-value",
       "closeSourceBranch": true,
       "defaultReviewers": true,
       "destination": "destination-value",
       "draft": true,
+      "dryRun": true,
       "reviewer": [
         "reviewer-value",
       ],
@@ -1446,8 +1461,9 @@ Create a pull request
 Options:
   -t, --title <title>          Pull request title
   -b, --body <body>            Pull request description
+  -F, --body-file <file>       Read description from file (- for stdin)
   -s, --source <branch>        Source branch (default: current branch)
-  -d, --destination <branch>   Destination branch (default: main)
+  -d, --destination <branch>   Destination branch (default: repo's main branch)
   --close-source-branch        Close source branch after merge
   --draft                      Create the pull request as draft
   --reviewer <user>            Add a reviewer by nickname, display name, email,
@@ -1456,6 +1472,7 @@ Options:
   --default-reviewers          Include the repository's default reviewers
   --no-default-reviewers       Skip the repository's default reviewers even when
                                prCreateIncludeDefaultReviewers is true
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1491,6 +1508,8 @@ Global Options:
 
 Examples:
   $ bb pr create -t "My PR" -b "Description"
+  $ bb pr create -t "My PR" -F description.md
+  $ git log -1 --format=%b | bb pr create -t "My PR" -F -
   $ bb pr create -t "My PR" --draft
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
@@ -1500,7 +1519,7 @@ Examples:
 
 Defaults:
   --source  current git branch
-  --destination  main
+  --destination  repository's main branch
   --default-reviewers  false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)
 
 See also:
@@ -1805,6 +1824,7 @@ exports[`command tree snapshot bb pr edit 1`] = `
     "options": {
       "body": "body-value",
       "bodyFile": "bodyFile-value",
+      "dryRun": true,
       "id": "id-value",
       "title": "title-value",
     },
@@ -1823,7 +1843,9 @@ Arguments:
 Options:
   -t, --title <title>          New pull request title
   -b, --body <body>            New pull request description
-  -F, --body-file <file>       Read description from file
+  -F, --body-file <file>       Read description from file (- for stdin;
+                               overrides --body)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1874,6 +1896,7 @@ exports[`command tree snapshot bb pr merge 1`] = `
     "contextOptions": undefined,
     "options": {
       "closeSourceBranch": true,
+      "dryRun": true,
       "id": "id-value",
       "message": "message-value",
       "strategy": "strategy-value",
@@ -1896,6 +1919,7 @@ Options:
   --strategy <strategy>        Merge strategy (choices: "merge_commit",
                                "squash", "fast_forward", "squash_fast_forward",
                                "rebase_fast_forward", "rebase_merge")
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -1951,6 +1975,7 @@ exports[`command tree snapshot bb pr approve 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "ApprovePRCommand",
@@ -1966,6 +1991,7 @@ Arguments:
                                current branch)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2015,6 +2041,7 @@ exports[`command tree snapshot bb pr decline 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "DeclinePRCommand",
@@ -2030,6 +2057,7 @@ Arguments:
                                current branch)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2079,6 +2107,7 @@ exports[`command tree snapshot bb pr ready 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "ReadyPRCommand",
@@ -2094,6 +2123,7 @@ Arguments:
                                current branch)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2284,32 +2314,32 @@ exports[`command tree snapshot bb pr comments 1`] = `
 Manage pull request comments
 
 Options:
-  -h, --help                             display help for command
+  -h, --help                                      display help for command
 
 Global Options:
-  --json [fields]                        Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
-  --jq <expression>                      Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
-  --raw-output                           With --jq, print string results without JSON quotes (like jq -r)
-  --lean                                 Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
-  --no-color                             Disable color output
-  --no-unicode                           Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
-  --no-truncate                          Show full values in table output without truncation
-  --no-input                             Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)
-  --locale <locale>                      BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>            Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
-  -r, --repo <repo>                      Specify repository
-  --account <name>                       Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
+  --json [fields]                                 Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
+  --jq <expression>                               Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
+  --raw-output                                    With --jq, print string results without JSON quotes (like jq -r)
+  --lean                                          Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
+  --no-color                                      Disable color output
+  --no-unicode                                    Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
+  --no-truncate                                   Show full values in table output without truncation
+  --no-input                                      Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)
+  --locale <locale>                               BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>                     Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
+  -r, --repo <repo>                               Specify repository
+  --account <name>                                Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
 
 Commands:
-  list [options] [id]                    List comments on a pull request
-  add [options] <id> <message>           Add a comment to a pull request
-  edit <pr-id> <comment-id> <message>    Edit a comment on a pull request
-  delete [options] <pr-id> <comment-id>  Delete a comment on a pull request
-  view <pr-id> <comment-id>              View a single comment on a pull request
-  reply <pr-id> <comment-id> <message>   Reply to a comment on a pull request
-  resolve <pr-id> <comment-id>           Resolve a comment thread on a pull request
-  unresolve <pr-id> <comment-id>         Reopen a resolved comment thread on a pull request
-  help [command]                         display help for command
+  list [options] [id]                             List comments on a pull request
+  add [options] <id> [message]                    Add a comment to a pull request
+  edit [options] <pr-id> <comment-id> <message>   Edit a comment on a pull request
+  delete [options] <pr-id> <comment-id>           Delete a comment on a pull request
+  view <pr-id> <comment-id>                       View a single comment on a pull request
+  reply [options] <pr-id> <comment-id> [message]  Reply to a comment on a pull request
+  resolve [options] <pr-id> <comment-id>          Resolve a comment thread on a pull request
+  unresolve [options] <pr-id> <comment-id>        Reopen a resolved comment thread on a pull request
+  help [command]                                  display help for command
 "
 ,
 }
@@ -2397,6 +2427,8 @@ exports[`command tree snapshot bb pr comments add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
+      "dryRun": true,
       "file": "file-value",
       "id": "id-value",
       "lineFrom": "lineFrom-value",
@@ -2407,14 +2439,16 @@ exports[`command tree snapshot bb pr comments add 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments add [options] <id> <message>
+"Usage: bb pr comments add [options] <id> [message]
 
 Add a comment to a pull request
 
 Options:
+  -F, --body-file <file>       Read comment text from file (- for stdin)
   --file <path>                File path in the diff for inline comment
   --line-to <number>           Line number in the new file version
   --line-from <number>         Line number in the old file version
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2451,6 +2485,7 @@ Global Options:
 Examples:
   $ bb pr comments add 42 "LGTM"
   $ bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10
+  $ bb pr comments add 42 -F review.md
 
 "
 ,
@@ -2475,6 +2510,7 @@ exports[`command tree snapshot bb pr comments edit 1`] = `
 Edit a comment on a pull request
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2523,6 +2559,7 @@ exports[`command tree snapshot bb pr comments delete 1`] = `
     "contextOptions": undefined,
     "options": {
       "commentId": "comment-id-value",
+      "dryRun": true,
       "prId": "pr-id-value",
       "yes": true,
     },
@@ -2536,6 +2573,7 @@ Delete a comment on a pull request
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2642,7 +2680,9 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
       "commentId": "comment-id-value",
+      "dryRun": true,
       "message": "message-value",
       "prId": "pr-id-value",
     },
@@ -2650,11 +2690,13 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments reply [options] <pr-id> <comment-id> <message>
+"Usage: bb pr comments reply [options] <pr-id> <comment-id> [message]
 
 Reply to a comment on a pull request
 
 Options:
+  -F, --body-file <file>       Read reply text from file (- for stdin)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2691,6 +2733,7 @@ Global Options:
 Examples:
   $ bb pr comments reply 42 12345 "Good catch, fixed."
   $ bb pr comments reply 42 12345 "Fixed in the latest push" --json
+  $ echo "Fixed, thanks" | bb pr comments reply 42 12345 -F -
 
 "
 ,
@@ -2714,6 +2757,7 @@ exports[`command tree snapshot bb pr comments resolve 1`] = `
 Resolve a comment thread on a pull request
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2773,6 +2817,7 @@ exports[`command tree snapshot bb pr comments unresolve 1`] = `
 Reopen a resolved comment thread on a pull request
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2823,48 +2868,48 @@ exports[`command tree snapshot bb pr reviewers 1`] = `
 Manage pull request reviewers
 
 Options:
-  -h, --help                   display help for command
+  -h, --help                    display help for command
 
 Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
+  --json [fields]               Output as JSON; optionally project to a
+                                comma-separated field list (e.g.
+                                number,title,author.display_name)
+  --jq <expression>             Filter the JSON output through a jq expression —
+                                runs in-process via embedded jq, requires --json
+                                (e.g. '.pullRequests[] | select(.state ==
+                                "OPEN") | .title')
+  --raw-output                  With --jq, print string results without JSON
+                                quotes (like jq -r)
+  --lean                        Trim JSON output: keep only the web URL
+                                (links.html) from each Bitbucket links map;
+                                requires --json
+  --no-color                    Disable color output
+  --no-unicode                  Use ASCII fallbacks for symbols (separators,
+                                arrows, status icons) — also enabled by
+                                BB_NO_UNICODE
+  --no-truncate                 Show full values in table output without
+                                truncation
+  --no-input                    Never prompt, even in an interactive terminal,
+                                except in completion install (also enabled by
+                                BB_PROMPT_DISABLED)
+  --locale <locale>             BCP-47 locale tag for date/time formatting (e.g.
+                                de-DE, ja-JP). Falls back to BB_LOCALE, then
+                                LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>   Specify workspace (falls back to BB_WORKSPACE,
+                                then config defaultWorkspace)
+  -r, --repo <repo>             Specify repository
+  --account <name>              Use this saved account for one command (also
+                                BB_ACCOUNT; see bb auth switch)
 
 Commands:
-  list <id>                    List reviewers on a pull request
-  add <id> <user>              Add a reviewer to a pull request (user is a
-                               nickname, display name, email, @me, account ID or
-                               {uuid})
-  remove <id> <user>           Remove a reviewer from a pull request (user is a
-                               nickname, display name, email, @me, account ID or
-                               {uuid})
-  help [command]               display help for command
+  list <id>                     List reviewers on a pull request
+  add [options] <id> <user>     Add a reviewer to a pull request (user is a
+                                nickname, display name, email, @me, account ID
+                                or {uuid})
+  remove [options] <id> <user>  Remove a reviewer from a pull request (user is a
+                                nickname, display name, email, @me, account ID
+                                or {uuid})
+  help [command]                display help for command
 "
 ,
 }
@@ -2933,6 +2978,7 @@ exports[`command tree snapshot bb pr reviewers add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "username": "user-value",
     },
@@ -2946,6 +2992,7 @@ Add a reviewer to a pull request (user is a nickname, display name, email, @me,
 account ID or {uuid})
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -2996,6 +3043,7 @@ exports[`command tree snapshot bb pr reviewers remove 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "username": "user-value",
     },
@@ -3009,6 +3057,7 @@ Remove a reviewer from a pull request (user is a nickname, display name, email,
 @me, account ID or {uuid})
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3099,8 +3148,8 @@ Commands:
   create [options]             Create a new snippet
   edit [options] <id>          Edit a snippet
   delete [options] <id>        Delete a snippet
-  watch <id>                   Watch a snippet
-  unwatch <id>                 Stop watching a snippet
+  watch [options] <id>         Watch a snippet
+  unwatch [options] <id>       Stop watching a snippet
   comments                     Manage snippet comments
   help [command]               display help for command
 "
@@ -3250,6 +3299,7 @@ exports[`command tree snapshot bb snippet create 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "file": [
         "file-value",
       ],
@@ -3271,6 +3321,7 @@ Options:
                                or repeat the flag)
   --private                    Create a private snippet (default)
   --public                     Create a public snippet
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3321,6 +3372,7 @@ exports[`command tree snapshot bb snippet edit 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "file": [
         "file-value",
       ],
@@ -3343,6 +3395,7 @@ Options:
   --public                     Make snippet public
   -f, --file <path...>         Replace/add file(s) (variadic; pass multiple
                                paths or repeat the flag; sends multipart update)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3391,6 +3444,7 @@ exports[`command tree snapshot bb snippet delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "yes": true,
     },
@@ -3404,6 +3458,7 @@ Delete a snippet
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3451,6 +3506,7 @@ exports[`command tree snapshot bb snippet watch 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "WatchSnippetCommand",
@@ -3462,6 +3518,7 @@ exports[`command tree snapshot bb snippet watch 1`] = `
 Watch a snippet
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3509,6 +3566,7 @@ exports[`command tree snapshot bb snippet unwatch 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "UnwatchSnippetCommand",
@@ -3520,6 +3578,7 @@ exports[`command tree snapshot bb snippet unwatch 1`] = `
 Stop watching a snippet
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3570,28 +3629,28 @@ exports[`command tree snapshot bb snippet comments 1`] = `
 Manage snippet comments
 
 Options:
-  -h, --help                                  display help for command
+  -h, --help                                          display help for command
 
 Global Options:
-  --json [fields]                             Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
-  --jq <expression>                           Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
-  --raw-output                                With --jq, print string results without JSON quotes (like jq -r)
-  --lean                                      Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
-  --no-color                                  Disable color output
-  --no-unicode                                Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
-  --no-truncate                               Show full values in table output without truncation
-  --no-input                                  Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)
-  --locale <locale>                           BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>                 Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
-  -r, --repo <repo>                           Specify repository
-  --account <name>                            Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
+  --json [fields]                                     Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)
+  --jq <expression>                                   Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. '.pullRequests[] | select(.state == "OPEN") | .title')
+  --raw-output                                        With --jq, print string results without JSON quotes (like jq -r)
+  --lean                                              Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json
+  --no-color                                          Disable color output
+  --no-unicode                                        Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE
+  --no-truncate                                       Show full values in table output without truncation
+  --no-input                                          Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)
+  --locale <locale>                                   BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>                         Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
+  -r, --repo <repo>                                   Specify repository
+  --account <name>                                    Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
 
 Commands:
-  list [options] <id>                         List comments on a snippet
-  add [options] <id> [message]                Add a comment to a snippet (message is required)
-  edit <snippet-id> <comment-id> <message>    Edit a comment on a snippet
-  delete [options] <snippet-id> <comment-id>  Delete a comment on a snippet
-  help [command]                              display help for command
+  list [options] <id>                                 List comments on a snippet
+  add [options] <id> [message]                        Add a comment to a snippet (message is required)
+  edit [options] <snippet-id> <comment-id> <message>  Edit a comment on a snippet
+  delete [options] <snippet-id> <comment-id>          Delete a comment on a snippet
+  help [command]                                      display help for command
 "
 ,
 }
@@ -3668,6 +3727,7 @@ exports[`command tree snapshot bb snippet comments add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "message": "message-value",
     },
@@ -3682,6 +3742,7 @@ Add a comment to a snippet (message is required)
 Options:
   -m, --message <text>         Comment message (alternative to the positional
                                [message] argument; one of the two is required)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3743,6 +3804,7 @@ exports[`command tree snapshot bb snippet comments edit 1`] = `
 Edit a comment on a snippet
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3791,6 +3853,7 @@ exports[`command tree snapshot bb snippet comments delete 1`] = `
     "contextOptions": undefined,
     "options": {
       "commentId": "comment-id-value",
+      "dryRun": true,
       "snippetId": "snippet-id-value",
       "yes": true,
     },
@@ -3804,6 +3867,7 @@ Delete a comment on a snippet
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -3892,7 +3956,7 @@ Commands:
   view <id>                    View pipeline details and step summary (id: build
                                number or UUID)
   run [options]                Trigger a pipeline run
-  stop <id>                    Stop a running pipeline (id: build number or
+  stop [options] <id>          Stop a running pipeline (id: build number or
                                UUID)
   logs [options] <id>          Print the log of a pipeline step (id: build
                                number or UUID)
@@ -4054,6 +4118,7 @@ exports[`command tree snapshot bb pipeline run 1`] = `
     "options": {
       "branch": "branch-value",
       "commit": "commit-value",
+      "dryRun": true,
       "pipeline": "pipeline-value",
       "var": [
         "var-value",
@@ -4074,6 +4139,7 @@ Options:
                                bitbucket-pipelines.yml)
   --var <key=value...>         Pipeline variable (repeatable; value may contain
                                =)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -4126,6 +4192,7 @@ exports[`command tree snapshot bb pipeline stop 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "StopPipelineCommand",
@@ -4137,6 +4204,7 @@ exports[`command tree snapshot bb pipeline stop 1`] = `
 Stop a running pipeline (id: build number or UUID)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -4547,6 +4615,7 @@ exports[`command tree snapshot bb status set 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "key": "key-value",
       "name": "name-value",
       "refname": "refname-value",
@@ -4570,6 +4639,7 @@ Options:
   --name <name>                Build identifier, e.g. BB-DEPLOY-1
   --description <description>  Short build description
   --refname <refname>          Ref the build ran on, e.g. a branch name
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -4977,6 +5047,7 @@ exports[`command tree snapshot bb project create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "key": "key-value",
       "name": "name-value",
       "private": true,
@@ -4996,6 +5067,7 @@ Options:
   -d, --description <description>  Project description
   --private                        Create a private project (default)
   --public                         Create a public project
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Global Options:
@@ -5364,6 +5436,7 @@ exports[`command tree snapshot bb webhook create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "event": [
         "event-value",
       ],
@@ -5410,6 +5483,7 @@ Options:
   --secret <secret>                Secret used to sign deliveries
                                    (X-Hub-Signature)
   --inactive                       Create the webhook disabled
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Global Options:
@@ -5467,6 +5541,7 @@ exports[`command tree snapshot bb webhook delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "scope": "scope-value",
       "uid": "uid-value",
       "yes": true,
@@ -5483,6 +5558,7 @@ Options:
   --scope <scope>              Webhook scope: repo (current repository) or
                                workspace (choices: "repo", "workspace")
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -5736,6 +5812,7 @@ exports[`command tree snapshot bb branch-restriction create 1`] = `
     "contextOptions": undefined,
     "options": {
       "branchType": "branchType-value",
+      "dryRun": true,
       "group": [
         "group-value",
       ],
@@ -5782,6 +5859,7 @@ Options:
                                (default: [])
   --group <slug>               Exempt a workspace group by slug (repeatable;
                                push and restrict_merges only) (default: [])
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -5837,6 +5915,7 @@ exports[`command tree snapshot bb branch-restriction delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "yes": true,
     },
@@ -5850,6 +5929,7 @@ Delete a branch restriction rule
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -6012,6 +6092,7 @@ exports[`command tree snapshot bb ssh-key add 1`] = `
 {
   "dispatch": {
     "options": {
+      "dryRun": true,
       "keyFile": "key-file-value",
       "label": "label-value",
     },
@@ -6025,6 +6106,7 @@ Add an SSH public key to your account (- reads stdin)
 
 Options:
   --label <label>              Label for the key
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -6072,6 +6154,7 @@ exports[`command tree snapshot bb ssh-key delete 1`] = `
 {
   "dispatch": {
     "options": {
+      "dryRun": true,
       "keyId": "key-id-value",
       "yes": true,
     },
@@ -6085,6 +6168,7 @@ Delete an SSH key from your account (key-id is its {uuid})
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -6170,7 +6254,7 @@ Global Options:
 
 Commands:
   list [options]                  List GPG keys on your account
-  add <key-file>                  Add an ASCII-armored GPG public key to your
+  add [options] <key-file>        Add an ASCII-armored GPG public key to your
                                   account (- reads stdin)
   delete [options] <fingerprint>  Delete a GPG key from your account
   help [command]                  display help for command
@@ -6257,6 +6341,7 @@ exports[`command tree snapshot bb gpg-key add 1`] = `
 Add an ASCII-armored GPG public key to your account (- reads stdin)
 
 Options:
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -6303,6 +6388,7 @@ exports[`command tree snapshot bb gpg-key delete 1`] = `
 {
   "dispatch": {
     "options": {
+      "dryRun": true,
       "fingerprint": "fingerprint-value",
       "yes": true,
     },
@@ -6316,6 +6402,7 @@ Delete a GPG key from your account
 
 Options:
   -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -6700,6 +6787,7 @@ exports[`command tree snapshot bb api 1`] = `
       "outputIsJson": true,
     },
     "options": {
+      "dryRun": true,
       "endpoint": "endpoint-value",
       "field": [
         "field-value",
@@ -6752,6 +6840,7 @@ Options:
   --paginate                   Follow the cursor (next) and merge every page
                                into a single {"values": [...]} result (GET/HEAD
                                only)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Global Options:
@@ -7267,6 +7356,65 @@ Global Options:
 Examples:
   $ bb config list
   $ bb config list --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb doctor 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "DoctorCommand",
+    "via": "run",
+  },
+  "help": 
+"
+Each check reports pass, warn or fail. Exits 1 when any check fails.
+
+Usage: bb doctor [options]
+
+Check auth, token scopes, network, config, git remote and Bun runtime
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb doctor
+  $ bb doctor --json
+  $ bb doctor --json --jq '.checks[] | select(.status != "pass")'
 
 "
 ,

@@ -141,6 +141,8 @@ describe('ListWebhooksCommand', () => {
       'workspace',
       'repoSlug',
       'count',
+      'hasMore',
+      'limit',
       'webhooks',
     ]);
     expect(payload.count).toBe(1);
@@ -162,6 +164,8 @@ describe('ListWebhooksCommand', () => {
     expect(Object.keys(getJsonPayload(output.logs))).toEqual([
       'workspace',
       'count',
+      'hasMore',
+      'limit',
       'webhooks',
     ]);
   });

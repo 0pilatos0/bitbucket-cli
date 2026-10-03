@@ -1,3 +1,5 @@
+import { afterEach } from 'bun:test';
+
 // Tests must not see the developer's real BB_* environment (see issue #294):
 // LoginCommand, ContextService, and ApiClientService all read process.env
 // fallbacks, so an exported BB_API_TOKEN silently reroutes the auth tests.
@@ -52,3 +54,11 @@ globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
     `Refusing to reach the real network from tests (guarded by tests/preload.ts): ${url}`
   );
 }) as typeof fetch;
+
+// Commands that report a failed state set process.exitCode without throwing.
+// Reset it here rather than in tests/setup.ts: hooks registered by that shared
+// module only run for the first test file that imports it, so a leaked 1
+// would make `bun test` exit non-zero with every test passing.
+afterEach(() => {
+  process.exitCode = 0;
+});

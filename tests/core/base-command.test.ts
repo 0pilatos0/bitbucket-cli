@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { BaseCommand } from '../../src/core/base-command.js';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BaseCommand, retryWithYes } from '../../src/core/base-command.js';
 import { createMockOutputService, createMockPromptService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import type { IOutputService } from '../../src/core/interfaces/services.js';
@@ -13,6 +17,7 @@ import {
   ErrorCode,
   rethrowWithNotFoundContext,
 } from '../../src/types/errors.js';
+import { DryRunStop } from '../../src/services/dry-run.js';
 
 class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
   public readonly name = 'test';
@@ -353,6 +358,55 @@ describe('BaseCommand', () => {
       expect(result).toEqual({ data: 'test' });
     });
 
+    it('reports a dry-run stop as the request that was not sent', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({
+          method: 'POST',
+          url: 'https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests/7/decline',
+          body: { reason: 'stale' },
+        })
+      );
+
+      const result = await command.run({}, { globalOptions: {} });
+
+      expect(result).toBeUndefined();
+      expect(output.logs).toEqual([
+        'info:Dry run: this request was not sent.',
+        'text:POST https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests/7/decline',
+        'text:{\n  "reason": "stale"\n}',
+      ]);
+    });
+
+    it('reports a dry-run stop as JSON in json mode', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({
+          method: 'DELETE',
+          url: 'https://api.bitbucket.org/2.0/repositories/ws/repo',
+        })
+      );
+
+      await command.run({}, { globalOptions: { json: true } });
+
+      expect(output.logs).toEqual([
+        'json:{"dryRun":true,"request":{"method":"DELETE","url":"https://api.bitbucket.org/2.0/repositories/ws/repo"}}',
+      ]);
+    });
+
+    it('reports a dry-run stop as JSON when only --jq is set (bb api)', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({ method: 'POST', url: 'https://api.example/x' })
+      );
+
+      await command.run({}, { globalOptions: { jq: '.request.method' } });
+
+      expect(output.logs).toEqual([
+        'json:{"dryRun":true,"request":{"method":"POST","url":"https://api.example/x"}}',
+      ]);
+    });
+
     it('should output error and rethrow on failure', async () => {
       const command = new TestCommandWithError(output);
 
@@ -599,6 +653,22 @@ describe('BaseCommand', () => {
       );
 
       expect(process.exitCode).toBe(1);
+    });
+
+    it('should set the detailed exit code when BB_DETAILED_EXIT_CODES is set', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.BB_DETAILED_EXIT_CODES = '1';
+      process.exitCode = 0;
+      const command = new TestCommandWithBBError(output);
+
+      try {
+        await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+          'Unknown config key'
+        );
+        expect(process.exitCode).toBe(2);
+      } finally {
+        delete process.env.BB_DETAILED_EXIT_CODES;
+      }
     });
 
     it('should not set process.exitCode when NODE_ENV is test', async () => {
@@ -927,7 +997,7 @@ describe('BaseCommand', () => {
         (e: unknown) => e
       );
       expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect((error as BBError).code).toBe(ErrorCode.CONFIRMATION_REQUIRED);
       expect((error as BBError).message).toBe(
         'This will permanently delete repo/x.\nUse --yes to confirm.'
       );
@@ -945,6 +1015,23 @@ describe('BaseCommand', () => {
       expect(prompt.calls).toEqual([]);
     });
 
+    it('resolves without prompting under --dry-run', async () => {
+      const prompt = createMockPromptService();
+      const command = new TestCommandWithParseHelpers(output);
+
+      await command.callRequireConfirmation(undefined, warning, {
+        globalOptions: {},
+        dryRun: true,
+      });
+      await command.callRequireConfirmation(false, warning, {
+        globalOptions: {},
+        dryRun: true,
+        prompt,
+      });
+
+      expect(prompt.calls).toEqual([]);
+    });
+
     it('throws the --yes error when the context has no prompt', async () => {
       const command = new TestCommandWithParseHelpers(output);
 
@@ -954,6 +1041,18 @@ describe('BaseCommand', () => {
       );
     });
 
+    it('puts the rerun command in context.retry', async () => {
+      const command = new TestCommandWithParseHelpers(output);
+      const argv = ['repo', 'delete', 'acme/site', '--json'];
+
+      const error = await command
+        .callRequireConfirmation(false, warning, { globalOptions: {}, argv })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).context).toEqual({
+        retry: retryWithYes(argv),
+      });
+    });
     it('asks with the warning in the question and resolves on yes', async () => {
       const prompt = createMockPromptService([true]);
       const command = new TestCommandWithParseHelpers(output);
@@ -981,6 +1080,45 @@ describe('BaseCommand', () => {
       expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
       expect((error as BBError).message).toBe('Cancelled.');
     });
+  });
+
+  describe('retryWithYes', () => {
+    const argv = ['repo', 'downloads', 'delete', "it's my file.zip", '--json'];
+
+    it('POSIX-quotes for sh and puts --yes before --', () => {
+      expect(retryWithYes([...argv, '--', 'x'], 'darwin')).toBe(
+        "bb repo downloads delete 'it'\\''s my file.zip' --json --yes -- x"
+      );
+    });
+
+    it('PowerShell-quotes on Windows, including commas', () => {
+      expect(retryWithYes([...argv, '--json=id,name'], 'win32')).toBe(
+        "bb repo downloads delete 'it''s my file.zip' --json '--json=id,name' --yes"
+      );
+    });
+
+    it.skipIf(process.platform !== 'win32' || !Bun.which('pwsh'))(
+      'round-trips through a real PowerShell on Windows',
+      () => {
+        const dir = mkdtempSync(join(tmpdir(), 'bb-retry-'));
+        const script = join(dir, 'args.js');
+        writeFileSync(
+          script,
+          'console.log(JSON.stringify(process.argv.slice(2)))'
+        );
+        const input = [...argv, '--json=id,name', '@me', 'a "b"'];
+        const command = retryWithYes(input, 'win32').replace(
+          /^bb /,
+          `& '${process.execPath}' '${script}' `
+        );
+
+        const result = spawnSync('pwsh', ['-NoProfile', '-Command', command], {
+          encoding: 'utf8',
+        });
+
+        expect(JSON.parse(result.stdout)).toEqual([...input, '--yes']);
+      }
+    );
   });
 
   describe('appendHelpHint command path', () => {

@@ -28,10 +28,10 @@ import { ErrorCode } from '../src/types/errors.js';
 
 let stderr: string[] = [];
 let stdout: string[] = [];
-const originalConsoleError = console.error;
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
 afterAll(() => {
-  console.error = originalConsoleError;
+  process.stderr.write = originalStderrWrite;
 });
 
 // Cases here deliberately set process.exitCode = 1 in-process. Reset after each
@@ -49,9 +49,10 @@ beforeEach(() => {
   // does not apply here — do it ourselves or a failing case leaks into the
   // next one's assertion.
   process.exitCode = 0;
-  console.error = (...args: unknown[]) => {
-    stderr.push(args.map(String).join(' '));
-  };
+  process.stderr.write = ((chunk: unknown) => {
+    stderr.push(String(chunk).replace(/\n$/, ''));
+    return true;
+  }) as typeof process.stderr.write;
   // `outputHelp()` writes through the OWN output configuration of whichever
   // command is printing, and children get theirs at creation time — so
   // configuring only the root would let `bb help pr` escape to real stdout.
@@ -137,52 +138,48 @@ describe('group without a subcommand', () => {
     expect(result.exitCode).toBeFalsy();
   });
 
+  // The cases below run out-of-process: Commander exits the process itself.
+  async function runCli(
+    argv: string[]
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...argv], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const [exitCode, stdout, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    return { exitCode, stdout, stderr };
+  }
+
   it('suggests the closest subcommand for a typo and exits 1', async () => {
-    const result = await run(['pr', 'lsit']);
+    const result = await runCli(['pr', 'lsit', '--no-color']);
 
-    expect(result.stderr).toContain("unknown command 'lsit'");
+    expect(result.stderr).toStartWith("✗ unknown command 'lsit'");
     expect(result.stderr).toContain('(Did you mean list?)');
-    expect(result.stderr).not.toContain('error:');
     expect(result.exitCode).toBe(1);
   });
 
-  it('points a nested group at its own --help', async () => {
-    const result = await run(['pr', 'comments', 'zzzzzzzzzz']);
+  it('reports a missing subcommand under --json instead of printing help', async () => {
+    const result = await runCli(['pr', '--json']);
 
-    expect(result.stderr).toContain("unknown command 'zzzzzzzzzz'");
-    expect(result.stderr).toContain(
-      'Run `bb pr comments --help` to see available commands.'
-    );
-    expect(result.exitCode).toBe(1);
-  });
-
-  it('emits a JSON envelope for a mistyped subcommand under --json', async () => {
-    const result = await run(['pr', 'lsit', '--json']);
-
-    const payload = JSON.parse(result.stderr) as Record<string, unknown>;
-    expect(payload.code).toBe(ErrorCode.VALIDATION_INVALID);
-    expect(payload.context).toEqual({ command: 'lsit' });
+    expect(result.stdout).toBe('');
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      context: { parseError: 'missingSubcommand', commandPath: 'pr' },
+    });
     expect(result.exitCode).toBe(1);
   });
 
   it('keeps the `help` subcommand', async () => {
-    // Out-of-process: Commander exits the process after printing help.
-    const proc = Bun.spawn(
-      ['bun', 'run', 'src/index.ts', 'pr', 'help', 'list'],
-      {
-        cwd: fileURLToPath(new URL('..', import.meta.url)),
-        env: { ...process.env, CI: 'true' },
-        stdout: 'pipe',
-        stderr: 'pipe',
-      }
-    );
-    const [exitCode, helpOutput] = await Promise.all([
-      proc.exited,
-      new Response(proc.stdout).text(),
-    ]);
+    const result = await runCli(['pr', 'help', 'list']);
 
-    expect(helpOutput).toContain('Usage: bb pr list');
-    expect(exitCode).toBe(0);
+    expect(result.stdout).toContain('Usage: bb pr list');
+    expect(result.exitCode).toBe(0);
   });
 });
 

@@ -6,7 +6,6 @@
 
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
-import tabtab from 'tabtab/lib/index.js';
 import systemShell from 'tabtab/lib/utils/systemShell.js';
 import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
@@ -26,11 +25,22 @@ import type {
   IOutputService,
   IPromptService,
 } from './core/interfaces/services.js';
+import type { DryRunMode } from './services/dry-run.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
-import { buildCommandPath, forEachCommand } from './core/command-tree.js';
-import { resolveRootInvocation, unknownCommandError } from './root-dispatch.js';
+import {
+  buildCommandPath,
+  forEachCommand,
+  visibleChildNames,
+} from './core/command-tree.js';
+import { exitCodeFor } from './core/exit-codes.js';
+import {
+  argvRequestsJson,
+  installParseErrorHandling,
+} from './core/parse-errors.js';
+import { didYouMeanSuffix } from './core/suggest.js';
+import { resolveRootInvocation } from './root-dispatch.js';
 import { resolveLocale } from './services/locale.js';
 
 // Re-exported so `buildCommandPath` keeps its historical import path.
@@ -165,7 +175,9 @@ export function createContext(
     ['--lean', opts.lean === true],
   ];
   const flagNeedingJson = jsonOnlyFlags.find(([, isSet]) => isSet)?.[0];
-  if (!validationError && !json && !options.outputIsJson && flagNeedingJson) {
+  const jsonFlagWithoutJson =
+    !validationError && !json && !options.outputIsJson && flagNeedingJson;
+  if (jsonFlagWithoutJson) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
       message: `${flagNeedingJson} requires --json`,
@@ -179,9 +191,14 @@ export function createContext(
     });
   }
 
+  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  const interactive = opts.input !== false && prompt.isAvailable();
+
   return {
     globalOptions: {
-      json: json || undefined,
+      // A JSON-only flag asked for machine output, so its error renders as
+      // JSON too. The command never executes, so nothing else sees this flag.
+      json: json || Boolean(jsonFlagWithoutJson) || undefined,
       jsonFields,
       jq: jqOpt,
       rawOutput: opts.rawOutput === true || undefined,
@@ -194,13 +211,18 @@ export function createContext(
     },
     validationError,
     commandPath: activeCommandPath || undefined,
-    prompt: json || opts.input === false ? undefined : availablePrompt(),
+    dryRun:
+      container.resolve<DryRunMode>(ServiceTokens.DryRunMode).isEnabled() ||
+      undefined,
+    prompt: interactive && !json ? prompt : undefined,
+    interactive: interactive || undefined,
+    argv: userArgv(),
   };
 }
 
-function availablePrompt(): IPromptService | undefined {
-  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
-  return prompt.isAvailable() ? prompt : undefined;
+/** The user's arguments, after alias expansion rewrote `process.argv`. */
+function userArgv(): string[] {
+  return process.argv.slice(2);
 }
 
 async function runCommand<TOptions, TResult>(
@@ -291,25 +313,6 @@ export async function maybePrintUpdateNotice(
   }
 }
 
-function resolveOutput(): IOutputService {
-  return container.resolve<IOutputService>(ServiceTokens.OutputService);
-}
-
-// Usage errors caught outside BaseCommand.run() (unknown commands): render
-// them like command errors, honouring --json.
-function reportUsageError(error: BBError): void {
-  const output = resolveOutput();
-  const jsonOption = cli.opts().json;
-  if (jsonOption !== undefined && jsonOption !== false) {
-    output.jsonError(error.toJSON());
-  } else {
-    output.error(error.message);
-  }
-  // Unconditional, matching runCommand(). BaseCommand.handleError() guards
-  // on NODE_ENV; this path is driven directly by tests that assert on it.
-  process.exitCode = 1;
-}
-
 // Create CLI
 export const cli = new Command();
 
@@ -338,6 +341,8 @@ addGlobalOptions(cli)
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
         BB_PROMPT_DISABLED: 'Same as --no-input when set (any non-empty value)',
+        BB_DETAILED_EXIT_CODES:
+          'Exit 2 usage, 3 not found, 4 auth, 5 confirmation required (any non-empty value)',
         BB_DEBUG:
           "HTTP debug tracing: 'http' (method, URL, status, timing), 'verbose' (adds redacted request and response bodies) or 'off'",
         DEBUG: "Alias for BB_DEBUG=verbose when exactly 'true'",
@@ -363,15 +368,25 @@ addGlobalOptions(cli)
   .action(async () => {
     // The update-available check runs in the root `postAction` hook so it fires
     // after every command, not just the bare `bb` invocation handled here.
-    const output = resolveOutput();
+    const output = container.resolve<IOutputService>(
+      ServiceTokens.OutputService
+    );
 
+    const jsonOption = cli.opts().json;
     const invocation = resolveRootInvocation(cli, {
       args: cli.args,
-      jsonOption: cli.opts().json,
+      jsonOption,
     });
 
     if (invocation.kind === 'error') {
-      reportUsageError(invocation.error);
+      if (jsonOption !== undefined && jsonOption !== false) {
+        output.jsonError(invocation.error.toJSON());
+      } else {
+        output.error(invocation.error.message);
+      }
+      // Unconditional, matching runCommand(). BaseCommand.handleError() guards
+      // on NODE_ENV; this path is driven directly by tests that assert on it.
+      process.exitCode = exitCodeFor(invocation.error.code);
       return;
     }
 
@@ -398,9 +413,13 @@ addGlobalOptions(cli)
 
 // Capture the exact path of the command about to run so `createContext` can
 // stamp it onto the context and `BaseCommand.appendHelpHint()` can build an
-// accurate `bb <path> --help` footer. Inherited by every subcommand.
+// accurate `bb <path> --help` footer. Inherited by every subcommand. Also arm
+// dry-run mode here, so the API client and `context.dryRun` share one switch.
 cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
+  if (actionCommand.opts().dryRun === true) {
+    container.resolve<DryRunMode>(ServiceTokens.DryRunMode).enable();
+  }
   const { account } = cli.opts<{ account?: string }>();
   if (account !== undefined) {
     container
@@ -436,31 +455,41 @@ const registrar: CommandRegistrar = {
 
 registerCommands(cli, registrar);
 
-forEachCommand(cli, (command) => {
-  // Commander's own parse errors (unknown option, missing argument, ...)
-  // would print as `error: ...`; give them the same `✗` prefix as ours.
-  command.configureOutput({
-    outputError: (message) =>
-      resolveOutput().error(message.replace(/^error: /, '').trimEnd()),
-  });
+installParseErrorHandling(cli, {
+  argv: userArgv,
+  writeTextError: (message) =>
+    container
+      .resolve<IOutputService>(ServiceTokens.OutputService)
+      .error(message),
+  writeJsonError: (payload) =>
+    container
+      .resolve<IOutputService>(ServiceTokens.OutputService)
+      .jsonError(payload),
+  exit: (code) => process.exit(code),
+});
 
-  // A bare group (`bb status`) shows its help and succeeds, like `bb` itself.
-  // Without an action Commander prints that help as an error and exits 1.
-  // Adding one drops Commander's implicit `help` subcommand and its unknown-
-  // subcommand check, so restore the first and handle leftovers ourselves.
-  if (command.parent && command.commands.length > 0) {
-    command
-      .helpCommand(true)
-      .allowExcessArguments()
-      .action(() => {
-        const [token] = command.args;
-        if (token === undefined) {
-          command.outputHelp();
-          return;
-        }
-        reportUsageError(unknownCommandError(token, command));
-      });
-  }
+// A bare group (`bb status`) prints its help and exits 0, like bare `bb`;
+// under --json it stays a `missingSubcommand` error. An action is what stops
+// Commander treating the bare group as an error, but it also drops the
+// implicit `help` subcommand and the unknown-subcommand check, so restore
+// both, reporting typos exactly as Commander would.
+forEachCommand(cli, (command) => {
+  if (!command.parent || command.commands.length === 0) return;
+  command
+    .helpCommand(true)
+    .allowExcessArguments()
+    .action(() => {
+      const [token] = command.args;
+      if (token !== undefined) {
+        command.error(
+          `error: unknown command '${token}'` +
+            didYouMeanSuffix(token, visibleChildNames(command)),
+          { code: 'commander.unknownCommand' }
+        );
+      }
+      if (argvRequestsJson(userArgv())) command.help({ error: true });
+      command.outputHelp();
+    });
 });
 
 // Let unknown top-level tokens reach the root action (which turns them into a
@@ -478,8 +507,11 @@ cli.allowExcessArguments();
 // imports `cli` before calling parseAsync), and must come AFTER the command
 // tree is fully built so `generateCompletions` can walk the live `cli` tree.
 // bootstrap() above only registers lazy DI factories — no I/O — so reaching
-// this point stays fast and silent, as shell completion requires.
+// this point stays fast and silent, as shell completion requires. tabtab is
+// imported only here: it touches `process.stdout` at load and slows every
+// other command's startup.
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
+  const { default: tabtab } = await import('tabtab/lib/index.js');
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
     // The scripts from `bb completion <shell>` name their shell; older

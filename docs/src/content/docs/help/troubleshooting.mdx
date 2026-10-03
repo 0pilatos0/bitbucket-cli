@@ -5,12 +5,14 @@ banner:
   content: 'Bitbucket app passwords stopped working on July 28, 2026. Use OAuth or an API token instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
-Find your error message below. Command errors go to stderr and exit 1, with a
+Start with [`bb doctor`](/commands/doctor/). It checks Bun, the config file,
+network access, authentication, token scopes, and git remote detection, and
+points at the failing piece. Then find your error message below. Command errors go to stderr and exit 1, with a
 `✗` prefix, or `ERR` under `--no-unicode` or `BB_NO_UNICODE`.
-Under `--json`, command failures become a single-line JSON object on stderr.
-Argument-parser errors, such as an unknown option or subcommand, remain plain
-text. Unknown top-level commands can return a JSON validation error.
-Interrupting an interactive prompt with Ctrl+C exits 130.
+Under `--json`, command failures, argument-parser errors included, become a
+single-line JSON object on stderr. Interrupting an interactive prompt with
+Ctrl+C exits 130. `BB_DETAILED_EXIT_CODES=1` gives each failure class its own
+[exit status](/reference/error-codes/#exit-codes-and-error-codes).
 
 ## Installation
 
@@ -196,15 +198,17 @@ Both are error code 4001 (`CONFIG_READ_FAILED`).
 ✗ Could not determine repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-Three sibling messages name the specific reason:
+Sibling messages name the specific reason:
 
 ```text
 ✗ Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ✗ Git repository has no remote configured. Add a Bitbucket remote with `git remote add origin <url>`, or use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ✗ Remote 'git@github.com:me/thing.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+✗ None of the git remotes (origin, gitlab) is a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+✗ Git remotes fork, mirror point to different Bitbucket repositories and neither origin nor upstream is one of them. Use --workspace and --repo options to pick one.
 ```
 
-All four are code 6001 (`CONTEXT_REPO_NOT_FOUND`). Pick whichever fix suits:
+All are code 6001 (`CONTEXT_REPO_NOT_FOUND`). Pick whichever fix suits:
 
 ```bash
 bb pr list -w myworkspace -r myrepo     # explicit flags
@@ -467,12 +471,11 @@ the next token.
 
 ```bash
 bb pr list --jq '.pullRequests[].title'
-# ✗ --jq requires --json
+# {"name":"BBError","code":8002,"message":"--jq requires --json"}
 ```
 
-Because `--json` was never set, this failure renders as **plain text on stderr**,
-not as a JSON envelope. This matters in a script that only parses stdout.
-`bb api` is the one exception: it accepts `--jq` on its own.
+The error is a JSON envelope on stderr, since `--jq` asks for machine-readable
+output. `bb api` is the one exception: it accepts `--jq` on its own.
 
 ```bash
 bb pr list --json --jq '.pullRequests[].title'   # correct

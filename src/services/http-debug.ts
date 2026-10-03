@@ -54,11 +54,16 @@ const SENSITIVE_KEYS = new Set([
   'token',
   'id_token',
   'client_secret',
+  'secret',
   'password',
   'authorization',
 ]);
 
-const REDACTED = '[REDACTED]';
+export const REDACTED = '[REDACTED]';
+
+export function isSensitiveKey(key: string): boolean {
+  return SENSITIVE_KEYS.has(key.toLowerCase());
+}
 
 /**
  * Recursively replace values under case-insensitive sensitive keys
@@ -83,7 +88,7 @@ export function redactSensitive(
 
   const result: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value)) {
-    if (SENSITIVE_KEYS.has(key.toLowerCase())) {
+    if (isSensitiveKey(key)) {
       result[key] = REDACTED;
     } else {
       result[key] = redactSensitive(val, seen);

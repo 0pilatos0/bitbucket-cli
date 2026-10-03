@@ -73,7 +73,10 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
 
     const url = await this.resolveUrl(options, repoContext);
     const useJson = Boolean(context.globalOptions.json);
-    const printOnly = options.browser === false;
+    // Without a terminal on stdout nobody is there to look at a browser
+    // window, and the caller most likely wants the URL itself.
+    const printOnly =
+      options.browser === false || process.stdout.isTTY !== true;
 
     if (useJson) {
       await this.output.json({ url });

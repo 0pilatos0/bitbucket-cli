@@ -11,7 +11,7 @@ and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/ma
 `--json` writes command data to stdout and command errors to stderr. Update
 banners and retry notices are suppressed. HTTP debug traces from `BB_DEBUG`
 also go to stderr, so stdout stays parseable with tracing on. Parser errors
-such as unknown flags can still be plain text.
+such as unknown flags are JSON too (see [Errors](#errors)).
 
 JSON is pretty-printed with two-space indentation when stdout is a terminal,
 and compact (one line, no indentation) when stdout is a pipe or a file. The
@@ -93,6 +93,8 @@ bb pr list --json id,title,author.display_name
   "state": "OPEN",
   "filters": { "mine": false },
   "count": 2,
+  "hasMore": false,
+  "limit": 25,
   "pullRequests": [
     {
       "id": 42,
@@ -229,9 +231,10 @@ output instead: `bb pr list --json | jq '.pullRequests[].title'`.
   Without `--jq`, `--raw-output` exits non-zero with error 8002
   (`--raw-output requires --jq`).
 
-- `--jq` requires `--json`. Using `--jq` alone exits non-zero with `✗ --jq
-requires --json`. That message prints as plain text on stderr, not as a JSON
-  envelope, because JSON mode was never enabled.
+- `--jq` requires `--json` everywhere except `bb api` (next item). Elsewhere,
+  `--jq` alone exits non-zero with error 8002 (`--jq requires --json`),
+  reported as a JSON envelope on stderr because `--jq` asked for
+  machine-readable output.
 - `bb api` is the exception: its output is already JSON, so `bb api
 /repositories/my-ws --jq '.values[].name'` works without `--json`.
 - jq runs _after_ field projection, so `.` refers to the projected shape; a
@@ -282,7 +285,7 @@ Used by: `pr list`, `repo list`, `pr comments list`, `pr activity`,
 `snippet list`, `snippet comments list`, `pipeline list`, `commit list`,
 `status list`, `workspace list`, `project list`, `search code`, `webhook list`
 
-Returns an envelope with metadata, a `count`, and a named array:
+Returns an envelope with metadata, a `count`, paging info, and a named array:
 
 ```json
 {
@@ -291,8 +294,21 @@ Returns an envelope with metadata, a `count`, and a named array:
   "state": "OPEN",
   "filters": { "mine": false },
   "count": 2,
+  "hasMore": false,
+  "limit": 25,
   "pullRequests": [...]
 }
+```
+
+`hasMore` is `true` when `--limit` cut the list short and Bitbucket has more
+results; rerun with a higher `--limit` or `--all` to get them. `limit` is the
+effective cap (`25` by default) and `null` under `--all`. `--json <fields>`
+drops the envelope, and these two keys with it, so check paging with `--jq`:
+
+```bash
+if [ "$(bb pr list --json --jq '.hasMore')" = "true" ]; then
+  bb pr list --all --json > prs.json
+fi
 ```
 
 **Common envelope fields:**
@@ -302,6 +318,8 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `workspace`   | string | All collections except `workspace list` (whose slugs live in the items) and the account-scoped `ssh-key list` / `gpg-key list`                                                                                                                                                      |
 | `repoSlug`    | string | Repository-scoped collections: `pr list`, `pr comments list`, `pr activity`, `pipeline list`, `commit list`, `status list`, `repo ls`, `repo downloads list`, `webhook list` (default `--scope repo` only), `branch-restriction list`, `deployment list`, `deployment environments` |
 | `count`       | number | All collections                                                                                                                                                                                                                                                                     |
+| `hasMore`     | bool   | All paginated collections (every command with `--limit`/`--all`)                                                                                                                                                                                                                    |
+| `limit`       | number | All paginated collections; `null` under `--all`                                                                                                                                                                                                                                     |
 | `state`       | string | `pr list`                                                                                                                                                                                                                                                                           |
 | `filters`     | object | `pr list`, `pr activity`, `pr comments list`, `branch-restriction list`; always present, with an unset value inside (`{"mine": false}`, `{"types": []}`, `{"resolution": null}`) or `{}`                                                                                            |
 | `commit`      | string | `status list`                                                                                                                                                                                                                                                                       |
@@ -335,7 +353,8 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `webhook list`            | `webhooks`           |
 
 Three commands return collections without going through the shared list
-plumbing. They are not paginated and have no `--limit`/`--all`:
+plumbing. They are not paginated, have no `--limit`/`--all`, and so carry no
+`hasMore` or `limit`:
 
 | Command                       | Shape                                                                       |
 | ----------------------------- | --------------------------------------------------------------------------- |
@@ -352,6 +371,8 @@ plumbing. They are not paginated and have no `--limit`/`--all`:
   "state": "OPEN",
   "filters": { "mine": false },
   "count": 2,
+  "hasMore": false,
+  "limit": 25,
   "pullRequests": [
     {
       "id": 42,
@@ -382,6 +403,8 @@ plumbing. They are not paginated and have no `--limit`/`--all`:
   "state": "OPEN",
   "filters": { "mine": true },
   "count": 1,
+  "hasMore": false,
+  "limit": 25,
   "pullRequests": [...]
 }
 ```
@@ -494,6 +517,29 @@ plus `"switchedTo"` when another saved account became active and
 
 ---
 
+### Dry run
+
+Any command run with [`--dry-run`](/reference/global-flags/#--dry-run) prints
+the write request it would have sent instead of its usual JSON, and exits 0:
+
+```json
+{
+  "dryRun": true,
+  "request": {
+    "method": "POST",
+    "url": "https://api.bitbucket.org/2.0/repositories/myworkspace/myrepo/pullrequests/42/merge",
+    "body": {
+      "type": "pullrequest_merge_parameters",
+      "merge_strategy": "squash"
+    }
+  }
+}
+```
+
+`body` is left out when the request has none.
+
+---
+
 ### Pattern 4: mode-based (diff command)
 
 Used by: `pr diff` (with `--stat`, `--web`, `--name-only`, or default diff mode)
@@ -603,6 +649,9 @@ account. When the current account has no credentials the payload is:
 { "authenticated": false, "account": "default", "accounts": [] }
 ```
 
+The command also exits 1 in that case. Under `set -e`, append `|| true` when
+you want to read the payload instead of stopping.
+
 `method` is `"api_token"` or `"oauth"`, the same values `auth login --json`
 reports. The config file stores API-token auth as `authMethod: "basic"`, which
 is what `auth status --json` reported in earlier releases. Check
@@ -651,28 +700,45 @@ API-token credentials return the base64 of `email:apiToken` (the stored key is n
 ## Scripting notes
 
 - Prefer `--json` in scripts rather than parsing text output.
+- Under `--json`, stdout carries only the JSON document. Status lines such as
+  "Opening browser..." go to stderr.
 - Do not rely on text formatting symbols (`✓`, table separators, colors).
 - Prefer the built-in `--jq` and `--json fields` over external pipes; they
   avoid an extra binary dependency and behave identically across platforms.
-- Envelope keys (`count`, `pullRequests`, `repositories`, `success`) are owned
+- Envelope keys (`count`, `hasMore`, `limit`, `pullRequests`, `repositories`,
+  `success`) are owned
   by the CLI and stable. Item fields come straight from the Bitbucket API, so
   read `.pullRequests[].id` rather than assuming a shape for the whole item.
 - `pr list` returns lightweight PR objects. Use `pr view <id>` for full details including `participants` and `reviewers`.
 
 ## Errors
 
-When a command fails, the CLI exits non-zero.
+When a command fails, the CLI exits non-zero (see
+[exit codes](/reference/error-codes/#exit-codes-and-error-codes), including the
+opt-in `BB_DETAILED_EXIT_CODES` map).
 
 - In normal mode, errors are plain text on stderr.
-- In `--json` mode, errors are compact JSON objects on stderr.
+- In `--json` mode, errors are compact JSON objects on stderr. `--jq` without
+  `--json` also reports its error this way.
 
-:::caution[Argument-parsing errors are still plain text]
-Failures raised while parsing the command line, such as an unknown subcommand
-(`bb pr lst`) or an unknown option (`bb pr list --stat`), are reported by the
-argument parser as plain text even under `--json`. An unknown **top-level**
-command (`bb prr --json`) does emit a JSON envelope. Scripts should treat a
-non-zero exit with unparseable stderr as a usage error.
-:::
+Argument-parsing failures follow the same rule whenever `--json` or `--jq`
+appears before any `--`: an unknown subcommand (`bb pr lst --json`), an unknown
+option, a missing argument or too many arguments all come back as an envelope
+with `context.parseError`, `context.commandPath` and a `hint`. An unknown
+top-level command (`bb prr --json`) keeps its own shape,
+`context: { command, args }`, naming the token that didn't match. A group run
+without a subcommand (`bb pr --json`) reports `parseError: "missingSubcommand"`
+instead of printing its help.
+
+```json
+{
+  "name": "BBError",
+  "code": 5002,
+  "message": "unknown option '--stat'",
+  "context": { "parseError": "unknownOption", "commandPath": "pr list" },
+  "hint": "Run `bb pr list --help` for usage."
+}
+```
 
 Example:
 
@@ -690,7 +756,7 @@ Error JSON fields:
 | `code`       | number           | Numeric [error code](/reference/error-codes/)                                                                                                                                                                               |
 | `message`    | string           | Human-readable message                                                                                                                                                                                                      |
 | `context`    | object           | Optional structured metadata. Shape depends on `code`; see the table below                                                                                                                                                  |
-| `hint`       | string           | Optional. A single actionable next step, present only for `401`, `403`, and `404` failures where the CLI has advice to give. In human-readable mode the same text prints as a dimmed continuation line beneath the message. |
+| `hint`       | string           | Optional. A single actionable next step: present for `401`, `403`, and `404` failures where the CLI has advice to give, and for argument-parsing errors. In human-readable mode the API hints print as a dimmed continuation line beneath the message. |
 | `statusCode` | number           | `APIError` only. The upstream HTTP status.                                                                                                                                                                                  |
 | `response`   | object \| string | `APIError` only, and only when the upstream response had a body. The raw Bitbucket error payload; usually a JSON object, but a plain-text body (e.g. a request-parser `Bad Request`) is passed through as a string.         |
 | `headers`    | object           | `bb api` only. The upstream response headers, so scripts can inspect rate-limit or request-id headers on failure.                                                                                                           |
@@ -718,10 +784,11 @@ present, the shape is:
 | `4001` CONFIG_READ_FAILED          | _(none)_                                                                                                                                                                                                                                                                                    |
 | `4002` CONFIG_WRITE_FAILED         | _(none)_                                                                                                                                                                                                                                                                                    |
 | `4003` CONFIG_INVALID_KEY          | `key`                                                                                                                                                                                                                                                                                       |
-| `5001` VALIDATION_REQUIRED         | `field` (when thrown by `ValidationError`)                                                                                                                                                                                                                                                  |
-| `5002` VALIDATION_INVALID          | varies; usually `{ key, value }`, the offending option name, or the rejected ID                                                                                                                                                                                                             |
-| `5003` FILE_NOT_FOUND              | `file` (`snippet create/edit/view`), `bodyFile` (`pr edit --body-file`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet                                                                               |
-| `6001` CONTEXT_REPO_NOT_FOUND      | `reason` (`not_a_git_repo`, `no_remote`, `remote_not_bitbucket`, or `unknown`), optional `remoteUrl`                                                                                                                                                                                        |
+| `5001` VALIDATION_REQUIRED         | `field` (when thrown by `ValidationError`); `parseError`, `commandPath` for a missing argument or option value                                                                                                                                                                              |
+| `5002` VALIDATION_INVALID          | varies; usually `{ key, value }`, the offending option name, or the rejected ID. Argument-parsing errors carry `parseError` (`unknownOption`, `unknownCommand`, `excessArguments`, ...) and `commandPath`                                                                                    |
+| `5003` FILE_NOT_FOUND              | `file` (`snippet create/edit/view`), `bodyFile` (`--body-file` on `pr create/edit`, `pr comments add/reply`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet                                          |
+| `5005` CONFIRMATION_REQUIRED       | `retry`: the command to rerun with `--yes`, quoted for `sh` (PowerShell on Windows)                                                                                                                                                                                                                                          |
+| `6001` CONTEXT_REPO_NOT_FOUND      | `reason` (`not_a_git_repo`, `no_remote`, `remote_not_bitbucket`, `ambiguous_remote`, or `unknown`), optional `remoteUrl` or `remotes` (remote names)                                                                                                                                                                                        |
 | `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_                                                                                                                                                                                                                                                                                    |
 | `7001` NETWORK_ERROR               | _(usually none; OAuth revoke failures include `status`, `body`)_                                                                                                                                                                                                                            |
 | `8001` JQ_FAILED                   | `expression`, optional `exitCode`                                                                                                                                                                                                                                                           |
