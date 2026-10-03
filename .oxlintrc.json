@@ -11,7 +11,11 @@
   "rules": {
     "no-console": "error",
     "typescript/no-explicit-any": "error",
-    "import/extensions": ["error", "always", { "ignorePackages": true }],
+    "import/extensions": [
+      "error",
+      "always",
+      { "ignorePackages": true, "checkTypeImports": true }
+    ],
     // noUncheckedIndexedAccess makes `!` the idiomatic narrowing for regex
     // groups and bounds-checked indexes, so it stays allowed.
     "typescript/no-non-null-assertion": "off",
