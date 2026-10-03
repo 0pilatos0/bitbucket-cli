@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'bun:test';
+import {
+  COMPILE_TARGETS,
+  assetName,
+  type CompileTarget,
+} from '../scripts/compile.js';
 
 interface Step {
   id?: string;
   if?: string;
   run?: string;
   uses?: string;
+  with?: Record<string, string>;
   env?: Record<string, string>;
 }
 
@@ -13,6 +19,7 @@ interface Job {
   if?: string;
   permissions?: Record<string, string>;
   outputs?: Record<string, string>;
+  strategy?: { matrix: { include?: Record<string, string>[] } };
   steps: Step[];
 }
 
@@ -74,5 +81,52 @@ describe('release PR checks', () => {
       );
     }
     expect(prWorkflows.length).toBeGreaterThan(0);
+  });
+});
+
+describe('release binaries', () => {
+  it('builds one binary per compile target under its release asset name', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    const legs = jobs.binaries!.strategy!.matrix.include!;
+
+    expect(legs.map((leg) => leg.target)).toEqual([...COMPILE_TARGETS]);
+    for (const leg of legs) {
+      expect(leg.asset).toBe(assetName(leg.target as CompileTarget));
+    }
+  });
+
+  it('packages, attests and uploads archives, manifests and installers', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    const steps = jobs['release-binaries']!.steps;
+    const index = (match: (step: Step) => boolean) => {
+      const i = steps.findIndex(match);
+      expect(i).toBeGreaterThanOrEqual(0);
+      return i;
+    };
+
+    const checkout = index((s) => !!s.uses?.startsWith('actions/checkout@'));
+    const download = index(
+      (s) => !!s.uses?.startsWith('actions/download-artifact@')
+    );
+    const pack = index(
+      (s) =>
+        s.run?.includes('bun scripts/package-release.ts --dir dist-bin') ??
+        false
+    );
+    const attest = index(
+      (s) => !!s.uses?.startsWith('actions/attest-build-provenance@')
+    );
+    const upload = index((s) => s.run?.includes('gh release upload') ?? false);
+
+    expect(checkout).toBeLessThan(pack);
+    expect(download).toBeLessThan(pack);
+    expect(pack).toBeLessThan(attest);
+    expect(attest).toBeLessThan(upload);
+    expect(steps[attest]!.with?.['subject-checksums']).toBe(
+      'dist-bin/SHA256SUMS'
+    );
+    expect(steps[upload]!.run).toContain(
+      'gh release upload "$TAG" dist-bin/* scripts/install.sh scripts/install.ps1'
+    );
   });
 });
