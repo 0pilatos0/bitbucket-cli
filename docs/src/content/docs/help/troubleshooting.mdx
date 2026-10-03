@@ -233,9 +233,9 @@ export HTTPS_PROXY=http://proxy.example.com:8080
 BB_DEBUG=http bb repo list                 # [HTTP] tracing on stderr, secrets redacted
 ```
 
-HTTP traces write to stdout even under `--json`. Set `BB_DEBUG=off` before
-piping output into a JSON parser. Verbose tracing redacts credentials but may
-include sensitive repository content; review it before sharing.
+HTTP traces go to stderr, so `--json` output on stdout stays parseable while
+tracing is on. Verbose tracing redacts credentials but may include sensitive
+repository content; review it before sharing.
 
 Bitbucket's own availability is at
 [status.bitbucket.org](https://status.bitbucket.org).

@@ -8,10 +8,10 @@ import { Aside } from '@astrojs/starlight/components';
 All commands support the global `--json` flag, with optional field selection
 and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting).
 
-With debug tracing off, `--json` writes command data to stdout and command
-errors to stderr. Update banners and retry notices are suppressed. HTTP debug
-traces share stdout, even with `--json`; leave `BB_DEBUG` and `DEBUG` unset
-when capturing JSON. Parser errors such as unknown flags can still be plain text.
+`--json` writes command data to stdout and command errors to stderr. Update
+banners and retry notices are suppressed. HTTP debug traces from `BB_DEBUG`
+also go to stderr, so stdout stays parseable with tracing on. Parser errors
+such as unknown flags can still be plain text.
 
 ## Quick usage
 
