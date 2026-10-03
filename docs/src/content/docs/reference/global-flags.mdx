@@ -276,9 +276,9 @@ Both flags are available on these commands:
 - `bb search code`
 - `bb webhook list`
 
-`bb pr checks`, `bb pr reviewers list`, `bb repo default-reviewers list` and
-`bb config list` are single-request and accept neither. `bb api` uses
-`--paginate` instead.
+`bb pr checks` reads every page and `bb pr reviewers list`,
+`bb repo default-reviewers list` and `bb config list` are single-request;
+none of them accepts these flags. `bb api` uses `--paginate` instead.
 
 When `--limit` cuts a table short, the CLI prints a hint:
 

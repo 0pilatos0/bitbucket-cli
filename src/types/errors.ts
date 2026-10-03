@@ -47,6 +47,9 @@ export enum ErrorCode {
   COMPLETION_INSTALL_FAILED = 9001,
   COMPLETION_UNINSTALL_FAILED = 9002,
 
+  // CI outcome errors (10xxx): a watched pipeline or check did not pass
+  CI_FAILED = 10001,
+
   // Unknown
   UNKNOWN = 9999,
 }

@@ -42,7 +42,9 @@ class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
 class PagedTestCommand extends BaseCommand<Record<string, never>, void> {
   public readonly name = 'paged';
   public readonly description = 'Paged test command';
-  protected override readonly usesPager = true;
+  protected override usesPager(): boolean {
+    return true;
+  }
 
   async execute(): Promise<void> {
     this.output.text('page body');

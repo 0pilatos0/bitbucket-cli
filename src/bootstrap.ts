@@ -113,6 +113,7 @@ import { ViewPipelineCommand } from './commands/pipeline/view.command.js';
 import { RunPipelineCommand } from './commands/pipeline/run.command.js';
 import { StopPipelineCommand } from './commands/pipeline/stop.command.js';
 import { LogsPipelineCommand } from './commands/pipeline/logs.command.js';
+import { WatchPipelineCommand } from './commands/pipeline/watch.command.js';
 
 // Commit commands
 import { ListCommitsCommand } from './commands/commit/list.command.js';
@@ -869,6 +870,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PipelinesApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );
@@ -900,6 +902,18 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PipelinesApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.WatchPipelineCommand,
+    WatchPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );

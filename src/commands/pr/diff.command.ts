@@ -37,7 +37,9 @@ export interface DiffPROptions extends GlobalOptions {
 export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
   public readonly name = 'diff';
   public readonly description = 'View pull request diff';
-  protected override readonly usesPager = true;
+  protected override usesPager(): boolean {
+    return true;
+  }
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,

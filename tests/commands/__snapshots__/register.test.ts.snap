@@ -1416,7 +1416,7 @@ Commands:
   status                          Show the status of your pull requests
   view [id]                       View pull request details
   activity [options] [id]         Show pull request activity log
-  checks [id]                     Show CI/CD checks and build status for a pull
+  checks [options] [id]           Show CI/CD checks and build status for a pull
                                   request
   edit [options] [id]             Edit a pull request
   merge [options] [id]            Merge a pull request
@@ -1780,6 +1780,8 @@ exports[`command tree snapshot bb pr checks 1`] = `
     "contextOptions": undefined,
     "options": {
       "id": "id-value",
+      "interval": "interval-value",
+      "watch": true,
     },
     "token": "ChecksPRCommand",
     "via": "runWithGlobalOptions",
@@ -1794,6 +1796,10 @@ Arguments:
                                current branch)
 
 Options:
+  --watch                      Wait until no check is in progress; exits
+                               non-zero if any failed or stopped
+  --interval <seconds>         Seconds between status checks with --watch
+                               (default: "10")
   -h, --help                   display help for command
 
 Global Options:
@@ -1830,7 +1836,12 @@ Global Options:
 Examples:
   $ bb pr checks
   $ bb pr checks 42
+  $ bb pr checks --watch
+  $ bb pr checks 42 --watch && bb pr merge 42
   $ bb pr checks 42 --json
+
+Defaults:
+  --interval  10
 
 "
 ,
@@ -4163,13 +4174,18 @@ Global Options:
 
 Commands:
   list [options]               List pipelines for a repository
-  view <id>                    View pipeline details and step summary (id: build
-                               number or UUID)
+  view [id]                    View pipeline details and step summary (id: build
+                               number or UUID; default: latest run on this
+                               branch)
   run [options]                Trigger a pipeline run
   stop [options] <id>          Stop a running pipeline (id: build number or
                                UUID)
-  logs [options] <id>          Print the log of a pipeline step (id: build
-                               number or UUID)
+  watch [options] [id]         Wait for a pipeline to finish; exits non-zero
+                               unless it passes (default: latest run on this
+                               branch)
+  logs [options] [id]          Print the log of a pipeline step (id: build
+                               number or UUID; default: latest run on this
+                               branch)
   help [command]               display help for command
 "
 ,
@@ -4273,9 +4289,10 @@ exports[`command tree snapshot bb pipeline view 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pipeline view [options] <id>
+"Usage: bb pipeline view [options] [id]
 
-View pipeline details and step summary (id: build number or UUID)
+View pipeline details and step summary (id: build number or UUID; default:
+latest run on this branch)
 
 Options:
   -h, --help                   display help for command
@@ -4312,6 +4329,7 @@ Global Options:
                                BB_ACCOUNT; see bb auth switch)
 
 Examples:
+  $ bb pipeline view
   $ bb pipeline view 42
   $ bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}
   $ bb pipeline view 42 --json --jq '.pipeline.state'
@@ -4457,25 +4475,98 @@ Examples:
 }
 `;
 
-exports[`command tree snapshot bb pipeline logs 1`] = `
+exports[`command tree snapshot bb pipeline watch 1`] = `
 {
   "dispatch": {
     "contextOptions": undefined,
     "options": {
       "id": "id-value",
+      "interval": "interval-value",
+    },
+    "token": "WatchPipelineCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pipeline watch [options] [id]
+
+Wait for a pipeline to finish; exits non-zero unless it passes (default: latest
+run on this branch)
+
+Options:
+  --interval <seconds>         Seconds between status checks (default: "10")
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb pipeline watch
+  $ bb pipeline watch 42
+  $ bb pipeline run && bb pipeline watch
+  $ bb pipeline watch 42 --json --jq '.pipeline.state.result.name'
+
+Defaults:
+  --interval  10
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pipeline logs 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "follow": true,
+      "id": "id-value",
+      "interval": "interval-value",
       "step": "step-value",
     },
     "token": "LogsPipelineCommand",
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pipeline logs [options] <id>
+"Usage: bb pipeline logs [options] [id]
 
-Print the log of a pipeline step (id: build number or UUID)
+Print the log of a pipeline step (id: build number or UUID; default: latest run
+on this branch)
 
 Options:
   -s, --step <uuid-or-index>   Step to fetch (UUID or 1-based index; default:
                                the only step)
+  -f, --follow                 Stream new log output until the run finishes (all
+                               steps unless --step)
+  --interval <seconds>         Seconds between log checks with --follow
+                               (default: "10")
   -h, --help                   display help for command
 
 Global Options:
@@ -4513,7 +4604,11 @@ Examples:
   $ bb pipeline logs 42
   $ bb pipeline logs 42 --step 2
   $ bb pipeline logs 42 --step {step-uuid}
+  $ bb pipeline logs --follow
   $ bb pipeline logs 42 --json --jq '.log'
+
+Defaults:
+  --interval  10
 
 "
 ,

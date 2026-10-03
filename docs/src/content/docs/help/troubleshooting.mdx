@@ -404,8 +404,9 @@ bb pr activity 42   # who requested changes
 
 Common blockers are merge conflicts, unmet required approvals, and failing
 build checks. Inspect repository rules with `bb branch-restriction list --all`.
-`bb pr checks` reads only one page of statuses. For a complete merge gate, use
-the [paginated checks recipe](/recipes/auto-merge-on-ci-green/).
+To wait for running builds first, use `bb pr checks 42 --watch`; it exits
+non-zero if a check failed. For a stricter merge gate, see the
+[auto-merge recipe](/recipes/auto-merge-on-ci-green/).
 
 ---
 
