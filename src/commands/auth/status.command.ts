@@ -66,7 +66,9 @@ export class StatusCommand extends BaseCommand<void, void> {
       if (context.globalOptions.json) {
         const jsonOutput: Record<string, unknown> = {
           authenticated: true,
-          method: authMethod,
+          // Same public names as `auth login --json`; the config stores
+          // API-token auth as `basic` after its HTTP scheme.
+          method: authMethod === 'oauth' ? 'oauth' : 'api_token',
           user: {
             username: user.username,
             displayName: user.display_name,
