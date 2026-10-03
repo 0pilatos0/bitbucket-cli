@@ -136,6 +136,7 @@ import type { UninstallCompletionCommand } from '../commands/completion/uninstal
 import type { PrintCompletionCommand } from '../commands/completion/print.command.js';
 import type { BrowseCommand } from '../commands/browse.command.js';
 import type { ApiCommand } from '../commands/api.command.js';
+import type { DoctorCommand } from '../commands/doctor.command.js';
 
 /**
  * Service tokens for dependency injection
@@ -213,6 +214,7 @@ export const ServiceTokens = {
   // Commands - Top level
   BrowseCommand: token<BrowseCommand>('BrowseCommand'),
   ApiCommand: token<ApiCommand>('ApiCommand'),
+  DoctorCommand: token<DoctorCommand>('DoctorCommand'),
 
   // Commands - PR
   CreatePRCommand: token<CreatePRCommand>('CreatePRCommand'),

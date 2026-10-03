@@ -658,6 +658,25 @@ describe('StatusCommand', () => {
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('Not logged in'))).toBe(true);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('should report authenticated false and exit 1 in json mode when logged out', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      fakeUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    expect(output.logs).toEqual([
+      'json:{"authenticated":false,"account":"default","accounts":[]}',
+    ]);
+    expect(process.exitCode).toBe(1);
   });
 
   it('should show logged in when credentials valid', async () => {
@@ -678,6 +697,7 @@ describe('StatusCommand', () => {
 
     expect(output.logs).toContain('success:Logged in to Bitbucket');
     expect(output.logs.some((log) => log.includes('testuser'))).toBe(true);
+    expect(process.exitCode ?? 0).toBe(0);
   });
 
   it('should show auth method in status', async () => {

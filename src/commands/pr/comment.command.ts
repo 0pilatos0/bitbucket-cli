@@ -14,16 +14,18 @@ import type {
   PullrequestsApi,
   PullrequestComment,
 } from '../../generated/api.js';
+import { resolveCommentText } from '../../services/body-input.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface CommentPROptions extends GlobalOptions {
+  bodyFile?: string;
   file?: string;
   lineTo?: string;
   lineFrom?: string;
 }
 
 export class CommentPRCommand extends BaseCommand<
-  { id: string; message: string } & CommentPROptions,
+  { id: string; message?: string } & CommentPROptions,
   void
 > {
   public readonly name = 'comment';
@@ -38,7 +40,7 @@ export class CommentPRCommand extends BaseCommand<
   }
 
   public async execute(
-    options: { id: string; message: string } & CommentPROptions,
+    options: { id: string; message?: string } & CommentPROptions,
     context: CommandContext
   ): Promise<void> {
     // Validate inline flag combinations
@@ -76,6 +78,12 @@ export class CommentPRCommand extends BaseCommand<
       ? this.parsePositiveInt(options.lineFrom, 'line-from')
       : undefined;
 
+    const message = await resolveCommentText(
+      options.message,
+      options.bodyFile,
+      () => this.readStdin()
+    );
+
     const repoContext = await this.contextService.requireRepoContextFor(
       options,
       context
@@ -96,7 +104,7 @@ export class CommentPRCommand extends BaseCommand<
     // required ModelObject.type is intentionally omitted.
     const body = {
       content: {
-        raw: options.message,
+        raw: message,
       },
       ...(inline ? { inline } : {}),
     } as PullrequestComment;
@@ -137,5 +145,9 @@ export class CommentPRCommand extends BaseCommand<
     } else {
       this.output.success(`Added comment to pull request #${prId}`);
     }
+  }
+
+  protected async readStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 }

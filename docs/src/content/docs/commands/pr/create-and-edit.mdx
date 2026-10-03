@@ -21,27 +21,32 @@ bb pr create [options]
 
 ### Options
 
-| Option                       | Description                                                            |
-| ---------------------------- | ---------------------------------------------------------------------- |
-| `-t, --title <title>`        | PR title (required; asked for in an interactive terminal when missing) |
-| `-b, --body <body>`          | PR description                                                         |
-| `-s, --source <branch>`      | Source branch (default: current branch)                                |
-| `-d, --destination <branch>` | Destination branch (default: main)                                     |
-| `--close-source-branch`      | Close source branch after merge                                        |
-| `--draft`                    | Create the PR as draft                                                 |
-| `--reviewer <user>`          | Add a reviewer by name, email, `@me`, account ID or `{uuid}` (repeatable) |
-| `--default-reviewers`        | Include the repository's default reviewers (opt-in)                    |
-| `--no-default-reviewers`     | Skip default reviewers even when the config key enables them           |
-| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+| Option                       | Description                                                                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| `-t, --title <title>`        | PR title (required; asked for in an interactive terminal when missing)                        |
+| `-b, --body <body>`          | PR description                                                                                |
+| `-F, --body-file <file>`     | Read the description from a file, or `-` for stdin                                            |
+| `-s, --source <branch>`      | Source branch (default: current branch)                                                       |
+| `-d, --destination <branch>` | Destination branch (default: the repository's main branch)                                    |
+| `--close-source-branch`      | Close source branch after merge                                                               |
+| `--draft`                    | Create the PR as draft                                                                        |
+| `--reviewer <user>`          | Add a reviewer by name, email, `@me`, account ID or `{uuid}` (repeatable)                     |
+| `--default-reviewers`        | Include the repository's default reviewers (opt-in)                                           |
+| `--no-default-reviewers`     | Skip default reviewers even when the config key enables them                                  |
+| `--dry-run`                  | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
 ```bash
-# Create a PR from current branch to main
+# Create a PR from the current branch to the repository's main branch
 bb pr create -t "Add new feature"
 
 # Create a PR with full details
 bb pr create -t "Add login page" -b "Implements user login functionality" -d develop
+
+# Read a multi-line markdown description from a file, or from stdin with -
+bb pr create -t "Add login page" -F description.md
+git log -1 --format=%b | bb pr create -t "Add login page" -F -
 
 # Create a PR that will close the source branch after merging
 bb pr create -t "Hotfix: Critical bug" --close-source-branch
@@ -72,8 +77,8 @@ bb pr create -t "Add new feature" --json --jq '.links.html.href'
 
 Run `bb pr create` without `--title` in an interactive terminal and it asks
 for the title, then for an optional one-line description (press Enter to skip
-it; a `--body` you passed is kept and not asked for). Use `--body` for a
-multi-line description. The questions come after the
+it; a `--body` or `--body-file` you passed is kept and not asked for). Use
+`--body-file` for a multi-line description. The questions come after the
 repository and source branch are resolved, so a bad context fails before you
 type anything.
 
@@ -96,6 +101,13 @@ By default `bb pr create` attaches no reviewers. Use `--default-reviewers` to in
 
 See [`bb repo default-reviewers`](/commands/repo/default-reviewers/) to inspect or manage the underlying default reviewer list.
 
+### Notes
+
+- `-F/--body-file` sends the file content exactly as written, so markdown with backticks, quotes or `$` needs no shell escaping
+- Passing both `-b/--body` and `-F/--body-file` fails with `Cannot combine --body with --body-file. Pass one or the other.`
+- `-F -` reads stdin, so it can't also answer the title prompt: pass `--title` with it
+- An unreadable path fails with `Failed to read file '<path>': <reason>`
+
 ---
 
 ## `bb pr edit`
@@ -110,12 +122,12 @@ bb pr edit [id] [options]
 
 ### Options
 
-| Option                   | Description                |
-| ------------------------ | -------------------------- |
-| `-t, --title <title>`    | New PR title               |
-| `-b, --body <body>`      | New PR description         |
-| `-F, --body-file <file>` | Read description from file |
-| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+| Option                   | Description                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `-t, --title <title>`    | New PR title                                                                                  |
+| `-b, --body <body>`      | New PR description                                                                            |
+| `-F, --body-file <file>` | Read the description from a file, or `-` for stdin                                            |
+| `--dry-run`              | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -132,8 +144,9 @@ bb pr edit 42 -t "New title" -b "New description"
 # Auto-detect the PR from the current branch and update the title
 bb pr edit -t "Updated title"
 
-# Read the description from a file
+# Read the description from a file, or from stdin with -
 bb pr edit 42 -F description.md
+cat description.md | bb pr edit 42 -F -
 
 # Get the updated PR as JSON
 bb pr edit 42 -t "New title" --json

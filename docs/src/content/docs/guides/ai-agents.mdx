@@ -14,7 +14,11 @@ Install `bb` and authenticate yourself first. A [standalone binary](/getting-sta
 ```bash
 bb auth login
 bb auth status
+bb doctor
 ```
+
+`bb doctor --json` gives an agent a pass/warn/fail row per check and exits 1
+when something is broken.
 
 Ask your assistant to run `bb --help`, then `bb pr list --all --json`.
 For repeated use, put these instructions in its project rules or skill file:
@@ -28,7 +32,7 @@ Use `bb` for Bitbucket Cloud operations.
 - Use `--json` after the command for structured output. Use `--all` on list
   commands that support it when the task needs every result. Add `--lean` to
   drop link noise, or `--jq <filter> --raw-output` to get plain strings.
-- Workspace and repository come from the origin remote. Pass -w and -r
+- Workspace and repository come from the Bitbucket git remote. Pass -w and -r
   explicitly when operating outside that checkout.
 - Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
   `bb pr comments list <id> --all --unresolved`.
@@ -130,6 +134,16 @@ Read unresolved threads, fix the code, then post and resolve only when authorize
 bb pr comments list 45 --all --unresolved
 bb pr comments reply 45 109820 "Capped retries at 3 attempts in a1b2c3d."
 bb pr comments resolve 45 109820
+```
+
+For multi-line markdown, pass the text on stdin with `-F -` and a quoted
+heredoc, so backticks and `$` reach Bitbucket as written. The same flag works on
+`bb pr create`, `bb pr edit` and `bb pr comments add`:
+
+```bash
+bb pr comments reply 45 109820 -F - <<'EOF'
+Capped retries at 3 attempts in `a1b2c3d`.
+EOF
 ```
 
 ### Draft PR workflow
