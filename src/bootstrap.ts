@@ -167,6 +167,7 @@ import { UninstallCompletionCommand } from './commands/completion/uninstall.comm
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { DoctorCommand } from './commands/doctor.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
 export interface BootstrapOptions {
@@ -1133,6 +1134,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.UrlBuilderService,
+    ServiceTokens.OutputService,
+  ]);
+
+  registerCommand(container, ServiceTokens.DoctorCommand, DoctorCommand, [
+    ServiceTokens.ConfigService,
+    ServiceTokens.ContextService,
+    ServiceTokens.UsersApi,
     ServiceTokens.OutputService,
   ]);
 

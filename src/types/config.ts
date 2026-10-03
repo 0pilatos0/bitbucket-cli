@@ -87,6 +87,14 @@ export const READABLE_CONFIG_KEYS = [
 ] as const;
 export type ReadableConfigKey = (typeof READABLE_CONFIG_KEYS)[number];
 
+/** True when the config holds a complete API token or OAuth credential pair. */
+export function hasStoredCredentials(config: BBConfig): boolean {
+  return Boolean(
+    (config.username && config.apiToken) ||
+    (config.oauthAccessToken && config.oauthRefreshToken)
+  );
+}
+
 export function isValidConfigKey(key: string): key is ConfigKey {
   return CONFIG_KEYS.includes(key as ConfigKey);
 }

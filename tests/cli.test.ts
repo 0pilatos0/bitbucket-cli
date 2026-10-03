@@ -523,6 +523,7 @@ describe('CLI command registration', () => {
       'completion',
       'config',
       'deployment',
+      'doctor',
       'gpg-key',
       'pipeline',
       'pr',

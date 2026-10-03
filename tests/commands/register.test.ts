@@ -84,6 +84,7 @@ describe('registerCommands', () => {
       'api',
       'alias',
       'config',
+      'doctor',
       'completion',
     ]);
   });

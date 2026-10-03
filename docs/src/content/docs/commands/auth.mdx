@@ -119,8 +119,11 @@ bb auth status --json
 
 The displayed username comes from Bitbucket, even when login used an email.
 OAuth adds a token-expiry line. The default workspace appears only when set.
-With no credentials, the command reports `Not logged in` and JSON is
-`{ "authenticated": false }`.
+With no credentials, the command reports `Not logged in`, JSON is
+`{ "authenticated": false }`, and it exits 1 (like `gh auth status`), so
+`bb auth status >/dev/null && ...` only continues when you are logged in.
+Invalid or expired credentials also exit 1. For a wider check of your setup,
+run [`bb doctor`](/commands/doctor/).
 
 `auth status --json` reports `method: "basic"` for API tokens, while
 `auth login --json` reports `method: "api_token"`. Check `authenticated` first,

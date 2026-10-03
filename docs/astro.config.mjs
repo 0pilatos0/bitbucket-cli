@@ -165,6 +165,7 @@ export default defineConfig({
             },
             { label: "Alias Commands", slug: "commands/alias" },
             { label: "Config Commands", slug: "commands/config" },
+            { label: "Doctor", slug: "commands/doctor" },
             { label: "Completion", slug: "commands/completion" },
           ],
         },

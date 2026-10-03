@@ -25,6 +25,7 @@ import type {
   IPromptService,
 } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
+import { hasStoredCredentials } from './types/config.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
 import { buildCommandPath } from './core/command-tree.js';
@@ -388,11 +389,7 @@ cli
         ServiceTokens.ConfigService
       );
       const config = await configService.getConfig();
-      const hasBasicAuth = Boolean(config.username && config.apiToken);
-      const hasOAuth = Boolean(
-        config.oauthAccessToken && config.oauthRefreshToken
-      );
-      if (!hasBasicAuth && !hasOAuth) {
+      if (!hasStoredCredentials(config)) {
         output.text('');
         output.text(
           `Tip: Run '${output.highlight('bb auth login')}' to get started.`

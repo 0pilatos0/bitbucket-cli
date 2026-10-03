@@ -182,6 +182,7 @@ export const ServiceTokens = {
   // Commands - Top level
   BrowseCommand: 'BrowseCommand',
   ApiCommand: 'ApiCommand',
+  DoctorCommand: 'DoctorCommand',
 
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',

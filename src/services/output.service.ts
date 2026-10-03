@@ -67,6 +67,7 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'gpgKeys', // gpg-key list
   'deployments', // deployment list
   'environments', // deployment environments
+  'checks', // doctor
   'values', // generic fallback for paginated payloads
 ];
 

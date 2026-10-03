@@ -10,6 +10,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
+import { hasStoredCredentials } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface AuthStatus {
@@ -41,11 +42,10 @@ export class StatusCommand extends BaseCommand<void, void> {
     const config = await this.configService.getConfig();
     const authMethod = await this.credentialStore.getAuthMethod();
 
-    // Check if any credentials exist
-    const hasBasicAuth = config.username && config.apiToken;
-    const hasOAuth = config.oauthAccessToken && config.oauthRefreshToken;
-
-    if (!hasBasicAuth && !hasOAuth) {
+    if (!hasStoredCredentials(config)) {
+      // Exit 1 like `gh auth status` so scripts can gate on it; the output
+      // stays a status report rather than an error.
+      process.exitCode = 1;
       if (context.globalOptions.json) {
         await this.output.json({ authenticated: false });
         return;

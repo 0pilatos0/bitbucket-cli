@@ -558,6 +558,9 @@ credentials. When no credentials are stored the whole payload is:
 { "authenticated": false }
 ```
 
+The command also exits 1 in that case. Under `set -e`, append `|| true` when
+you want to read the payload instead of stopping.
+
 `method` is spelled differently by the two commands. `auth status` reports the
 stored value, `"basic"` or `"oauth"`; `auth login` reports `"api_token"` or
 `"oauth"` for the same credentials. Check `authenticated` first, then compare the command-specific method value.
