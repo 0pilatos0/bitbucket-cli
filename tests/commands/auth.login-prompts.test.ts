@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { APIError, ErrorCode } from '../../src/types/errors.js';
 import { LoginCommand } from '../../src/commands/auth/login.command.js';
 import {
   createMockConfigService,
@@ -69,10 +70,10 @@ describe('LoginCommand interactive prompts', () => {
     expect(oauthCalls()).toBe(1);
   });
 
-  it('asks for username and token when API token is picked', async () => {
+  it('asks for Atlassian account email and token when API token is picked', async () => {
     const prompt = createMockPromptService([
       'api_token',
-      'promptuser',
+      'prompt@example.com',
       'prompttoken',
     ]);
     const { command, configService, oauthCalls } = buildLogin();
@@ -86,23 +87,55 @@ describe('LoginCommand interactive prompts', () => {
     ]);
     expect(oauthCalls()).toBe(0);
     expect(await configService.getCredentials()).toEqual({
-      username: 'promptuser',
+      username: 'prompt@example.com',
       apiToken: 'prompttoken',
     });
   });
+
+  for (const statusCode of [401, 403]) {
+    it(`guides API token users to verify their email after HTTP ${statusCode}`, async () => {
+      const configService = createMockConfigService();
+      const usersApi = {
+        userGet: async () => {
+          throw new APIError('Access denied', statusCode);
+        },
+      } as unknown as UsersApi;
+      const command = new LoginCommand(
+        configService,
+        usersApi,
+        {} as OAuthService,
+        createMockOutputService()
+      );
+
+      const error = await command
+        .execute(
+          { username: 'you@example.com', password: 'test-token' },
+          { globalOptions: {} }
+        )
+        .catch((error: unknown) => error);
+
+      expect(error).toMatchObject({
+        code: ErrorCode.AUTH_INVALID,
+        message:
+          'Invalid email or token: Access denied. Verify your Atlassian account email and that the API token is current and has the required scopes.',
+      });
+      expect(await configService.getConfig()).not.toHaveProperty('username');
+      expect(await configService.getConfig()).not.toHaveProperty('apiToken');
+    });
+  }
 
   it('only asks for the token when --username is given', async () => {
     const prompt = createMockPromptService(['prompttoken']);
     const { command, configService } = buildLogin();
 
     await command.execute(
-      { username: 'flaguser' },
+      { username: 'flag@example.com' },
       { globalOptions: {}, prompt }
     );
 
     expect(prompt.calls).toEqual(['secret:API token']);
     expect(await configService.getCredentials()).toEqual({
-      username: 'flaguser',
+      username: 'flag@example.com',
       apiToken: 'prompttoken',
     });
   });
@@ -112,7 +145,10 @@ describe('LoginCommand interactive prompts', () => {
     const { command } = buildLogin();
 
     await expect(
-      command.execute({ username: 'flaguser' }, { globalOptions: {}, prompt })
+      command.execute(
+        { username: 'flag@example.com' },
+        { globalOptions: {}, prompt }
+      )
     ).rejects.toThrow('API token is required.');
   });
 
@@ -134,7 +170,7 @@ describe('LoginCommand interactive prompts', () => {
     const { command } = buildLogin();
 
     await command.execute(
-      { username: 'flaguser', password: 'flagtoken' },
+      { username: 'flag@example.com', password: 'flagtoken' },
       { globalOptions: {}, prompt }
     );
 
@@ -146,7 +182,7 @@ describe('LoginCommand interactive prompts', () => {
 
     await command.execute({}, { globalOptions: {} });
     await expect(
-      command.execute({ username: 'flaguser' }, { globalOptions: {} })
+      command.execute({ username: 'flag@example.com' }, { globalOptions: {} })
     ).rejects.toThrow('API token is required.');
 
     expect(oauthCalls()).toBe(1);

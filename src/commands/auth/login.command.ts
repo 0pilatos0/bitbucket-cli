@@ -121,7 +121,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
         message:
-          'Atlassian account email is required. Use --username option or set BB_USERNAME environment variable.',
+          'Atlassian account email is required. Use --username or set BB_USERNAME to your email.',
       });
     }
 

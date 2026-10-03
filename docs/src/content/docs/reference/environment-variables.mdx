@@ -129,8 +129,9 @@ Color, highest priority first. The default with none of them set is colors on:
 4. `NO_COLOR` (any value, including the empty string)
 
 Credentials are **not** a chain. `bb pr list` and every other API call read the
-username and token from the config file only; if nothing is stored there the
-command fails with error 1001 even when `BB_USERNAME` and `BB_API_TOKEN` are
+stored `username` (your Atlassian account email) and API token from the config
+file only; if nothing is stored there the command fails with error 1001 even
+when `BB_USERNAME` and `BB_API_TOKEN` are
 exported. Those two variables are read by `bb auth login` and nowhere else;
 run it once and it writes the config file.
 
