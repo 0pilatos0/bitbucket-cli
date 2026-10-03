@@ -250,7 +250,7 @@ export function substitutePlaceholders(
  * Normalize a user-supplied endpoint into a request URL for the authenticated
  * axios instance (whose baseURL is {@link API_BASE_URL}).
  *
- * - Absolute URLs are allowed ONLY for the Bitbucket API host. This is a
+ * - Absolute URLs require HTTPS and the Bitbucket API host. This is a
  *   security boundary: the request interceptor attaches the user's Bitbucket
  *   token to every call, so an arbitrary absolute URL would leak credentials to
  *   a foreign host.
@@ -267,7 +267,22 @@ export function normalizeEndpoint(endpoint: string): string {
     });
   }
 
-  if (/^https?:\/\//i.test(trimmed)) {
+  if (/[\\\x00-\x1f\x7f]/.test(trimmed)) {
+    throw new BBError({
+      code: ErrorCode.VALIDATION_INVALID,
+      message:
+        'Endpoint URLs must not contain backslashes or control characters.',
+    });
+  }
+
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    if (!/^https:\/\/[^/]/i.test(trimmed)) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message:
+          'Absolute API endpoints must use HTTPS (https://api.bitbucket.org/2.0/...).',
+      });
+    }
     let url: URL;
     try {
       url = new URL(trimmed);
@@ -275,6 +290,12 @@ export function normalizeEndpoint(endpoint: string): string {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
         message: `Invalid URL: ${trimmed}`,
+      });
+    }
+    if (url.username || url.password) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: 'Absolute API endpoints must not include URL credentials.',
       });
     }
     if (url.host !== API_HOST) {
@@ -289,6 +310,13 @@ export function normalizeEndpoint(endpoint: string): string {
 
   let path = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
   path = path.replace(/^\/2\.0(?=\/|$)/, '');
+  if (path.startsWith('//')) {
+    throw new BBError({
+      code: ErrorCode.VALIDATION_INVALID,
+      message:
+        'Protocol-relative API endpoints are not supported. Use a relative path or an HTTPS URL.',
+    });
+  }
   return path === '' ? '/' : path;
 }
 

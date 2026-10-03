@@ -1,0 +1,71 @@
+---
+title: Repository default reviewers
+description: Manage repository defaults and inherited project reviewers.
+---
+
+See [Global flags](/reference/global-flags/) for JSON output and workspace/repository selection.
+
+## `bb repo default-reviewers`
+
+Default reviewers are auto-suggested when someone opens a pull request in Bitbucket's web UI. This group reads and edits that list.
+
+### `bb repo default-reviewers list`
+
+```bash
+bb repo default-reviewers list [options]
+```
+
+By default the **effective** reviewer list is shown: reviewers configured directly on the repository _and_ reviewers inherited from the parent project, matching what Bitbucket's web UI would auto-populate.
+
+| Option        | Description                                                                  |
+| ------------- | ---------------------------------------------------------------------------- |
+| `--repo-only` | Only show reviewers configured on the repository (exclude project-inherited) |
+
+```bash
+# Effective list (repo + project-inherited)
+bb repo default-reviewers list
+
+# Only repo-level entries
+bb repo default-reviewers list --repo-only
+
+# JSON for scripting
+bb repo default-reviewers list --json
+```
+
+`--json` emits `{ workspace, repoSlug, mode, count, reviewers }`, where `mode` is `effective` or `direct`.
+
+### `bb repo default-reviewers add`
+
+```bash
+bb repo default-reviewers add <user>
+```
+
+Adds a user as a default reviewer on the repository. Requires repository admin permission.
+
+`<user>` accepts an account ID or a UUID in braces, not a nickname. See
+[Identifying users](/commands/pr/reviewers/#identifying-users) for how to find
+these IDs.
+
+```bash
+bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
+bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
+```
+
+### `bb repo default-reviewers remove`
+
+```bash
+bb repo default-reviewers remove <user> --yes
+```
+
+Removes a user from the repository's default reviewers. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)). Requires repository admin permission.
+
+`<user>` accepts the same identifiers as `add` (account ID or `{uuid}`).
+
+```bash
+bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
+```
+
+### Notes
+
+- Project-inherited reviewers can only be removed by editing the parent project, not the repository.
+- Related: [`bb pr create --default-reviewers`](/commands/pr/create-and-edit/) applies these reviewers when opening a pull request.

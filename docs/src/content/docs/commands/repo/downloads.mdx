@@ -1,0 +1,61 @@
+---
+title: Repository downloads
+description: List, upload, and delete repository downloads.
+---
+
+See [Global flags](/reference/global-flags/) for JSON output and workspace/repository selection.
+
+## `bb repo downloads`
+
+Manage the files in a repository's **Downloads** section (release archives, installers, and other build artifacts).
+
+:::note
+Bitbucket only offers Downloads on Standard and Premium workspace plans. On a Free plan every `bb repo downloads` command fails with Bitbucket's `A workspace on a Free plan does not support uploading or downloading files.` message.
+:::
+
+### `bb repo downloads list`
+
+```bash
+bb repo downloads list [options]
+```
+
+| Option             | Description                               | Default |
+| ------------------ | ----------------------------------------- | ------- |
+| `--limit <number>` | Maximum number of downloads               | 25      |
+| `--all`            | List every download (overrides `--limit`) |         |
+
+```bash
+bb repo downloads list
+bb repo downloads list --json --jq '.downloads[].name'
+```
+
+The table shows name, size in bytes, download count, uploader, and upload date. The `--json` envelope is `{ workspace, repoSlug, count, downloads }`; each download object includes its `links.self.href` URL.
+
+### `bb repo downloads upload`
+
+```bash
+bb repo downloads upload <files...>
+```
+
+Uploads one or more local files in a single request. Each artifact is named after the file's basename, and an existing artifact with the same name is replaced.
+
+```bash
+bb repo downloads upload dist/app-1.0.0.tar.gz
+bb repo downloads upload build/*.zip
+```
+
+`--json` emits `{ success, workspace, repoSlug, uploaded }`, where `uploaded` lists the artifact names. A missing file, a directory, or two files sharing a basename fails before anything is sent.
+
+The upload gets the HTTP timeout (30 seconds by default, see [`BB_HTTP_TIMEOUT`](/reference/environment-variables/)) plus transfer time for the total file size at 32 KiB/s, so large artifacts do not need a raised timeout. `BB_HTTP_TIMEOUT=0` disables it.
+
+### `bb repo downloads delete`
+
+```bash
+bb repo downloads delete <filename> --yes
+```
+
+| Option      | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+
+`--json` emits `{ success, workspace, repoSlug, filename }`.

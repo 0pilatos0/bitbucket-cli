@@ -17,7 +17,7 @@ export function registerAuthCommands(
     .description('Authenticate with Bitbucket (OAuth or API token)')
     .option(
       '-u, --username <username>',
-      'Bitbucket username (implies API token auth)'
+      'Atlassian account email (implies API token auth)'
     )
     .option(
       '-p, --password <password>',
@@ -25,7 +25,7 @@ export function registerAuthCommands(
     )
     .option(
       '--app-password',
-      'Use API token authentication (instead of OAuth). App passwords are deprecated; use API tokens.'
+      'Use API token authentication (instead of OAuth). App passwords are retired; use API tokens.'
     )
     .option(
       '--with-token',
@@ -38,25 +38,26 @@ export function registerAuthCommands(
     )
     .addHelpText(
       'before',
-      '\nDefault: OAuth (browser-based, recommended).\n' +
+      '\nInteractive: choose OAuth or an API token. Non-interactive default: OAuth.\n' +
         'For CI/CD: API token via --app-password or BB_API_TOKEN env var.\n' +
         'For headless/secret-safe: pipe the token in with --with-token.\n' +
         'OAuth needs a loopback browser (http://localhost:19872/callback); there\n' +
         'is no device-code flow, so use token auth on headless hosts.\n' +
-        'Note: Bitbucket app passwords are deprecated; use OAuth or an API token.\n'
+        'Note: Bitbucket app passwords are retired; use OAuth or an API token.\n'
     )
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
           'bb auth login',
-          'bb auth login --app-password -u myuser -p mytoken',
-          'echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token',
-          'bb auth login --client-id <id>',
-          'BB_USERNAME=myuser BB_API_TOKEN=mytoken bb auth login',
+          'bb auth login -u you@example.com --with-token < token.txt',
+          'printf \'%s\' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token',
+          'bb auth login --client-id <id> --client-secret <secret>',
+          'BB_USERNAME=you@example.com bb auth login --with-token < token.txt',
         ],
         envVars: {
-          BB_USERNAME: 'Used when --username is not provided',
+          BB_USERNAME:
+            'Atlassian account email used when --username is not provided',
           BB_API_TOKEN:
             'Used when --password is not provided (implies API token auth)',
         },

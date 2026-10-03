@@ -1,29 +1,27 @@
 ---
 /**
- * Ascetic principles — numbered hairline rows explaining the
- * design contract of the CLI. Copy is kept factual: exit codes
- * claim follows reference/error-codes (numeric codes, exit = 1).
+ * Output and runtime behavior at a glance.
  */
 const principles = [
   {
     title: 'Machines are users too',
-    body: '<code>--json id,title</code> projects exactly the fields you name; dotted paths keep their full key as the object key.',
+    body: 'Use <code>--json</code> for structured output and <code>--jq</code> to select values. See the <a href="/reference/json-output/">JSON reference</a> for command shapes and projection limits.',
   },
   {
     title: 'No jq dependency',
-    body: '<code>--jq</code> evaluates in-process. It works in the most minimal CI image you can build.',
+    body: '<code>--jq</code> evaluates in-process without an external jq binary. Windows requires Bun 1.4.2+.',
   },
   {
     title: 'Error codes you can branch on',
-    body: 'Every failure carries a numeric <code>code</code> in the JSON payload — the process exit status stays <code>1</code>. All codes are documented in the reference.',
+    body: 'Command errors under <code>--json</code> include a numeric <code>code</code>. Argument-parser errors can remain plain text; interrupted prompts exit with <code>130</code>.',
   },
   {
-    title: "Types can't drift",
+    title: 'Generated API client',
     body: 'The API client is generated from one pinned OpenAPI spec; CI fails if the generated code drifts from it.',
   },
   {
-    title: 'Secrets stay put',
-    body: 'Credentials are stored with <code>0600</code> permissions in your platform\'s config directory. Never logged, never printed.',
+    title: 'Local credential storage',
+    body: 'Credentials are stored with <code>0600</code> permissions in your platform\'s config directory. The file holds plaintext credentials. <code>bb auth token</code> deliberately prints credentials for scripts.',
   },
 ];
 ---

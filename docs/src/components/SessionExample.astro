@@ -9,20 +9,20 @@
 
 <div class="bb-session">
   <div class="bar">
-    <span>example — run from any Bitbucket checkout</span>
+    <span>example, run from any Bitbucket checkout</span>
     <span>context is automatic</span>
   </div>
   <div class="body">
     <div class="ln c"># workspace and repo resolved from your git remote</div>
     <div class="gap"></div>
-    <div class="ln"><span class="p">$</span><span>bb pr list <span class="k">--state</span> OPEN</span></div>
-    <div class="ln out g">#47   feat: streaming pipeline logs   OPEN</div>
-    <div class="ln out g">#46   fix: retry on 429 rate limits   OPEN</div>
+    <div class="ln"><span class="p">$</span><span>bb pr list <span class="k">--json</span> <span class="k">--jq</span> <span class="k">'.pullRequests[].title'</span></span></div>
+    <div class="ln out g">"feat: streaming pipeline logs"</div>
+    <div class="ln out g">"fix: retry on 429 rate limits"</div>
     <div class="gap"></div>
     <div class="ln"><span class="p">$</span><span>bb pr merge <span class="k">47</span> <span class="k">--strategy</span> squash</span></div>
-    <div class="ln out ok">✓ Merged pull request #47 into main (squash)</div>
+    <div class="ln out ok">✓ Merged pull request #47: feat: streaming pipeline logs</div>
     <div class="gap"></div>
-    <div class="ln"><span class="p">$</span><span>bb pipeline run <span class="k">--branch</span> main <span class="k">--json</span> <span class="k">--jq</span> <span class="k">'.build_number'</span></span></div>
+    <div class="ln"><span class="p">$</span><span>bb pipeline run <span class="k">--branch</span> main <span class="k">--json</span> <span class="k">--jq</span> <span class="k">'.pipeline.build_number'</span></span></div>
     <div class="ln out g">313<span class="caret" aria-hidden="true"></span></div>
   </div>
 </div>

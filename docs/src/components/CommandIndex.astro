@@ -1,37 +1,35 @@
 ---
 /**
- * Ascetic command index — all command groups in two hairline
- * columns of rows. At rest: group, description, subcommand count.
- * On hover: the count swaps for a real example command. Pure CSS.
+ * Command groups with descriptions and example invocations.
  */
 const groups = [
-  { n: 'bb pr', d: 'full pull-request lifecycle, comments, reviewers', c: 24, ex: 'bb pr merge 42 --strategy squash' },
-  { n: 'bb repo', d: 'clone, create, list, view, delete', c: 8, ex: 'bb repo clone workspace/repo' },
-  { n: 'bb pipeline', d: 'run, watch, logs, stop', c: 7, ex: 'bb pipeline logs 42' },
-  { n: 'bb commit', d: 'history and build statuses', c: 4, ex: 'bb commit list --limit 10' },
-  { n: 'bb snippet', d: 'create and share snippets', c: 4, ex: 'bb snippet create -t notes -f a.txt' },
-  { n: 'bb config', d: 'manage local configuration', c: 3, ex: 'bb config set editor vim' },
-  { n: 'bb auth', d: 'login, logout, whoami', c: 3, ex: 'bb auth login' },
-  { n: 'bb project', d: 'projects inside workspaces', c: 3, ex: 'bb project view PROJ' },
-  { n: 'bb webhook', d: 'repository and workspace webhooks', c: 4, ex: 'bb webhook list' },
-  { n: 'bb branch-restriction', d: 'branch protection rules', c: 4, ex: 'bb branch-restriction list' },
-  { n: 'bb deployment', d: 'deployments and environments', c: 3, ex: 'bb deployment list' },
-  { n: 'bb ssh-key', d: 'SSH keys on your account', c: 3, ex: 'bb ssh-key add ~/.ssh/id_ed25519.pub' },
-  { n: 'bb gpg-key', d: 'GPG keys for signed commits', c: 3, ex: 'bb gpg-key list' },
-  { n: 'bb workspace', d: 'workspaces you belong to', c: 2, ex: 'bb workspace list' },
-  { n: 'bb status', d: 'publish commit build statuses', c: 1, ex: 'bb status set abc1234 --state SUCCESSFUL' },
-  { n: 'bb alias', d: 'personal command shortcuts', c: 1, ex: "bb alias set co 'pr checkout'" },
-  { n: 'bb search', d: 'code search across a workspace', c: 1, ex: 'bb search code parseConfig' },
-  { n: 'bb browse', d: 'open the web UI at PRs, files, lines', c: 1, ex: 'bb browse src/cli.ts:20' },
-  { n: 'bb api', d: 'raw 2.0 endpoints, paginated', c: 1, ex: 'bb api /user' },
-  { n: 'bb completion', d: 'shell completions', c: 1, ex: 'bb completion zsh' },
+  { n: 'bb pr', d: 'full pull-request lifecycle, comments, reviewers', ex: 'bb pr merge 42 --strategy squash' },
+  { n: 'bb repo', d: 'clone, create, list, view, delete', ex: 'bb repo clone workspace/repo' },
+  { n: 'bb pipeline', d: 'run, view, logs, stop', ex: 'bb pipeline logs 42' },
+  { n: 'bb commit', d: 'commit history and details', ex: 'bb commit list --limit 10' },
+  { n: 'bb snippet', d: 'create and share snippets', ex: 'bb snippet create -t notes -f a.txt' },
+  { n: 'bb config', d: 'manage local configuration', ex: 'bb config set defaultWorkspace myworkspace' },
+  { n: 'bb auth', d: 'login, logout, status, token', ex: 'bb auth login' },
+  { n: 'bb project', d: 'projects inside workspaces', ex: 'bb project view PROJ' },
+  { n: 'bb webhook', d: 'repository and workspace webhooks', ex: 'bb webhook list' },
+  { n: 'bb branch-restriction', d: 'branch protection rules', ex: 'bb branch-restriction list' },
+  { n: 'bb deployment', d: 'deployments and environments', ex: 'bb deployment list' },
+  { n: 'bb ssh-key', d: 'SSH keys on your account', ex: 'bb ssh-key add ~/.ssh/id_ed25519.pub' },
+  { n: 'bb gpg-key', d: 'GPG keys for signed commits', ex: 'bb gpg-key list' },
+  { n: 'bb workspace', d: 'workspaces you belong to', ex: 'bb workspace list' },
+  { n: 'bb status', d: 'publish commit build statuses', ex: 'bb status set abc1234 --key build --state SUCCESSFUL' },
+  { n: 'bb alias', d: 'personal command shortcuts', ex: "bb alias set co 'pr checkout'" },
+  { n: 'bb search', d: 'code search across a workspace', ex: 'bb search code parseConfig' },
+  { n: 'bb browse', d: 'open the web UI at PRs, files, lines', ex: 'bb browse src/cli.ts:20' },
+  { n: 'bb api', d: 'raw 2.0 endpoints, paginated', ex: 'bb api /user' },
+  { n: 'bb completion', d: 'shell completions', ex: 'bb completion install' },
 ];
 ---
 
 <div class="bb-commands">
   <div class="bb-refhead">
     <span>Commands</span>
-    <span class="cnt">20 command groups</span>
+    <span class="cnt">{groups.length} command groups</span>
   </div>
   <div class="bb-groups">
     {
@@ -40,7 +38,6 @@ const groups = [
           <span class="n">{g.n}</span>
           <span class="d">{g.d}</span>
           <span class="right">
-            <span class="cnt">{g.c}</span>
             <span class="ex">{g.ex}</span>
           </span>
         </a>
@@ -71,7 +68,7 @@ const groups = [
   }
   .group {
     display: grid;
-    grid-template-columns: 6.5rem 1fr 11.5rem;
+    grid-template-columns: 11rem minmax(0, 1fr);
     gap: 0.75rem;
     padding: 0.5625rem 0.625rem;
     margin: 0 -0.625rem;
@@ -99,7 +96,7 @@ const groups = [
     color: var(--bb-fg-3);
   }
   .group .right {
-    text-align: right;
+    grid-column: 2;
     font-family: var(--bb-font-mono);
     font-size: 0.7188rem;
     color: var(--bb-fg-3);
@@ -108,8 +105,7 @@ const groups = [
     text-overflow: ellipsis;
   }
   .group .right .ex {
-    display: none;
-    color: var(--sl-color-accent);
+    color: var(--bb-fg-3);
   }
   .group:hover {
     background: var(--bb-bg-sub);
@@ -117,16 +113,10 @@ const groups = [
   .group:hover .n {
     color: var(--sl-color-accent);
   }
-  .group:hover .right .cnt {
-    display: none;
-  }
-  .group:hover .right .ex {
-    display: inline;
-  }
 
   @media (max-width: 800px) {
     .group {
-      grid-template-columns: 6rem 1fr;
+      grid-template-columns: 1fr;
     }
     .group .right {
       display: none;

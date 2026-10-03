@@ -1,0 +1,147 @@
+---
+title: Snippet comments
+description: List, add, edit, and delete comments on Bitbucket snippets.
+---
+
+See [Global flags](/reference/global-flags/) for JSON output and workspace/repository selection.
+
+## `bb snippet comments list`
+
+List comments on a snippet.
+
+```bash
+bb snippet comments list <id> [options]
+```
+
+### Arguments
+
+| Argument | Description                      |
+| -------- | -------------------------------- |
+| `id`     | Snippet encoded ID (e.g. `kypj`) |
+
+### Options
+
+| Option             | Description                              |
+| ------------------ | ---------------------------------------- |
+| `--limit <number>` | Maximum number of comments (default: 25) |
+| `--all`            | List all comments (overrides `--limit`)  |
+
+### Examples
+
+```bash
+bb snippet comments list kypj
+bb snippet comments list kypj --all
+bb snippet comments list kypj --limit 50 --json
+```
+
+### Notes
+
+- Table columns: ID, AUTHOR, DATE, CONTENT.
+- CONTENT is truncated to 60 characters; pass the global `--no-truncate` for
+  full comment bodies (`--json` always carries the full value). DATE is
+  formatted with `--locale`/`BB_LOCALE`, falling back to the system locale and
+  then `en-US`.
+- **JSON envelope:** `{ workspace, snippetId, count, comments }`.
+
+---
+
+## `bb snippet comments add`
+
+Add a comment to a snippet.
+
+```bash
+bb snippet comments add <id> [message] [options]
+```
+
+### Arguments
+
+| Argument  | Description                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------- |
+| `id`      | Snippet encoded ID (e.g. `kypj`)                                                                                  |
+| `message` | Comment body. Alternative to `-m, --message`; one of the two is required. The positional wins if both are passed. |
+
+### Options
+
+| Option                 | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| `-m, --message <text>` | Comment body (alternative to the positional `message`) |
+
+### Examples
+
+```bash
+bb snippet comments add kypj "Great snippet!"
+bb snippet comments add kypj -m "Great snippet!"
+bb snippet comments add kypj "Great snippet!" --json
+```
+
+### Notes
+
+- Omitting both forms fails with
+  `Comment message is required. Use --message option.`
+- **JSON envelope:** `{ success, snippetId, comment }` with the created comment.
+
+---
+
+## `bb snippet comments edit`
+
+Edit a comment on a snippet.
+
+```bash
+bb snippet comments edit <snippet-id> <comment-id> <message> [options]
+```
+
+### Arguments
+
+| Argument     | Description                         |
+| ------------ | ----------------------------------- |
+| `snippet-id` | Snippet encoded ID (e.g. `kypj`)    |
+| `comment-id` | Numeric comment ID (e.g. `123`)     |
+| `message`    | Replacement comment body (Markdown) |
+
+### Examples
+
+```bash
+bb snippet comments edit kypj 123 "Updated comment"
+bb snippet comments edit kypj 123 "Updated comment" --json
+```
+
+### Notes
+
+- The message replaces the existing body outright.
+- **JSON envelope:** `{ success, snippetId, comment }` with the updated comment.
+
+---
+
+## `bb snippet comments delete`
+
+Delete a comment on a snippet.
+
+```bash
+bb snippet comments delete <snippet-id> <comment-id> [options]
+```
+
+### Arguments
+
+| Argument     | Description                      |
+| ------------ | -------------------------------- |
+| `snippet-id` | Snippet encoded ID (e.g. `kypj`) |
+| `comment-id` | Numeric comment ID (e.g. `123`)  |
+
+### Options
+
+| Option      | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+
+### Examples
+
+```bash
+bb snippet comments delete kypj 123 --yes
+```
+
+### Notes
+
+- Without `--yes` the command asks `Continue? (y/N)` in an interactive
+  terminal. Anywhere else (see [`--no-input`](/reference/global-flags/#--no-input)) it fails with
+  `This will permanently delete comment #<comment-id> on snippet <snippet-id>.`
+- **JSON envelope:** `{ success, snippetId, commentId }`.

@@ -52,10 +52,13 @@ export class ListCommitsCommand extends BaseCommand<ListCommitsOptions, void> {
     await this.runList<BaseCommit>(
       {
         options,
-        fetchPage: async (page, pagelen) => {
-          // Pagination params are not modeled on the generated request
-          // interfaces; they go through raw axios params.
-          const axiosOptions = { params: { page, pagelen } };
+        // Commit history uses iterator pagination, even if a size is returned.
+        concurrency: 1,
+        fetchPage: async (_page, pagelen, next) => {
+          // Keep the generated endpoint fixed; only carry forward the query.
+          const axiosOptions = {
+            params: next ? new URL(next).searchParams : { pagelen },
+          };
           const response = ref
             ? await this.commitsApi
                 .repositoriesWorkspaceRepoSlugCommitsRevisionGet(

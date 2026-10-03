@@ -149,7 +149,7 @@ describe('createApiClient - 401 refresh replay', () => {
 });
 
 describe('createApiClient - retry matrix completion', () => {
-  it('retries a 504 and succeeds', async () => {
+  it.each(['GET', 'HEAD', 'OPTIONS'])('retries %s on a 504', async (method) => {
     const mockAdapter = createMockAdapter([
       { status: 504, data: {} },
       { status: 200, data: { ok: true } },
@@ -160,13 +160,46 @@ describe('createApiClient - retry matrix completion', () => {
     );
     client.defaults.adapter = mockAdapter.adapter;
 
-    const response = await client.get('/test');
+    const response = await client.request({ method, url: '/test' });
 
     expect(response.status).toBe(200);
     expect(mockAdapter.getCallCount()).toBe(2);
   });
 
-  it('retries POST on 429 (status-code retries apply to all methods)', async () => {
+  it.each(['POST', 'PUT', 'PATCH', 'DELETE'])(
+    'does not replay %s after a gateway/server error',
+    async (method) => {
+      for (const status of [502, 503, 504]) {
+        const mockAdapter = createMockAdapter([
+          { status, data: { error: { message: 'Gateway failure' } } },
+          { status: 200, data: { ok: true } },
+        ]);
+        const output = createMockOutputService();
+        const client = createApiClient(mockConfigService(), output);
+        client.defaults.adapter = mockAdapter.adapter;
+
+        const error = await client
+          .request({
+            method,
+            url: '/repositories/ws/repo/pipelines/',
+            data: {},
+          })
+          .catch((err: unknown) => err);
+
+        expect(error).toBeInstanceOf(APIError);
+        expect(error).toMatchObject({
+          code: ErrorCode.API_SERVER_ERROR,
+          statusCode: status,
+          message: 'Gateway failure',
+          context: { status, method, url: '/repositories/ws/repo/pipelines/' },
+        });
+        expect(mockAdapter.getCallCount()).toBe(1);
+        expect(output.logs).toHaveLength(0);
+      }
+    }
+  );
+
+  it('retries POST on 429 as an explicit rate-limit policy', async () => {
     const mockAdapter = createMockAdapter([
       { status: 429, data: {} },
       { status: 200, data: { ok: true } },
@@ -181,6 +214,41 @@ describe('createApiClient - retry matrix completion', () => {
 
     expect(response.status).toBe(200);
     expect(mockAdapter.getCallCount()).toBe(2);
+  });
+
+  it('stops replaying POST when a 429 retry receives a 504', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 429, data: {} },
+      { status: 504, data: {} },
+      { status: 201, data: { uuid: 'duplicate-pipeline' } },
+    ]);
+    const output = createMockOutputService();
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter;
+
+    await expect(client.post('/pipelines', {})).rejects.toMatchObject({
+      statusCode: 504,
+      code: ErrorCode.API_SERVER_ERROR,
+    });
+
+    expect(mockAdapter.getCallCount()).toBe(2);
+    expect(output.logs).toHaveLength(1);
+    expect(output.logs[0]).toStartWith('warning:Rate limited');
+  });
+
+  it('keeps safe server-error retries silent in JSON mode', async () => {
+    const mockAdapter = createMockAdapter([
+      { status: 503, data: {} },
+      { status: 200, data: {} },
+    ]);
+    const output = createMockOutputService();
+    output.setJsonFormatOptions({ json: true });
+    const client = createApiClient(mockConfigService(), output);
+    client.defaults.adapter = mockAdapter.adapter;
+
+    expect((await client.get('/test')).status).toBe(200);
+    expect(mockAdapter.getCallCount()).toBe(2);
+    expect(output.logs).toHaveLength(0);
   });
 
   it.each([502, 503, 504])(

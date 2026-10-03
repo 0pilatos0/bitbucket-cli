@@ -321,7 +321,7 @@ cli
       // it here instead.
       examples: ['bb help pr', 'bb pr list --json'],
       envVars: {
-        BB_USERNAME: 'Bitbucket username (fallback for auth login)',
+        BB_USERNAME: 'Atlassian account email (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
         BB_WORKSPACE:
           'Default workspace (overrides config.defaultWorkspace; --workspace still wins)',

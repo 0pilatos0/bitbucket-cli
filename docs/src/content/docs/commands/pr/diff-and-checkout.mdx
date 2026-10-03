@@ -7,7 +7,7 @@ sidebar:
 
 Review pull request changes with local checkout and diff tooling.
 
-Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 ## `bb pr checkout`
 
@@ -19,17 +19,13 @@ bb pr checkout <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
+| Argument | Description     |
+| -------- | --------------- |
+| `id`     | Pull request ID |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
-| `--json` | Output as JSON |
+Only [global flags](/reference/global-flags/) apply.
 
 ### Examples
 
@@ -63,21 +59,18 @@ bb pr diff [id] [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID (optional - auto-detects from current branch) |
+| Argument | Description                                                   |
+| -------- | ------------------------------------------------------------- |
+| `id`     | Pull request ID (optional - auto-detects from current branch) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-r, --repo <repo>` | Repository |
+| Option           | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
 | `--color <when>` | Colorize output: `auto`, `always`, `never` (default: auto) |
-| `--name-only` | Show only names of changed files |
-| `--stat` | Show diffstat (files changed, insertions, deletions) |
-| `--web` | Open diff in web browser |
-| `--json` | Output as JSON |
+| `--name-only`    | Show only names of changed files                           |
+| `--stat`         | Show diffstat (files changed, insertions, deletions)       |
+| `--web`          | Open diff in web browser                                   |
 
 ### Examples
 
@@ -117,12 +110,18 @@ docs/README.md | -8
 3 files changed, 16 insertions(+), 11 deletions(-)
 ```
 
+:::caution[Diffstat can be incomplete]
+`--stat` and `--name-only` fetch one diffstat page. For a large PR, file counts
+and addition/deletion totals may cover only part of the changes. For complete
+totals, use the [paginated reporting recipe](/recipes/reporting-analytics/).
+:::
+
 ### Notes
 
 - When no ID is provided, the command searches for an open pull request whose source branch matches your current git branch
-- `--color auto` colors the diff only when stdout is a terminal: green for additions, red for deletions, cyan for hunk headers. Whole lines are colored by their leading marker — there is no language-aware highlighting
+- `--color auto` colors the diff only when stdout is a terminal: green for additions, red for deletions, cyan for hunk headers. Whole lines are colored by their leading marker, there is no language-aware highlighting
 - `--color never` forces plain text, which is what you want when redirecting to a file or piping into another command. The global `--no-color` flag does the same for every command
 - The value is validated before the request. A typo fails with `--color must be one of: auto, always, never` plus a `(Did you mean never?)` suggestion, rather than silently falling back
-- Passing `--color <when>` at all turns the *global* color setting on, because the CLI resolves color by scanning raw argv for a `--color` token. `bb pr diff 42 --color never` still leaves the diff body uncolored, but it overrides `--no-color` and `NO_COLOR` for everything else that invocation prints. See [Global Flags → Precedence summary](/reference/global-flags/#precedence-summary)
+- Passing `--color <when>` at all turns the _global_ color setting on, because the CLI resolves color by scanning raw argv for a `--color` token. `bb pr diff 42 --color never` still leaves the diff body uncolored, but it overrides `--no-color` and `NO_COLOR` for everything else that invocation prints. See [Global Flags → Precedence summary](/reference/global-flags/#precedence-summary)
 - `-w` is the global short alias for `--workspace`. To open the diff in a browser you must spell out `--web`
 - For opening other Bitbucket pages (PR detail, files, commits, pipelines, settings) in the browser, see [`bb browse`](/commands/browse/)

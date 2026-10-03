@@ -78,7 +78,7 @@ describe('LoginCommand', () => {
 
     await expect(
       command.execute({ appPassword: true }, { globalOptions: {} })
-    ).rejects.toThrow('Username is required');
+    ).rejects.toThrow('Atlassian account email is required');
   });
 
   it('should fail when password is not provided for app-password flow', async () => {
@@ -487,7 +487,7 @@ describe('LoginCommand', () => {
 
     await expect(
       command.execute({ withToken: true }, { globalOptions: {} })
-    ).rejects.toThrow('Username is required');
+    ).rejects.toThrow('Atlassian account email is required');
   });
 
   it('should pass clientId and clientSecret to OAuth service', async () => {

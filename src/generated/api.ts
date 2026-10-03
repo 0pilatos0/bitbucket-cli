@@ -2059,14 +2059,7 @@ export interface PaginatedTreeentries {
  * A paginated list of webhook subscriptions
  */
 export interface PaginatedWebhookSubscriptions {
-    /**
-     * Total number of objects in the response. This is an optional element that is not provided in all responses, as it can be expensive to compute.
-     */
-    'size'?: number;
-    /**
-     * Page number of the current results. This is an optional element that is not provided in all responses.
-     */
-    'page'?: number;
+    'values'?: Set<WebhookSubscription>;
     /**
      * Current number of objects on the existing page. The default value is 10 with 100 being the maximum allowed value. Individual APIs may enforce different values.
      */
@@ -2075,11 +2068,6 @@ export interface PaginatedWebhookSubscriptions {
      * Link to the next page if it exists. The last page of a collection does not have this value. Use this link to navigate the result set and refrain from constructing your own URLs.
      */
     'next'?: string;
-    /**
-     * Link to previous page if it exists. A collections first page does not have this value. This is an optional element that is not provided in all responses. Some result sets strictly support forward navigation and never provide previous links. Clients must anticipate that backwards navigation is not always available. Use this link to navigate the result set and refrain from constructing your own URLs.
-     */
-    'previous'?: string;
-    'values'?: Set<WebhookSubscription>;
 }
 /**
  * A paginated list of workspace permissions.
@@ -3777,7 +3765,7 @@ export interface UserLinks {
 }
 export interface WebhookSubscription extends ModelObject {
     /**
-     * The webhook\'s id
+     * The webhook\'s id.
      */
     'uuid'?: string;
     /**
@@ -3793,7 +3781,13 @@ export interface WebhookSubscription extends ModelObject {
      */
     'subject_type'?: WebhookSubscriptionSubjectTypeEnum;
     'subject'?: object;
+    /**
+     * Whether or not the webhook subscription is enabled.
+     */
     'active'?: boolean;
+    /**
+     * The timestamp when the webhook subscription was created.
+     */
     'created_at'?: string;
     /**
      * The events this webhook is subscribed to.
@@ -3804,9 +3798,10 @@ export interface WebhookSubscription extends ModelObject {
      */
     'secret_set'?: boolean;
     /**
-     * The secret to associate with the hook. The secret is never returned via the API. As such, this field is only used during updates. The secret can be set to `null` or \"\" to remove the secret (or create a hook with no secret). Leaving out the secret field during updates will leave the secret unchanged. Leaving out the secret during creation will create a hook with no secret.
+     * The secret to associate with the hook. The secret is never returned via the API. As such, this field is only used during updates. The secret can be set to `null`` or `\"\"`` to remove the secret (or create a hook with no secret). Leaving out the secret field during updates will leave the secret unchanged. Leaving out the secret during creation will create a hook with no secret.
      */
     'secret'?: string;
+    'links'?: WebhooksSubscriptionLinks;
 }
 
 export const WebhookSubscriptionSubjectTypeEnum = {
@@ -3849,6 +3844,17 @@ export const WebhookSubscriptionEventsEnum = {
 
 export type WebhookSubscriptionEventsEnum = typeof WebhookSubscriptionEventsEnum[keyof typeof WebhookSubscriptionEventsEnum];
 
+export interface WebhooksSubscriptionLink {
+    'href'?: string;
+}
+/**
+ * A link to a resource related to this object.
+ */
+export interface WebhooksSubscriptionLinks {
+    [key: string]: any;
+
+    'self'?: WebhooksSubscriptionLink;
+}
 export interface Workspace extends ModelObject {
     'links'?: object;
     /**
@@ -31584,6 +31590,215 @@ export class ReportsApi extends BaseAPI implements ReportsApiInterface {
 export const RepositoriesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryHook: async (workspace: string, repoSlug: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('createRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('createRepositoryHook', 'body', body)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryHook: async (workspace: string, repoSlug: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'uid', uid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryHook: async (workspace: string, repoSlug: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('getRepositoryHook', 'uid', uid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this repository.
+         * @summary List webhooks for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listRepositoryHooks: async (workspace: string, repoSlug: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('listRepositoryHooks', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('listRepositoryHooks', 'repoSlug', repoSlug)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
@@ -31928,273 +32143,6 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this repository.
-         * @summary List webhooks for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksGet', 'repoSlug', repoSlug)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksGet', 'workspace', workspace)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksPost: async (repoSlug: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'repoSlug', repoSlug)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'body', body)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidDelete: async (repoSlug: string, uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'workspace', workspace)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidGet: async (repoSlug: string, uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'workspace', workspace)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidPut: async (repoSlug: string, uid: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'body', body)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -33084,6 +33032,64 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+         * @summary Update a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateRepositoryHook: async (workspace: string, repoSlug: string, uid: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'uid', uid)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'body', body)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions in a workspace for a user
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
@@ -33147,6 +33153,65 @@ export const RepositoriesApiAxiosParamCreator = function (configuration?: Config
 export const RepositoriesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = RepositoriesApiAxiosParamCreator(configuration)
     return {
+        /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createRepositoryHook(workspace: string, repoSlug: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryHook(workspace, repoSlug, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.createRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteRepositoryHook(workspace: string, repoSlug: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepositoryHook(workspace, repoSlug, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.deleteRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getRepositoryHook(workspace: string, repoSlug: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getRepositoryHook(workspace, repoSlug, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.getRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this repository.
+         * @summary List webhooks for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listRepositoryHooks(workspace: string, repoSlug: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listRepositoryHooks(workspace, repoSlug, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.listRepositoryHooks']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
         /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
@@ -33241,81 +33306,6 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugGet(repoSlug, workspace, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this repository.
-         * @summary List webhooks for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksGet(repoSlug, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugHooksGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksPost(repoSlug: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksPost(repoSlug, workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugHooksPost']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidDelete(repoSlug: string, uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidDelete(repoSlug, uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugHooksUidDelete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidGet(repoSlug: string, uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidGet(repoSlug, uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugHooksUidGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidPut(repoSlug: string, uid: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidPut(repoSlug, uid, workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.repositoriesWorkspaceRepoSlugHooksUidPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -33565,6 +33555,22 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+         * @summary Update a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateRepositoryHook(workspace: string, repoSlug: string, uid: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryHook(workspace, repoSlug, uid, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['RepositoriesApi.updateRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions in a workspace for a user
          * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
@@ -33588,6 +33594,46 @@ export const RepositoriesApiFp = function(configuration?: Configuration) {
 export const RepositoriesApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = RepositoriesApiFp(configuration)
     return {
+        /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {RepositoriesApiCreateRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryHook(requestParameters: RepositoriesApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.createRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {RepositoriesApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryHook(requestParameters: RepositoriesApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {RepositoriesApiGetRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryHook(requestParameters: RepositoriesApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.getRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this repository.
+         * @summary List webhooks for a repository
+         * @param {RepositoriesApiListRepositoryHooksRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listRepositoryHooks(requestParameters: RepositoriesApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
+            return localVarFp.listRepositoryHooks(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(axios, basePath));
+        },
         /**
          * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
          * @summary List repositories in a workspace
@@ -33647,56 +33693,6 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
          */
         repositoriesWorkspaceRepoSlugGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Repository> {
             return localVarFp.repositoriesWorkspaceRepoSlugGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this repository.
-         * @summary List webhooks for a repository
-         * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a repository
-         * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
          * 
@@ -33859,6 +33855,16 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
             return localVarFp.repositoriesWorkspaceRepoSlugWatchersGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+         * @summary Update a webhook for a repository
+         * @param {RepositoriesApiUpdateRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateRepositoryHook(requestParameters: RepositoriesApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.updateRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
          * @summary List repository permissions in a workspace for a user
          * @param {RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest} requestParameters Request parameters.
@@ -33875,6 +33881,42 @@ export const RepositoriesApiFactory = function (configuration?: Configuration, b
  * RepositoriesApi - interface
  */
 export interface RepositoriesApiInterface {
+    /**
+     * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+     * @summary Create a webhook for a repository
+     * @param {RepositoriesApiCreateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createRepositoryHook(requestParameters: RepositoriesApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Deletes the specified webhook subscription from the given repository.
+     * @summary Delete a webhook for a repository
+     * @param {RepositoriesApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteRepositoryHook(requestParameters: RepositoriesApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Returns the webhook with the specified id installed on the specified repository.
+     * @summary Get a webhook for a repository
+     * @param {RepositoriesApiGetRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getRepositoryHook(requestParameters: RepositoriesApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Returns a paginated list of webhooks installed on this repository.
+     * @summary List webhooks for a repository
+     * @param {RepositoriesApiListRepositoryHooksRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listRepositoryHooks(requestParameters: RepositoriesApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
+
     /**
      * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List repositories in a workspace
@@ -33928,51 +33970,6 @@ export interface RepositoriesApiInterface {
      * @throws {RequiredError}
      */
     repositoriesWorkspaceRepoSlugGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Repository>;
-
-    /**
-     * Returns a paginated list of webhooks installed on this repository.
-     * @summary List webhooks for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
-
-    /**
-     * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-     * @summary Create a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Deletes the specified webhook subscription from the given repository.
-     * @summary Delete a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Returns the webhook with the specified id installed on the specified repository.
-     * @summary Get a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
 
     /**
      * 
@@ -34119,6 +34116,15 @@ export interface RepositoriesApiInterface {
     repositoriesWorkspaceRepoSlugWatchersGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugWatchersGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedAccounts>;
 
     /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+     * @summary Update a webhook for a repository
+     * @param {RepositoriesApiUpdateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateRepositoryHook(requestParameters: RepositoriesApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
      * Returns an object for each repository the caller has explicit access to in the specified workspace and their effective permission — the highest level of permission the caller has. This does not return public repositories that the user was not granted any specific permission in, and does not distinguish between explicit and implicit privileges.  Permissions can be:  * `admin` * `write` * `read`  Results may be further [filtered or sorted](/cloud/bitbucket/rest/intro/#filtering) by repository or permission by adding the following query string parameters:  * `q=repository.name=\"bits\"` or `q=permission>\"read\"` * `sort=repository.name`  Note that the query parameter values need to be URL escaped so that `=` would become `%3D`.
      * @summary List repository permissions in a workspace for a user
      * @param {RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest} requestParameters Request parameters.
@@ -34127,6 +34133,78 @@ export interface RepositoriesApiInterface {
      */
     userWorkspacesWorkspacePermissionsRepositoriesGet(requestParameters: RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedRepositoryPermissions>;
 
+}
+
+/**
+ * Request parameters for createRepositoryHook operation in RepositoriesApi.
+ */
+export interface RepositoriesApiCreateRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
+ * Request parameters for deleteRepositoryHook operation in RepositoriesApi.
+ */
+export interface RepositoriesApiDeleteRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for getRepositoryHook operation in RepositoriesApi.
+ */
+export interface RepositoriesApiGetRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for listRepositoryHooks operation in RepositoriesApi.
+ */
+export interface RepositoriesApiListRepositoryHooksRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
 }
 
 /**
@@ -34277,100 +34355,6 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugGetRequest {
      * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
      */
     readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksGet operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksPost operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidDelete operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidGet operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidPut operation in RepositoriesApi.
- */
-export interface RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
 }
 
 /**
@@ -34724,6 +34708,28 @@ export interface RepositoriesApiRepositoriesWorkspaceRepoSlugWatchersGetRequest 
 }
 
 /**
+ * Request parameters for updateRepositoryHook operation in RepositoriesApi.
+ */
+export interface RepositoriesApiUpdateRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
  * Request parameters for userWorkspacesWorkspacePermissionsRepositoriesGet operation in RepositoriesApi.
  */
 export interface RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGetRequest {
@@ -34747,6 +34753,50 @@ export interface RepositoriesApiUserWorkspacesWorkspacePermissionsRepositoriesGe
  * RepositoriesApi - object-oriented interface
  */
 export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface {
+    /**
+     * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+     * @summary Create a webhook for a repository
+     * @param {RepositoriesApiCreateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createRepositoryHook(requestParameters: RepositoriesApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).createRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deletes the specified webhook subscription from the given repository.
+     * @summary Delete a webhook for a repository
+     * @param {RepositoriesApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteRepositoryHook(requestParameters: RepositoriesApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).deleteRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the webhook with the specified id installed on the specified repository.
+     * @summary Get a webhook for a repository
+     * @param {RepositoriesApiGetRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getRepositoryHook(requestParameters: RepositoriesApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).getRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns a paginated list of webhooks installed on this repository.
+     * @summary List webhooks for a repository
+     * @param {RepositoriesApiListRepositoryHooksRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listRepositoryHooks(requestParameters: RepositoriesApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).listRepositoryHooks(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Returns a paginated list of all repositories owned by the specified workspace.  The result can be narrowed down based on the authenticated user\'s role.  E.g. with `?role=contributor`, only those repositories that the authenticated user has write access to are returned (this includes any repo the user is an admin on, as that implies write access).  This endpoint also supports filtering and sorting of the results. See [filtering and sorting](/cloud/bitbucket/rest/intro/#filtering) for more details.
      * @summary List repositories in a workspace
@@ -34811,61 +34861,6 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      */
     public repositoriesWorkspaceRepoSlugGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugGetRequest, options?: RawAxiosRequestConfig) {
         return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns a paginated list of webhooks installed on this repository.
-     * @summary List webhooks for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-     * @summary Create a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksPost(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Deletes the specified webhook subscription from the given repository.
-     * @summary Delete a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns the webhook with the specified id installed on the specified repository.
-     * @summary Get a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a repository
-     * @param {RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig) {
-        return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -35042,6 +35037,17 @@ export class RepositoriesApi extends BaseAPI implements RepositoriesApiInterface
      */
     public repositoriesWorkspaceRepoSlugWatchersGet(requestParameters: RepositoriesApiRepositoriesWorkspaceRepoSlugWatchersGetRequest, options?: RawAxiosRequestConfig) {
         return RepositoriesApiFp(this.configuration).repositoriesWorkspaceRepoSlugWatchersGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+     * @summary Update a webhook for a repository
+     * @param {RepositoriesApiUpdateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateRepositoryHook(requestParameters: RepositoriesApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return RepositoriesApiFp(this.configuration).updateRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
@@ -39965,6 +39971,314 @@ export class UsersApi extends BaseAPI implements UsersApiInterface {
 export const WebhooksApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
         /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryHook: async (workspace: string, repoSlug: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('createRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('createRepositoryHook', 'body', body)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceHook: async (workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('createWorkspaceHook', 'body', body)
+            const localVarPath = `/workspaces/{workspace}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryHook: async (workspace: string, repoSlug: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('deleteRepositoryHook', 'uid', uid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceHook: async (workspace: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('deleteWorkspaceHook', 'uid', uid)
+            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryHook: async (workspace: string, repoSlug: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('getRepositoryHook', 'uid', uid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceHook: async (workspace: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('getWorkspaceHook', 'uid', uid)
+            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
          * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
          * @param {*} [options] Override http request option.
@@ -40053,19 +40367,19 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Returns a paginated list of webhooks installed on this repository.
          * @summary List webhooks for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugHooksGet: async (repoSlug: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksGet', 'repoSlug', repoSlug)
+        listRepositoryHooks: async (workspace: string, repoSlug: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksGet', 'workspace', workspace)
+            assertParamExists('listRepositoryHooks', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('listRepositoryHooks', 'repoSlug', repoSlug)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -40100,131 +40414,16 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
+         * Returns a paginated list of webhooks installed on this workspace.
+         * @summary List webhooks for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugHooksPost: async (repoSlug: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'repoSlug', repoSlug)
+        listWorkspaceHooks: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksPost', 'body', body)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidDelete: async (repoSlug: string, uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidDelete', 'workspace', workspace)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidGet: async (repoSlug: string, uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidGet', 'workspace', workspace)
-            const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
-                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
+            assertParamExists('listWorkspaceHooks', 'workspace', workspace)
+            const localVarPath = `/workspaces/{workspace}/hooks`
                 .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
@@ -40262,26 +40461,26 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
         /**
          * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
          * @summary Update a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
          * @param {WebhookSubscription} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugHooksUidPut: async (repoSlug: string, uid: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'repoSlug' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'repoSlug', repoSlug)
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'uid', uid)
+        updateRepositoryHook: async (workspace: string, repoSlug: string, uid: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'workspace', workspace)
+            assertParamExists('updateRepositoryHook', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'repoSlug', repoSlug)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('updateRepositoryHook', 'uid', uid)
             // verify required parameter 'body' is not null or undefined
-            assertParamExists('repositoriesWorkspaceRepoSlugHooksUidPut', 'body', body)
+            assertParamExists('updateRepositoryHook', 'body', body)
             const localVarPath = `/repositories/{workspace}/{repo_slug}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
                 .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -40318,217 +40517,24 @@ export const WebhooksApiAxiosParamCreator = function (configuration?: Configurat
             };
         },
         /**
-         * Returns a paginated list of webhooks installed on this workspace.
-         * @summary List webhooks for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksGet: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksGet', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks`
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksPost: async (workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksPost', 'body', body)
-            const localVarPath = `/workspaces/{workspace}/hooks`
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidDelete: async (uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidDelete', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidDelete', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidGet: async (uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidGet', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidGet', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
          * @summary Update a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
          * @param {WebhookSubscription} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceHooksUidPut: async (uid: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'uid', uid)
+        updateWorkspaceHook: async (workspace: string, uid: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
             // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'workspace', workspace)
+            assertParamExists('updateWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('updateWorkspaceHook', 'uid', uid)
             // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'body', body)
+            assertParamExists('updateWorkspaceHook', 'body', body)
             const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
             // use dummy base URL string because the URL constructor only accepts absolute URLs.
             const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
             let baseOptions;
@@ -40574,6 +40580,93 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = WebhooksApiAxiosParamCreator(configuration)
     return {
         /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createRepositoryHook(workspace: string, repoSlug: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createRepositoryHook(workspace, repoSlug, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.createRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createWorkspaceHook(workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createWorkspaceHook(workspace, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.createWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteRepositoryHook(workspace: string, repoSlug: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteRepositoryHook(workspace, repoSlug, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.deleteRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteWorkspaceHook(workspace: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWorkspaceHook(workspace, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.deleteWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getRepositoryHook(workspace: string, repoSlug: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getRepositoryHook(workspace, repoSlug, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.getRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getWorkspaceHook(workspace: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkspaceHook(workspace, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.getWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
          * @param {*} [options] Override http request option.
@@ -40601,146 +40694,59 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
         /**
          * Returns a paginated list of webhooks installed on this repository.
          * @summary List webhooks for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async repositoriesWorkspaceRepoSlugHooksGet(repoSlug: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksGet(repoSlug, workspace, options);
+        async listRepositoryHooks(workspace: string, repoSlug: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listRepositoryHooks(workspace, repoSlug, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.repositoriesWorkspaceRepoSlugHooksGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksPost(repoSlug: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksPost(repoSlug, workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.repositoriesWorkspaceRepoSlugHooksPost']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidDelete(repoSlug: string, uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidDelete(repoSlug, uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.repositoriesWorkspaceRepoSlugHooksUidDelete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidGet(repoSlug: string, uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidGet(repoSlug, uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.repositoriesWorkspaceRepoSlugHooksUidGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a repository
-         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async repositoriesWorkspaceRepoSlugHooksUidPut(repoSlug: string, uid: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.repositoriesWorkspaceRepoSlugHooksUidPut(repoSlug, uid, workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.repositoriesWorkspaceRepoSlugHooksUidPut']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.listRepositoryHooks']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Returns a paginated list of webhooks installed on this workspace.
          * @summary List webhooks for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceHooksGet(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksGet(workspace, options);
+        async listWorkspaceHooks(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listWorkspaceHooks(workspace, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.workspacesWorkspaceHooksGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksPost(workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksPost(workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.workspacesWorkspaceHooksPost']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksUidDelete(uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidDelete(uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.workspacesWorkspaceHooksUidDelete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksUidGet(uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidGet(uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.workspacesWorkspaceHooksUidGet']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.listWorkspaceHooks']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
          * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+         * @summary Update a webhook for a repository
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
          * @param {WebhookSubscription} body 
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        async workspacesWorkspaceHooksUidPut(uid: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidPut(uid, workspace, body, options);
+        async updateRepositoryHook(workspace: string, repoSlug: string, uid: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateRepositoryHook(workspace, repoSlug, uid, body, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.workspacesWorkspaceHooksUidPut']?.[localVarOperationServerIndex]?.url;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.updateRepositoryHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+         * @summary Update a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateWorkspaceHook(workspace: string, uid: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateWorkspaceHook(workspace, uid, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WebhooksApi.updateWorkspaceHook']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
     }
@@ -40752,6 +40758,66 @@ export const WebhooksApiFp = function(configuration?: Configuration) {
 export const WebhooksApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
     const localVarFp = WebhooksApiFp(configuration)
     return {
+        /**
+         * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+         * @summary Create a webhook for a repository
+         * @param {WebhooksApiCreateRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createRepositoryHook(requestParameters: WebhooksApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.createRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {WebhooksApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceHook(requestParameters: WebhooksApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.createWorkspaceHook(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deletes the specified webhook subscription from the given repository.
+         * @summary Delete a webhook for a repository
+         * @param {WebhooksApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteRepositoryHook(requestParameters: WebhooksApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {WebhooksApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceHook(requestParameters: WebhooksApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified repository.
+         * @summary Get a webhook for a repository
+         * @param {WebhooksApiGetRepositoryHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getRepositoryHook(requestParameters: WebhooksApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.getRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {WebhooksApiGetWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceHook(requestParameters: WebhooksApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.getWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
         /**
          * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
          * @summary Get a webhook resource
@@ -40774,102 +40840,42 @@ export const WebhooksApiFactory = function (configuration?: Configuration, baseP
         /**
          * Returns a paginated list of webhooks installed on this repository.
          * @summary List webhooks for a repository
-         * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
+         * @param {WebhooksApiListRepositoryHooksRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        repositoriesWorkspaceRepoSlugHooksGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-         * @summary Create a webhook for a repository
-         * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksPost(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Deletes the specified webhook subscription from the given repository.
-         * @summary Delete a webhook for a repository
-         * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns the webhook with the specified id installed on the specified repository.
-         * @summary Get a webhook for a repository
-         * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a repository
-         * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+        listRepositoryHooks(requestParameters: WebhooksApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
+            return localVarFp.listRepositoryHooks(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns a paginated list of webhooks installed on this workspace.
          * @summary List webhooks for a workspace
-         * @param {WebhooksApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
+         * @param {WebhooksApiListWorkspaceHooksRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceHooksGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
-            return localVarFp.workspacesWorkspaceHooksGet(requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {WebhooksApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksPost(requestParameters: WebhooksApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidDelete(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.workspacesWorkspaceHooksUidDelete(requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {WebhooksApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksUidGet(requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
+        listWorkspaceHooks(requestParameters: WebhooksApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
+            return localVarFp.listWorkspaceHooks(requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
          * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a workspace
-         * @param {WebhooksApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
+         * @summary Update a webhook for a repository
+         * @param {WebhooksApiUpdateRepositoryHookRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
          * @throws {RequiredError}
          */
-        workspacesWorkspaceHooksUidPut(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksUidPut(requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+        updateRepositoryHook(requestParameters: WebhooksApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.updateRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+         * @summary Update a webhook for a workspace
+         * @param {WebhooksApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateWorkspaceHook(requestParameters: WebhooksApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.updateWorkspaceHook(requestParameters.workspace, requestParameters.uid, requestParameters.body, options).then((request) => request(axios, basePath));
         },
     };
 };
@@ -40878,6 +40884,60 @@ export const WebhooksApiFactory = function (configuration?: Configuration, baseP
  * WebhooksApi - interface
  */
 export interface WebhooksApiInterface {
+    /**
+     * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+     * @summary Create a webhook for a repository
+     * @param {WebhooksApiCreateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createRepositoryHook(requestParameters: WebhooksApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+     * @summary Create a webhook for a workspace
+     * @param {WebhooksApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createWorkspaceHook(requestParameters: WebhooksApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Deletes the specified webhook subscription from the given repository.
+     * @summary Delete a webhook for a repository
+     * @param {WebhooksApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteRepositoryHook(requestParameters: WebhooksApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Deletes the specified webhook subscription from the given workspace.
+     * @summary Delete a webhook for a workspace
+     * @param {WebhooksApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteWorkspaceHook(requestParameters: WebhooksApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Returns the webhook with the specified id installed on the specified repository.
+     * @summary Get a webhook for a repository
+     * @param {WebhooksApiGetRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getRepositoryHook(requestParameters: WebhooksApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Returns the webhook with the specified id installed on the specified workspace.
+     * @summary Get a webhook for a workspace
+     * @param {WebhooksApiGetWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWorkspaceHook(requestParameters: WebhooksApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
     /**
      * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
      * @summary Get a webhook resource
@@ -40898,93 +40958,138 @@ export interface WebhooksApiInterface {
     /**
      * Returns a paginated list of webhooks installed on this repository.
      * @summary List webhooks for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListRepositoryHooksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    repositoriesWorkspaceRepoSlugHooksGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
-
-    /**
-     * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-     * @summary Create a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksPost(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Deletes the specified webhook subscription from the given repository.
-     * @summary Delete a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Returns the webhook with the specified id installed on the specified repository.
-     * @summary Get a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+    listRepositoryHooks(requestParameters: WebhooksApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
 
     /**
      * Returns a paginated list of webhooks installed on this workspace.
      * @summary List webhooks for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListWorkspaceHooksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    workspacesWorkspaceHooksGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
-
-    /**
-     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-     * @summary Create a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksPost(requestParameters: WebhooksApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Deletes the specified webhook subscription from the given workspace.
-     * @summary Delete a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksUidDelete(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Returns the webhook with the specified id installed on the given workspace.
-     * @summary Get a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksUidGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+    listWorkspaceHooks(requestParameters: WebhooksApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
 
     /**
      * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
+     * @summary Update a webhook for a repository
+     * @param {WebhooksApiUpdateRepositoryHookRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    workspacesWorkspaceHooksUidPut(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+    updateRepositoryHook(requestParameters: WebhooksApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
 
+    /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+     * @summary Update a webhook for a workspace
+     * @param {WebhooksApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateWorkspaceHook(requestParameters: WebhooksApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+}
+
+/**
+ * Request parameters for createRepositoryHook operation in WebhooksApi.
+ */
+export interface WebhooksApiCreateRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
+ * Request parameters for createWorkspaceHook operation in WebhooksApi.
+ */
+export interface WebhooksApiCreateWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
+ * Request parameters for deleteRepositoryHook operation in WebhooksApi.
+ */
+export interface WebhooksApiDeleteRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for deleteWorkspaceHook operation in WebhooksApi.
+ */
+export interface WebhooksApiDeleteWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for getRepositoryHook operation in WebhooksApi.
+ */
+export interface WebhooksApiGetRepositoryHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for getWorkspaceHook operation in WebhooksApi.
+ */
+export interface WebhooksApiGetWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
 }
 
 /**
@@ -40998,164 +41103,65 @@ export interface WebhooksApiListHookEventsForResourceRequest {
 }
 
 /**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksGet operation in WebhooksApi.
+ * Request parameters for listRepositoryHooks operation in WebhooksApi.
  */
-export interface WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest {
+export interface WebhooksApiListRepositoryHooksRequest {
     /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
      */
-    readonly repoSlug: string
+    readonly workspace: string
 
     /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
+     */
+    readonly repoSlug: string
+}
+
+/**
+ * Request parameters for listWorkspaceHooks operation in WebhooksApi.
+ */
+export interface WebhooksApiListWorkspaceHooksRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
      */
     readonly workspace: string
 }
 
 /**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksPost operation in WebhooksApi.
+ * Request parameters for updateRepositoryHook operation in WebhooksApi.
  */
-export interface WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest {
+export interface WebhooksApiUpdateRepositoryHookRequest {
     /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;.
      */
     readonly repoSlug: string
 
     /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
+     * The webhook\&#39;s id.
      */
-    readonly workspace: string
+    readonly uid: string
 
     readonly body: WebhookSubscription
 }
 
 /**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidDelete operation in WebhooksApi.
+ * Request parameters for updateWorkspaceHook operation in WebhooksApi.
  */
-export interface WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest {
+export interface WebhooksApiUpdateWorkspaceHookRequest {
     /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
      */
-    readonly repoSlug: string
+    readonly workspace: string
 
     /**
-     * Installed webhook\&#39;s ID
+     * The webhook\&#39;s id.
      */
     readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidGet operation in WebhooksApi.
- */
-export interface WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for repositoriesWorkspaceRepoSlugHooksUidPut operation in WebhooksApi.
- */
-export interface WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest {
-    /**
-     * This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
-     */
-    readonly repoSlug: string
-
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksGet operation in WebhooksApi.
- */
-export interface WebhooksApiWorkspacesWorkspaceHooksGetRequest {
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksPost operation in WebhooksApi.
- */
-export interface WebhooksApiWorkspacesWorkspaceHooksPostRequest {
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidDelete operation in WebhooksApi.
- */
-export interface WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidGet operation in WebhooksApi.
- */
-export interface WebhooksApiWorkspacesWorkspaceHooksUidGetRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidPut operation in WebhooksApi.
- */
-export interface WebhooksApiWorkspacesWorkspaceHooksUidPutRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
 
     readonly body: WebhookSubscription
 }
@@ -41164,6 +41170,72 @@ export interface WebhooksApiWorkspacesWorkspaceHooksUidPutRequest {
  * WebhooksApi - object-oriented interface
  */
 export class WebhooksApi extends BaseAPI implements WebhooksApiInterface {
+    /**
+     * Creates a new webhook on the specified repository.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.
+     * @summary Create a webhook for a repository
+     * @param {WebhooksApiCreateRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createRepositoryHook(requestParameters: WebhooksApiCreateRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).createRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+     * @summary Create a webhook for a workspace
+     * @param {WebhooksApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createWorkspaceHook(requestParameters: WebhooksApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).createWorkspaceHook(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deletes the specified webhook subscription from the given repository.
+     * @summary Delete a webhook for a repository
+     * @param {WebhooksApiDeleteRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteRepositoryHook(requestParameters: WebhooksApiDeleteRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).deleteRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deletes the specified webhook subscription from the given workspace.
+     * @summary Delete a webhook for a workspace
+     * @param {WebhooksApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteWorkspaceHook(requestParameters: WebhooksApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).deleteWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the webhook with the specified id installed on the specified repository.
+     * @summary Get a webhook for a repository
+     * @param {WebhooksApiGetRepositoryHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getRepositoryHook(requestParameters: WebhooksApiGetRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).getRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the webhook with the specified id installed on the specified workspace.
+     * @summary Get a webhook for a workspace
+     * @param {WebhooksApiGetWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getWorkspaceHook(requestParameters: WebhooksApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).getWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
     /**
      * Returns the webhook resource or subject types on which webhooks can be registered. Each resource/subject type contains an `events` link that returns the paginated list of specific events each individual subject type can emit. This endpoint is publicly accessible and does not require authentication or scopes.
      * @summary Get a webhook resource
@@ -41188,111 +41260,45 @@ export class WebhooksApi extends BaseAPI implements WebhooksApiInterface {
     /**
      * Returns a paginated list of webhooks installed on this repository.
      * @summary List webhooks for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListRepositoryHooksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public repositoriesWorkspaceRepoSlugHooksGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksGetRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksGet(requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Creates a new webhook on the specified repository.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/repositories/my-workspace/my-repo-slug/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  Note that this call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  Also note that the `url` must properly resolve and cannot be an internal, non-routed address.
-     * @summary Create a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksPost(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksPostRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksPost(requestParameters.repoSlug, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Deletes the specified webhook subscription from the given repository.
-     * @summary Delete a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidDeleteRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidDelete(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns the webhook with the specified id installed on the specified repository.
-     * @summary Get a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidGetRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidGet(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a repository
-     * @param {WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters: WebhooksApiRepositoriesWorkspaceRepoSlugHooksUidPutRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).repositoriesWorkspaceRepoSlugHooksUidPut(requestParameters.repoSlug, requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    public listRepositoryHooks(requestParameters: WebhooksApiListRepositoryHooksRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).listRepositoryHooks(requestParameters.workspace, requestParameters.repoSlug, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Returns a paginated list of webhooks installed on this workspace.
      * @summary List webhooks for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
+     * @param {WebhooksApiListWorkspaceHooksRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public workspacesWorkspaceHooksGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).workspacesWorkspaceHooksGet(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-     * @summary Create a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksPost(requestParameters: WebhooksApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).workspacesWorkspaceHooksPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Deletes the specified webhook subscription from the given workspace.
-     * @summary Delete a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksUidDelete(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).workspacesWorkspaceHooksUidDelete(requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns the webhook with the specified id installed on the given workspace.
-     * @summary Get a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksUidGet(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).workspacesWorkspaceHooksUidGet(requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    public listWorkspaceHooks(requestParameters: WebhooksApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).listWorkspaceHooks(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**
      * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a workspace
-     * @param {WebhooksApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
+     * @summary Update a webhook for a repository
+     * @param {WebhooksApiUpdateRepositoryHookRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
-    public workspacesWorkspaceHooksUidPut(requestParameters: WebhooksApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig) {
-        return WebhooksApiFp(this.configuration).workspacesWorkspaceHooksUidPut(requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    public updateRepositoryHook(requestParameters: WebhooksApiUpdateRepositoryHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).updateRepositoryHook(requestParameters.workspace, requestParameters.repoSlug, requestParameters.uid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+     * @summary Update a webhook for a workspace
+     * @param {WebhooksApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateWorkspaceHook(requestParameters: WebhooksApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WebhooksApiFp(this.configuration).updateWorkspaceHook(requestParameters.workspace, requestParameters.uid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -41308,6 +41314,253 @@ export type ListHookEventsForResourceSubjectTypeEnum = typeof ListHookEventsForR
  */
 export const WorkspacesApiAxiosParamCreator = function (configuration?: Configuration) {
     return {
+        /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceHook: async (workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('createWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('createWorkspaceHook', 'body', body)
+            const localVarPath = `/workspaces/{workspace}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceHook: async (workspace: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('deleteWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('deleteWorkspaceHook', 'uid', uid)
+            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceHook: async (workspace: string, uid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('getWorkspaceHook', 'uid', uid)
+            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this workspace.
+         * @summary List webhooks for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listWorkspaceHooks: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('listWorkspaceHooks', 'workspace', workspace)
+            const localVarPath = `/workspaces/{workspace}/hooks`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+         * @summary Update a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateWorkspaceHook: async (workspace: string, uid: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('updateWorkspaceHook', 'workspace', workspace)
+            // verify required parameter 'uid' is not null or undefined
+            assertParamExists('updateWorkspaceHook', 'uid', uid)
+            // verify required parameter 'body' is not null or undefined
+            assertParamExists('updateWorkspaceHook', 'body', body)
+            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
         /**
          * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
          * @summary List workspaces for the current user
@@ -41443,253 +41696,6 @@ export const WorkspacesApiAxiosParamCreator = function (configuration?: Configur
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this workspace.
-         * @summary List webhooks for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksGet: async (workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksGet', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks`
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksPost: async (workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksPost', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksPost', 'body', body)
-            const localVarPath = `/workspaces/{workspace}/hooks`
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'POST', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidDelete: async (uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidDelete', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidDelete', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidGet: async (uid: string, workspace: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidGet', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidGet', 'workspace', workspace)
-            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-
-            return {
-                url: toPathString(localVarUrlObj),
-                options: localVarRequestOptions,
-            };
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidPut: async (uid: string, workspace: string, body: WebhookSubscription, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
-            // verify required parameter 'uid' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'uid', uid)
-            // verify required parameter 'workspace' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'workspace', workspace)
-            // verify required parameter 'body' is not null or undefined
-            assertParamExists('workspacesWorkspaceHooksUidPut', 'body', body)
-            const localVarPath = `/workspaces/{workspace}/hooks/{uid}`
-                .replace(`{${"uid"}}`, encodeURIComponent(String(uid)))
-                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)));
-            // use dummy base URL string because the URL constructor only accepts absolute URLs.
-            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
-            let baseOptions;
-            if (configuration) {
-                baseOptions = configuration.baseOptions;
-            }
-
-            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
-            const localVarHeaderParameter = {} as any;
-            const localVarQueryParameter = {} as any;
-
-            // authentication api_key required
-            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
-
-            // authentication oauth2 required
-            // oauth required
-            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["webhook"], configuration)
-
-            // authentication basic required
-            // http basic authentication required
-            setBasicAuthToObject(localVarRequestOptions, configuration)
-
-            localVarHeaderParameter['Content-Type'] = 'application/json';
-            localVarHeaderParameter['Accept'] = 'application/json';
-
-            setSearchParams(localVarUrlObj, localVarQueryParameter);
-            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
-            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
-            localVarRequestOptions.data = serializeDataIfNeeded(body, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -42157,6 +42163,76 @@ export const WorkspacesApiFp = function(configuration?: Configuration) {
     const localVarAxiosParamCreator = WorkspacesApiAxiosParamCreator(configuration)
     return {
         /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async createWorkspaceHook(workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.createWorkspaceHook(workspace, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.createWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async deleteWorkspaceHook(workspace: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.deleteWorkspaceHook(workspace, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.deleteWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getWorkspaceHook(workspace: string, uid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getWorkspaceHook(workspace, uid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.getWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this workspace.
+         * @summary List webhooks for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listWorkspaceHooks(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listWorkspaceHooks(workspace, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.listWorkspaceHooks']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+         * @summary Update a webhook for a workspace
+         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+         * @param {string} uid The webhook\&#39;s id.
+         * @param {WebhookSubscription} body 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async updateWorkspaceHook(workspace: string, uid: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.updateWorkspaceHook(workspace, uid, body, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.updateWorkspaceHook']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
          * @summary List workspaces for the current user
          * @param {string} [sort] Name of a response property to sort results (only slug is supported).
@@ -42194,76 +42270,6 @@ export const WorkspacesApiFp = function(configuration?: Configuration) {
             const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceGet(workspace, options);
             const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
             const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this workspace.
-         * @summary List webhooks for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksGet(workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedWebhookSubscriptions>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksGet(workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceHooksGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksPost(workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksPost(workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceHooksPost']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksUidDelete(uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidDelete(uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceHooksUidDelete']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksUidGet(uid: string, workspace: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidGet(uid, workspace, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceHooksUidGet']?.[localVarOperationServerIndex]?.url;
-            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a workspace
-         * @param {string} uid Installed webhook\&#39;s ID
-         * @param {string} workspace This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-         * @param {WebhookSubscription} body 
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        async workspacesWorkspaceHooksUidPut(uid: string, workspace: string, body: WebhookSubscription, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<WebhookSubscription>> {
-            const localVarAxiosArgs = await localVarAxiosParamCreator.workspacesWorkspaceHooksUidPut(uid, workspace, body, options);
-            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
-            const localVarOperationServerBasePath = operationServerMap['WorkspacesApi.workspacesWorkspaceHooksUidPut']?.[localVarOperationServerIndex]?.url;
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
@@ -42403,6 +42409,56 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
     const localVarFp = WorkspacesApiFp(configuration)
     return {
         /**
+         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+         * @summary Create a webhook for a workspace
+         * @param {WorkspacesApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        createWorkspaceHook(requestParameters: WorkspacesApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.createWorkspaceHook(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Deletes the specified webhook subscription from the given workspace.
+         * @summary Delete a webhook for a workspace
+         * @param {WorkspacesApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        deleteWorkspaceHook(requestParameters: WorkspacesApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.deleteWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns the webhook with the specified id installed on the specified workspace.
+         * @summary Get a webhook for a workspace
+         * @param {WorkspacesApiGetWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getWorkspaceHook(requestParameters: WorkspacesApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.getWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Returns a paginated list of webhooks installed on this workspace.
+         * @summary List webhooks for a workspace
+         * @param {WorkspacesApiListWorkspaceHooksRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listWorkspaceHooks(requestParameters: WorkspacesApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
+            return localVarFp.listWorkspaceHooks(requestParameters.workspace, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+         * @summary Update a webhook for a workspace
+         * @param {WorkspacesApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        updateWorkspaceHook(requestParameters: WorkspacesApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
+            return localVarFp.updateWorkspaceHook(requestParameters.workspace, requestParameters.uid, requestParameters.body, options).then((request) => request(axios, basePath));
+        },
+        /**
          * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
          * @summary List workspaces for the current user
          * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
@@ -42431,56 +42487,6 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
          */
         workspacesWorkspaceGet(requestParameters: WorkspacesApiWorkspacesWorkspaceGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Workspace> {
             return localVarFp.workspacesWorkspaceGet(requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns a paginated list of webhooks installed on this workspace.
-         * @summary List webhooks for a workspace
-         * @param {WorkspacesApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions> {
-            return localVarFp.workspacesWorkspaceHooksGet(requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-         * @summary Create a webhook for a workspace
-         * @param {WorkspacesApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksPost(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Deletes the specified webhook subscription from the given workspace.
-         * @summary Delete a webhook for a workspace
-         * @param {WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidDelete(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
-            return localVarFp.workspacesWorkspaceHooksUidDelete(requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Returns the webhook with the specified id installed on the given workspace.
-         * @summary Get a webhook for a workspace
-         * @param {WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksUidGet(requestParameters.uid, requestParameters.workspace, options).then((request) => request(axios, basePath));
-        },
-        /**
-         * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-         * @summary Update a webhook for a workspace
-         * @param {WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
-         * @param {*} [options] Override http request option.
-         * @throws {RequiredError}
-         */
-        workspacesWorkspaceHooksUidPut(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription> {
-            return localVarFp.workspacesWorkspaceHooksUidPut(requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
          * Returns all members of the requested workspace.  This endpoint additionally supports [filtering](/cloud/bitbucket/rest/intro/#filtering) by email address, if called by a workspace administrator, integration or workspace access token. This is done by adding the following query string parameter:  * `q=user.email IN (\"user1@org.com\",\"user2@org.com\")`  When filtering by email, you can query up to 90 addresses at a time. Note that the query parameter values need to be URL escaped, so the final query string should be:  * `q=user.email%20IN%20(%22user1@org.com%22,%22user2@org.com%22)`  Email addresses that you filter by (and only these email addresses) can be included in the response using the `fields` query parameter:  * `&fields=+values.user.email` - add the `email` field to the default `user` response object * `&fields=values.user.email,values.user.account_id` - only return user email addresses and account IDs  Once again, all query parameter values must be URL escaped.
@@ -42580,6 +42586,51 @@ export const WorkspacesApiFactory = function (configuration?: Configuration, bas
  */
 export interface WorkspacesApiInterface {
     /**
+     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+     * @summary Create a webhook for a workspace
+     * @param {WorkspacesApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    createWorkspaceHook(requestParameters: WorkspacesApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Deletes the specified webhook subscription from the given workspace.
+     * @summary Delete a webhook for a workspace
+     * @param {WorkspacesApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    deleteWorkspaceHook(requestParameters: WorkspacesApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+    /**
+     * Returns the webhook with the specified id installed on the specified workspace.
+     * @summary Get a webhook for a workspace
+     * @param {WorkspacesApiGetWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getWorkspaceHook(requestParameters: WorkspacesApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
+     * Returns a paginated list of webhooks installed on this workspace.
+     * @summary List webhooks for a workspace
+     * @param {WorkspacesApiListWorkspaceHooksRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listWorkspaceHooks(requestParameters: WorkspacesApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
+
+    /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+     * @summary Update a webhook for a workspace
+     * @param {WorkspacesApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    updateWorkspaceHook(requestParameters: WorkspacesApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
+
+    /**
      * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
      * @summary List workspaces for the current user
      * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
@@ -42605,51 +42656,6 @@ export interface WorkspacesApiInterface {
      * @throws {RequiredError}
      */
     workspacesWorkspaceGet(requestParameters: WorkspacesApiWorkspacesWorkspaceGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Workspace>;
-
-    /**
-     * Returns a paginated list of webhooks installed on this workspace.
-     * @summary List webhooks for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedWebhookSubscriptions>;
-
-    /**
-     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-     * @summary Create a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksPost(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Deletes the specified webhook subscription from the given workspace.
-     * @summary Delete a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksUidDelete(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
-
-    /**
-     * Returns the webhook with the specified id installed on the given workspace.
-     * @summary Get a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksUidGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    workspacesWorkspaceHooksUidPut(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig): AxiosPromise<WebhookSubscription>;
 
     /**
      * Returns all members of the requested workspace.  This endpoint additionally supports [filtering](/cloud/bitbucket/rest/intro/#filtering) by email address, if called by a workspace administrator, integration or workspace access token. This is done by adding the following query string parameter:  * `q=user.email IN (\"user1@org.com\",\"user2@org.com\")`  When filtering by email, you can query up to 90 addresses at a time. Note that the query parameter values need to be URL escaped, so the final query string should be:  * `q=user.email%20IN%20(%22user1@org.com%22,%22user2@org.com%22)`  Email addresses that you filter by (and only these email addresses) can be included in the response using the `fields` query parameter:  * `&fields=+values.user.email` - add the `email` field to the default `user` response object * `&fields=values.user.email,values.user.account_id` - only return user email addresses and account IDs  Once again, all query parameter values must be URL escaped.
@@ -42735,6 +42741,75 @@ export interface WorkspacesApiInterface {
 }
 
 /**
+ * Request parameters for createWorkspaceHook operation in WorkspacesApi.
+ */
+export interface WorkspacesApiCreateWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
+ * Request parameters for deleteWorkspaceHook operation in WorkspacesApi.
+ */
+export interface WorkspacesApiDeleteWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for getWorkspaceHook operation in WorkspacesApi.
+ */
+export interface WorkspacesApiGetWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+}
+
+/**
+ * Request parameters for listWorkspaceHooks operation in WorkspacesApi.
+ */
+export interface WorkspacesApiListWorkspaceHooksRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+}
+
+/**
+ * Request parameters for updateWorkspaceHook operation in WorkspacesApi.
+ */
+export interface WorkspacesApiUpdateWorkspaceHookRequest {
+    /**
+     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example &#x60;{workspace UUID}&#x60;.
+     */
+    readonly workspace: string
+
+    /**
+     * The webhook\&#39;s id.
+     */
+    readonly uid: string
+
+    readonly body: WebhookSubscription
+}
+
+/**
  * Request parameters for userWorkspacesGet operation in WorkspacesApi.
  */
 export interface WorkspacesApiUserWorkspacesGetRequest {
@@ -42767,75 +42842,6 @@ export interface WorkspacesApiWorkspacesWorkspaceGetRequest {
      * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
      */
     readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksGet operation in WorkspacesApi.
- */
-export interface WorkspacesApiWorkspacesWorkspaceHooksGetRequest {
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksPost operation in WorkspacesApi.
- */
-export interface WorkspacesApiWorkspacesWorkspaceHooksPostRequest {
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidDelete operation in WorkspacesApi.
- */
-export interface WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidGet operation in WorkspacesApi.
- */
-export interface WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-}
-
-/**
- * Request parameters for workspacesWorkspaceHooksUidPut operation in WorkspacesApi.
- */
-export interface WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest {
-    /**
-     * Installed webhook\&#39;s ID
-     */
-    readonly uid: string
-
-    /**
-     * This can either be the workspace ID (slug) or the workspace UUID surrounded by curly-braces, for example: &#x60;{workspace UUID}&#x60;. 
-     */
-    readonly workspace: string
-
-    readonly body: WebhookSubscription
 }
 
 /**
@@ -42983,6 +42989,61 @@ export interface WorkspacesApiWorkspacesWorkspaceSettingsGpgPublicKeyGetRequest 
  */
 export class WorkspacesApi extends BaseAPI implements WorkspacesApiInterface {
     /**
+     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example: ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
+     * @summary Create a webhook for a workspace
+     * @param {WorkspacesApiCreateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public createWorkspaceHook(requestParameters: WorkspacesApiCreateWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).createWorkspaceHook(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Deletes the specified webhook subscription from the given workspace.
+     * @summary Delete a webhook for a workspace
+     * @param {WorkspacesApiDeleteWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public deleteWorkspaceHook(requestParameters: WorkspacesApiDeleteWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).deleteWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns the webhook with the specified id installed on the specified workspace.
+     * @summary Get a webhook for a workspace
+     * @param {WorkspacesApiGetWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getWorkspaceHook(requestParameters: WorkspacesApiGetWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).getWorkspaceHook(requestParameters.workspace, requestParameters.uid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Returns a paginated list of webhooks installed on this workspace.
+     * @summary List webhooks for a workspace
+     * @param {WorkspacesApiListWorkspaceHooksRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listWorkspaceHooks(requestParameters: WorkspacesApiListWorkspaceHooksRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).listWorkspaceHooks(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the X-Hub-Signature header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the secret field . Passing a null value in the secret field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the secret field in the request.
+     * @summary Update a webhook for a workspace
+     * @param {WorkspacesApiUpdateWorkspaceHookRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public updateWorkspaceHook(requestParameters: WorkspacesApiUpdateWorkspaceHookRequest, options?: RawAxiosRequestConfig) {
+        return WorkspacesApiFp(this.configuration).updateWorkspaceHook(requestParameters.workspace, requestParameters.uid, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
      * Returns an object for each workspace accessible to the caller. This object also contains details on whether the caller has admin permissions on the workspace (`\"administrator\" = true`) or not (`\"administrator\" = false`).  Queries support filtering based on administrator permissions, [sorting](/cloud/bitbucket/rest/intro/#sorting-query-results) or [filtering](/cloud/bitbucket/rest/intro/#filtering) by `slug`. Results can be [paginated](/cloud/bitbucket/rest/intro/#pagination).
      * @summary List workspaces for the current user
      * @param {WorkspacesApiUserWorkspacesGetRequest} requestParameters Request parameters.
@@ -43013,61 +43074,6 @@ export class WorkspacesApi extends BaseAPI implements WorkspacesApiInterface {
      */
     public workspacesWorkspaceGet(requestParameters: WorkspacesApiWorkspacesWorkspaceGetRequest, options?: RawAxiosRequestConfig) {
         return WorkspacesApiFp(this.configuration).workspacesWorkspaceGet(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns a paginated list of webhooks installed on this workspace.
-     * @summary List webhooks for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksGetRequest, options?: RawAxiosRequestConfig) {
-        return WorkspacesApiFp(this.configuration).workspacesWorkspaceHooksGet(requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Creates a new webhook on the specified workspace.  Workspace webhooks are fired for events from all repositories contained by that workspace.  Example:  ``` $ curl -X POST -u credentials -H \'Content-Type: application/json\'   https://api.bitbucket.org/2.0/workspaces/my-workspace/hooks   -d \'     {       \"description\": \"Webhook Description\",       \"url\": \"https://example.com/\",       \"active\": true,       \"secret\": \"this is a really bad secret\",       \"events\": [         \"repo:push\",         \"issue:created\",         \"issue:updated\"       ]     }\' ```  When the `secret` is provided it will be used as the key to generate a HMAC digest value sent in the `X-Hub-Signature` header at delivery time. Passing a `null` or empty `secret` or not passing a `secret` will leave the webhook\'s secret unset. Bitbucket only generates the `X-Hub-Signature` when the webhook\'s secret is set.  This call requires the webhook scope, as well as any scope that applies to the events that the webhook subscribes to. In the example above that means: `webhook`, `repository` and `issue`.  The `url` must properly resolve and cannot be an internal, non-routed address.  Only workspace owners can install webhooks on workspaces.
-     * @summary Create a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksPostRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksPost(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksPostRequest, options?: RawAxiosRequestConfig) {
-        return WorkspacesApiFp(this.configuration).workspacesWorkspaceHooksPost(requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Deletes the specified webhook subscription from the given workspace.
-     * @summary Delete a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksUidDelete(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidDeleteRequest, options?: RawAxiosRequestConfig) {
-        return WorkspacesApiFp(this.configuration).workspacesWorkspaceHooksUidDelete(requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Returns the webhook with the specified id installed on the given workspace.
-     * @summary Get a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksUidGet(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidGetRequest, options?: RawAxiosRequestConfig) {
-        return WorkspacesApiFp(this.configuration).workspacesWorkspaceHooksUidGet(requestParameters.uid, requestParameters.workspace, options).then((request) => request(this.axios, this.basePath));
-    }
-
-    /**
-     * Updates the specified webhook subscription.  The following properties can be mutated:  * `description` * `url` * `secret` * `active` * `events`  The hook\'s secret is used as a key to generate the HMAC hex digest sent in the `X-Hub-Signature` header at delivery time. This signature is only generated when the hook has a secret.  Set the hook\'s secret by passing the new value in the `secret` field. Passing a `null` value in the `secret` field will remove the secret from the hook. The hook\'s secret can be left unchanged by not passing the `secret` field in the request.
-     * @summary Update a webhook for a workspace
-     * @param {WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest} requestParameters Request parameters.
-     * @param {*} [options] Override http request option.
-     * @throws {RequiredError}
-     */
-    public workspacesWorkspaceHooksUidPut(requestParameters: WorkspacesApiWorkspacesWorkspaceHooksUidPutRequest, options?: RawAxiosRequestConfig) {
-        return WorkspacesApiFp(this.configuration).workspacesWorkspaceHooksUidPut(requestParameters.uid, requestParameters.workspace, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

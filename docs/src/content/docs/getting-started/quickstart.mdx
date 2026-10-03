@@ -11,12 +11,14 @@ import { Steps, Aside } from '@astrojs/starlight/components';
 npm install -g @pilatos/bitbucket-cli
 bb auth login
 bb repo clone myworkspace/myrepo
+cd myrepo
+# Push your feature branch before creating a pull request.
 bb pr create -t "My feature"
 ```
 
 ## Prerequisites
 
-- **[Bun](https://bun.sh) runtime 1.0+** for the npm package. Installing via npm or pnpm does not install Bun. Without it, `bb` exits with `Error: This CLI requires the Bun runtime.` The [standalone binary](/getting-started/installation/#standalone-binary) needs no runtime.
+- **[Bun](https://bun.sh) runtime 1.1.30+** for the npm package. Installing via npm or pnpm does not install Bun. Without it, `bb` exits with `Error: This CLI requires the Bun runtime.` The [standalone binary](/getting-started/installation/#standalone-binary) needs no runtime.
 - A **Bitbucket Cloud** account.
 
 ## Step-by-step setup
@@ -30,6 +32,7 @@ bb pr create -t "My feature"
    ```
 
    Verify the installation:
+
    ```bash
    bb --version
    ```
@@ -40,16 +43,18 @@ bb pr create -t "My feature"
    bb auth login
    ```
 
-   This opens your browser to authorize the CLI with your Bitbucket account. No token setup needed.
+   In an interactive terminal, choose OAuth to authorize in your browser, or API token to enter your email and token. Without prompts, a bare login starts OAuth unless API-token flags or `BB_API_TOKEN` select token auth.
 
-   For CI/CD or headless environments, pipe an API token in on stdin:
+   For CI/CD or headless environments, load `BB_API_TOKEN` from your secret store and pipe it in on stdin. `-u` takes your Atlassian account email:
+
    ```bash
-   echo "$BB_API_TOKEN" | bb auth login -u your-username --with-token
+   printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
    ```
 
    If `BB_API_TOKEN` is set in your environment, a bare `bb auth login` uses API token auth instead of OAuth.
 
    Verify it worked:
+
    ```bash
    bb auth status
    ```
@@ -79,19 +84,19 @@ bb pr create -t "My feature"
 
 ## Common commands
 
-| Command | Description |
-|---------|-------------|
-| `bb pr list` | List open pull requests |
-| `bb pr view 42` | View PR #42 details |
-| `bb pr activity 42` | View PR #42 activity log |
-| `bb pr create -t "Title"` | Create a new PR |
-| `bb pr merge 42` | Merge PR #42 |
-| `bb pr checkout 42` | Checkout PR #42 locally |
-| `bb pr diff 42` | View PR #42 diff |
-| `bb repo list` | List repositories |
-| `bb browse 42` | Open PR #42 in your browser |
+| Command                   | Description                                    |
+| ------------------------- | ---------------------------------------------- |
+| `bb pr list`              | List open pull requests                        |
+| `bb pr view 42`           | View PR #42 details                            |
+| `bb pr activity 42`       | View PR #42 activity log                       |
+| `bb pr create -t "Title"` | Create a new PR                                |
+| `bb pr merge 42`          | Merge PR #42                                   |
+| `bb pr checkout 42`       | Checkout PR #42 locally                        |
+| `bb pr diff 42`           | View PR #42 diff                               |
+| `bb repo list`            | List repositories                              |
+| `bb browse 42`            | Open PR #42 in your browser                    |
 | `bb browse src/cli.ts:20` | Open a file at a specific line in your browser |
-| `bb api /user` | Call any Bitbucket API endpoint (escape hatch) |
+| `bb api /user`            | Call any Bitbucket API endpoint (escape hatch) |
 
 ## Set a default workspace
 
@@ -131,7 +136,7 @@ bb pr merge 42 --strategy <Tab>  # Shows: merge_commit, squash, fast_forward, ..
 
 ## Scripting with JSON
 
-Every command accepts `--json` for machine-readable output. You can project to a comma-separated field list and filter results through a built-in `jq` engine — no external `jq` binary required:
+Every command accepts `--json` for machine-readable output. You can project to a comma-separated field list and filter results through a built-in `jq` engine; no external `jq` binary required:
 
 ```bash
 # Project to specific fields
@@ -142,7 +147,8 @@ bb pr list --json --jq '.pullRequests[] | select(.state == "OPEN") | .title'
 ```
 
 <Aside type="tip">
-See [JSON Output](/reference/json-output/) for the full shape reference and the [Scripting guide](/guides/scripting/) for end-to-end automation patterns.
+  See [JSON Output](/reference/json-output/) for the full shape reference and
+  the [Scripting guide](/guides/scripting/) for end-to-end automation patterns.
 </Aside>
 
 ## Update notifications

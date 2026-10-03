@@ -3,9 +3,7 @@ title: Understanding Repository Context
 description: How the CLI determines which workspace and repository to use
 ---
 
-import { FileTree } from '@astrojs/starlight/components';
-
-Most commands need a workspace and a repository. If you don't pass `-w`/`-r`, the CLI works them out from your git remote, then `BB_WORKSPACE`, then your config file — in that order.
+Most commands need a workspace and a repository. If you don't pass `-w`/`-r`, the CLI works them out from your git remote, then `BB_WORKSPACE`, then your config file, in that order.
 
 ## Context resolution order
 
@@ -18,17 +16,8 @@ Sources 3 and 4 only supply a workspace. A repository still has to come from `-r
 
 ### Typical local layout
 
-<FileTree>
-- projects/
-  - myworkspace-tools/
-    - .git/
-    - src/
-      - commands/
-      - services/
-    - README.md
-</FileTree>
-
-When you run `bb` from `myworkspace-tools/`, the CLI reads the Bitbucket remote from `.git/` and uses that workspace and repository as context.
+Run `bb` from the clone or one of its subdirectories. It reads that repository's
+`origin` remote to resolve the workspace and repository.
 
 ### Examples
 
@@ -48,12 +37,12 @@ The CLI reads your `.git/config` and extracts the workspace and repository from 
 bb pr list -w myworkspace -r myrepo
 ```
 
-Flags always win, and they work from anywhere — no git repository required.
+Flags always win. With both flags supplied, no git repository is required.
 
 #### Scenario 3: using a default workspace
 
 ```bash
-# Environment variable — useful in CI
+# Environment variable, useful in CI
 export BB_WORKSPACE=myworkspace
 
 # Or persist it in the config file
@@ -81,10 +70,10 @@ bb pr list -r anotherrepo  # gitworkspace/anotherrepo
 
 The two classes fail differently when context is missing.
 
-| Class | Commands | Error when unresolved |
-|-------|----------|-----------------------|
-| Workspace-only | `bb repo list`, `bb repo create`, `bb repo clone`, `bb project *`, `bb snippet *`, `bb workspace view`, `bb search code`, `bb webhook * --scope workspace` | `6002 CONTEXT_WORKSPACE_NOT_FOUND` |
-| Repository-scoped | `bb pr *`, `bb pipeline *`, `bb commit *`, `bb status *`, `bb browse`, `bb repo view`, `bb repo delete`, `bb repo default-reviewers *`, `bb webhook *`, `bb branch-restriction *`, `bb deployment *` | `6001 CONTEXT_REPO_NOT_FOUND` |
+| Class             | Commands                                                                                                                                                                                             | Error when unresolved              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Workspace-only    | `bb repo list`, `bb repo create`, `bb repo clone`, `bb project *`, `bb snippet *`, `bb workspace view`, `bb search code`, `bb webhook * --scope workspace`                                           | `6002 CONTEXT_WORKSPACE_NOT_FOUND` |
+| Repository-scoped | `bb pr *`, `bb pipeline *`, `bb commit *`, `bb status *`, `bb browse`, `bb repo view`, `bb repo delete`, `bb repo default-reviewers *`, `bb webhook *`, `bb branch-restriction *`, `bb deployment *` | `6001 CONTEXT_REPO_NOT_FOUND`      |
 
 `bb ssh-key *` and `bb gpg-key *` act on your own account and ignore `-w`/`-r`.
 
@@ -127,12 +116,14 @@ The git remote wins over your config. Running `bb repo view myrepo` inside a clo
 ## Supported remote URL formats
 
 ### SSH format
+
 ```text
 git@bitbucket.org:workspace/repo.git
 git@bitbucket.org:workspace/repo
 ```
 
 ### HTTPS format
+
 ```text
 https://bitbucket.org/workspace/repo.git
 https://bitbucket.org/workspace/repo
@@ -143,7 +134,7 @@ https://username@bitbucket.org/workspace/repo.git
 
 - Only the remote named `origin` is inspected. If your Bitbucket remote has another name, pass `-w`/`-r`.
 - Repository names containing a dot (`docs.example.com`, `my.repo`) are not parsed.
-- `ssh://git@bitbucket.org/workspace/repo.git` is not recognised — use the `git@bitbucket.org:workspace/repo` form.
+- `ssh://git@bitbucket.org/workspace/repo.git` is not recognised. Use the `git@bitbucket.org:workspace/repo` form.
 
 A dotted repository name or an `ssh://` URL fails with `Remote '<url>' is not a Bitbucket URL.` A differently-named remote fails with `Git repository has no remote configured.`
 
@@ -153,19 +144,19 @@ A dotted repository name or an `ssh://` URL fails with `Remote '<url>' is not a 
 
 Three distinct messages, all error code `6001 CONTEXT_REPO_NOT_FOUND`. Under `--json` each sets a different `context.reason`.
 
-The working directory is not a git repository — `reason: not_a_git_repo`:
+The working directory is not a git repository, `reason: not_a_git_repo`:
 
 ```text
 ✗ Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-There is no `origin` remote — `reason: no_remote`:
+There is no `origin` remote, `reason: no_remote`:
 
 ```text
 ✗ Git repository has no remote configured. Add a Bitbucket remote with `git remote add origin <url>`, or use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-`origin` points somewhere other than Bitbucket, or the repository name contains a dot — `reason: remote_not_bitbucket`:
+`origin` points somewhere other than Bitbucket, or the repository name contains a dot, `reason: remote_not_bitbucket`:
 
 ```text
 ✗ Remote 'git@github.com:acme/tool.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
@@ -189,14 +180,14 @@ See [Error Codes](/reference/error-codes/) for the full list.
 
 ## Which approach to use
 
-| Situation | Use |
-|-----------|-----|
-| Interactive work in a clone | Nothing — the git remote resolves it |
-| Scripts and automation | Explicit `-w`/`-r` on every command |
-| CI pipelines | `BB_WORKSPACE` plus `-r`, or explicit flags |
-| You live in one workspace | `bb config set defaultWorkspace <name>` |
+| Situation                   | Use                                         |
+| --------------------------- | ------------------------------------------- |
+| Interactive work in a clone | Nothing, the git remote resolves it         |
+| Scripts and automation      | Explicit `-w`/`-r` on every command         |
+| CI pipelines                | `BB_WORKSPACE` plus `-r`, or explicit flags |
+| You live in one workspace   | `bb config set defaultWorkspace <name>`     |
 
-Don't set `defaultWorkspace` if you work across several workspaces — a stale default silently sends commands to the wrong place when you're outside a clone.
+Don't set `defaultWorkspace` if you work across several workspaces. A stale default silently sends commands to the wrong place when you're outside a clone.
 
 ## Checking what got resolved
 
@@ -205,4 +196,4 @@ bb repo view       # the resolved workspace/repository
 bb workspace view  # the resolved workspace
 ```
 
-Both accept `--json`, which every command in the CLI supports — see [JSON Output](/reference/json-output/). For the full list of global flags including `-w`/`-r`, see [Global Flags](/reference/global-flags/).
+Both accept `--json`. See [JSON Output](/reference/json-output/) for their response shapes. For the full list of global flags including `-w`/`-r`, see [Global Flags](/reference/global-flags/).

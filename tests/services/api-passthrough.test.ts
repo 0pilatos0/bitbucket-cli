@@ -166,6 +166,47 @@ describe('endpoint handling', () => {
     );
   });
 
+  it('preserves relative paths with queries, colons and encoded backslashes', () => {
+    expect(normalizeEndpoint('user?fields=username')).toBe(
+      '/user?fields=username'
+    );
+    expect(normalizeEndpoint('/repositories/ws/repo/src/main/a:b%5Cc')).toBe(
+      '/repositories/ws/repo/src/main/a:b%5Cc'
+    );
+  });
+
+  it('accepts HTTPS host casing and the default port', () => {
+    const endpoint = 'HTTPS://API.BITBUCKET.ORG:443/2.0/user';
+    expect(normalizeEndpoint(endpoint)).toBe(endpoint);
+  });
+
+  it.each([
+    'http://api.bitbucket.org/2.0/user',
+    'HTTP://api.bitbucket.org/2.0/user',
+    '//api.bitbucket.org/2.0/user',
+    '//evil.example/x',
+    '/2.0//evil.example/x',
+    '2.0//evil.example/x',
+    'https:/api.bitbucket.org/2.0/user',
+    'https:api.bitbucket.org/2.0/user',
+    'https:///api.bitbucket.org/2.0/user',
+    'https://',
+    'https://[invalid]/user',
+    'ftp://api.bitbucket.org/2.0/user',
+    'https://user:password@api.bitbucket.org/2.0/user',
+    'https://api.bitbucket.org:8443/2.0/user',
+    'https://api.bitbucket.org.evil.example/2.0/user',
+    'https:\\\\api.bitbucket.org\\2.0\\user',
+    '/\\evil.example/x',
+    '/2.0/\\evil.example/x',
+    'https://api.bitbucket.org\t.evil.example/user',
+    '/us\ner',
+    '/us\rer',
+    '/us\0er',
+  ])('rejects unsafe endpoint %j', (endpoint) => {
+    expect(() => normalizeEndpoint(endpoint)).toThrow(BBError);
+  });
+
   it('rejects an empty endpoint', () => {
     expect(() => normalizeEndpoint('   ')).toThrow(BBError);
   });

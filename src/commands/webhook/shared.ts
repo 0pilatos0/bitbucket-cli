@@ -34,7 +34,11 @@ export interface WebhookTarget {
   label: string;
   /** JSON envelope fields identifying where the webhooks live. */
   metadata: { workspace: string; repoSlug?: string };
-  list(page: number, pagelen: number): Promise<PaginatedWebhookSubscriptions>;
+  list(
+    page: number,
+    pagelen: number,
+    next?: string
+  ): Promise<PaginatedWebhookSubscriptions>;
   get(uid: string): Promise<WebhookSubscription>;
   create(body: WebhookSubscription): Promise<WebhookSubscription>;
   delete(uid: string): Promise<void>;
@@ -55,16 +59,18 @@ export async function resolveWebhooks(
     return {
       label: `${workspace}/${repoSlug}`,
       metadata: { workspace, repoSlug },
-      list: async (page, pagelen) =>
+      list: async (page, pagelen, next) =>
         (
-          await api.repositoriesWorkspaceRepoSlugHooksGet(
+          await api.listRepositoryHooks(
             { workspace, repoSlug },
-            { params: { page, pagelen } }
+            {
+              params: webhookListParams(page, pagelen, next),
+            }
           )
         ).data,
       get: async (uid) =>
         (
-          await api.repositoriesWorkspaceRepoSlugHooksUidGet({
+          await api.getRepositoryHook({
             workspace,
             repoSlug,
             uid,
@@ -72,14 +78,14 @@ export async function resolveWebhooks(
         ).data,
       create: async (body) =>
         (
-          await api.repositoriesWorkspaceRepoSlugHooksPost({
+          await api.createRepositoryHook({
             workspace,
             repoSlug,
             body,
           })
         ).data,
       delete: async (uid) => {
-        await api.repositoriesWorkspaceRepoSlugHooksUidDelete({
+        await api.deleteRepositoryHook({
           workspace,
           repoSlug,
           uid,
@@ -100,21 +106,32 @@ export async function resolveWebhooks(
   return {
     label: `workspace ${workspace}`,
     metadata: { workspace },
-    list: async (page, pagelen) =>
+    list: async (page, pagelen, next) =>
       (
-        await api.workspacesWorkspaceHooksGet(
+        await api.listWorkspaceHooks(
           { workspace },
-          { params: { page, pagelen } }
+          {
+            params: webhookListParams(page, pagelen, next),
+          }
         )
       ).data,
-    get: async (uid) =>
-      (await api.workspacesWorkspaceHooksUidGet({ workspace, uid })).data,
+    get: async (uid) => (await api.getWorkspaceHook({ workspace, uid })).data,
     create: async (body) =>
-      (await api.workspacesWorkspaceHooksPost({ workspace, body })).data,
+      (await api.createWorkspaceHook({ workspace, body })).data,
     delete: async (uid) => {
-      await api.workspacesWorkspaceHooksUidDelete({ workspace, uid });
+      await api.deleteWorkspaceHook({ workspace, uid });
     },
   };
+}
+
+function webhookListParams(
+  page: number,
+  pagelen: number,
+  next?: string
+): Record<string, string | number> {
+  return next
+    ? Object.fromEntries(new URL(next).searchParams)
+    : { page, pagelen };
 }
 
 /** Webhook ids are brace-wrapped UUIDs; accept a bare UUID too. */

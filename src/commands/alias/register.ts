@@ -20,7 +20,7 @@ export function registerAliasCommands(
     .addHelpText(
       'before',
       '\nAn alias expands in place of the first bb argument: `bb co 42` runs\n' +
-        '`bb pr checkout 42` after `bb alias set co "pr checkout $1"`. Extra\n' +
+        "`bb pr checkout 42` after `bb alias set co 'pr checkout $1'`. Extra\n" +
         'arguments are appended unless consumed by $1-$9 placeholders. A `!`\n' +
         'prefix runs the expansion through `sh -c` instead, with the remaining\n' +
         'arguments available as shell positional parameters ($1, $@).\n'
@@ -29,7 +29,7 @@ export function registerAliasCommands(
       'after',
       buildHelpText({
         examples: [
-          'bb alias set co "pr checkout $1"',
+          "bb alias set co 'pr checkout $1'",
           'bb alias set prd "pr create --draft"',
           'bb alias set openpr \'!bb pr list --json --jq ".pullRequests[0].id" | xargs bb browse --pr\'',
         ],

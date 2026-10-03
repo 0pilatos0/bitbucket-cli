@@ -28,12 +28,12 @@ bb branch-restriction list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--kind <kind>` | Only restrictions of this kind (see [kinds](#kinds)) |
-| `--pattern <glob>` | Only restrictions on this branch pattern |
-| `--limit <number>` | Maximum number of restrictions (default: 25) |
-| `--all` | List all restrictions (overrides `--limit`) |
+| Option             | Description                                          |
+| ------------------ | ---------------------------------------------------- |
+| `--kind <kind>`    | Only restrictions of this kind (see [kinds](#kinds)) |
+| `--pattern <glob>` | Only restrictions on this branch pattern             |
+| `--limit <number>` | Maximum number of restrictions (default: 25)         |
+| `--all`            | List all restrictions (overrides `--limit`)          |
 
 ### Examples
 
@@ -91,14 +91,14 @@ bb branch-restriction create --kind <kind> (--pattern <glob> | --branch-type <ty
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--kind <kind>` | **Required.** What to restrict (see [kinds](#kinds)) |
-| `--pattern <glob>` | Branches to match; `*` matches any run of characters (`release/*`) |
+| Option                 | Description                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `--kind <kind>`        | **Required.** What to restrict (see [kinds](#kinds))                                                        |
+| `--pattern <glob>`     | Branches to match; `*` matches any run of characters (`release/*`)                                          |
 | `--branch-type <type>` | Match a branching-model type instead: `feature`, `bugfix`, `release`, `hotfix`, `development`, `production` |
-| `--value <number>` | Kind-specific count, e.g. the minimum approvals for `require_approvals_to_merge` |
-| `--user <user>` | Exempt a user, by account ID or `{uuid}` (repeatable) |
-| `--group <slug>` | Exempt a workspace group, by slug (repeatable) |
+| `--value <number>`     | Kind-specific count, e.g. the minimum approvals for `require_approvals_to_merge`                            |
+| `--user <user>`        | Exempt a user, by account ID or `{uuid}` (repeatable)                                                       |
+| `--group <slug>`       | Exempt a workspace group, by slug (repeatable)                                                              |
 
 Pass exactly one of `--pattern` or `--branch-type`.
 

@@ -7,9 +7,9 @@ sidebar:
 
 Create and inspect pull requests (PRs).
 
-Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
-Field projection (`--json id,title`) works on list commands such as `bb pr list`. It does not work on `bb pr create`, `bb pr edit` or `bb pr view`. The payload there is a single PR carrying a `reviewers` array, and the projector unwraps that array instead — you get the reviewers back, or `[]` when there are none. Use `--json --jq '{...}'` on those three.
+Field projection (`--json id,title`) works on list commands such as `bb pr list`. It does not work on `bb pr create`, `bb pr edit` or `bb pr view`. The payload there is a single PR carrying a `reviewers` array, and the projector unwraps that array. It returns reviewers, or `[]` when there are none. Use `--json --jq '{...}'` on those three.
 
 ## `bb pr create`
 
@@ -21,17 +21,17 @@ bb pr create [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-t, --title <title>` | PR title (required; asked for in an interactive terminal when missing) |
-| `-b, --body <body>` | PR description |
-| `-s, --source <branch>` | Source branch (default: current branch) |
-| `-d, --destination <branch>` | Destination branch (default: main) |
-| `--close-source-branch` | Close source branch after merge |
-| `--draft` | Create the PR as draft |
-| `--reviewer <user>` | Add a reviewer by account ID or `{uuid}` (repeatable) |
-| `--default-reviewers` | Include the repository's default reviewers (opt-in) |
-| `--no-default-reviewers` | Skip default reviewers even when the config key enables them |
+| Option                       | Description                                                            |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `-t, --title <title>`        | PR title (required; asked for in an interactive terminal when missing) |
+| `-b, --body <body>`          | PR description                                                         |
+| `-s, --source <branch>`      | Source branch (default: current branch)                                |
+| `-d, --destination <branch>` | Destination branch (default: main)                                     |
+| `--close-source-branch`      | Close source branch after merge                                        |
+| `--draft`                    | Create the PR as draft                                                 |
+| `--reviewer <user>`          | Add a reviewer by account ID or `{uuid}` (repeatable)                  |
+| `--default-reviewers`        | Include the repository's default reviewers (opt-in)                    |
+| `--no-default-reviewers`     | Skip default reviewers even when the config key enables them           |
 
 ### Examples
 
@@ -78,19 +78,19 @@ still fails straight away with `Pull request title is required. Use --title opti
 
 ### Reviewers
 
-By default `bb pr create` does **not** attach reviewers to the PR — this differs from the Bitbucket web UI, which auto-populates the repository's default reviewers.
+By default `bb pr create` attaches no reviewers. Use `--default-reviewers` to include the defaults suggested by Bitbucket's web UI.
 
-- `--default-reviewers` opts in per-invocation. The command fetches the repository's *effective* default reviewers (repo-level + project-inherited) and attaches them.
+- `--default-reviewers` opts in per-invocation. The command fetches the repository's _effective_ default reviewers (repo-level + project-inherited) and attaches them.
 - `--reviewer <user>` adds specific reviewers regardless of the defaults and can be passed multiple times. Accepts an **account ID** (e.g. `712020:3cfed7e0-...`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-...}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames are not accepted.
-- The PR author is automatically excluded from the reviewer list — Bitbucket rejects PRs that list the author as a reviewer.
+- The CLI excludes the author when the current-user lookup returns a UUID. If that lookup fails, Bitbucket may reject a self-review assignment.
 - To make `--default-reviewers` the default behavior, set the config key:
   ```bash
   bb config set prCreateIncludeDefaultReviewers true
   ```
   Pass `--no-default-reviewers` to skip defaults for a single invocation when this is enabled.
-- If the default-reviewer fetch fails (network error, permission issue, etc.) the CLI prints `Could not fetch default reviewers: … Continuing without them.` and creates the PR anyway. Only the *defaults* are dropped — reviewers you passed with `--reviewer` are still attached. A failed `--reviewer` lookup, by contrast, aborts the create.
+- If the default-reviewer fetch fails (network error, permission issue, etc.) the CLI prints `Could not fetch default reviewers: … Continuing without them.` and creates the PR anyway. Only the _defaults_ are dropped, reviewers you passed with `--reviewer` are still attached. A failed `--reviewer` lookup, by contrast, aborts the create.
 
-See [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers) to inspect or manage the underlying default reviewer list.
+See [`bb repo default-reviewers`](/commands/repo/default-reviewers/) to inspect or manage the underlying default reviewer list.
 
 ---
 
@@ -106,10 +106,10 @@ bb pr edit [id] [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-t, --title <title>` | New PR title |
-| `-b, --body <body>` | New PR description |
+| Option                   | Description                |
+| ------------------------ | -------------------------- |
+| `-t, --title <title>`    | New PR title               |
+| `-b, --body <body>`      | New PR description         |
 | `-F, --body-file <file>` | Read description from file |
 
 ### Examples
@@ -153,12 +153,12 @@ bb pr list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                | Description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
 | `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
-| `--limit <number>` | Maximum number of PRs (default: 25) |
-| `--all` | List all PRs (overrides `--limit`) |
-| `--mine` | Show only PRs where you are a reviewer |
+| `--limit <number>`    | Maximum number of PRs (default: 25)                                 |
+| `--all`               | List all PRs (overrides `--limit`)                                  |
+| `--mine`              | Show only PRs where you are a reviewer                              |
 
 ### Examples
 
@@ -202,9 +202,11 @@ bb pr list --mine
 
 :::caution[`--mine` does not mean "my PRs"]
 `--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, filter the JSON yourself:
+
 ```bash
 bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "your-username")'
 ```
+
 :::
 
 ---

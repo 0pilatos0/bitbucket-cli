@@ -7,9 +7,9 @@ sidebar:
 
 The four commands that change a pull request's state: `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr merge`.
 
-Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
-`--json` accepts an optional comma-separated field list and `--jq` filters the JSON in-process — see [JSON Output](/reference/json-output/) for the full reference. On these four commands the field list is matched against the result envelope shown under [JSON output](#json-output), not against the PR, so `--json title` returns `{"title": null}`. Use a dotted path (`--json pullRequest.state`) or `--jq` instead.
+On these four commands the field list is matched against the result envelope shown under [JSON output](#json-output), not against the PR, so `--json title` returns `{"title": null}`. Use a dotted path (`--json pullRequest.state`) or `--jq` instead.
 
 ## `bb pr merge`
 
@@ -21,22 +21,22 @@ bb pr merge <id> [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-m, --message <message>` | Merge commit message |
-| `--close-source-branch` | Delete the source branch after merging |
-| `--strategy <strategy>` | Merge strategy (see below) |
+| Option                    | Description                            |
+| ------------------------- | -------------------------------------- |
+| `-m, --message <message>` | Merge commit message                   |
+| `--close-source-branch`   | Delete the source branch after merging |
+| `--strategy <strategy>`   | Merge strategy (see below)             |
 
 ### Merge strategies
 
-| Strategy | Description |
-|----------|-------------|
-| `merge_commit` | Create a merge commit |
-| `squash` | Squash all commits into a single commit |
-| `fast_forward` | Fast-forward if possible, fail otherwise |
-| `squash_fast_forward` | Squash commits and fast-forward |
-| `rebase_fast_forward` | Rebase source commits onto destination and fast-forward |
-| `rebase_merge` | Rebase source commits onto destination and create a merge commit |
+| Strategy              | Description                                                      |
+| --------------------- | ---------------------------------------------------------------- |
+| `merge_commit`        | Create a merge commit                                            |
+| `squash`              | Squash all commits into a single commit                          |
+| `fast_forward`        | Fast-forward if possible, fail otherwise                         |
+| `squash_fast_forward` | Squash commits and fast-forward                                  |
+| `rebase_fast_forward` | Rebase source commits onto destination and fast-forward          |
+| `rebase_merge`        | Rebase source commits onto destination and create a merge commit |
 
 Omitting `--strategy` uses the repository's configured merge strategy (typically `merge_commit`), not a CLI default. The CLI sends no strategy at all unless you pass one.
 
@@ -65,7 +65,7 @@ bb pr merge 42 --json --jq '.pullRequest.merge_commit.hash' | tr -d '"'
 
 ## `bb pr approve`, `bb pr decline`, `bb pr ready`
 
-Each takes a pull request ID and nothing else — no command-specific options, only the global ones.
+Each takes a pull request ID and nothing else, no command-specific options, only the global ones.
 
 ```bash
 bb pr approve 42   # Approve
@@ -89,7 +89,7 @@ The four commands on this page do not return the same shape. `bb pr approve` ret
 }
 ```
 
-`bb pr decline`, `bb pr ready`, and `bb pr merge` add the pull request exactly as the API returned it, so `state` reflects the command you ran — `DECLINED`, `OPEN`, and `MERGED` respectively. Abridged, for `bb pr merge`:
+`bb pr decline`, `bb pr ready`, and `bb pr merge` add the pull request exactly as the API returned it, `decline` and `merge` change the state, while `ready` clears `draft` without requesting a state change. Abridged, for `bb pr merge`:
 
 ```json
 {

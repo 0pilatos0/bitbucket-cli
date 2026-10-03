@@ -1,6 +1,6 @@
 ---
-title: CI/CD Integration - GitHub Actions, GitLab, Jenkins, CircleCI
-description: Integrate Bitbucket CLI into your CI/CD pipelines. Step-by-step examples for GitHub Actions, GitLab CI, Jenkins, CircleCI, and generic pipelines with authentication and best practices.
+title: CI/CD integration
+description: Install and authenticate Bitbucket CLI in GitHub Actions, GitLab CI, Bitbucket Pipelines, Jenkins, and Azure DevOps.
 ---
 
 import { Aside, Tabs, TabItem, Steps } from '@astrojs/starlight/components';
@@ -12,8 +12,8 @@ The Bitbucket CLI automates pull request (PR) workflows, reports build statuses 
 <Steps>
 
 1. **Store credentials as secrets** in your CI/CD platform.
-   - `BB_USERNAME` — your Bitbucket username
-   - `BB_API_TOKEN` — your Bitbucket API token
+   - `BB_USERNAME`, your Atlassian account email
+   - `BB_API_TOKEN`, your Bitbucket API token
 
 2. **Install the CLI.** The standalone binary needs no Bun, Node.js or npm, so the job skips the runtime install. Verify it against the release's `SHA256SUMS` before running it:
 
@@ -36,7 +36,7 @@ The Bitbucket CLI automates pull request (PR) workflows, reports build statuses 
    bun install -g @pilatos/bitbucket-cli
    ```
 
-   On an image that already ships Bun (`oven/bun:latest`) skip the `curl` line and keep the other two — those images contain no Node.js and no npm.
+   On an image that already ships Bun (`oven/bun:latest`) skip the `curl` line and keep the other two, those images contain no Node.js and no npm.
 
 3. **Authenticate.** With `BB_API_TOKEN` set in the environment, `bb auth login` takes the API-token path and stores the credentials. With no token set it opens a browser for OAuth and waits five minutes for a callback that never arrives in a headless runner.
 
@@ -54,7 +54,7 @@ The Bitbucket CLI automates pull request (PR) workflows, reports build statuses 
 
 ### Paging
 
-List commands return 25 items by default. Pass `--limit <n>` to raise or lower that cap, or `--all` to fetch every page — `--all` overrides `--limit`.
+List commands return 25 items by default. Pass `--limit <n>` to raise or lower that cap, or `--all` to fetch every page. `--all` overrides `--limit`.
 
 ```bash
 bb pr list -w myworkspace -r myrepo --all --json
@@ -74,7 +74,7 @@ bb pr list -w myworkspace -r myrepo --json id,title
 bb pr list -w myworkspace -r myrepo --all --json --jq '.pullRequests[].id'
 ```
 
-Projection runs before jq, and `--json <fields>` drops the envelope on list commands — `count` disappears once you project. See [Scripting & Automation](/guides/scripting/#field-selection-and---jq).
+Projection runs before jq, and `--json <fields>` drops the envelope on list commands, `count` disappears once you project. See [Scripting & Automation](/guides/scripting/#field-selection-and---jq).
 
 ---
 
@@ -114,7 +114,7 @@ jobs:
           BB_API_TOKEN: ${{ secrets.BB_API_TOKEN }}
         run: |
           bb auth login
-          bb pr list -w myworkspace -r myrepo --json --jq '.count'
+          bb pr list -w myworkspace -r myrepo --all --json --jq '.count'
 ```
 
 Appending to `$GITHUB_PATH` puts `bb` on `PATH` for every later step.
@@ -178,7 +178,11 @@ definitions:
 Pipelines injects `BITBUCKET_WORKSPACE`, `BITBUCKET_REPO_SLUG`, and `BITBUCKET_PR_ID`, which the snippet above passes to `-w`, `-r`, and `bb pr view`.
 
 <Aside type="caution">
-Pipelines does **not** inject Bitbucket credentials, and the CLI never reads the `BITBUCKET_*` variables for auth. Add both `BB_USERNAME` and `BB_API_TOKEN` as secured repository or workspace variables. Without `BB_API_TOKEN`, `bb auth login` falls back to the OAuth browser flow and the step hangs until it times out.
+  Pipelines does **not** inject Bitbucket credentials, and the CLI never reads
+  the `BITBUCKET_*` variables for auth. Add both `BB_USERNAME` and
+  `BB_API_TOKEN` as secured repository or workspace variables. Without
+  `BB_API_TOKEN`, `bb auth login` falls back to the OAuth browser flow and the
+  step hangs until it times out.
 </Aside>
 
 ### Jenkins
@@ -188,7 +192,7 @@ pipeline {
     agent any
 
     environment {
-        BB_USERNAME = credentials('bitbucket-username')
+        BB_USERNAME = credentials('bitbucket-account-email')
         BB_API_TOKEN = credentials('bitbucket-token')
     }
 
@@ -205,7 +209,7 @@ pipeline {
             steps {
                 sh '''
                     export PATH="$HOME/.bun/bin:$PATH"
-                    bb pr list -w myworkspace -r myrepo --json --jq '.count'
+                    bb pr list -w myworkspace -r myrepo --all --json --jq '.count'
                 '''
             }
         }
@@ -215,7 +219,7 @@ pipeline {
 
 Each `sh` step is a fresh shell, so `PATH` has to be exported in every one.
 
-To merge approved PRs from Jenkins, run the script in [Merge approved PRs automatically](#merge-approved-prs-automatically) as a build step.
+To automate merges from Jenkins, use the [checked merge recipe](/recipes/auto-merge-on-ci-green/).
 
 ### Azure DevOps
 
@@ -227,7 +231,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  - group: bitbucket-credentials  # Variable group with BB_USERNAME, BB_API_TOKEN
+  - group: bitbucket-credentials # Variable group with BB_USERNAME, BB_API_TOKEN
 
 steps:
   - script: |
@@ -284,112 +288,59 @@ bb pipeline run -w myworkspace -r myrepo \
 
 ### Create a PR from a branch
 
-Create the PR only if one does not already exist for the source branch. This works the same whether the branch came from a feature push or a scheduled dependency bump.
+Run this in a branch build after pushing the source branch. It uses external
+`jq` to pass the branch name as data, and lists every open PR before creating one:
 
 ```bash
+set -euo pipefail
+export BB_DEBUG=off
 BRANCH=${GITHUB_REF#refs/heads/}
 
-EXISTING=$(bb pr list -w myworkspace -r myrepo --all --json \
-  --jq "[.pullRequests[] | select(.source.branch.name == \"$BRANCH\")] | length")
+EXISTING=$(bb pr list -w myworkspace -r myrepo --all --json | \
+  jq --arg branch "$BRANCH" '[.pullRequests[] | select(.source.branch.name == $branch)] | length')
 
 if [ "$EXISTING" -eq 0 ]; then
   bb pr create -w myworkspace -r myrepo \
-    -t "chore: $BRANCH" \
-    -b "Opened automatically by CI" \
-    -s "$BRANCH" \
-    -d main
+    -t "chore: $BRANCH" -b "Opened automatically by CI" \
+    -s "$BRANCH" -d main
 fi
 ```
 
+Use your platform's source-branch variable outside GitHub Actions. A concurrent
+job can create the same PR between the lookup and create call; handle that
+failure in your job rather than assuming the lookup is a lock.
+
 ### Merge approved PRs automatically
 
-This script merges as soon as any reviewer has approved. To wait for **all CI checks to pass** first — the more common production pattern — see [Auto-merge on green CI](/recipes/auto-merge-on-ci-green/).
-
-```bash
-#!/bin/bash
-# auto-merge.sh - Run in CI on schedule
-
-set -e
-
-WORKSPACE="myworkspace"
-REPO="myrepo"
-
-# --all is required: without it only the first 25 open PRs are considered
-open_prs=$(bb pr list -w "$WORKSPACE" -r "$REPO" --all --json --jq '.pullRequests[].id')
-
-for pr_id in $open_prs; do
-  is_approved=$(bb pr view "$pr_id" -w "$WORKSPACE" -r "$REPO" --json \
-    --jq '[.participants[] | select(.approved == true)] | length > 0')
-
-  if [ "$is_approved" != "true" ]; then
-    sleep 1
-    continue
-  fi
-
-  if bb pr merge "$pr_id" -w "$WORKSPACE" -r "$REPO" --strategy squash --close-source-branch; then
-    echo "Merged PR #$pr_id"
-  else
-    echo "Could not merge PR #$pr_id (conflicts or failing checks)"
-  fi
-
-  sleep 2
-done
-```
+Use [Auto-merge on green CI](/recipes/auto-merge-on-ci-green/). It reads every
+build-status page, checks required status keys, and rechecks the PR head before
+merging. Repository merge policies must enforce your authoritative requirements.
+One approval alone does not establish that a PR is ready to merge.
 
 ### Generate a changelog from merged PRs
 
-```bash
-#!/bin/bash
-# generate-changelog.sh
-
-WORKSPACE="myworkspace"
-REPO="myrepo"
-SINCE_DATE=$(date -d '7 days ago' +%Y-%m-%d 2>/dev/null || \
-             date -v-7d +%Y-%m-%d)
-
-echo "# Changelog - Week of $(date +%Y-%m-%d)"
-echo ""
-
-# External jq here because the program needs --arg; --jq takes no variables
-bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --all --json | jq -r --arg since "$SINCE_DATE" '
-  .pullRequests[] |
-  select(.updated_on >= $since) |
-  "- \(.title) (#\(.id)) by @\(.author.nickname // .author.display_name // "unknown")"
-'
-```
-
----
+See [Reporting and analytics](/recipes/reporting-analytics/) for paginated PR
+reports and diff statistics.
 
 ## Exit codes and errors
 
-Every command exits `0` on success and `1` on any failure. There is no per-error exit code — the specific `ErrorCode` lives in the error payload.
+Commands exit `0` on success and `1` on failure. Interrupted interactive prompts
+exit `130`; disable prompts in automation with `--no-input`.
 
-Under `--json`, the error envelope is written to **stderr** as one compact line while stdout stays byte-clean JSON:
+In normal `--json` mode, successful JSON goes to stdout and command errors go to
+stderr. Set `BB_DEBUG=off` when parsing JSON, because HTTP traces also write to
+stdout. Argument-parser errors may be plain text even under `--json`.
 
-```json
-{"name":"BBError","code":1001,"message":"Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN."}
-```
-
-401, 403, and 404 failures carry an extra `hint` string. See [Scripting & Automation](/guides/scripting/#exit-codes) and [Error Codes](/reference/error-codes/).
-
----
+See [Scripting and automation](/guides/scripting/#error-handling) for an error
+handling example and [Error codes](/reference/error-codes/) for numeric codes.
 
 ## Security considerations
 
 ### Token scopes
 
-Create a dedicated CI/CD token with minimal permissions:
-
-| Use case | Required scopes |
-|----------|----------------|
-| Verify identity | `read:user:bitbucket` |
-| Read-only checks | + `read:repository:bitbucket`, `read:pullrequest:bitbucket` |
-| Create/merge PRs | + `write:pullrequest:bitbucket` |
-| Report build statuses, write repository data | + `write:repository:bitbucket` |
-| Create repositories | + `admin:repository:bitbucket` |
-| Delete repositories | + `delete:repository:bitbucket` |
-
-The `+` notation is cumulative for the read and write scopes only. `admin:repository:bitbucket` and `delete:repository:bitbucket` are separate scopes, not supersets of each other or of `write:repository:bitbucket` — grant each one you actually need. Full list: [Token Scopes](/reference/token-scopes/).
+Create a dedicated CI token with only the permissions its commands require.
+Use the [scope reference](/reference/token-scopes/) rather than copying a broad
+scope list. Grant read, write, admin, and delete scopes separately as needed.
 
 ### Secrets management
 
@@ -415,15 +366,16 @@ The `+` notation is cumulative for the read and write scopes only. `admin:reposi
 ### Authentication fails
 
 ```text
-✗ Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.
+✗ Authentication required. Run 'bb auth login'.
 ```
 
 Under `--json` the same failure appears on stderr as `{"name":"BBError","code":1001,...}`.
 
-Check that both variables reach the job, and that the token has not expired:
+Check that both variables reach the job, that `BB_USERNAME` is the Atlassian
+account email, and that the token has not expired:
 
 ```bash
-echo "Username set: $([ -n "$BB_USERNAME" ] && echo 'yes' || echo 'no')"
+echo "Account email set: $([ -n "$BB_USERNAME" ] && echo 'yes' || echo 'no')"
 echo "Token set: $([ -n "$BB_API_TOKEN" ] && echo 'yes' || echo 'no')"
 ```
 

@@ -3,34 +3,34 @@ title: Environment Variables
 description: Configure Bitbucket CLI using environment variables
 ---
 
-import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
 Every environment variable the CLI reads. `bb --help` lists the main ones in
 its footer.
 
 ## Available variables
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `BB_USERNAME` | Your Bitbucket username (fallback for `bb auth login`) | `myuser` |
-| `BB_API_TOKEN` | Your Bitbucket API token (fallback for `bb auth login`; forces API token auth when set) | `ATBB...` |
-| `BB_WORKSPACE` | Default workspace. Overrides `config.defaultWorkspace`. `--workspace` always wins; the git remote wins too, but only on repository-scoped commands — see [Resolution order](#resolution-order). | `myworkspace` |
-| `BB_LOCALE` | BCP-47 locale tag for date/time formatting. `--locale` takes precedence; falls back to `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. | `de-DE` |
-| `BB_NO_UNICODE` | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Same effect as the global `--no-unicode` flag, but it cannot be overridden per command: `--unicode` is accepted and does nothing while this is set. Unset the variable instead. | `1` |
-| `BB_PROMPT_DISABLED` | When set to any non-empty value, never prompt, even in an interactive terminal (`bb completion install` still asks for your shell). Same effect as the global `--no-input` flag. See [`--no-input`](/reference/global-flags/#--no-input). | `1` |
-| `NO_COLOR` | Disable color output globally. Triggers on any value, including the empty string. | `1` |
-| `FORCE_COLOR` | Force-enable color output globally (any value except `0`) | `1` |
-| `BB_DEBUG` | HTTP debug tracing on stdout. `http` logs method, URL, status (or network error code) and elapsed time for every API call; `verbose` also logs the request and response bodies, secrets redacted. `0`, `false`, `off`, `no` or `none` disables it, even when `DEBUG=true` is set; any other non-empty value (e.g. `1`) means `http`. Any level also prints the browser-open and version-check diagnostics on stderr. See [HTTP debug tracing](#http-debug-tracing). | `http` |
-| `DEBUG` | Alias for `BB_DEBUG=verbose`. Must equal the literal string `true`, and is ignored when `BB_DEBUG` is set. | `true` |
-| `BB_HTTP_TIMEOUT` | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. `bb repo downloads upload` adds transfer time for the upload size on top. | `60000` |
-| `BB_API_BASE_URL` | Base URL for Bitbucket API calls. Defaults to `https://api.bitbucket.org/2.0`. Point it at a gateway, a mirror, or a local mock server (trailing slashes are stripped). | `http://localhost:8080/2.0` |
+| Variable             | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Example                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `BB_USERNAME`        | Your Atlassian account email (fallback for API-token `bb auth login`)                                                                                                                                                                                                                                                                                                                                                                                               | `you@example.com`           |
+| `BB_API_TOKEN`       | Your Bitbucket API token (fallback for `bb auth login`; forces API token auth when set)                                                                                                                                                                                                                                                                                                                                                                             | `ATBB...`                   |
+| `BB_WORKSPACE`       | Default workspace. Overrides `config.defaultWorkspace`. `--workspace` always wins; the git remote wins too, but only on repository-scoped commands; see [Resolution order](#resolution-order).                                                                                                                                                                                                                                                                      | `myworkspace`               |
+| `BB_LOCALE`          | BCP-47 locale tag for date/time formatting. `--locale` takes precedence; falls back to `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`.                                                                                                                                                                                                                                                                                                                                     | `de-DE`                     |
+| `BB_NO_UNICODE`      | When set to any non-empty value, use ASCII fallbacks for separators, arrows, and status icons. Same effect as the global `--no-unicode` flag, but it cannot be overridden per command: `--unicode` is accepted and does nothing while this is set. Unset the variable instead.                                                                                                                                                                                      | `1`                         |
+| `BB_PROMPT_DISABLED` | When set to any non-empty value, never prompt, even in an interactive terminal (`bb completion install` still asks for your shell). Same effect as the global `--no-input` flag. See [`--no-input`](/reference/global-flags/#--no-input).                                                                                                                                                                                                                           | `1`                         |
+| `NO_COLOR`           | Disable color output globally. Triggers on any value, including the empty string.                                                                                                                                                                                                                                                                                                                                                                                   | `1`                         |
+| `FORCE_COLOR`        | Force-enable color output globally (any value except `0`)                                                                                                                                                                                                                                                                                                                                                                                                           | `1`                         |
+| `BB_DEBUG`           | HTTP debug tracing on stdout. `http` logs method, URL, status (or network error code) and elapsed time for every API call; `verbose` also logs the request and response bodies, secrets redacted. `0`, `false`, `off`, `no` or `none` disables it, even when `DEBUG=true` is set; any other non-empty value (e.g. `1`) means `http`. Any level also prints the browser-open and version-check diagnostics on stderr. See [HTTP debug tracing](#http-debug-tracing). | `http`                      |
+| `DEBUG`              | Alias for `BB_DEBUG=verbose`. Must equal the literal string `true`, and is ignored when `BB_DEBUG` is set.                                                                                                                                                                                                                                                                                                                                                          | `true`                      |
+| `BB_HTTP_TIMEOUT`    | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. `bb repo downloads upload` adds transfer time for the upload size on top.                                        | `60000`                     |
+| `BB_API_BASE_URL`    | Base URL for Bitbucket API calls. Defaults to `https://api.bitbucket.org/2.0`. Point it at a gateway, a mirror, or a local mock server (trailing slashes are stripped).                                                                                                                                                                                                                                                                                             | `http://localhost:8080/2.0` |
 
 <Aside type="caution" title="BB_HTTP_TIMEOUT is in milliseconds">
-`BB_HTTP_TIMEOUT=60` means 60 milliseconds, so almost every request fails. For
-a 60-second ceiling use `BB_HTTP_TIMEOUT=60000`. In CI, set something short
-like `BB_HTTP_TIMEOUT=15000` so a stalled call fails fast instead of hanging
-the pipeline. `BB_HTTP_TIMEOUT=0` disables the timeout — useful for very large
-clones or exports, but a hung request in CI has no human to Ctrl-C.
+  `BB_HTTP_TIMEOUT=60` means 60 milliseconds, so almost every request fails. For
+  a 60-second ceiling use `BB_HTTP_TIMEOUT=60000`. In CI, set something short
+  like `BB_HTTP_TIMEOUT=15000` so a stalled call fails fast instead of hanging
+  the pipeline. `BB_HTTP_TIMEOUT=0` disables the timeout; it affects API
+  requests, not `git clone`. A stalled request can then wait indefinitely.
 </Aside>
 
 ### HTTP debug tracing
@@ -75,7 +75,7 @@ tool.
 ### POSIX locale variables
 
 If neither `--locale` nor `BB_LOCALE` is set, the CLI reads the standard POSIX
-locale variables — `LC_TIME`, then `LC_ALL`, then `LANG` — and falls back to
+locale variables in the order `LC_TIME`, `LC_ALL`, then `LANG`, and falls back to
 `en-US` if none is usable. `LC_TIME` is deliberately checked **before**
 `LC_ALL`, which is the reverse of the usual POSIX override order, so setting
 both means `LC_TIME` wins.
@@ -100,11 +100,11 @@ Set `CI=1` to get the same behavior locally.
 Set by the runtime, your shell, or your operating system rather than by you.
 Documented so they aren't surprising during troubleshooting.
 
-| Variable | Set by | Description |
-|----------|--------|-------------|
-| `NODE_ENV` | Test runners | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
-| `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually. |
-| `APPDATA` | Windows | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set. |
+| Variable    | Set by              | Description                                                                                                                                                     |
+| ----------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`  | Test runners        | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
+| `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually.        |
+| `APPDATA`   | Windows             | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set.  |
 
 ## Resolution order
 
@@ -115,14 +115,14 @@ Workspace and repository, highest priority first:
 3. **`BB_WORKSPACE`** (workspace only)
 4. **Configuration file** (`defaultWorkspace`, workspace only)
 
-Step 2 does not apply to workspace-only commands — `bb workspace view`, every
+Step 2 does not apply to workspace-only commands; `bb workspace view`, every
 `bb project` and `bb snippet` command, `bb repo list`, `bb repo create`,
 `bb repo clone`, and `bb api` filling a `{workspace}` placeholder go straight
 from the flag to `BB_WORKSPACE` to `defaultWorkspace`.
 
 Color, highest priority first. The default with none of them set is colors on:
 
-1. `--color` — matched by a raw scan of argv, so `bb pr diff 42 --color never`
+1. `--color`; matched by a raw scan of argv, so `bb pr diff 42 --color never`
    still turns global color on
 2. `FORCE_COLOR` (any value except `0`)
 3. `--no-color`
@@ -131,7 +131,7 @@ Color, highest priority first. The default with none of them set is colors on:
 Credentials are **not** a chain. `bb pr list` and every other API call read the
 username and token from the config file only; if nothing is stored there the
 command fails with error 1001 even when `BB_USERNAME` and `BB_API_TOKEN` are
-exported. Those two variables are read by `bb auth login` and nowhere else —
+exported. Those two variables are read by `bb auth login` and nowhere else;
 run it once and it writes the config file.
 
 Inside `bb auth login`:
@@ -146,7 +146,7 @@ Inside `bb auth login`:
 `bb auth login` picks up both variables, so it runs without prompts:
 
 ```bash
-export BB_USERNAME=myuser
+export BB_USERNAME=you@example.com
 export BB_API_TOKEN=ATBB_your_token_here
 
 bb auth login
@@ -156,141 +156,34 @@ bb pr list -w myworkspace -r myrepo
 Or inline, without exporting:
 
 ```bash
-BB_USERNAME=myuser BB_API_TOKEN=ATBB_token bb auth login
+BB_USERNAME=you@example.com BB_API_TOKEN=ATBB_token bb auth login
 ```
 
 To keep the token out of shell history and `ps` output, pipe it instead:
 
 ```bash
-echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
 ```
 
 ## Shell configuration
 
-Add to your shell's startup file, then reload it or open a new terminal:
-
-<Tabs>
-  <TabItem label="Bash">
-    `~/.bashrc` or `~/.bash_profile`:
-
-    ```bash
-    export BB_USERNAME="your-username"
-    export BB_API_TOKEN="your-api-token"
-    ```
-  </TabItem>
-  <TabItem label="Zsh">
-    `~/.zshrc`:
-
-    ```zsh
-    export BB_USERNAME="your-username"
-    export BB_API_TOKEN="your-api-token"
-    ```
-  </TabItem>
-  <TabItem label="Fish">
-    `~/.config/fish/config.fish`:
-
-    ```fish
-    set -gx BB_USERNAME "your-username"
-    set -gx BB_API_TOKEN "your-api-token"
-    ```
-  </TabItem>
-  <TabItem label="PowerShell">
-    Your profile (`$PROFILE`):
-
-    ```powershell
-    $env:BB_USERNAME = "your-username"
-    $env:BB_API_TOKEN = "your-api-token"
-    ```
-  </TabItem>
-</Tabs>
+Set `BB_USERNAME=you@example.com` in your shell profile if you want an email
+fallback. Load `BB_API_TOKEN` from a secret store when logging in; avoid putting
+it in your shell profile. These variables select credentials for login, not
+for subsequent API calls.
 
 ## Docker
 
-```bash
-docker run -e BB_USERNAME=myuser \
-           -e BB_API_TOKEN=ATBB_token \
-           your-image sh -lc "bb auth login && bb pr list -w workspace -r myrepo"
-```
-
-Or an env file:
-
-```bash
-# .env.bb (not committed to git!)
-BB_USERNAME=myuser
-BB_API_TOKEN=ATBB_token
-```
-
-```bash
-docker run --env-file .env.bb your-image sh -lc "bb auth login && bb pr list -w workspace -r myrepo"
-```
+Pass credentials from a secret store and run `bb auth login` inside the
+container before API commands. The npm package still needs Bun on `PATH`.
+Config credentials are stored on disk; account for that when mounting a home
+directory or building an image.
 
 ## CI/CD examples
 
-The package is published to npm but runs on Bun — `bb` exits immediately under
-Node — so every runner needs Bun on `PATH`.
-
-### GitHub Actions
-
-```yaml
-name: PR Status
-on: [push]
-
-jobs:
-  check-prs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install Bitbucket CLI
-        run: npm install -g @pilatos/bitbucket-cli
-
-      - name: List PRs
-        env:
-          BB_USERNAME: ${{ secrets.BB_USERNAME }}
-          BB_API_TOKEN: ${{ secrets.BB_API_TOKEN }}
-          BB_HTTP_TIMEOUT: 15000
-        run: |
-          bb auth login
-          bb pr list -w myworkspace -r myrepo --json
-```
-
-### GitLab CI
-
-```yaml
-check-prs:
-  image: oven/bun:latest
-  variables:
-    BB_USERNAME: $BB_USERNAME
-    BB_API_TOKEN: $BB_API_TOKEN
-    BB_HTTP_TIMEOUT: 15000
-  script:
-    - bun install -g @pilatos/bitbucket-cli
-    - bb auth login
-    - bb pr list -w myworkspace -r myrepo --json
-```
-
-### Bitbucket Pipelines
-
-```yaml
-image: oven/bun:latest
-
-pipelines:
-  default:
-    - step:
-        name: Check PRs
-        script:
-          - bun install -g @pilatos/bitbucket-cli
-          - bb auth login
-          - bb pr list -w $BITBUCKET_WORKSPACE -r $BITBUCKET_REPO_SLUG --json
-```
-
-`BITBUCKET_WORKSPACE` and `BITBUCKET_REPO_SLUG` are provided by Bitbucket
-Pipelines automatically.
+See [CI/CD Integration](/guides/cicd/) for runner setup and authentication.
+Use an Atlassian account email for `BB_USERNAME`, and store `BB_API_TOKEN` in
+the runner's secret store.
 
 ## Keeping tokens safe
 
