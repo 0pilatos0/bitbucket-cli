@@ -7,7 +7,11 @@ import { GetConfigCommand } from '../../src/commands/config/get.command.js';
 import { SetConfigCommand } from '../../src/commands/config/set.command.js';
 import { ListConfigCommand } from '../../src/commands/config/list.command.js';
 import type { BBConfig } from '../../src/types/config.js';
-import { createMockConfigService, createMockOutputService } from '../setup.js';
+import {
+  createMockConfigService,
+  createMockOutputService,
+  createMockSecretStorage,
+} from '../setup.js';
 
 describe('GetConfigCommand', () => {
   it('should get defaultWorkspace value', async () => {
@@ -16,7 +20,7 @@ describe('GetConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
     await command.execute({ key: 'defaultWorkspace' }, { globalOptions: {} });
 
     expect(output.logs).toContain('text:my-workspace');
@@ -26,7 +30,7 @@ describe('GetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
     await command.execute({ key: 'defaultWorkspace' }, { globalOptions: {} });
 
     expect(output.logs).toContain('text:');
@@ -38,7 +42,7 @@ describe('GetConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
     await command.execute({ key: 'skipVersionCheck' }, { globalOptions: {} });
 
     expect(output.logs).toContain('text:false');
@@ -50,7 +54,7 @@ describe('GetConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
     await command.execute(
       { key: 'versionCheckInterval' },
       { globalOptions: { json: true } }
@@ -67,7 +71,7 @@ describe('GetConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'apiToken' }, { globalOptions: {} })
@@ -82,7 +86,7 @@ describe('GetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'invalidKey' }, { globalOptions: {} })
@@ -103,21 +107,21 @@ describe('GetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'invalidKey' }, { globalOptions: { json: true } })
     ).rejects.toBeDefined();
 
     expect(output.logs).toContain(
-      'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}'
+      'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}'
     );
   });
 
   it('should suggest a near-miss config key', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const command = new GetConfigCommand(configService, output);
+    const command = new GetConfigCommand(configService, configService, output);
 
     await expect(
       command.execute({ key: 'defaultWorkspce' }, { globalOptions: {} })
@@ -126,11 +130,51 @@ describe('GetConfigCommand', () => {
 });
 
 describe('SetConfigCommand', () => {
+  it('moves saved credentials when credentialStorage changes', async () => {
+    const secrets = createMockSecretStorage();
+    const configService = createMockConfigService(
+      { username: 'u@x.com', apiToken: 'secret' },
+      { secrets }
+    );
+    const output = createMockOutputService();
+
+    const command = new SetConfigCommand(configService, configService, output);
+    await command.execute(
+      { key: 'credentialStorage', value: 'keychain' },
+      { globalOptions: {} }
+    );
+
+    const config = await configService.getConfig();
+    expect(config.credentialStorage).toBe('keychain');
+    expect(JSON.stringify(config)).not.toContain('secret');
+    expect(secrets.entries.has('default')).toBe(true);
+    expect(output.logs).toEqual([
+      'success:Set credentialStorage = keychain',
+      'text:  Moved 1 saved account to the OS keychain',
+    ]);
+  });
+
+  it('rejects an unknown credentialStorage value', async () => {
+    const configService = createMockConfigService();
+    const command = new SetConfigCommand(
+      configService,
+      configService,
+      createMockOutputService()
+    );
+
+    await expect(
+      command.execute(
+        { key: 'credentialStorage', value: 'vault' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow("Expected 'file' or 'keychain'");
+  });
+
   it('should set defaultWorkspace value', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
     await command.execute(
       { key: 'defaultWorkspace', value: 'new-workspace' },
       { globalOptions: {} }
@@ -149,7 +193,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'username', value: 'newuser' }, { globalOptions: {} })
@@ -162,7 +206,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'apiToken', value: 'newpass' }, { globalOptions: {} })
@@ -175,7 +219,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
     await command.execute(
       { key: 'skipVersionCheck', value: 'true' },
       { globalOptions: {} }
@@ -191,7 +235,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
     await command.execute(
       { key: 'versionCheckInterval', value: '7' },
       { globalOptions: {} }
@@ -207,7 +251,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
     await command.execute(
       { key: 'skipVersionCheck', value: 'false' },
       { globalOptions: { json: true } }
@@ -222,7 +266,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
 
     await expect(
       command.run(
@@ -242,7 +286,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
 
     await expect(
       command.run(
@@ -262,7 +306,7 @@ describe('SetConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new SetConfigCommand(configService, output);
+    const command = new SetConfigCommand(configService, configService, output);
 
     await expect(
       command.run({ key: 'invalidKey', value: 'value' }, { globalOptions: {} })
@@ -291,7 +335,7 @@ describe('ListConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('testuser'))).toBe(true);
@@ -314,7 +358,7 @@ describe('ListConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.startsWith('table:'))).toBe(true);
@@ -326,7 +370,7 @@ describe('ListConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('skipVersionCheck'))).toBe(
@@ -343,7 +387,7 @@ describe('ListConfigCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: { json: true } });
 
     expect(output.logs).toContain(
@@ -359,7 +403,7 @@ describe('ListConfigCommand', () => {
     const configService = createMockConfigService(legacyConfig);
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: { json: true } });
 
     expect(output.logs).toContain(
@@ -371,7 +415,7 @@ describe('ListConfigCommand', () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
 
-    const command = new ListConfigCommand(configService, output);
+    const command = new ListConfigCommand(configService, configService, output);
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs).toContain('info:No configuration set');

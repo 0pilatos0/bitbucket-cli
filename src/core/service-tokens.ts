@@ -43,6 +43,7 @@ import type { LoginCommand } from '../commands/auth/login.command.js';
 import type { LogoutCommand } from '../commands/auth/logout.command.js';
 import type { StatusCommand } from '../commands/auth/status.command.js';
 import type { TokenCommand } from '../commands/auth/token.command.js';
+import type { SwitchCommand } from '../commands/auth/switch.command.js';
 import type { CloneCommand } from '../commands/repo/clone.command.js';
 import type { CreateRepoCommand } from '../commands/repo/create.command.js';
 import type { ListReposCommand } from '../commands/repo/list.command.js';
@@ -171,6 +172,7 @@ export const ServiceTokens = {
   LogoutCommand: token<LogoutCommand>('LogoutCommand'),
   StatusCommand: token<StatusCommand>('StatusCommand'),
   TokenCommand: token<TokenCommand>('TokenCommand'),
+  SwitchCommand: token<SwitchCommand>('SwitchCommand'),
 
   // Commands - Repo
   CloneCommand: token<CloneCommand>('CloneCommand'),

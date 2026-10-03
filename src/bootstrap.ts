@@ -6,6 +6,8 @@ import { Container, ServiceTokens } from './core/container.js';
 import type { DependencyTokens, Token } from './core/container.js';
 import {
   ConfigService,
+  CredentialStore,
+  KeychainSecretStorage,
   GitService,
   ContextService,
   OutputService,
@@ -46,6 +48,7 @@ import { LoginCommand } from './commands/auth/login.command.js';
 import { LogoutCommand } from './commands/auth/logout.command.js';
 import { StatusCommand } from './commands/auth/status.command.js';
 import { TokenCommand } from './commands/auth/token.command.js';
+import { SwitchCommand } from './commands/auth/switch.command.js';
 
 // Repo commands
 import { CloneCommand } from './commands/repo/clone.command.js';
@@ -215,13 +218,16 @@ function registerCommand<TArgs extends readonly unknown[], T>(
 export function bootstrap(options: BootstrapOptions = {}): Container {
   const container = Container.getInstance();
 
-  // Core services. ConfigService backs both IConfigService (app config) and
-  // ICredentialStore (basic + OAuth credentials); the CredentialStore token
-  // resolves to the same singleton so storage stays in one JSON file while
-  // consumers depend on narrower interfaces.
+  // Core services. The credential store keeps named accounts in the same
+  // config file, moving secrets to the OS keychain when configured.
   container.register(ServiceTokens.ConfigService, () => new ConfigService());
-  container.register(ServiceTokens.CredentialStore, () =>
-    container.resolve(ServiceTokens.ConfigService)
+  container.register(
+    ServiceTokens.CredentialStore,
+    () =>
+      new CredentialStore(
+        container.resolve(ServiceTokens.ConfigService),
+        new KeychainSecretStorage()
+      )
   );
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
@@ -235,7 +241,6 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   );
   container.register(ServiceTokens.PromptService, () => new PromptService());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
-    ServiceTokens.ConfigService,
     ServiceTokens.CredentialStore,
   ]);
   registerCommand(container, ServiceTokens.ContextService, ContextService, [
@@ -325,6 +330,10 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerCommand(container, ServiceTokens.TokenCommand, TokenCommand, [
     ServiceTokens.CredentialStore,
     ServiceTokens.OAuthService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(container, ServiceTokens.SwitchCommand, SwitchCommand, [
+    ServiceTokens.CredentialStore,
     ServiceTokens.OutputService,
   ]);
 
@@ -1068,17 +1077,23 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // Config commands
   registerCommand(container, ServiceTokens.GetConfigCommand, GetConfigCommand, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.SetConfigCommand, SetConfigCommand, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
     container,
     ServiceTokens.ListConfigCommand,
     ListConfigCommand,
-    [ServiceTokens.ConfigService, ServiceTokens.OutputService]
+    [
+      ServiceTokens.ConfigService,
+      ServiceTokens.CredentialStore,
+      ServiceTokens.OutputService,
+    ]
   );
 
   registerCommand(container, ServiceTokens.SetAliasCommand, SetAliasCommand, [

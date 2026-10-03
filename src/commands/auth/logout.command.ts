@@ -23,6 +23,10 @@ export class LogoutCommand extends BaseCommand<void, void> {
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
+    const account = await this.credentialStore.getAccountName();
+    const wasActive = (await this.credentialStore.listAccounts()).some(
+      (summary) => summary.current && summary.active
+    );
     const authMethod = await this.credentialStore.getAuthMethod();
 
     let revokeFailed = false;
@@ -37,10 +41,22 @@ export class LogoutCommand extends BaseCommand<void, void> {
       await this.credentialStore.clearCredentials();
     }
 
+    // Like `gh`, fall back to another saved account rather than leaving the
+    // active one pointing at the account just removed.
+    const next = (await this.credentialStore.listAccounts()).find(
+      (summary) => summary.name !== account
+    );
+    const switchedTo = wasActive ? next?.name : undefined;
+    if (switchedTo) {
+      await this.credentialStore.switchAccount(switchedTo);
+    }
+
     if (context.globalOptions.json) {
       await this.output.json({
         authenticated: false,
         success: true,
+        account,
+        switchedTo,
         revokeFailed: revokeFailed || undefined,
       });
       return;
@@ -52,5 +68,10 @@ export class LogoutCommand extends BaseCommand<void, void> {
       );
     }
     this.output.success('Logged out of Bitbucket');
+    if (switchedTo) {
+      this.output.text(
+        `  Active account is now ${this.output.highlight(switchedTo)}`
+      );
+    }
   }
 }

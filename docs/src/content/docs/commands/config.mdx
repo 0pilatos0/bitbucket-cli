@@ -55,7 +55,7 @@ Print a configuration value.
 bb config get <key>
 ```
 
-Readable keys: `username`, `defaultWorkspace`, `skipVersionCheck`, `versionCheckInterval`, `prCreateIncludeDefaultReviewers`. Any other key exits `1` with `Unknown config key '<key>'`, except `apiToken`, which points you at `bb auth token`.
+Readable keys: `username` (of the current account), `defaultWorkspace`, `credentialStorage`, `skipVersionCheck`, `versionCheckInterval`, `prCreateIncludeDefaultReviewers`. Any other key exits `1` with `Unknown config key '<key>'`, except `apiToken`, which points you at `bb auth token`.
 
 ### Examples
 
@@ -85,6 +85,7 @@ Settable keys, and the values each accepts:
 | Key                               | Accepted values                    | Stored type |
 | --------------------------------- | ---------------------------------- | ----------- |
 | `defaultWorkspace`                | Any string                         | string      |
+| `credentialStorage`               | `file` or `keychain`               | string      |
 | `skipVersionCheck`                | `true` or `false`                  | boolean     |
 | `versionCheckInterval`            | Positive integer (`>= 1`), in days | number      |
 | `prCreateIncludeDefaultReviewers` | `true` or `false`                  | boolean     |
@@ -166,7 +167,7 @@ defaultWorkspace  myworkspace
 apiToken          ********
 skipVersionCheck  false
 
-Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
+Settable keys: defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
 ```
 
 With an empty config file the table is replaced by `ℹ No configuration set`; the `Config file:` line and the `Settable keys:` footer still print.
