@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { ApprovePRCommand } from '../../../src/commands/pr/approve.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
 } from '../../setup.js';
 import { createMockPullrequestsApi } from './fakes.js';
@@ -18,6 +19,7 @@ describe('ApprovePRCommand', () => {
     const command = new ApprovePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });

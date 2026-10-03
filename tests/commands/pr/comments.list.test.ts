@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { ListCommentsPRCommand } from '../../../src/commands/pr/comments.list.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
   mockUser,
 } from '../../setup.js';
@@ -47,6 +48,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
@@ -77,6 +79,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -122,6 +125,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(
@@ -178,6 +182,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -199,6 +204,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', resolved: true }, { globalOptions: {} });
@@ -221,6 +227,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', unresolved: true }, { globalOptions: {} });
@@ -240,6 +247,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -273,6 +281,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', resolved: true }, { globalOptions: {} });
@@ -295,6 +304,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -319,6 +329,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(

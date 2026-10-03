@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { PR_ID_ARGUMENT_DESCRIPTION } from './shared.js';
 
 export function registerPrCommentsCommands(
   parent: Command,
@@ -13,7 +14,8 @@ export function registerPrCommentsCommands(
   );
 
   prCommentsCmd
-    .command('list <id>')
+    .command('list')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('List comments on a pull request')
     .option('--limit <number>', 'Maximum number of comments (default: 25)')
     .option('--all', 'List all comments (overrides --limit)')
@@ -23,6 +25,7 @@ export function registerPrCommentsCommands(
       'after',
       buildHelpText({
         examples: [
+          'bb pr comments list',
           'bb pr comments list 42',
           'bb pr comments list 42 --no-truncate',
           'bb pr comments list 42 --unresolved',
