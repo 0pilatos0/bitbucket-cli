@@ -136,6 +136,44 @@ bun link
 bb --version
 ```
 
+## Update
+
+Update `bb` the same way you installed it.
+
+- **Standalone binary**: repeat the [download steps](#standalone-binary) and replace the old binary. They fetch the latest release.
+- **Package manager**: install the latest version with the package manager you used: `npm install -g @pilatos/bitbucket-cli@latest`, `pnpm add -g @pilatos/bitbucket-cli@latest`, or `bun install -g @pilatos/bitbucket-cli@latest`.
+
+- **Built from source**: pull and rebuild in your clone. The `bun link` from the first install still points at it.
+
+  ```bash
+  git pull
+  bun install
+  bun run build
+  ```
+
+Run `bb --version` to confirm the new version.
+
+## Uninstall
+
+Sign out and remove shell completion first, while `bb` is still installed:
+
+```bash
+bb auth logout           # revokes an OAuth token and deletes stored credentials
+bb completion uninstall  # only if you installed completion
+```
+
+`bb auth logout` does not revoke API tokens. Delete those in your
+[Bitbucket API token settings](https://bitbucket.org/account/settings/api-tokens/).
+
+Then remove the CLI:
+
+- **Standalone binary**: delete the binary, for example `sudo rm /usr/local/bin/bb`, or `bb.exe` on Windows.
+- **Package manager**: `npm uninstall -g @pilatos/bitbucket-cli`, `pnpm remove -g @pilatos/bitbucket-cli`, or `bun remove -g @pilatos/bitbucket-cli`.
+- **Built from source**: run `bun unlink` in your clone, then delete the clone.
+
+Finally, delete the configuration directory, which holds your settings and aliases:
+`~/.config/bb` on macOS and Linux, `%APPDATA%\bb` on Windows.
+
 ## Next steps
 
 [Authenticate](/getting-started/authentication/) with your Bitbucket account.
