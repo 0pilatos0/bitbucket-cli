@@ -207,6 +207,20 @@ export function createMockGitService(
     async checkoutNewBranch() {
       // Mock implementation
     },
+    async fastForward() {
+      // Mock implementation
+    },
+    async branchExists() {
+      return false;
+    },
+    async isAncestor() {
+      return true;
+    },
+    async getRemotes() {
+      return options.remoteUrl
+        ? [{ name: 'origin', url: options.remoteUrl }]
+        : [];
+    },
     async getCurrentBranch() {
       if (options.throwOnGetCurrentBranch) {
         throw { code: 3002, message: 'Not a git repo' } as BBError;
@@ -373,6 +387,9 @@ export function createMockOutputService(
       logs.push(`table:${headers.join(',')}`);
       logs.push(`table-rows:${JSON.stringify(rows)}`);
     },
+    withPager<T>(run: () => Promise<T>) {
+      return run();
+    },
     success(message: string) {
       logs.push(`success:${message}`);
     },
@@ -446,6 +463,9 @@ export function createMockOutputService(
       return text;
     },
     formatDate(date: string | Date) {
+      return new Date(date).toISOString();
+    },
+    formatRelativeDate(date: string | Date) {
       return new Date(date).toISOString();
     },
   };

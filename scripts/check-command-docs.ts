@@ -50,6 +50,25 @@ export function collectCommandSections(
   return into;
 }
 
+/**
+ * Sections documenting `path`. A `<placeholder>` segment in a heading covers
+ * any value there, so `bb completion <shell>` documents `bb completion bash`.
+ */
+function sectionsFor(
+  sections: Map<string, string[]>,
+  path: string
+): string[] | undefined {
+  const segments = path.split(' ');
+  const matches = [...sections].flatMap(([heading, texts]) => {
+    const pattern = heading.split(' ');
+    const covers =
+      pattern.length === segments.length &&
+      pattern.every((part, i) => part === segments[i] || /^<.+>$/.test(part));
+    return covers ? texts : [];
+  });
+  return matches.length > 0 ? matches : undefined;
+}
+
 function mentionsFlag(text: string, flag: string): boolean {
   return new RegExp(`${flag}(?![\\w-])`).test(text);
 }
@@ -62,7 +81,7 @@ export function findCommandDocProblems(
 ): string[] {
   const problems: string[] = [];
   for (const command of leafCommands(manifest)) {
-    const text = sections.get(command.path)?.join('\n');
+    const text = sectionsFor(sections, command.path)?.join('\n');
     if (text === undefined) {
       problems.push(`bb ${command.path}: no \`bb ${command.path}\` heading`);
       continue;

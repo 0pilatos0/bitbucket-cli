@@ -12,7 +12,8 @@
  *    following the alias, and any leftover arguments are appended.
  *  - Shell alias: a `!` prefix (`igrep` → `!bb pr list --json | grep $1`)
  *    runs the body via `sh -c` with the remaining argv as shell positional
- *    parameters, so `$1`/`$@` behave exactly as in a shell script.
+ *    parameters, so `$1`/`$@` behave exactly as in a shell script. On Windows
+ *    without `sh` on PATH it runs in PowerShell instead (see shellAliasArgv).
  *
  * Expansion is a single level deep: an alias body is never re-expanded, so
  * aliases cannot reference each other or recurse.
@@ -64,7 +65,7 @@ export function isReservedCommandName(name: string): boolean {
   return (RESERVED_COMMAND_NAMES as readonly string[]).includes(name);
 }
 
-/** A shell alias delegates its body to `sh -c` instead of expanding argv. */
+/** A shell alias delegates its body to a shell instead of expanding argv. */
 export function isShellAlias(expansion: string): boolean {
   return expansion.startsWith('!');
 }
@@ -199,12 +200,52 @@ export function substitutePlaceholders(
   return [...substituted, ...leftover];
 }
 
+/** A PowerShell single-quoted literal; `'` and its smart variants double. */
+function quotePowerShell(value: string): string {
+  return `'${value.replace(/['\u2018\u2019\u201A\u201B]/g, '$&$&')}'`;
+}
+
+/**
+ * The argv that runs a shell alias body. Everywhere `sh` resolves this is
+ * `sh -c`. Windows usually has no `sh` on PATH (Git for Windows only adds
+ * it in Git Bash), so there the body runs as a PowerShell script block with
+ * the arguments in `$args`; cmd.exe has no positional parameters and would
+ * re-parse every argument. `-EncodedCommand` sidesteps Windows command-line
+ * quoting; `-OutputFormat Text` stops it from writing errors as CLIXML.
+ */
+export function shellAliasArgv(
+  command: string,
+  args: string[],
+  platform: NodeJS.Platform = process.platform,
+  which: (bin: string) => string | null = Bun.which
+): string[] {
+  if (platform !== 'win32' || which('sh')) {
+    return ['sh', '-c', command, 'bb-alias', ...args];
+  }
+  // `$?` is read inside the block, right after the body's last command, so
+  // a failing body exits non-zero and a native command keeps its exit code.
+  const script = [
+    '& {',
+    command,
+    'if (-not $?) { if ($LASTEXITCODE) { exit $LASTEXITCODE }; exit 1 }',
+    `} ${args.map(quotePowerShell).join(' ')}`,
+  ].join('\n');
+  return [
+    which('pwsh') ? 'pwsh' : 'powershell',
+    '-NoProfile',
+    '-OutputFormat',
+    'Text',
+    '-EncodedCommand',
+    Buffer.from(script, 'utf16le').toString('base64'),
+  ];
+}
+
 /**
  * Expand a user alias in `argv` (the raw `process.argv`, binary and script
  * tokens included). Returns what the entrypoint should do next:
  *  - `none`  — argv untouched (no alias present, or the token is reserved)
  *  - `argv`  — parse the rewritten argv with Commander
- *  - `shell` — run `command` via `sh -c` with `args` as positional parameters
+ *  - `shell` — run `command` in a shell with `args` (see shellAliasArgv)
  */
 export function expandAliasArgv(
   argv: string[],

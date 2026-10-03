@@ -126,6 +126,22 @@ describe('findCommandDocProblems', () => {
     ]);
   });
 
+  it('lets a <placeholder> heading segment cover every value', () => {
+    const problems = findCommandDocProblems(
+      manifest([
+        { path: 'completion bash' },
+        { path: 'completion zsh' },
+        { path: 'completion zsh extra' },
+      ]),
+      collectCommandSections('## `bb completion <shell>`\nprints a script'),
+      ''
+    );
+
+    expect(problems).toEqual([
+      'bb completion zsh extra: no `bb completion zsh extra` heading',
+    ]);
+  });
+
   it('does not count a longer flag as a mention of a shorter one', () => {
     const problems = findCommandDocProblems(
       manifest([{ path: 'pr list', flags: ['--lim'] }]),

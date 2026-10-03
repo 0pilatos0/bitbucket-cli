@@ -9,7 +9,8 @@ Use `bb` for Bitbucket Cloud operations.
   explicitly when operating outside that checkout, and -w for workspace-only
   commands such as `bb repo list` and `bb snippet list`.
 - Use `--json` after the command for structured output. Use `--all` on list
-  commands that support it when the task needs every result.
+  commands that support it when the task needs every result. Add `--lean` to
+  drop link noise, or `--jq <filter> --raw-output` to get plain strings.
 - Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
   `bb pr comments list <id> --all --unresolved`.
 - `bb pr checks <id>` reads one page of build statuses. For automation,

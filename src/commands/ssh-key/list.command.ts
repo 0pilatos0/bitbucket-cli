@@ -48,11 +48,14 @@ export class ListSshKeysCommand extends BaseCommand<ListSshKeysOptions, void> {
         tableHeaders: ['UUID', 'LABEL', 'FINGERPRINT', 'CREATED', 'LAST USED'],
         mapRow: (key) => [
           key.uuid ?? '-',
-          this.truncateText(key.label || '-', 30, context.globalOptions),
+          key.label || '-',
           key.fingerprint ?? '-',
-          key.created_on ? this.output.formatDate(key.created_on) : '-',
-          key.last_used ? this.output.formatDate(key.last_used) : 'never',
+          key.created_on ? this.output.formatRelativeDate(key.created_on) : '-',
+          key.last_used
+            ? this.output.formatRelativeDate(key.last_used)
+            : 'never',
         ],
+        flexColumns: [1],
         noun: 'SSH keys',
       },
       context
