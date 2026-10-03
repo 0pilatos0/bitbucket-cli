@@ -13,8 +13,8 @@
  * matchable. The id lives on the axios config, so a retry or a 401 replay of
  * the same config keeps it and logs its attempt number instead.
  *
- * Lines go to raw `console.debug` rather than `IOutputService` on purpose:
- * this is an opt-in troubleshooting channel that must stay readable when
+ * Lines go to raw `console.error` (stderr) so stdout stays parseable.
+ * This is an opt-in troubleshooting channel that must stay readable when
  * piped and must not be swallowed by `--json` or future output-suppression
  * flags.
  */
@@ -204,7 +204,7 @@ export function createHttpDebugLogger(
         timing += ` (auth ${authMs}ms)`;
       }
     }
-    console.debug(
+    console.error(
       `${prefix} ${result} ${describeRequest(config)}${timing}${detail}`
     );
     return prefix;
@@ -212,7 +212,7 @@ export function createHttpDebugLogger(
 
   const logBody = (prefix: string, label: string, data: unknown): void => {
     if (verbose) {
-      console.debug(`${prefix} ${label}:`, formatBody(data));
+      console.error(`${prefix} ${label}:`, formatBody(data));
     }
   };
 
@@ -238,7 +238,7 @@ export function createHttpDebugLogger(
       ];
       const suffix = notes.length > 0 ? ` (${notes.join(', ')})` : '';
       const prefix = `[HTTP] ${trace.id}`;
-      console.debug(`${prefix} ${describeRequest(config)}${suffix}`);
+      console.error(`${prefix} ${describeRequest(config)}${suffix}`);
       if (config.data != null) {
         logBody(prefix, 'Request Body', parseRequestBody(config.data));
       }
@@ -259,7 +259,7 @@ export function createHttpDebugLogger(
     error(error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!isAxiosError(error) || !error.config) {
-        console.debug(`[HTTP] Error: ${message}`);
+        console.error(`[HTTP] Error: ${message}`);
         return;
       }
       const { config, response } = error;

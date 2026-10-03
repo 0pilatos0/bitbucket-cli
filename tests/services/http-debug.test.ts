@@ -98,21 +98,21 @@ describe('resolveHttpDebugLevel', () => {
 });
 
 describe('createHttpDebugLogger', () => {
-  let consoleDebugSpy: ReturnType<typeof spyOn>;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
   let clock: number;
   const now = (): number => clock;
 
   beforeEach(() => {
     clock = 1000;
-    consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleDebugSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   function lines(): string[] {
-    return consoleDebugSpy.mock.calls.map((args) =>
+    return consoleErrorSpy.mock.calls.map((args) =>
       args.map((a) => String(a)).join(' ')
     );
   }
@@ -133,7 +133,7 @@ describe('createHttpDebugLogger', () => {
     logger.response(makeResponse(config));
     logger.error(new AxiosError('boom', 'ECONNRESET', config, {}));
 
-    expect(consoleDebugSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
     expect(Object.keys(config)).toEqual(['url', 'method', 'baseURL']);
   });
 
@@ -375,6 +375,65 @@ describe('createHttpDebugLogger', () => {
     expect(output).not.toContain('other=xyz');
     expect(output).toContain('/test?[redacted]');
   });
+});
+
+describe('HTTP debug streams', () => {
+  it.each(['off', 'http', 'verbose'] as const)(
+    'keeps stdout parseable with debug level %s',
+    async (level) => {
+      const modulePath = new URL(
+        '../../src/services/http-debug.ts',
+        import.meta.url
+      ).pathname;
+      const child = Bun.spawn(
+        [
+          process.execPath,
+          '-e',
+          `import { createHttpDebugLogger } from ${JSON.stringify(modulePath)};
+          import { AxiosError } from 'axios';
+          const logger = createHttpDebugLogger(${JSON.stringify(level)});
+          const config = {
+            method: 'post', url: 'https://example.test/x?token=query-secret',
+            data: { password: 'request-secret', title: 'visible' }
+          };
+          logger.request(config);
+          logger.dispatch(config);
+          const response = {
+            config, status: 200, data: { access_token: 'response-secret' }
+          };
+          logger.response(response);
+          logger.error(new AxiosError('failed', undefined, config, {}, {
+            ...response, status: 400, data: { token: 'error-secret' }
+          }));
+          logger.error(new AxiosError('socket closed', 'ECONNRESET', config));
+          logger.error(new Error('auth failed'));
+          console.log(JSON.stringify({ values: [] }));`,
+        ],
+        { stdout: 'pipe', stderr: 'pipe' }
+      );
+      const [stdout, stderr, exitCode] = await Promise.all([
+        new Response(child.stdout).text(),
+        new Response(child.stderr).text(),
+        child.exited,
+      ]);
+
+      expect(exitCode).toBe(0);
+      expect(JSON.parse(stdout)).toEqual({ values: [] });
+      if (level === 'off') {
+        expect(stderr).toBe('');
+      } else {
+        expect(stderr).toContain('[HTTP]');
+        expect(stderr).toContain('ECONNRESET');
+        expect(stderr).toContain('auth failed');
+        expect(stderr).not.toContain('query-secret');
+        expect(stderr).not.toContain('request-secret');
+        expect(stderr).not.toContain('response-secret');
+        expect(stderr).not.toContain('error-secret');
+        expect(stderr.includes('Body:')).toBe(level === 'verbose');
+        if (level === 'verbose') expect(stderr).toContain('[REDACTED]');
+      }
+    }
+  );
 });
 
 describe('redactSensitive', () => {

@@ -230,7 +230,7 @@ bb repo list -w myworkspace
 ```bash
 curl -I https://api.bitbucket.org          # connectivity
 export HTTPS_PROXY=http://proxy.example.com:8080
-BB_DEBUG=http bb repo list                 # [HTTP] tracing on stdout, secrets redacted
+BB_DEBUG=http bb repo list                 # [HTTP] tracing on stderr, secrets redacted
 ```
 
 HTTP traces write to stdout even under `--json`. Set `BB_DEBUG=off` before
