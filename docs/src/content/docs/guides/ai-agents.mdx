@@ -28,7 +28,7 @@ Use `bb` for Bitbucket Cloud operations.
 - Use `--json` after the command for structured output. Use `--all` on list
   commands that support it when the task needs every result. Add `--lean` to
   drop link noise, or `--jq <filter> --raw-output` to get plain strings.
-- Workspace and repository come from the origin remote. Pass -w and -r
+- Workspace and repository come from the Bitbucket git remote. Pass -w and -r
   explicitly when operating outside that checkout.
 - Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
   `bb pr comments list <id> --all --unresolved`.
