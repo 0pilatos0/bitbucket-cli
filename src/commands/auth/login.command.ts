@@ -84,23 +84,11 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
         options.clientId,
         options.clientSecret
       );
-
-      if (context.globalOptions.json) {
-        await this.output.json({
-          authenticated: true,
-          method: 'oauth',
-          user: {
-            username: userInfo.username,
-            displayName: userInfo.displayName,
-            accountId: userInfo.accountId,
-          },
-        });
-        return;
-      }
-
-      this.output.success(
-        `Logged in as ${userInfo.displayName} (${userInfo.username})`
-      );
+      await this.reportLogin(context, 'oauth', {
+        username: userInfo.username,
+        displayName: userInfo.displayName,
+        accountId: userInfo.accountId,
+      });
     } catch (error) {
       await this.credentialStore.clearOAuthCredentials();
       throw error;
@@ -141,29 +129,41 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     await this.credentialStore.clearOAuthCredentials();
     await this.credentialStore.setCredentials({ username, apiToken });
 
+    let user;
     try {
-      const response = await this.usersApi.userGet();
-      const user = response.data;
-
-      if (context.globalOptions.json) {
-        await this.output.json({
-          authenticated: true,
-          method: 'api_token',
-          user: {
-            username: user.username,
-            displayName: user.display_name,
-            accountId: user.account_id,
-          },
-        });
-        return;
-      }
-
-      this.output.success(
-        `Logged in as ${user.display_name} (${user.username})`
-      );
+      user = (await this.usersApi.userGet()).data;
     } catch (error) {
       await this.credentialStore.clearCredentials();
       throw this.wrapLoginError(error);
+    }
+
+    await this.reportLogin(context, 'api_token', {
+      username: user.username,
+      displayName: user.display_name,
+      accountId: user.account_id,
+    });
+  }
+
+  /**
+   * Make the account just logged into the active one, then report it. The
+   * account is only named when there is a choice of accounts.
+   */
+  private async reportLogin(
+    context: CommandContext,
+    method: 'oauth' | 'api_token',
+    user: { username?: string; displayName?: string; accountId?: string }
+  ): Promise<void> {
+    const account = await this.credentialStore.getAccountName();
+    await this.credentialStore.switchAccount(account);
+
+    if (context.globalOptions.json) {
+      await this.output.json({ authenticated: true, method, account, user });
+      return;
+    }
+
+    this.output.success(`Logged in as ${user.displayName} (${user.username})`);
+    if ((await this.credentialStore.listAccounts()).length > 1) {
+      this.output.text(`  Active account: ${this.output.highlight(account)}`);
     }
   }
 

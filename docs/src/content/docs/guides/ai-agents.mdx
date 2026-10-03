@@ -144,7 +144,8 @@ bb pr reviewers add 48 '{alice-uuid}'
 
 Normal `bb` commands use stored credentials internally, so the assistant does
 not need a token in its prompt. This is not a security boundary: an agent with
-file or shell access can read the plaintext config or run `bb auth token`.
+file or shell access can read the config (plaintext unless
+`credentialStorage` is `keychain`) or run `bb auth token`.
 Use your assistant's tool permissions to control that access. Rule and skill
 files provide instructions, not credential isolation.
 

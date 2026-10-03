@@ -297,7 +297,7 @@ describe('createApiClient - shared instance concurrency', () => {
       oauthRefreshToken: 'the-refresh-token',
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
-    const oauthService = new OAuthService(configService, configService);
+    const oauthService = new OAuthService(configService);
 
     // OAuthService talks to the token endpoint via global fetch (axios is
     // only used for API calls). Gate the response so the refresh stays

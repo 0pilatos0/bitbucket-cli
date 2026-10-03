@@ -5,6 +5,8 @@
 import type {
   BBConfig,
   AuthCredentials,
+  CredentialStorage,
+  OAuthClient,
   OAuthCredentials,
   AuthMethod,
   RepoContext,
@@ -14,26 +16,44 @@ import type { CommandContext } from './commands.js';
 
 /**
  * Application config interface — reading and writing general settings
- * (default workspace, version-check preferences, OAuth client id/secret, etc.)
- * stored in the on-disk config file. Does NOT include any credential methods;
- * those live on `ICredentialStore`.
+ * (default workspace, version-check preferences, etc.) stored in the on-disk
+ * config file. Does NOT include any credential methods; those live on
+ * `ICredentialStore`.
  */
 export interface IConfigService {
   getConfig(): Promise<BBConfig>;
+  setConfig(config: BBConfig): Promise<void>;
   clearConfig(): Promise<void>;
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
   getConfigPath(): string;
 }
 
+export interface AccountSummary {
+  name: string;
+  active: boolean;
+  authMethod?: AuthMethod;
+  username?: string;
+  storage: CredentialStorage;
+}
+
 /**
- * Credential storage interface — basic auth credentials and OAuth token state.
- * Backed by the same on-disk config today, but isolated behind this interface
- * so that an alternative store (e.g. OS keychain) can be introduced without
- * touching non-auth consumers.
+ * Credential storage interface — named accounts holding basic auth
+ * credentials or OAuth token state. Every credential method acts on the
+ * current account: the one picked with `useAccount()` (`--account`), else
+ * `BB_ACCOUNT`, else the persisted active account.
  */
 export interface ICredentialStore {
+  useAccount(name: string): void;
+  getAccountName(): Promise<string>;
+  listAccounts(): Promise<AccountSummary[]>;
+  /** Persist `name` as the active account. */
+  switchAccount(name: string): Promise<void>;
+  /** Move every account's secrets to `storage`; returns how many moved. */
+  setStorage(storage: CredentialStorage): Promise<number>;
+
   getAuthMethod(): Promise<AuthMethod>;
+  hasCredentials(): Promise<boolean>;
 
   // Basic auth
   getCredentials(): Promise<AuthCredentials>;
@@ -42,9 +62,23 @@ export interface ICredentialStore {
 
   // OAuth
   getOAuthCredentials(): Promise<OAuthCredentials>;
-  setOAuthCredentials(credentials: OAuthCredentials): Promise<void>;
+  /** Fields of `client` that are set replace the stored consumer. */
+  setOAuthCredentials(
+    credentials: OAuthCredentials,
+    client?: OAuthClient
+  ): Promise<void>;
+  getOAuthClient(): Promise<OAuthClient>;
   clearOAuthCredentials(): Promise<void>;
   isOAuthTokenExpired(): Promise<boolean>;
+}
+
+/**
+ * OS keychain access, one secret string per account name.
+ */
+export interface ISecretStorage {
+  get(account: string): Promise<string | null>;
+  set(account: string, value: string): Promise<void>;
+  delete(account: string): Promise<void>;
 }
 
 /**
