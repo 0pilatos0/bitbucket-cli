@@ -32,11 +32,15 @@ for anything finer. Ctrl-F the number below.
 **Message:** Authentication required
 
 **Cause:** You haven't logged in yet, or your credentials have been cleared.
+`bb auth login` also returns it outside an interactive terminal when no API
+token is given, because browser login needs a person to finish it.
 
 **Solution:**
 
 ```bash
 bb auth login
+# Scripts, CI and agents:
+BB_USERNAME=you@example.com BB_API_TOKEN=... bb auth login
 ```
 
 ### 1002 - AUTH_INVALID

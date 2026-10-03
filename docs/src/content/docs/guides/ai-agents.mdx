@@ -37,7 +37,11 @@ Use `bb` for Bitbucket Cloud operations.
 - Use `bb api <endpoint>` for operations without a typed command.
 - Follow the user's approval rules before posting comments, approving,
   pushing, merging, or deleting resources.
+- Add `--dry-run` to a write command to show the exact request (method, URL,
+  body) without sending it.
 - Never read, print, or copy credentials. Ask the user to authenticate.
+  Without a terminal, `bb auth login` fails with code 1001 instead of opening
+  a browser.
 ```
 
 <Tabs>
@@ -180,6 +184,7 @@ scopes or configure a custom consumer with those scopes. See
 | Issue                         | Solution                                                                                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | "Not authenticated"           | Run `bb auth login`; for tokens, set `BB_USERNAME` to your account email and `BB_API_TOKEN` before login                        |
+| "Browser login needs an interactive terminal" | The agent has no terminal, so OAuth can't finish. Set `BB_USERNAME` and `BB_API_TOKEN`, or run `bb auth login` yourself |
 | Claude doesn't use `bb`       | Restart Claude Code after creating the skill file. Check `/bb-cli` shows in the slash menu                                      |
 | "Could not determine repo"    | Run from a git repo with a Bitbucket remote, or pass `-w`/`-r` flags explicitly                                                 |
 | Skill not auto-activating     | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md                                                    |

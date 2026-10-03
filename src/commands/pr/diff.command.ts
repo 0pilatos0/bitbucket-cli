@@ -91,6 +91,11 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
         return;
       }
 
+      if (process.stdout.isTTY !== true) {
+        this.output.text(webUrl);
+        return;
+      }
+
       await this.openInBrowser(webUrl);
       return;
     }

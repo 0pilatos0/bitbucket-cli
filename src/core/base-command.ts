@@ -10,6 +10,7 @@ import {
   resolveLimit,
   type PaginatedCollection,
 } from '../services/pagination.js';
+import { DryRunStop, type DryRunRequest } from '../services/dry-run.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { didYouMeanSuffix } from './suggest.js';
 import { remediationHintLines } from './error-hints.js';
@@ -147,13 +148,51 @@ export abstract class BaseCommand<
         throw context.validationError;
       }
       return this.usesPager
-        ? await this.output.withPager(() => this.execute(options, context))
-        : await this.execute(options, context);
+        ? await this.output.withPager(() =>
+            this.executeOrReportDryRun(options, context)
+          )
+        : await this.executeOrReportDryRun(options, context);
     } catch (error) {
       this.handleError(error, context);
       throw error;
     } finally {
       this.output.setJsonFormatOptions({});
+    }
+  }
+
+  private async executeOrReportDryRun(
+    options: TOptions,
+    context: CommandContext
+  ): Promise<TResult> {
+    try {
+      return await this.execute(options, context);
+    } catch (error) {
+      if (!(error instanceof DryRunStop)) {
+        throw error;
+      }
+      await this.reportDryRun(error.request, context);
+      return undefined as TResult;
+    }
+  }
+
+  private async reportDryRun(
+    request: DryRunRequest,
+    context: CommandContext
+  ): Promise<void> {
+    // `bb api` accepts `--jq` without `--json`.
+    if (context.globalOptions.json || context.globalOptions.jq) {
+      await this.output.json({ dryRun: true, request });
+      return;
+    }
+
+    this.output.info('Dry run: this request was not sent.');
+    this.output.text(`${request.method} ${request.url}`);
+    if (request.body !== undefined) {
+      this.output.text(
+        typeof request.body === 'string'
+          ? request.body
+          : JSON.stringify(request.body, null, 2)
+      );
     }
   }
 
@@ -345,6 +384,7 @@ export abstract class BaseCommand<
    * `--yes`). In an interactive terminal the user is asked instead; anywhere
    * else this throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.
+   * `--dry-run` skips the gate because nothing will be changed.
    * Its `context.retry` is the exact command to rerun, when the raw argv is
    * known.
    */
@@ -353,7 +393,7 @@ export abstract class BaseCommand<
     warning: string,
     context: CommandContext
   ): Promise<void> {
-    if (confirmed) return;
+    if (confirmed || context.dryRun) return;
 
     if (!context.prompt) {
       throw new BBError({
