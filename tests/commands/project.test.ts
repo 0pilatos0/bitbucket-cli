@@ -171,7 +171,13 @@ describe('ListProjectsCommand', () => {
     await command.execute({}, { globalOptions: { json: true } });
 
     const payload = getJsonPayload(output.logs);
-    expect(Object.keys(payload)).toEqual(['workspace', 'count', 'projects']);
+    expect(Object.keys(payload)).toEqual([
+      'workspace',
+      'count',
+      'hasMore',
+      'limit',
+      'projects',
+    ]);
     expect(payload.workspace).toBe('acme');
     expect(payload.count).toBe(1);
     expect(payload.projects).toEqual([JSON.parse(JSON.stringify(mockProject))]);

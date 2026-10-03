@@ -93,7 +93,12 @@ describe('ListSshKeysCommand', () => {
 
     const log = output.logs.find((l) => l.startsWith('json:'))!;
     const payload = JSON.parse(log.slice('json:'.length));
-    expect(Object.keys(payload)).toEqual(['count', 'sshKeys']);
+    expect(Object.keys(payload)).toEqual([
+      'count',
+      'hasMore',
+      'limit',
+      'sshKeys',
+    ]);
     expect(payload.count).toBe(1);
   });
 

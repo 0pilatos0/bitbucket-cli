@@ -28,6 +28,8 @@ import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
 import { buildCommandPath } from './core/command-tree.js';
+import { exitCodeFor } from './core/exit-codes.js';
+import { installParseErrorHandling } from './core/parse-errors.js';
 import { resolveRootInvocation } from './root-dispatch.js';
 import { resolveLocale } from './services/locale.js';
 
@@ -154,12 +156,12 @@ export function createContext(
   // `--jq` normally requires `--json` to flip list/table commands out of human
   // mode. Commands whose output is already JSON (e.g. `bb api`) opt out via
   // `allowJqWithoutJson`, so `--jq` works standalone there.
-  if (
+  const jqWithoutJson =
     !validationError &&
     jqOpt !== undefined &&
     !json &&
-    !options.allowJqWithoutJson
-  ) {
+    !options.allowJqWithoutJson;
+  if (jqWithoutJson) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
       message: '--jq requires --json',
@@ -168,7 +170,9 @@ export function createContext(
 
   return {
     globalOptions: {
-      json: json || undefined,
+      // `--jq` asked for machine output, so its error renders as JSON too.
+      // The command never executes, so nothing else sees this flag.
+      json: json || jqWithoutJson || undefined,
       jsonFields,
       jq: jqOpt,
       noColor: opts.color === false,
@@ -180,7 +184,13 @@ export function createContext(
     validationError,
     commandPath: activeCommandPath || undefined,
     prompt: json || opts.input === false ? undefined : availablePrompt(),
+    argv: userArgv(),
   };
+}
+
+/** The user's arguments, after alias expansion rewrote `process.argv`. */
+function userArgv(): string[] {
+  return process.argv.slice(2);
 }
 
 function availablePrompt(): IPromptService | undefined {
@@ -330,6 +340,8 @@ cli
         BB_NO_UNICODE:
           'Use ASCII fallbacks for symbols when set (any non-empty value)',
         BB_PROMPT_DISABLED: 'Same as --no-input when set (any non-empty value)',
+        BB_DETAILED_EXIT_CODES:
+          'Exit 2 usage, 3 not found, 4 auth, 5 confirmation required (any non-empty value)',
         BB_DEBUG:
           "HTTP debug tracing: 'http' (method, URL, status, timing), 'verbose' (adds redacted request and response bodies) or 'off'",
         DEBUG: "Alias for BB_DEBUG=verbose when exactly 'true'",
@@ -373,7 +385,7 @@ cli
       }
       // Unconditional, matching runCommand(). BaseCommand.handleError() guards
       // on NODE_ENV; this path is driven directly by tests that assert on it.
-      process.exitCode = 1;
+      process.exitCode = exitCodeFor(invocation.error.code);
       return;
     }
 
@@ -436,6 +448,15 @@ const registrar: CommandRegistrar = {
 };
 
 registerCommands(cli, registrar);
+
+installParseErrorHandling(cli, {
+  argv: userArgv,
+  writeJsonError: (payload) =>
+    container
+      .resolve<IOutputService>(ServiceTokens.OutputService)
+      .jsonError(payload),
+  exit: (code) => process.exit(code),
+});
 
 // Let unknown top-level tokens reach the root action (which turns them into a
 // "did you mean" error) instead of Commander's bare "too many arguments".

@@ -568,6 +568,22 @@ describe('BaseCommand', () => {
       expect(process.exitCode).toBe(1);
     });
 
+    it('should set the detailed exit code when BB_DETAILED_EXIT_CODES is set', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.BB_DETAILED_EXIT_CODES = '1';
+      process.exitCode = 0;
+      const command = new TestCommandWithBBError(output);
+
+      try {
+        await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+          'Unknown config key'
+        );
+        expect(process.exitCode).toBe(2);
+      } finally {
+        delete process.env.BB_DETAILED_EXIT_CODES;
+      }
+    });
+
     it('should not set process.exitCode when NODE_ENV is test', async () => {
       process.env.NODE_ENV = 'test';
       process.exitCode = 0;
@@ -871,7 +887,7 @@ describe('BaseCommand', () => {
         (e: unknown) => e
       );
       expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect((error as BBError).code).toBe(ErrorCode.CONFIRMATION_REQUIRED);
       expect((error as BBError).message).toBe(
         'This will permanently delete repo/x.\nUse --yes to confirm.'
       );
@@ -896,6 +912,21 @@ describe('BaseCommand', () => {
       await expectFlagError(
         command.callRequireConfirmation(undefined, warning)
       );
+    });
+
+    it('puts the rerun command in context.retry, quoting and before --', async () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      const error = await command
+        .callRequireConfirmation(false, warning, {
+          globalOptions: {},
+          argv: ['repo', 'delete', "it's here", '--json', '--', 'x'],
+        })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).context).toEqual({
+        retry: "bb repo delete 'it'\\''s here' --json --yes -- x",
+      });
     });
 
     it('asks with the warning in the question and resolves on yes', async () => {

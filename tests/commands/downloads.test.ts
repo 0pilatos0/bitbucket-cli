@@ -141,6 +141,8 @@ describe('ListDownloadsCommand', () => {
       'workspace',
       'repoSlug',
       'count',
+      'hasMore',
+      'limit',
       'downloads',
     ]);
     expect(payload.count).toBe(2);

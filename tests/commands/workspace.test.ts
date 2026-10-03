@@ -151,7 +151,12 @@ describe('ListWorkspacesCommand', () => {
     await command.execute({}, { globalOptions: { json: true } });
 
     const payload = getJsonPayload(output.logs);
-    expect(Object.keys(payload)).toEqual(['count', 'workspaces']);
+    expect(Object.keys(payload)).toEqual([
+      'count',
+      'hasMore',
+      'limit',
+      'workspaces',
+    ]);
     expect(payload.count).toBe(1);
     expect(payload.workspaces).toEqual([
       JSON.parse(JSON.stringify(mockAccess('acme', '{ws-uuid}', true))),

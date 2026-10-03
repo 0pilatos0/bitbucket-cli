@@ -199,6 +199,8 @@ describe('ListBranchRestrictionsCommand', () => {
       'repoSlug',
       'filters',
       'count',
+      'hasMore',
+      'limit',
       'branchRestrictions',
     ]);
     expect(payload.filters).toEqual({ kind: 'push', pattern: null });

@@ -204,6 +204,8 @@ describe('ListDeploymentsCommand', () => {
       'workspace',
       'repoSlug',
       'count',
+      'hasMore',
+      'limit',
       'deployments',
     ]);
     expect(payload.count).toBe(2);
@@ -355,6 +357,8 @@ describe('ListEnvironmentsCommand', () => {
       'workspace',
       'repoSlug',
       'count',
+      'hasMore',
+      'limit',
       'environments',
     ]);
   });

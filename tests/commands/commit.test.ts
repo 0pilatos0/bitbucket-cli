@@ -329,6 +329,8 @@ describe('ListCommitsCommand', () => {
       'repoSlug',
       'ref',
       'count',
+      'hasMore',
+      'limit',
       'commits',
     ]);
     expect(payload.workspace).toBe('workspace');
@@ -354,6 +356,8 @@ describe('ListCommitsCommand', () => {
       'workspace',
       'repoSlug',
       'count',
+      'hasMore',
+      'limit',
       'commits',
     ]);
   });

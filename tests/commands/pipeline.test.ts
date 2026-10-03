@@ -261,6 +261,8 @@ describe('ListPipelinesCommand', () => {
       'repoSlug',
       'sort',
       'count',
+      'hasMore',
+      'limit',
       'pipelines',
     ]);
     expect(payload.workspace).toBe('workspace');

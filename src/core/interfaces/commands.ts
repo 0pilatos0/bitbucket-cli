@@ -33,6 +33,12 @@ export interface CommandContext {
    * behavior.
    */
   prompt?: IPromptService;
+  /**
+   * The user's arguments (after alias expansion, without `bb` itself), used
+   * to build the `--yes` retry command for `CONFIRMATION_REQUIRED`. Optional
+   * so unit tests may omit it.
+   */
+  argv?: readonly string[];
 }
 
 /**
