@@ -8,16 +8,12 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import { MAX_PAGE_LENGTH } from '../../services/pagination.js';
+import { bbqlString } from '../../services/pr-filters.js';
 import type { RepoContext } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export const PR_ID_ARGUMENT_DESCRIPTION =
   'Pull request ID (default: the open PR for the current branch)';
-
-/** BBQL string literal: double-quoted, with `\` and `"` backslash-escaped. */
-function bbqlString(value: string): string {
-  return `"${value.replace(/[\\"]/g, '\\$&')}"`;
-}
 
 /**
  * Find the single open pull request whose source is the current git branch of
