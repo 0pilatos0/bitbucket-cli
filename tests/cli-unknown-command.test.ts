@@ -211,6 +211,70 @@ describe('bb help <command>', () => {
   });
 });
 
+describe('bb help --json', () => {
+  const originalConsoleLog = console.log;
+  let logged: string[] = [];
+
+  beforeEach(() => {
+    logged = [];
+    console.log = (...args: unknown[]) => {
+      logged.push(args.map(String).join(' '));
+    };
+  });
+
+  afterEach(() => {
+    console.log = originalConsoleLog;
+  });
+
+  it('prints the whole command tree as JSON', async () => {
+    const result = await run(['help', '--json']);
+    const manifest = JSON.parse(logged.join('\n')) as {
+      version: string;
+      globalOptions: Array<{ long: string }>;
+      commands: Array<{ path: string }>;
+    };
+
+    expect(result.stdout).toBe('');
+    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(manifest.globalOptions.map((o) => o.long)).toContain('--workspace');
+    expect(manifest.commands.map((c) => c.path)).toContain('pr comments list');
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  it('scopes to the named command and honours --jq', async () => {
+    const result = await run([
+      'help',
+      'pr',
+      'comments',
+      '--json',
+      '--jq',
+      '[.commands[].path]',
+    ]);
+    const paths = JSON.parse(logged.join('\n')) as string[];
+
+    expect(paths[0]).toBe('pr comments');
+    expect(paths.every((path) => path.startsWith('pr comments'))).toBe(true);
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  it('reports an unknown target as a JSON error', async () => {
+    const result = await run(['help', 'zzz', '--json']);
+
+    const payload = JSON.parse(result.stderr) as Record<string, unknown>;
+    expect(payload.code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(logged).toEqual([]);
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('leaves bare `bb --json` printing text help', async () => {
+    const result = await run(['--json']);
+
+    expect(result.stdout).toContain('Usage: bb');
+    // The welcome tip may follow on console.log; no JSON must.
+    expect(logged.some((line) => line.trimStart().startsWith('{'))).toBe(false);
+  });
+});
+
 describe('bare bb', () => {
   it('still prints help and exits 0', async () => {
     const result = await run([]);

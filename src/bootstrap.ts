@@ -167,6 +167,9 @@ import { UninstallCompletionCommand } from './commands/completion/uninstall.comm
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { HelpCommand } from './commands/help.command.js';
+import { ContextCommand } from './commands/context.command.js';
+import { AgentInstructionsCommand } from './commands/agent-instructions.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
 export interface BootstrapOptions {
@@ -1135,6 +1138,21 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.UrlBuilderService,
     ServiceTokens.OutputService,
   ]);
+
+  registerCommand(container, ServiceTokens.HelpCommand, HelpCommand, [
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(container, ServiceTokens.ContextCommand, ContextCommand, [
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.AgentInstructionsCommand,
+    AgentInstructionsCommand,
+    [ServiceTokens.OutputService]
+  );
 
   // Raw API passthrough (bb api) rides on the same shared axios instance as
   // the generated clients, so it inherits identical auth/retry/timeout rules.

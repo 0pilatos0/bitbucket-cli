@@ -84,7 +84,9 @@ describe('registerCommands', () => {
       'api',
       'alias',
       'config',
+      'context',
       'completion',
+      'agent-instructions',
     ]);
   });
 
@@ -101,8 +103,10 @@ describe('registerCommands', () => {
     }
 
     const dispatched = [...tokensByPath.values()];
-    const commandTokens = Object.values(ServiceTokens).filter((token) =>
-      token.endsWith('Command')
+    // `bb help --json` is dispatched by the root action, not a subcommand.
+    const commandTokens = Object.values(ServiceTokens).filter(
+      (token) =>
+        token.endsWith('Command') && token !== ServiceTokens.HelpCommand
     );
     expect(new Set(dispatched).size).toBe(dispatched.length);
     expect([...dispatched].sort()).toEqual([...commandTokens].sort());

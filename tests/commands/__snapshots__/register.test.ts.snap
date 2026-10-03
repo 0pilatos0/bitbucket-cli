@@ -3720,3 +3720,56 @@ Defaults:
 ,
 }
 `;
+
+exports[`command tree snapshot bb context 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {},
+    "token": "ContextCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb context [options]
+
+Show the workspace, repository and branch bb would use here, and where each came
+from (no network)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb context
+  $ bb context --json
+  $ bb context -w my-team -r api --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb agent-instructions 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "AgentInstructionsCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb agent-instructions [options]
+
+Print instructions for AI coding agents that use bb, matching this version
+(paste into a skill or AGENTS.md)
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb agent-instructions
+  $ bb agent-instructions >> AGENTS.md
+  $ bb agent-instructions --json --jq '.instructions'
+
+"
+,
+}
+`;

@@ -3,7 +3,8 @@ title: AI Agent Integration - Claude Code, Cursor, Windsurf & More
 description: Set up the Bitbucket CLI with Claude Code, opencode, Cursor, Windsurf, and other AI coding assistants. Skill files, quick-start guides, and real-world workflow examples.
 ---
 
-import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import instructions from '../../../../../src/agent-instructions.md?raw';
 
 Drop a skill or rules file into your project and your coding assistant drives Bitbucket through `bb`. The templates below cover Claude Code, opencode, Cursor, and Windsurf.
 
@@ -16,27 +17,15 @@ bb auth login
 bb auth status
 ```
 
-Ask your assistant to run `bb --help`, then `bb pr list --all --json`.
-For repeated use, put these instructions in its project rules or skill file:
+Ask your assistant to run `bb help --json`, then `bb pr list --all --json`.
+For repeated use, put these instructions in its project rules or skill file.
+`bb agent-instructions` prints the same text for the version you have
+installed, so you can regenerate the file after an upgrade:
 
-```markdown
-## Bitbucket CLI
+<Code code={instructions} lang="markdown" />
 
-Use `bb` for Bitbucket Cloud operations.
-
-- Run `bb --help` and `bb <group> <command> --help` before using unfamiliar flags.
-- Use `--json` after the command for structured output. Use `--all` on list
-  commands that support it when the task needs every result.
-- Workspace and repository come from the origin remote. Pass -w and -r
-  explicitly when operating outside that checkout.
-- Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
-  `bb pr comments list <id> --all --unresolved`.
-- `bb pr checks <id>` reads one page of build statuses. For automation,
-  use the documented paginated API recipe rather than treating it as complete.
-- Use `bb api <endpoint>` for operations without a typed command.
-- Follow the user's approval rules before posting comments, approving,
-  pushing, merging, or deleting resources.
-- Never read, print, or copy credentials. Ask the user to authenticate.
+```bash
+bb agent-instructions >> AGENTS.md
 ```
 
 <Tabs>
@@ -184,7 +173,7 @@ scopes or configure a custom consumer with those scopes. See
 | Cursor rule not loading       | Ensure the file is at `.cursor/rules/bb-cli.mdc` with valid frontmatter. Restart Cursor                                         |
 | opencode ignoring AGENTS.md   | Ensure the file is in the project root (not a subdirectory). Restart opencode                                                   |
 | `bb` command not found        | Install with `npm install -g @pilatos/bitbucket-cli`. The npm package requires Bun 1.1.30+; standalone binaries need no runtime |
-| AI using wrong flags          | Tell the AI to run `bb <command> --help` first                                                                                  |
+| AI using wrong flags          | Tell the AI to run `bb help --json` or `bb <command> --help` first                                                                                 |
 | Windsurf not picking up rules | Ensure the shared instructions are in the root `AGENTS.md`                                                                      |
 
 ---

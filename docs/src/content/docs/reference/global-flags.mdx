@@ -31,6 +31,19 @@ see [Precedence summary](#precedence-summary).
 depth (`bb help pr`, `bb help pr comments`). The root `Commands:` list does not
 show `help`, but it is there.
 
+`bb help --json` prints the command tree as JSON instead: every command's
+path, description, usage, aliases, subcommands, arguments, options (with value
+placeholder, parsed `default`, human-readable `defaultDescription`, choices,
+and whether it is required or repeatable) and
+examples, plus the global flags once under `globalOptions`. Scope it with a
+command path, and filter it with `--jq`:
+
+```bash
+bb help --json
+bb help pr comments --json
+bb help --json --jq '.commands[] | select(.path == "pr list") | .options[].flags'
+```
+
 ## Output flags
 
 ### `--json [fields]`

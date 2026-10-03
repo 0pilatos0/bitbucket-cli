@@ -9,7 +9,12 @@ import type {
 } from '../core/interfaces/services.js';
 import type { CommandContext } from '../core/interfaces/commands.js';
 import { BBError, ErrorCode } from '../types/errors.js';
-import type { RepoContext, GlobalOptions } from '../types/config.js';
+import type {
+  ContextSource,
+  GlobalOptions,
+  RepoContext,
+  ResolvedContext,
+} from '../types/config.js';
 
 type RepoContextFailureReason =
   'not_a_git_repo' | 'no_remote' | 'remote_not_bitbucket';
@@ -18,6 +23,11 @@ interface GitRepoContextResult {
   context: RepoContext | null;
   reason: RepoContextFailureReason | null;
   remoteUrl: string | null;
+}
+
+interface SourcedValue {
+  value: string;
+  source: ContextSource;
 }
 
 export class ContextService implements IContextService {
@@ -111,37 +121,63 @@ export class ContextService implements IContextService {
       };
     }
 
-    // Try to get from current git repo
     const gitResult = await this.inspectGitRepoContext();
-    const gitContext = gitResult.context;
-
-    // If only workspace is provided, use it with git-detected repo
-    if (options.workspace && gitContext) {
-      return {
-        context: {
-          workspace: options.workspace,
-          repoSlug: gitContext.repoSlug,
-        },
-        reason: null,
-        remoteUrl: gitResult.remoteUrl,
-      };
+    const repo = this.pickRepo(options, gitResult.context);
+    const workspace = repo
+      ? await this.pickWorkspace(options, gitResult.context)
+      : undefined;
+    if (!repo || !workspace) {
+      return gitResult;
     }
 
-    // If only repo is provided, try to use git workspace or fall back to
-    // BB_WORKSPACE / config.defaultWorkspace
-    if (options.repo) {
-      const workspace =
-        gitContext?.workspace ?? (await this.resolveDefaultWorkspace());
-      if (workspace) {
-        return {
-          context: { workspace, repoSlug: options.repo },
-          reason: null,
-          remoteUrl: gitResult.remoteUrl,
-        };
-      }
-    }
+    return {
+      context: { workspace: workspace.value, repoSlug: repo.value },
+      reason: null,
+      remoteUrl: gitResult.remoteUrl,
+    };
+  }
 
-    return gitResult;
+  /**
+   * Report what workspace and repository commands would use, and where each
+   * came from, without throwing when either is missing. Local only: reads git
+   * and the config file, never the network.
+   */
+  public async inspectContext(
+    options: GlobalOptions
+  ): Promise<ResolvedContext> {
+    const gitResult = await this.inspectGitRepoContext();
+    const repo = this.pickRepo(options, gitResult.context);
+    const workspace = await this.pickWorkspace(options, gitResult.context);
+    return {
+      workspace: workspace?.value ?? null,
+      repo: repo?.value ?? null,
+      source: {
+        workspace: workspace?.source ?? null,
+        repo: repo?.source ?? null,
+      },
+      remote: gitResult.remoteUrl && redactRemoteUrl(gitResult.remoteUrl),
+    };
+  }
+
+  private pickRepo(
+    options: GlobalOptions,
+    gitContext: RepoContext | null
+  ): SourcedValue | undefined {
+    if (options.repo) return { value: options.repo, source: 'flag' };
+    if (gitContext) return { value: gitContext.repoSlug, source: 'remote' };
+    return undefined;
+  }
+
+  /** -w, then the git remote, then `BB_WORKSPACE`, then `defaultWorkspace`. */
+  private async pickWorkspace(
+    options: GlobalOptions,
+    gitContext: RepoContext | null
+  ): Promise<SourcedValue | undefined> {
+    if (options.workspace) {
+      return { value: options.workspace, source: 'flag' };
+    }
+    if (gitContext) return { value: gitContext.workspace, source: 'remote' };
+    return this.resolveDefaultWorkspace();
   }
 
   /**
@@ -149,19 +185,19 @@ export class ContextService implements IContextService {
    * `BB_WORKSPACE` wins over `config.defaultWorkspace` so CI pipelines can
    * override a developer's persisted default without rewriting the config.
    */
-  private async resolveDefaultWorkspace(): Promise<string | undefined> {
+  private async resolveDefaultWorkspace(): Promise<SourcedValue | undefined> {
     const fromEnv = process.env.BB_WORKSPACE;
     if (typeof fromEnv === 'string') {
       const trimmed = fromEnv.trim();
       if (trimmed.length > 0) {
-        return trimmed;
+        return { value: trimmed, source: 'env' };
       }
     }
 
     const config = await this.configService.getConfig();
     const fromConfig = config.defaultWorkspace;
     if (typeof fromConfig === 'string' && fromConfig.length > 0) {
-      return fromConfig;
+      return { value: fromConfig, source: 'config' };
     }
 
     return undefined;
@@ -229,7 +265,7 @@ export class ContextService implements IContextService {
 
     const fallback = await this.resolveDefaultWorkspace();
     if (fallback) {
-      return fallback;
+      return fallback.value;
     }
 
     throw new BBError({
@@ -249,5 +285,21 @@ export class ContextService implements IContextService {
       (await this.getRepoContextFromGit())?.workspace ??
       (await this.requireWorkspace())
     );
+  }
+}
+
+/**
+ * Drop credentials from an HTTP(S) remote (`https://user:token@host/...`) so
+ * they never reach output. SCP-style SSH remotes are not URLs and pass through.
+ */
+function redactRemoteUrl(remote: string): string {
+  if (!/^https?:\/\//i.test(remote)) return remote;
+  try {
+    const url = new URL(remote);
+    url.username = '';
+    url.password = '';
+    return url.toString();
+  } catch {
+    return remote;
   }
 }

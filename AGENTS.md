@@ -142,6 +142,9 @@ bun run release
   `collectRepeated` for repeatable options
 - `tests/commands/__snapshots__/register.test.ts.snap` pins the command tree
   and help text; review its diff and update it with `bun test --update-snapshots`
+- Every leaf command needs a `` ## `bb <path>` `` heading under
+  `docs/src/content/docs/commands/` that mentions each of its flags;
+  `bun run lint:docs` (`scripts/check-command-docs.ts`) enforces it
 - Register modules never import `src/cli.ts`
 
 ### Output and JSON

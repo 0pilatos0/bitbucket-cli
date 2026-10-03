@@ -14,6 +14,10 @@ Most commands need a workspace and a repository. If you don't pass `-w`/`-r`, th
 
 Sources 3 and 4 only supply a workspace. A repository still has to come from `-r` or the git remote.
 
+Run [`bb context`](/commands/context/) to see what this resolves to in the
+current directory and which source each value came from. It needs no network
+or credentials.
+
 ### Typical local layout
 
 Run `bb` from the clone or one of its subdirectories. It reads that repository's

@@ -319,7 +319,7 @@ cli
       // `bb help <command>` can't appear under `Commands:` — Commander omits
       // its help command whenever the root has an action handler — so advertise
       // it here instead.
-      examples: ['bb help pr', 'bb pr list --json'],
+      examples: ['bb help pr', 'bb help pr --json', 'bb pr list --json'],
       envVars: {
         BB_USERNAME: 'Atlassian account email (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
@@ -360,13 +360,14 @@ cli
     );
 
     const jsonOption = cli.opts().json;
+    const json = jsonOption !== undefined && jsonOption !== false;
     const invocation = resolveRootInvocation(cli, {
       args: cli.args,
       jsonOption,
     });
 
     if (invocation.kind === 'error') {
-      if (jsonOption !== undefined && jsonOption !== false) {
+      if (json) {
         output.jsonError(invocation.error.toJSON());
       } else {
         output.error(invocation.error.message);
@@ -374,6 +375,17 @@ cli
       // Unconditional, matching runCommand(). BaseCommand.handleError() guards
       // on NODE_ENV; this path is driven directly by tests that assert on it.
       process.exitCode = 1;
+      return;
+    }
+
+    // Only `bb help [command] --json`: a bare `bb --json <typo>` cannot be told
+    // apart from a field list (see root-dispatch.ts) and keeps printing help.
+    if (json && !invocation.welcome) {
+      await runCommand(
+        ServiceTokens.HelpCommand,
+        { command: invocation.command },
+        cli
+      );
       return;
     }
 

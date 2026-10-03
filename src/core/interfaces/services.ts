@@ -9,6 +9,7 @@ import type {
   AuthMethod,
   RepoContext,
   GlobalOptions,
+  ResolvedContext,
 } from '../../types/config.js';
 import type { CommandContext } from './commands.js';
 
@@ -69,6 +70,11 @@ export interface IContextService {
   getRepoContextFromGit(): Promise<RepoContext | null>;
   getRepoContext(options: GlobalOptions): Promise<RepoContext | null>;
   requireRepoContext(options: GlobalOptions): Promise<RepoContext>;
+  /**
+   * The workspace and repository commands would use, with where each came
+   * from. Never throws for a missing value and never touches the network.
+   */
+  inspectContext(options: GlobalOptions): Promise<ResolvedContext>;
   /**
    * Convenience used by command implementations: merges the global options
    * carried on `context` with command-local options before resolving the repo
