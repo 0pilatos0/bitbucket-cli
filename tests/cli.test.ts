@@ -935,7 +935,7 @@ describe('CLI leaf command options', () => {
     expect(hasOption(edit, '--public')).toBe(true);
   });
 
-  it('should declare required positional args for pr view/merge/approve', () => {
+  it('should declare required positional args', () => {
     // Commander 11+: registeredArguments is an array with { required }.
     function required(command: Command): string[] {
       const args = (
@@ -946,9 +946,7 @@ describe('CLI leaf command options', () => {
       return args.filter((arg) => arg.required).map((arg) => arg.name());
     }
 
-    expect(required(requireCommand('pr', 'view'))).toEqual(['id']);
-    expect(required(requireCommand('pr', 'merge'))).toEqual(['id']);
-    expect(required(requireCommand('pr', 'approve'))).toEqual(['id']);
+    expect(required(requireCommand('pr', 'checkout'))).toEqual(['id']);
     expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
     expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
     expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
@@ -961,7 +959,7 @@ describe('CLI leaf command options', () => {
     ]);
   });
 
-  it('should declare optional positional args for pr edit/diff', () => {
+  it('should declare optional positional args', () => {
     function optional(command: Command): string[] {
       const args = (
         command as unknown as {
@@ -971,8 +969,20 @@ describe('CLI leaf command options', () => {
       return args.filter((arg) => !arg.required).map((arg) => arg.name());
     }
 
-    expect(optional(requireCommand('pr', 'edit'))).toEqual(['id']);
-    expect(optional(requireCommand('pr', 'diff'))).toEqual(['id']);
+    for (const path of [
+      ['pr', 'view'],
+      ['pr', 'activity'],
+      ['pr', 'checks'],
+      ['pr', 'edit'],
+      ['pr', 'merge'],
+      ['pr', 'approve'],
+      ['pr', 'decline'],
+      ['pr', 'ready'],
+      ['pr', 'diff'],
+      ['pr', 'comments', 'list'],
+    ]) {
+      expect(optional(requireCommand(...path))).toEqual(['id']);
+    }
     expect(optional(requireCommand('repo', 'view'))).toEqual(['repository']);
   });
 });

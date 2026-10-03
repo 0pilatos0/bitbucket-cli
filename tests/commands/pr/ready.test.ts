@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { ReadyPRCommand } from '../../../src/commands/pr/ready.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
   mockPullRequest,
 } from '../../setup.js';
@@ -17,7 +18,12 @@ describe('ReadyPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ReadyPRCommand(pullrequestsApi, contextService, output);
+    const command = new ReadyPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(pullrequestsApi.lastPutBody).toEqual({

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { ActivityPRCommand } from '../../../src/commands/pr/activity.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
   mockUser,
 } from '../../setup.js';
@@ -22,6 +23,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -40,6 +42,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', type: 'approval' }, { globalOptions: {} });
@@ -89,6 +92,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
@@ -133,6 +137,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(
@@ -156,6 +161,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -189,6 +195,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -208,6 +215,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -226,6 +234,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -257,6 +266,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -303,6 +313,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
