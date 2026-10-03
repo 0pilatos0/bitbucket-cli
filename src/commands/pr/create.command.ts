@@ -17,6 +17,7 @@ import type {
   Pullrequest,
   UsersApi,
 } from '../../generated/api.js';
+import { resolveBodyInput } from '../../services/body-input.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
@@ -24,6 +25,7 @@ import { BBError, ErrorCode } from '../../types/errors.js';
 export interface CreatePROptions extends GlobalOptions {
   title?: string;
   body?: string;
+  bodyFile?: string;
   source?: string;
   destination?: string;
   closeSourceBranch?: boolean;
@@ -76,6 +78,12 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
 
     const { title, body } = await this.resolveTitleAndBody(
       options,
+      await resolveBodyInput({
+        inline: options.body,
+        inlineLabel: '--body',
+        bodyFile: options.bodyFile,
+        readStdin: () => this.readStdin(),
+      }),
       context.prompt
     );
 
@@ -147,20 +155,21 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
   }
 
-  /** `--title`/`--body` win; a missing title, then body, is asked for. */
+  /** Flag values win; a missing title, then body, is asked for. */
   private async resolveTitleAndBody(
     options: CreatePROptions,
+    body: string | undefined,
     prompt: IPromptService | undefined
   ): Promise<{ title: string; body?: string }> {
     if (options.title) {
-      return { title: options.title, body: options.body };
+      return { title: options.title, body };
     }
     if (!prompt) {
       throw this.titleRequiredError();
     }
     return {
       title: await prompt.text('Title', { required: true }),
-      body: options.body ?? (await prompt.text('Description (optional)')),
+      body: body ?? (await prompt.text('Description (optional)')),
     };
   }
 
@@ -238,6 +247,10 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
 
     return Array.from(byUuid.values());
+  }
+
+  protected async readStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 
   private async getAuthorUuid(): Promise<string | undefined> {

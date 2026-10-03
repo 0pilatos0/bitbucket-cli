@@ -3,6 +3,9 @@
  */
 
 import { describe, it, expect, mock } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ListPRsCommand } from '../../src/commands/pr/list.command.js';
 import { ViewPRCommand } from '../../src/commands/pr/view.command.js';
 import { CreatePRCommand } from '../../src/commands/pr/create.command.js';
@@ -2097,6 +2100,7 @@ interface CreatePRHarnessOptions {
   config?: Parameters<typeof createMockConfigService>[0];
   capturedBodyRef?: { body?: import('../../src/generated/api.js').Pullrequest };
   createPRThrows?: boolean;
+  stdin?: string;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -2179,7 +2183,16 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
 
   const output = createMockOutputService();
 
-  const command = new CreatePRCommand(
+  class StdinCreatePRCommand extends CreatePRCommand {
+    protected override async readStdin(): Promise<string> {
+      if (options.stdin === undefined) {
+        throw new Error('stdin should not be read');
+      }
+      return options.stdin;
+    }
+  }
+
+  const command = new StdinCreatePRCommand(
     pullrequestsApi,
     usersApi,
     contextService,
@@ -2207,6 +2220,59 @@ describe('CreatePRCommand', () => {
     const { command, output } = buildCreatePRCommand();
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
     expect(output.logs.some((log) => log.includes('title'))).toBe(true);
+  });
+
+  describe('--body-file', () => {
+    const markdown = '## Summary\n\nRun `bun test` before merging.\n';
+
+    it('sends the file content as the description', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'bb-pr-create-'));
+      const path = join(dir, 'body.md');
+      writeFileSync(path, markdown);
+      try {
+        const { command, captured } = buildCreatePRCommand();
+        await command.execute(
+          { title: 'My PR', bodyFile: path },
+          { globalOptions: {} }
+        );
+        expect(captured.body?.description).toBe(markdown);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('reads the description from stdin for -', async () => {
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+      await command.execute(
+        { title: 'My PR', bodyFile: '-' },
+        { globalOptions: {} }
+      );
+      expect(captured.body?.description).toBe(markdown);
+    });
+
+    it('rejects --body together with --body-file before creating', async () => {
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+      const error = await command
+        .execute(
+          { title: 'My PR', body: 'inline', bodyFile: '-' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect(captured.body).toBeUndefined();
+    });
+
+    it('only asks for the title when --body-file is given', async () => {
+      const prompt = createMockPromptService(['Prompted title']);
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+
+      await command.execute({ bodyFile: '-' }, { globalOptions: {}, prompt });
+
+      expect(prompt.calls).toEqual(['text:Title']);
+      expect(captured.body?.description).toBe(markdown);
+    });
   });
 
   describe('interactive prompts', () => {
@@ -3403,7 +3469,102 @@ describe('EditPRCommand', () => {
   });
 });
 
+describe('EditPRCommand --body-file', () => {
+  class StdinEditPRCommand extends EditPRCommand {
+    protected override async readStdin(): Promise<string> {
+      return 'From stdin\n';
+    }
+  }
+
+  const buildCommand = (pullrequestsApi = createMockPullrequestsApi()) => ({
+    pullrequestsApi,
+    command: new StdinEditPRCommand(
+      pullrequestsApi,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockGitService(),
+      createMockOutputService()
+    ),
+  });
+
+  it('reads the description from stdin for -', async () => {
+    const { command, pullrequestsApi } = buildCommand();
+    await command.execute({ id: '1', bodyFile: '-' }, { globalOptions: {} });
+
+    expect(pullrequestsApi.lastPutBody).toEqual({
+      type: 'pullrequest',
+      description: 'From stdin\n',
+    });
+  });
+
+  it('keeps letting --body-file override --body', async () => {
+    const { command, pullrequestsApi } = buildCommand();
+    await command.execute(
+      { id: '1', body: 'inline', bodyFile: '-' },
+      { globalOptions: {} }
+    );
+
+    expect(pullrequestsApi.lastPutBody?.description).toBe('From stdin\n');
+  });
+});
+
 describe('CommentPRCommand', () => {
+  describe('--body-file', () => {
+    const markdown = 'Nit: prefer `const` here.\n\n```ts\nconst x = 1;\n```\n';
+
+    class StdinCommentPRCommand extends CommentPRCommand {
+      protected override async readStdin(): Promise<string> {
+        return markdown;
+      }
+    }
+
+    const buildCommand = () => {
+      const pullrequestsApi = createMockPullrequestsApi();
+      return {
+        pullrequestsApi,
+        command: new StdinCommentPRCommand(
+          pullrequestsApi,
+          createMockContextService({
+            workspace: 'workspace',
+            repoSlug: 'repo',
+          }),
+          createMockOutputService()
+        ),
+      };
+    };
+
+    it('posts the stdin text for -', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      await command.execute({ id: '42', bodyFile: '-' }, { globalOptions: {} });
+
+      expect(pullrequestsApi.lastCommentBody?.content).toEqual({
+        raw: markdown,
+      });
+    });
+
+    it('rejects a message together with --body-file', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      const error = await command
+        .execute(
+          { id: '42', message: 'inline', bodyFile: '-' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect(pullrequestsApi.lastCommentBody).toBeUndefined();
+    });
+
+    it('requires a message or --body-file', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      const error = await command
+        .execute({ id: '42' }, { globalOptions: {} })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect(pullrequestsApi.lastCommentBody).toBeUndefined();
+    });
+  });
+
   // US4: Backward compatibility — general comments work unchanged
   it('should post general comment successfully without inline flags', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
@@ -4659,6 +4820,30 @@ describe('ReplyCommentPRCommand', () => {
       output,
     };
   };
+
+  it('should post the stdin text for --body-file -', async () => {
+    class StdinReplyCommentPRCommand extends ReplyCommentPRCommand {
+      protected override async readStdin(): Promise<string> {
+        return 'Fixed in `abc123`.\n';
+      }
+    }
+    const pullrequestsApi = createMockPullrequestsApi();
+    const command = new StdinReplyCommentPRCommand(
+      pullrequestsApi,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockOutputService()
+    );
+
+    await command.execute(
+      { prId: '42', commentId: '7', bodyFile: '-' },
+      { globalOptions: {} }
+    );
+
+    expect(pullrequestsApi.lastCommentBody).toEqual({
+      content: { raw: 'Fixed in `abc123`.\n' },
+      parent: { id: 7 },
+    });
+  });
 
   it('should post a reply carrying the parent id and show success', async () => {
     const pullrequestsApi = createMockPullrequestsApi();

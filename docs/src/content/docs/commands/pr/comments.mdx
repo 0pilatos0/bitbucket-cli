@@ -99,7 +99,7 @@ ID         Author    Content                          Status    Date
 Add a general comment, or an inline comment anchored to a file line.
 
 ```bash
-bb pr comments add <id> <message> [options]
+bb pr comments add <id> [message] [options]
 ```
 
 ### Arguments
@@ -110,6 +110,7 @@ Use the identifiers described [above](#bb-pr-comments).
 
 | Option                 | Description                                                                 |
 | ---------------------- | --------------------------------------------------------------------------- |
+| `-F, --body-file <file>` | Read the comment text from a file, or `-` for stdin (instead of `<message>`) |
 | `--file <path>`        | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
 | `--line-to <number>`   | Line number in the new version of the file (requires `--file`)              |
 | `--line-from <number>` | Line number in the old version of the file (requires `--file`)              |
@@ -128,9 +129,18 @@ bb pr comments add 42 "Why was this removed?" --file src/utils.ts --line-from 10
 
 # Inline comment spanning old and new lines
 bb pr comments add 42 "This logic changed" --file src/app.ts --line-from 5 --line-to 8
+
+# Multi-line markdown from a file, or from stdin with -
+bb pr comments add 42 -F review.md
+bb pr comments add 42 -F - <<'EOF'
+Nit: prefer `const` here.
+EOF
 ```
 
 ### Notes
+
+- Pass the text as `<message>` or with `-F/--body-file`, not both. Blank text is rejected before anything is sent
+- `-F/--body-file` is the comment text; `--file` is the diff path an inline comment anchors to
 
 - `--file` is required when using `--line-to` or `--line-from`
 - At least one of `--line-to` or `--line-from` is required when using `--file`
@@ -192,21 +202,34 @@ bb pr comments edit 42 486512301 "Updated: I noticed something else..."
 Reply to an existing comment. The reply is attached to the parent comment, so it lands in the same thread.
 
 ```bash
-bb pr comments reply <pr-id> <comment-id> <message>
+bb pr comments reply <pr-id> <comment-id> [message] [options]
 ```
 
 ### Arguments
 
 Use the identifiers described [above](#bb-pr-comments).
 
+### Options
+
+| Option                   | Description                                                                |
+| ------------------------ | -------------------------------------------------------------------------- |
+| `-F, --body-file <file>` | Read the reply text from a file, or `-` for stdin (instead of `<message>`) |
+
 ### Examples
 
 ```bash
 # Reply to comment #486512301 on PR #42
 bb pr comments reply 42 486512301 "Good catch, fixed."
+
+# Reply with multi-line markdown from stdin
+bb pr comments reply 42 486512301 -F - <<'EOF'
+Fixed in `a1b2c3d`: retries are capped at 3.
+EOF
 ```
 
 ### Notes
+
+- Pass the text as `<message>` or with `-F/--body-file`, not both. Blank text is rejected before anything is sent
 
 - Use `bb pr comments list <id>` to find the comment ID to reply to
 - How Bitbucket anchors a reply to an inline comment is decided server-side

@@ -30,6 +30,10 @@ export function registerPrCommands(
     .description('Create a pull request')
     .option('-t, --title <title>', 'Pull request title')
     .option('-b, --body <body>', 'Pull request description')
+    .option(
+      '-F, --body-file <file>',
+      'Read description from file (- for stdin)'
+    )
     .option('-s, --source <branch>', 'Source branch (default: current branch)')
     .option('-d, --destination <branch>', 'Destination branch (default: main)')
     .option('--close-source-branch', 'Close source branch after merge')
@@ -50,6 +54,8 @@ export function registerPrCommands(
       buildHelpText({
         examples: [
           'bb pr create -t "My PR" -b "Description"',
+          'bb pr create -t "My PR" -F description.md',
+          'git log -1 --format=%b | bb pr create -t "My PR" -F -',
           'bb pr create -t "My PR" --draft',
           'bb pr create -t "My PR" -s feature -d develop',
           'bb pr create -t "My PR" --close-source-branch',
@@ -208,7 +214,10 @@ export function registerPrCommands(
     .description('Edit a pull request')
     .option('-t, --title <title>', 'New pull request title')
     .option('-b, --body <body>', 'New pull request description')
-    .option('-F, --body-file <file>', 'Read description from file')
+    .option(
+      '-F, --body-file <file>',
+      'Read description from file (- for stdin; overrides --body)'
+    )
     .addHelpText(
       'after',
       buildHelpText({
