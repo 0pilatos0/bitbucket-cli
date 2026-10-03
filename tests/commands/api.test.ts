@@ -236,6 +236,36 @@ describe('ApiCommand', () => {
     ).rejects.toThrow(BBError);
   });
 
+  it.each([
+    'http://api.bitbucket.org/2.0/user',
+    '//evil.example/x',
+    '/2.0//evil.example/x',
+    'https:/api.bitbucket.org/2.0/user',
+  ])('rejects unsafe endpoint %s before dispatch', async (endpoint) => {
+    const { command, axios } = makeCommand(() => ({ data: {} }));
+
+    await expect(
+      command.execute({ methodOrEndpoint: endpoint }, ctx)
+    ).rejects.toThrow(BBError);
+    expect(axios.calls).toHaveLength(0);
+  });
+
+  it.each([
+    'http://api.bitbucket.org/2.0/user?page=2',
+    '//evil.example/x',
+    '/2.0//evil.example/x',
+  ])('rejects unsafe pagination link %s before dispatch', async (next) => {
+    const { command, axios } = makeCommand(() => ({
+      data: { values: [{ id: 1 }], next },
+    }));
+
+    await expect(
+      command.execute({ methodOrEndpoint: '/user', paginate: true }, ctx)
+    ).rejects.toThrow(BBError);
+    expect(axios.calls).toHaveLength(1);
+    expect(axios.calls[0]!.url).toBe('/user');
+  });
+
   it('prints the error line, then the upstream body to stderr (text mode)', async () => {
     const { command, output } = makeCommand(() => {
       throw new APIError('Not found', 404, {

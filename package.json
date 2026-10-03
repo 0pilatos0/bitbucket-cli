@@ -56,6 +56,10 @@
     "open": "^11.0.4",
     "tabtab": "3.0.2"
   },
+  "overrides": {
+    "basic-ftp": "6.2.1",
+    "tmp": "0.2.7"
+  },
   "devDependencies": {
     "@changesets/changelog-github": "^1.0.1",
     "@changesets/cli": "^3.0.3",
