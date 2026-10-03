@@ -111,8 +111,8 @@ const RETRYABLE_NETWORK_CODES = new Set([
 ]);
 
 /**
- * Methods safe to retry after a network failure where we cannot know whether
- * the server processed the request (the socket died before any response).
+ * Methods safe to retry after a network failure or gateway/server error where
+ * we cannot know whether the server processed the request.
  * Only RFC 9110 "safe" methods qualify: replaying them can never duplicate a
  * side effect. Bitbucket's PUT/DELETE endpoints are *semantically* idempotent,
  * but we stay conservative and exclude them: some trigger side effects beyond
@@ -250,10 +250,15 @@ export function createApiClient(
         }
       }
 
-      // Retry on transient/rate-limit errors
+      // Keep 429 retries for all methods; gateway errors can follow a mutation
+      // that already completed, so only safe methods may replay those requests.
       if (error.response && RETRYABLE_STATUS_CODES.has(error.response.status)) {
         const config = error.config as RetryableConfig | undefined;
-        if (config) {
+        const method = config?.method?.toUpperCase() ?? '';
+        if (
+          config &&
+          (error.response.status === 429 || IDEMPOTENT_METHODS.has(method))
+        ) {
           const retryCount = config.__retryCount ?? 0;
           if (retryCount < MAX_RETRIES) {
             config.__retryCount = retryCount + 1;
