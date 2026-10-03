@@ -197,6 +197,16 @@ describe.skipIf(isWindows)('install.sh', () => {
 // Windows PowerShell 5.1 is what `irm | iex` runs on by default on Windows.
 const powershell = isWindows ? 'powershell' : Bun.which('pwsh');
 
+// When CI runs `bun test` from pwsh 7, PSModulePath lists pwsh 7's modules
+// first, and Windows PowerShell 5.1 then fails to autoload Get-FileHash from
+// them. pwsh strips its paths when it launches powershell.exe itself; do the
+// same here, so 5.1 rebuilds its default module path.
+const powershellEnv = Object.fromEntries(
+  Object.entries(process.env).filter(
+    ([name]) => name.toLowerCase() !== 'psmodulepath'
+  )
+);
+
 describe.skipIf(powershell === null)('install.ps1', () => {
   const asset = assetName('bun-windows-x64');
   const archive = archiveName('bun-windows-x64');
@@ -231,7 +241,7 @@ describe.skipIf(powershell === null)('install.ps1', () => {
         join(SCRIPTS_DIR, 'install.ps1'),
       ],
       {
-        ...process.env,
+        ...powershellEnv,
         LOCALAPPDATA: process.env.LOCALAPPDATA ?? tmpDir,
         BB_RELEASES_URL: releasesUrl(),
         BB_INSTALL_DIR: installDir,
