@@ -33,12 +33,15 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   login [options]              Authenticate with Bitbucket (OAuth or API token)
   logout                       Log out of Bitbucket
   status                       Show authentication status
   token                        Print the current access token
+  switch [account]             Switch the active account
   help [command]               display help for command
 "
 ,
@@ -67,6 +70,9 @@ For headless/secret-safe: pipe the token in with --with-token.
 OAuth needs a loopback browser (http://localhost:19872/callback); there
 is no device-code flow, so use token auth on headless hosts.
 Note: Bitbucket app passwords are retired; use OAuth or an API token.
+Logs in to the current account (\`default\` unless switched); pass
+--account <name> to add or re-authenticate another account. The
+account you log in to becomes the active one.
 
 Usage: bb auth login [options]
 
@@ -108,6 +114,8 @@ Global Options:
   -w, --workspace <workspace>     Specify workspace (falls back to BB_WORKSPACE,
                                   then config defaultWorkspace)
   -r, --repo <repo>               Specify repository
+  --account <name>                Use this saved account for one command (also
+                                  BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb auth login
@@ -115,6 +123,7 @@ Examples:
   $ printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
   $ bb auth login --client-id <id> --client-secret <secret>
   $ BB_USERNAME=you@example.com bb auth login --with-token < token.txt
+  $ bb auth login --account work
 
 Environment variables:
   BB_USERNAME   Atlassian account email used when --username is not provided
@@ -163,6 +172,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb auth logout
@@ -211,6 +222,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb auth status
@@ -259,10 +272,68 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb auth token
   $ bb auth token | pbcopy
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth switch 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "account": "account-value",
+    },
+    "token": "SwitchCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb auth switch [options] [account]
+
+Switch the active account
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb auth switch work
+  $ bb auth switch
+  $ bb --account personal pr list
+
+Environment variables:
+  BB_ACCOUNT  Use this account for one invocation without switching (--account wins)
 
 "
 ,
@@ -302,6 +373,8 @@ Global Options:
   -w, --workspace <workspace>    Specify workspace (falls back to BB_WORKSPACE,
                                  then config defaultWorkspace)
   -r, --repo <repo>              Specify repository
+  --account <name>               Use this saved account for one command (also
+                                 BB_ACCOUNT; see bb auth switch)
 
 Commands:
   clone [options] <repository>   Clone a Bitbucket repository
@@ -363,6 +436,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo clone workspace/repo-name
@@ -422,6 +497,8 @@ Global Options:
   -w, --workspace <workspace>      Specify workspace (falls back to
                                    BB_WORKSPACE, then config defaultWorkspace)
   -r, --repo <repo>                Specify repository
+  --account <name>                 Use this saved account for one command (also
+                                   BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo create my-repo
@@ -481,6 +558,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo list
@@ -537,6 +616,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo view
@@ -591,6 +672,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo delete workspace/repo-name
@@ -645,6 +728,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo cat README.md
@@ -708,6 +793,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo ls
@@ -757,6 +844,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List default reviewers for a repository
@@ -813,6 +902,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo default-reviewers list
@@ -865,6 +956,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
@@ -918,6 +1011,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
@@ -960,6 +1055,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List download artifacts of a repository
@@ -1017,6 +1114,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo downloads list
@@ -1074,6 +1173,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo downloads upload dist/app-1.0.0.tar.gz
@@ -1127,6 +1228,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb repo downloads delete app-1.0.0.tar.gz --yes
@@ -1169,6 +1272,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   create [options]             Create a pull request
@@ -1253,6 +1358,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr create -t "My PR" -b "Description"
@@ -1327,6 +1434,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr list
@@ -1392,6 +1501,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr view 42
@@ -1450,6 +1561,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr activity 42
@@ -1509,6 +1622,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr checks 42
@@ -1566,6 +1681,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr edit 42 -t "New title"
@@ -1627,6 +1744,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr merge 42
@@ -1685,6 +1804,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr approve 42
@@ -1737,6 +1858,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr decline 42
@@ -1789,6 +1912,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr ready 42
@@ -1841,6 +1966,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr checkout 42
@@ -1901,6 +2028,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr diff 42
@@ -1940,6 +2069,7 @@ Global Options:
   --locale <locale>                      BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
   -w, --workspace <workspace>            Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
   -r, --repo <repo>                      Specify repository
+  --account <name>                       Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options] <id>                    List comments on a pull request
@@ -2005,6 +2135,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments list 42
@@ -2069,6 +2201,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments add 42 "LGTM"
@@ -2122,6 +2256,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments edit 42 12345 "Updated comment"
@@ -2176,6 +2312,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments delete 42 12345
@@ -2228,6 +2366,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments view 42 12345
@@ -2281,6 +2421,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments reply 42 12345 "Good catch, fixed."
@@ -2333,6 +2475,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments resolve 42 12345
@@ -2385,6 +2529,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr comments unresolve 42 12345
@@ -2428,6 +2574,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list <id>                    List reviewers on a pull request
@@ -2482,6 +2630,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr reviewers list 42
@@ -2534,6 +2684,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
@@ -2586,6 +2738,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
@@ -2629,6 +2783,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List snippets in a workspace
@@ -2693,6 +2849,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet list
@@ -2756,6 +2914,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet view kypj
@@ -2819,6 +2979,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet create -t "My snippet" -f file.txt
@@ -2884,6 +3046,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet edit kypj -t "New title"
@@ -2938,6 +3102,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet delete kypj
@@ -2989,6 +3155,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet watch kypj
@@ -3040,6 +3208,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet unwatch kypj
@@ -3070,6 +3240,7 @@ Global Options:
   --locale <locale>                           BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.
   -w, --workspace <workspace>                 Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)
   -r, --repo <repo>                           Specify repository
+  --account <name>                            Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options] <id>                         List comments on a snippet
@@ -3127,6 +3298,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet comments list kypj
@@ -3185,6 +3358,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet comments add kypj "Great snippet!"
@@ -3239,6 +3414,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet comments edit kypj 123 "Updated comment"
@@ -3293,6 +3470,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb snippet comments delete kypj 123
@@ -3336,6 +3515,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List pipelines for a repository
@@ -3409,6 +3590,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pipeline list
@@ -3472,6 +3655,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pipeline view 42
@@ -3535,6 +3720,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pipeline run
@@ -3591,6 +3778,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pipeline stop 42
@@ -3645,6 +3834,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb pipeline logs 42
@@ -3690,6 +3881,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List commits (defaults to the current git branch)
@@ -3749,6 +3942,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb commit list
@@ -3806,6 +4001,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb commit view abc1234
@@ -3850,6 +4047,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options] <sha>         List build statuses reported on a commit
@@ -3907,6 +4106,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb status list abc1234
@@ -3975,6 +4176,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb status set abc1234 --key CI --state INPROGRESS
@@ -4023,6 +4226,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List workspaces you are a member of
@@ -4079,6 +4284,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb workspace list
@@ -4133,6 +4340,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb workspace view
@@ -4180,6 +4389,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List projects in a workspace
@@ -4236,6 +4447,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb project list
@@ -4291,6 +4504,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb project view PROJ
@@ -4352,6 +4567,8 @@ Global Options:
   -w, --workspace <workspace>      Specify workspace (falls back to
                                    BB_WORKSPACE, then config defaultWorkspace)
   -r, --repo <repo>                Specify repository
+  --account <name>                 Use this saved account for one command (also
+                                   BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb project create --key PROJ --name "My Project"
@@ -4399,6 +4616,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   code [options] <query...>    Search code in a workspace (code search must be
@@ -4457,6 +4676,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb search code parseConfig
@@ -4508,6 +4729,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List webhooks
@@ -4568,6 +4791,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb webhook list
@@ -4630,6 +4855,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb webhook view {a1b2c3d4-0000-0000-0000-000000000000}
@@ -4724,6 +4951,8 @@ Global Options:
   -w, --workspace <workspace>      Specify workspace (falls back to
                                    BB_WORKSPACE, then config defaultWorkspace)
   -r, --repo <repo>                Specify repository
+  --account <name>                 Use this saved account for one command (also
+                                   BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb webhook create --url https://ci.example.com/hook --event repo:push
@@ -4790,6 +5019,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb webhook delete {a1b2c3d4-0000-0000-0000-000000000000}
@@ -4839,6 +5070,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List branch restrictions for a repository
@@ -4915,6 +5148,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb branch-restriction list
@@ -4974,6 +5209,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb branch-restriction view 12
@@ -5061,6 +5298,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb branch-restriction create --kind force --pattern main
@@ -5122,6 +5361,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb branch-restriction delete 12
@@ -5165,6 +5406,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List SSH keys on your account
@@ -5221,6 +5464,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb ssh-key list
@@ -5276,6 +5521,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb ssh-key add ~/.ssh/id_ed25519.pub
@@ -5329,6 +5576,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}"
@@ -5372,6 +5621,8 @@ Global Options:
   -w, --workspace <workspace>     Specify workspace (falls back to BB_WORKSPACE,
                                   then config defaultWorkspace)
   -r, --repo <repo>               Specify repository
+  --account <name>                Use this saved account for one command (also
+                                  BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]                  List GPG keys on your account
@@ -5427,6 +5678,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb gpg-key list
@@ -5480,6 +5733,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb gpg-key add key.asc
@@ -5532,6 +5787,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B
@@ -5575,6 +5832,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   list [options]               List deployments for a repository
@@ -5631,6 +5890,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb deployment list
@@ -5686,6 +5947,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}"
@@ -5741,6 +6004,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb deployment environments
@@ -5821,6 +6086,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb browse
@@ -5926,6 +6193,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb api /user
@@ -5982,6 +6251,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   set <name> <expansion>       Create or update an alias; supports $1-$9
@@ -6043,6 +6314,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb alias set co 'pr checkout $1'
@@ -6095,6 +6368,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb alias list
@@ -6145,6 +6420,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb alias delete co
@@ -6188,6 +6465,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   get <key>                    Get a configuration value
@@ -6239,12 +6518,14 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb config get defaultWorkspace
 
 Readable config keys:
-  username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
 
 "
 ,
@@ -6292,14 +6573,17 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb config set defaultWorkspace my-workspace
   $ bb config set skipVersionCheck true
   $ bb config set versionCheckInterval 7
+  $ bb config set credentialStorage keychain
 
 Settable config keys:
-  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false)
+  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false)
 
 See also:
   Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/
@@ -6347,6 +6631,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb config list
@@ -6390,6 +6676,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Commands:
   install                      Install shell completions for bash, zsh, or fish
@@ -6438,6 +6726,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb completion install
@@ -6489,6 +6779,8 @@ Global Options:
   -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
                                then config defaultWorkspace)
   -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
 
 Examples:
   $ bb completion uninstall

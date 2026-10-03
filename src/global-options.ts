@@ -37,5 +37,9 @@ export function addGlobalOptions(program: Command): Command {
       '-w, --workspace <workspace>',
       'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
     )
-    .option('-r, --repo <repo>', 'Specify repository');
+    .option('-r, --repo <repo>', 'Specify repository')
+    .option(
+      '--account <name>',
+      'Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)'
+    );
 }
