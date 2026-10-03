@@ -76,7 +76,9 @@ Pick your editor and paste the command:
     ## Bitbucket CLI (`bb`)
 
     Use `bb` (`@pilatos/bitbucket-cli`) for all Bitbucket operations.
-    Requires Bun 1.0+ runtime. Install: `npm install -g @pilatos/bitbucket-cli`
+    Package install: `npm install -g @pilatos/bitbucket-cli`. Requires Bun 1.1.30+
+    runtime, or Bun 1.4.2+ for `--jq` on Windows. Standalone GitHub Release
+    executables need no Bun, Node.js or npm.
 
     ### Commands
 
@@ -394,7 +396,7 @@ Use an API token with the scopes above if your agent needs them.
 | Skill not auto-activating | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md |
 | Cursor rule not loading | Ensure the file is at `.cursor/rules/bb-cli.mdc` with valid frontmatter. Restart Cursor |
 | opencode ignoring AGENTS.md | Ensure the file is in the project root (not a subdirectory). Restart opencode |
-| `bb` command not found | Install with `npm install -g @pilatos/bitbucket-cli`. Requires [Bun 1.0+](https://bun.sh) runtime |
+| `bb` command not found | Install with `npm install -g @pilatos/bitbucket-cli` and [Bun 1.1.30+](https://bun.sh), or download a [standalone release executable](https://github.com/0pilatos0/bitbucket-cli/releases/latest) with no runtime dependency. Windows `--jq` requires Bun 1.4.2+ for package installs |
 | AI using wrong flags | Tell the AI to run `bb <command> --help` first |
 | Windsurf not picking up rules | Ensure `.windsurfrules` is in the project root. Restart Windsurf |
 
