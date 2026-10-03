@@ -139,8 +139,11 @@ checkout. See the [API command reference](/commands/api/) for every flag.
 | 1    | Command failure, such as authentication, API, validation, network, or jq errors |
 | 130  | An interactive prompt interrupted with Ctrl+C                                   |
 
-To distinguish command failures, read the `code` field of the JSON error envelope,
-which is one of the [error codes](/reference/error-codes/).
+Set `BB_DETAILED_EXIT_CODES=1` to split failures into `2` usage, `3` not found,
+`4` authentication and `5` confirmation required; see the
+[full map](/reference/error-codes/#exit-codes-and-error-codes). For anything
+finer, read the `code` field of the JSON error envelope, which is one of the
+[error codes](/reference/error-codes/).
 
 ---
 
