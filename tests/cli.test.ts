@@ -356,6 +356,7 @@ describe('CLI help text integration', () => {
 
     expect(output).toContain('Environment variables:');
     expect(output).toContain('BB_USERNAME');
+    expect(output).toContain('Atlassian account email');
     expect(output).toContain('BB_API_TOKEN');
     expect(output).toContain('BB_WORKSPACE');
     expect(output).toContain('NO_COLOR');
@@ -390,6 +391,7 @@ describe('CLI help text integration', () => {
 
     expect(output).toContain('Examples:');
     expect(output).toContain('BB_USERNAME');
+    expect(output).toContain('Atlassian account email');
     expect(output).toContain('BB_API_TOKEN');
   });
 

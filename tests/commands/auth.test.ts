@@ -63,7 +63,7 @@ function createMockOAuthService(): OAuthService {
 }
 
 describe('LoginCommand', () => {
-  it('should fail when username is not provided for app-password flow', async () => {
+  it('should explain how to provide an email for API token login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
@@ -78,7 +78,9 @@ describe('LoginCommand', () => {
 
     await expect(
       command.execute({ appPassword: true }, { globalOptions: {} })
-    ).rejects.toThrow('Atlassian account email is required');
+    ).rejects.toThrow(
+      'Atlassian account email is required. Use --username or set BB_USERNAME to your email.'
+    );
   });
 
   it('should fail when password is not provided for app-password flow', async () => {
@@ -133,7 +135,7 @@ describe('LoginCommand', () => {
     const originalUsername = process.env.BB_USERNAME;
     const originalPassword = process.env.BB_API_TOKEN;
 
-    process.env.BB_USERNAME = 'envuser';
+    process.env.BB_USERNAME = 'env@example.com';
     process.env.BB_API_TOKEN = 'envpass';
 
     try {
@@ -151,7 +153,7 @@ describe('LoginCommand', () => {
       await command.execute({}, { globalOptions: {} });
 
       const creds = await configService.getCredentials();
-      expect(creds.username).toBe('envuser');
+      expect(creds.username).toBe('env@example.com');
     } finally {
       restoreEnv('BB_USERNAME', originalUsername);
       restoreEnv('BB_API_TOKEN', originalPassword);
@@ -446,7 +448,9 @@ describe('LoginCommand', () => {
         { username: 'testuser', withToken: true },
         { globalOptions: {} }
       )
-    ).rejects.toThrow('No API token found on stdin');
+    ).rejects.toThrow(
+      'No API token found on stdin. Pipe a token, e.g. `echo "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token`.'
+    );
   });
 
   it('should reject combining --password with --with-token', async () => {
@@ -471,7 +475,7 @@ describe('LoginCommand', () => {
     ).rejects.toThrow('Cannot combine --password with --with-token');
   });
 
-  it('should still require a username for --with-token', async () => {
+  it('should require an Atlassian account email for --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
     const usersApi = createMockUsersApi();
@@ -487,7 +491,9 @@ describe('LoginCommand', () => {
 
     await expect(
       command.execute({ withToken: true }, { globalOptions: {} })
-    ).rejects.toThrow('Atlassian account email is required');
+    ).rejects.toThrow(
+      'Atlassian account email is required. Use --username or set BB_USERNAME to your email.'
+    );
   });
 
   it('should pass clientId and clientSecret to OAuth service', async () => {
