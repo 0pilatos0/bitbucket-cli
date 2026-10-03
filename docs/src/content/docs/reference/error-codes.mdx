@@ -22,6 +22,7 @@ for anything finer. Ctrl-F the number below.
 | 7xxx  | Network                    | Transport/network failures before API response                 |
 | 8xxx  | Output formatting          | `--json fields` and `--jq` evaluation issues                   |
 | 9xxx  | Shell completion / Unknown | Completion install/uninstall failures and uncategorized errors |
+| 10xxx | CI outcome | A watched pipeline or pull request check did not pass |
 
 ---
 
@@ -595,6 +596,23 @@ bb pr list --json id,title
 
 - Check write permissions on your shell rc file
 - Manually remove the `tabtab` block from your shell rc file if needed
+
+---
+
+## CI outcome errors (10001)
+
+### 10001 - CI_FAILED
+
+**Message:** `Pipeline #42 finished with status FAILED.` or `1 check did not pass on pull request #7: build.`
+
+**Cause:** `bb pipeline watch` saw the run end without passing (failed, stopped, error, expired) or pause on a manual step, or `bb pr checks --watch` saw a check end as failed or stopped, or no check was reported at all. The command still prints the final state first; with `--json` the state goes to stdout and this error to stderr.
+
+**Solution:**
+
+```bash
+bb pipeline logs 42 --step 2   # read the failing step
+bb pr checks 7                 # see which check failed
+```
 
 ---
 

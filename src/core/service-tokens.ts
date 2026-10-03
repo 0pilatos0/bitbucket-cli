@@ -101,6 +101,7 @@ import type { ViewPipelineCommand } from '../commands/pipeline/view.command.js';
 import type { RunPipelineCommand } from '../commands/pipeline/run.command.js';
 import type { StopPipelineCommand } from '../commands/pipeline/stop.command.js';
 import type { LogsPipelineCommand } from '../commands/pipeline/logs.command.js';
+import type { WatchPipelineCommand } from '../commands/pipeline/watch.command.js';
 import type { ListCommitsCommand } from '../commands/commit/list.command.js';
 import type { ViewCommitCommand } from '../commands/commit/view.command.js';
 import type { ListCommitStatusesCommand } from '../commands/status/list.command.js';
@@ -290,6 +291,7 @@ export const ServiceTokens = {
   RunPipelineCommand: token<RunPipelineCommand>('RunPipelineCommand'),
   StopPipelineCommand: token<StopPipelineCommand>('StopPipelineCommand'),
   LogsPipelineCommand: token<LogsPipelineCommand>('LogsPipelineCommand'),
+  WatchPipelineCommand: token<WatchPipelineCommand>('WatchPipelineCommand'),
 
   // Commands - Commit
   ListCommitsCommand: token<ListCommitsCommand>('ListCommitsCommand'),

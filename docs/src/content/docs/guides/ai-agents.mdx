@@ -36,8 +36,9 @@ Use `bb` for Bitbucket Cloud operations.
   explicitly when operating outside that checkout.
 - Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
   `bb pr comments list <id> --all --unresolved`.
-- `bb pr checks <id>` reads one page of build statuses. For automation,
-  use the documented paginated API recipe rather than treating it as complete.
+- `bb pr checks <id>` reads every build status. `bb pr checks <id> --watch`
+  waits until none is in progress and exits non-zero if any failed;
+  `bb pipeline watch` does the same for a pipeline run.
 - Use `bb api <endpoint>` for operations without a typed command.
 - Follow the user's approval rules before posting comments, approving,
   pushing, merging, or deleting resources.

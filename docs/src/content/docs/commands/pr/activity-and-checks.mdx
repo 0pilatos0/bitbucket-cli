@@ -87,9 +87,11 @@ bb pr checks [id] [options]
 
 ### Options
 
-| Option          | Description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `--no-truncate` | Global flag. Show full check descriptions without fitting them |
+| Option                 | Description                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `--watch`              | Wait until no check is in progress; exit non-zero if any failed or stopped |
+| `--interval <seconds>` | Seconds between polls with `--watch` (default: `10`)                        |
+| `--no-truncate`        | Global flag. Show full check descriptions without fitting them              |
 
 ### Examples
 
@@ -102,6 +104,9 @@ bb pr checks 42 -w myworkspace -r myrepo
 
 # Get checks as JSON
 bb pr checks 42 --json
+
+# Wait for running checks, then merge only if none failed
+bb pr checks 42 --watch && bb pr merge 42
 ```
 
 Output:
@@ -118,10 +123,22 @@ RUN running  deploy-preview  Deploying preview environment  now
 OK 1 successful, FAIL 1 failed, RUN 1 pending
 ```
 
-:::caution[Use all pages for a merge gate]
-`bb pr checks` fetches one status page. A passing summary does not prove that
-all checks passed. The [auto-merge recipe](/recipes/auto-merge-on-ci-green/)
-uses `bb api --paginate` and explains required check keys and merge policies.
+With `--watch`, the command prints `Waiting for 1 of 3 checks on pull request #42...`,
+then one line per check whose state changes, then the table above once nothing
+is running:
+
+```text
+Waiting for 1 of 3 checks on pull request #42...
+  OK deploy-preview passed
+```
+
+:::caution[Required checks]
+`--watch` only judges the checks Bitbucket reports. When none is listed yet it
+waits three more polls for the first one, then fails with
+`No checks were reported on pull request #42.` A required check that has not
+started while others finish is still invisible. The
+[auto-merge recipe](/recipes/auto-merge-on-ci-green/) explains required check
+keys and merge policies.
 :::
 
 ### Notes
@@ -129,6 +146,7 @@ uses `bb api --paginate` and explains required check keys and merge policies.
 - The `STATUS` cell is an icon plus a label: `OK passed`, `FAIL failed`, `RUN running`, `STOP stopped`, or `?` plus the raw state for anything else
 - The summary line counts only successful, failed, and running checks, so it can total fewer than the header count
 - Long check names and descriptions are shortened to fit the terminal width. Use `--no-truncate` for the full text
-- `bb pr checks` is not paginated, it makes a single request and has no `--limit` or `--all`
+- `bb pr checks` reads every status page, so it has no `--limit` or `--all`
+- Without `--watch` the exit status is `0` whatever the checks say. With `--watch` a failed or stopped check exits `1` with error code [`10001` CI_FAILED](/reference/error-codes/#10001---ci_failed), after printing the final state; `--json` prints only that final envelope, no progress lines
 - `--json` returns `{ pullRequestId, workspace, repoSlug, summary, statuses }`. Unlike list commands, there is no `count` key, use the length of `statuses`
 - With no checks, the command prints `No CI/CD checks found for this pull request`; with `--json` it returns an empty `statuses` array

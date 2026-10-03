@@ -130,7 +130,9 @@ export abstract class BaseCommand<
    * Send this command's stdout through the user's pager on a terminal. Meant
    * for long, read-once output such as diffs, logs and PR descriptions.
    */
-  protected readonly usesPager: boolean = false;
+  protected usesPager(_options: TOptions): boolean {
+    return false;
+  }
 
   constructor(protected readonly output: IOutputService) {}
 
@@ -159,7 +161,7 @@ export abstract class BaseCommand<
       if (context.validationError) {
         throw context.validationError;
       }
-      return this.usesPager
+      return this.usesPager(options)
         ? await this.output.withPager(() =>
             this.executeOrReportDryRun(options, context)
           )
