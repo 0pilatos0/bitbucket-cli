@@ -246,16 +246,17 @@ bb auth login
 
 **Cause:** Attempted to get or set an unknown configuration key.
 
-**Solution:** Use a valid key. `bb config set` accepts four:
+**Solution:** Use a valid key. `bb config set` accepts five:
 
-| Key                               | Meaning                                                  |
-| --------------------------------- | -------------------------------------------------------- |
-| `defaultWorkspace`                | Workspace used when `-w` is omitted                      |
-| `skipVersionCheck`                | Disable update notifications                             |
-| `versionCheckInterval`            | Days between update checks                               |
-| `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create` |
+| Key                               | Meaning                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `defaultWorkspace`                | Workspace used when `-w` is omitted                                       |
+| `skipVersionCheck`                | Disable update notifications                                              |
+| `versionCheckInterval`            | Days between update checks                                                |
+| `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create`                  |
+| `gitProtocol`                     | `ssh` or `https` for `bb repo clone` and fork fetches in `bb pr checkout` |
 
-`bb config get` accepts those four plus `username`.
+`bb config get` accepts those five plus `username`.
 
 ```bash
 bb config set defaultWorkspace myworkspace
@@ -338,7 +339,7 @@ bb pr list --state opne
 # (Did you mean OPEN?)
 
 bb config set defaultWorkspce foo
-# ✗ Unknown config key 'defaultWorkspce'. Valid keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+# ✗ Unknown config key 'defaultWorkspce'. Valid keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 # (Did you mean defaultWorkspace?)
 ```
 

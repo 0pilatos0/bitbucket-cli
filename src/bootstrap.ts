@@ -362,6 +362,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   registerCommand(container, ServiceTokens.CloneCommand, CloneCommand, [
     ServiceTokens.GitService,
     ServiceTokens.ContextService,
+    ServiceTokens.ConfigService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
@@ -534,6 +535,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,
       ServiceTokens.GitService,
+      ServiceTokens.ConfigService,
       ServiceTokens.OutputService,
     ]
   );

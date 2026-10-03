@@ -24,6 +24,7 @@ On Linux and macOS the CLI creates the directory `0700` and the file `0600`, and
 | `skipVersionCheck`                | yes                                    | yes                                    | Disable update notifications (default: false)                                                                      |
 | `versionCheckInterval`            | yes                                    | yes                                    | Days between update checks (default: 1)                                                                            |
 | `prCreateIncludeDefaultReviewers` | yes                                    | yes                                    | Auto-add the repository's default reviewers on `bb pr create` (default: false)                                     |
+| `gitProtocol`                     | yes                                    | yes                                    | Protocol for `bb repo clone` and fork fetches in `bb pr checkout`: `ssh` or `https` (default: ssh)                 |
 | `username`                        | yes                                    | no; use `bb auth login`                | Atlassian account email for API-token login                                                                        |
 | `apiToken`                        | no; use `bb auth token`                | no; use `bb auth login`                | Bitbucket API token (masked in `bb config list`)                                                                   |
 | `aliases`                         | no; use [`bb alias`](/commands/alias/) | no; use [`bb alias`](/commands/alias/) | User-defined command aliases                                                                                       |
@@ -41,7 +42,8 @@ On Linux and macOS the CLI creates the directory `0700` and the file `0600`, and
   "defaultWorkspace": "myworkspace",
   "skipVersionCheck": false,
   "versionCheckInterval": 1,
-  "prCreateIncludeDefaultReviewers": false
+  "prCreateIncludeDefaultReviewers": false,
+  "gitProtocol": "ssh"
 }
 ```
 
@@ -55,7 +57,7 @@ Print a configuration value.
 bb config get <key>
 ```
 
-Readable keys: `username`, `defaultWorkspace`, `skipVersionCheck`, `versionCheckInterval`, `prCreateIncludeDefaultReviewers`. Any other key exits `1` with `Unknown config key '<key>'`, except `apiToken`, which points you at `bb auth token`.
+Readable keys: `username`, `defaultWorkspace`, `skipVersionCheck`, `versionCheckInterval`, `prCreateIncludeDefaultReviewers`, `gitProtocol`. Any other key exits `1` with `Unknown config key '<key>'`, except `apiToken`, which points you at `bb auth token`.
 
 ### Examples
 
@@ -88,6 +90,7 @@ Settable keys, and the values each accepts:
 | `skipVersionCheck`                | `true` or `false`                  | boolean     |
 | `versionCheckInterval`            | Positive integer (`>= 1`), in days | number      |
 | `prCreateIncludeDefaultReviewers` | `true` or `false`                  | boolean     |
+| `gitProtocol`                     | `ssh` or `https`                   | string      |
 
 ### Examples
 
@@ -166,7 +169,7 @@ defaultWorkspace  myworkspace
 apiToken          ********
 skipVersionCheck  false
 
-Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
+Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol. Run 'bb config set --help' for details.
 ```
 
 With an empty config file the table is replaced by `ℹ No configuration set`; the `Config file:` line and the `Settable keys:` footer still print.

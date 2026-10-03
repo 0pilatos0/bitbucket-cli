@@ -50,12 +50,21 @@ export interface ICredentialStore {
 /**
  * Git service interface
  */
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 export interface IGitService {
   isRepository(): Promise<boolean>;
   clone(url: string, destination?: string): Promise<void>;
-  fetch(remote?: string): Promise<void>;
+  fetch(remote: string, refspecs?: string[]): Promise<void>;
   checkout(branch: string): Promise<void>;
   checkoutNewBranch(branch: string, startPoint?: string): Promise<void>;
+  fastForward(ref: string): Promise<void>;
+  branchExists(branch: string): Promise<boolean>;
+  isAncestor(ancestor: string, descendant: string): Promise<boolean>;
+  getRemotes(): Promise<GitRemote[]>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
   getRemoteUrl(remote?: string): Promise<string>;

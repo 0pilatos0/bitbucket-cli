@@ -219,6 +219,20 @@ export function createMockGitService(
     async checkoutNewBranch() {
       // Mock implementation
     },
+    async fastForward() {
+      // Mock implementation
+    },
+    async branchExists() {
+      return false;
+    },
+    async isAncestor() {
+      return true;
+    },
+    async getRemotes() {
+      return options.remoteUrl
+        ? [{ name: 'origin', url: options.remoteUrl }]
+        : [];
+    },
     async getCurrentBranch() {
       if (options.throwOnGetCurrentBranch) {
         throw { code: 3002, message: 'Not a git repo' } as BBError;
