@@ -12,7 +12,7 @@ Manage pull request comments.
 
 See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
-`<id>` and `<pr-id>` identify the pull request. `<comment-id>` identifies a
+`<id>` and `<pr-id>` identify the pull request. `list` takes it as an optional `[id]` and falls back to the open PR for your current branch. `<comment-id>` identifies a
 comment; find it with `bb pr comments list <id>`. `view`, `edit`, `reply`,
 `resolve`, and `unresolve` take only [global flags](/reference/global-flags/).
 
@@ -22,7 +22,7 @@ comment; find it with `bb pr comments list <id>`. `view`, `edit`, `reply`,
 
 | Subcommand                             | Description                                        |
 | -------------------------------------- | -------------------------------------------------- |
-| `list <id>`                            | List comments on a pull request                    |
+| `list [id]`                            | List comments on a pull request                    |
 | `add <id> <message>`                   | Add a comment to a pull request                    |
 | `view <pr-id> <comment-id>`            | View a single comment on a pull request            |
 | `edit <pr-id> <comment-id> <message>`  | Edit a comment on a pull request                   |
@@ -38,7 +38,7 @@ comment; find it with `bb pr comments list <id>`. `view`, `edit`, `reply`,
 List comments on a pull request.
 
 ```bash
-bb pr comments list <id> [options]
+bb pr comments list [id] [options]
 ```
 
 ### Arguments

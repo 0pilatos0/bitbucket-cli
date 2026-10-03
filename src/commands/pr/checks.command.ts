@@ -6,15 +6,21 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { CommitStatusesApi, Commitstatus } from '../../generated/api.js';
+import type {
+  CommitStatusesApi,
+  Commitstatus,
+  PullrequestsApi,
+} from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface ChecksPROptions extends GlobalOptions {}
 
 export class ChecksPRCommand extends BaseCommand<
-  { id: string } & ChecksPROptions,
+  { id?: string } & ChecksPROptions,
   void
 > {
   public readonly name = 'checks';
@@ -23,14 +29,16 @@ export class ChecksPRCommand extends BaseCommand<
 
   constructor(
     private readonly commitStatusesApi: CommitStatusesApi,
+    private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & ChecksPROptions,
+    options: { id?: string } & ChecksPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -38,7 +46,15 @@ export class ChecksPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveInt(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     const response =
       await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(

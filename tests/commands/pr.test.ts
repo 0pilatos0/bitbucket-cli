@@ -26,6 +26,7 @@ import { AddReviewerPRCommand } from '../../src/commands/pr/reviewers.add.comman
 import { RemoveReviewerPRCommand } from '../../src/commands/pr/reviewers.remove.command.js';
 import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
 import { CommentPRCommand } from '../../src/commands/pr/comment.command.js';
+import { findPullRequestIdForCurrentBranch } from '../../src/commands/pr/shared.js';
 import {
   createMockContextService,
   createMockOutputService,
@@ -124,7 +125,6 @@ function getTableRows(logs: string[]): string[][] {
 function createMockPullrequestsApi(
   options: {
     pullRequests?: Pullrequest[];
-    pullRequestPages?: Pullrequest[][];
     activityPages?: Array<Array<Record<string, unknown>>>;
     comments?: PullrequestComment[];
     commentsPages?: PullrequestComment[][];
@@ -165,9 +165,6 @@ function createMockPullrequestsApi(
   lastPutBody?: Record<string, unknown>;
 } {
   const prs = options.pullRequests ?? [mockPullRequest];
-  const allPullRequests = options.pullRequestPages
-    ? options.pullRequestPages.flat()
-    : prs;
   const defaultActivities: Array<Record<string, unknown>> = [
     {
       comment: {
@@ -201,21 +198,32 @@ function createMockPullrequestsApi(
       options.onListCall?.(request, axiosOptions);
 
       const { page, pagelen } = extractPaginationParams(axiosOptions);
-      let pageValues: Pullrequest[];
-      let totalSize: number;
-      let hasNext: boolean;
 
-      if (options.pullRequestPages) {
-        pageValues = options.pullRequestPages[page - 1] ?? [];
-        totalSize = options.pullRequestPages.flat().length;
-        hasNext = page < options.pullRequestPages.length;
-      } else {
-        const start = (page - 1) * pagelen;
-        const end = start + pagelen;
-        pageValues = prs.slice(start, end);
-        totalSize = prs.length;
-        hasNext = end < prs.length;
+      const query = (axiosOptions as { params?: { q?: string } } | undefined)
+        ?.params?.q;
+      const branchLiteral = query?.match(
+        /^source\.branch\.name = (".*")$/
+      )?.[1];
+      if (branchLiteral !== undefined) {
+        const branch = JSON.parse(branchLiteral) as string;
+        const matches = prs.filter(
+          (pr) =>
+            (pr.source as { branch?: { name?: string } } | undefined)?.branch
+              ?.name === branch
+        );
+        return createAxiosResponse<PaginatedPullrequests>({
+          values: createSet(matches),
+          page: 1,
+          pagelen,
+          size: matches.length,
+        });
       }
+
+      const start = (page - 1) * pagelen;
+      const end = start + pagelen;
+      const pageValues = prs.slice(start, end);
+      const totalSize = prs.length;
+      const hasNext = end < prs.length;
 
       const paginated: PaginatedPullrequests = {
         values: createSet(pageValues),
@@ -236,7 +244,7 @@ function createMockPullrequestsApi(
       if (options.throwOnGet) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -271,7 +279,7 @@ function createMockPullrequestsApi(
         throw new Error('API Error');
       }
       mockApi.lastMergeBody = params.body;
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -302,7 +310,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDecline) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -320,7 +328,7 @@ function createMockPullrequestsApi(
         throw new Error('API Error');
       }
       mockApi.lastPutBody = params.body;
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -339,7 +347,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDiff) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -353,7 +361,7 @@ function createMockPullrequestsApi(
       if (options.throwOnDiffstat) {
         throw new Error('API Error');
       }
-      const pr = allPullRequests.find((p) => p.id === params.pullRequestId);
+      const pr = prs.find((p) => p.id === params.pullRequestId);
       if (!pr) {
         throw new Error('Not found');
       }
@@ -976,7 +984,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('#1'))).toBe(true);
@@ -991,7 +1004,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '999' }, { globalOptions: {} })
@@ -1007,7 +1025,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('[DRAFT]'))).toBe(true);
@@ -1021,7 +1044,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
@@ -1035,7 +1063,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
@@ -1051,7 +1084,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs).toContain('info:No reviewers assigned');
@@ -1094,7 +1132,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -1138,7 +1181,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService({ noUnicode: true });
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -1171,7 +1219,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -1195,7 +1248,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -1218,7 +1276,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -1239,6 +1302,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1257,6 +1321,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', type: 'approval' }, { globalOptions: {} });
@@ -1306,6 +1371,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
@@ -1350,6 +1416,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(
@@ -1373,6 +1440,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -1406,6 +1474,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1439,6 +1508,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
@@ -1458,6 +1528,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -1476,6 +1547,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -1507,6 +1579,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -1553,6 +1626,7 @@ describe('ActivityPRCommand', () => {
     const command = new ActivityPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1602,6 +1676,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', limit: '2' }, { globalOptions: {} });
@@ -1632,6 +1707,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1662,6 +1738,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
@@ -1707,6 +1784,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(
@@ -1763,6 +1841,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1784,6 +1863,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', resolved: true }, { globalOptions: {} });
@@ -1806,6 +1886,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', unresolved: true }, { globalOptions: {} });
@@ -1825,6 +1906,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -1858,6 +1940,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1', resolved: true }, { globalOptions: {} });
@@ -1880,6 +1963,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1904,6 +1988,7 @@ describe('ListCommentsPRCommand', () => {
     const command = new ListCommentsPRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute(
@@ -1950,7 +2035,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -1970,7 +2057,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: { json: true } });
@@ -1988,7 +2077,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -2022,7 +2113,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -2053,7 +2146,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
@@ -2467,7 +2562,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(pullrequestsApi.lastMergeBody).toEqual({
@@ -2485,7 +2585,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '999' }, { globalOptions: {} })
@@ -2500,7 +2605,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '1', strategy: 'bogus' }, { globalOptions: {} })
@@ -2515,7 +2625,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute(
       {
         id: '1',
@@ -2543,7 +2658,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
@@ -2558,7 +2678,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(
@@ -2582,6 +2707,7 @@ describe('ApprovePRCommand', () => {
     const command = new ApprovePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -2603,6 +2729,7 @@ describe('DeclinePRCommand', () => {
     const command = new DeclinePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -2622,6 +2749,7 @@ describe('DeclinePRCommand', () => {
     const command = new DeclinePRCommand(
       pullrequestsApi,
       contextService,
+      createMockGitService(),
       output
     );
 
@@ -2641,7 +2769,12 @@ describe('ReadyPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ReadyPRCommand(pullrequestsApi, contextService, output);
+    const command = new ReadyPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(pullrequestsApi.lastPutBody).toEqual({
@@ -2765,49 +2898,6 @@ describe('DiffPRCommand', () => {
 
   it('should display diff for current branch when no ID provided', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new DiffPRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
-    await command.execute({}, { globalOptions: {} });
-
-    expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
-  });
-
-  it('should auto-detect PR across paginated results', async () => {
-    const pullrequestsApi = createMockPullrequestsApi({
-      pullRequestPages: [
-        [
-          {
-            ...mockPullRequest,
-            id: 100,
-            source: {
-              branch: { name: 'other-branch' },
-            },
-          } as Pullrequest,
-        ],
-        [
-          {
-            ...mockPullRequest,
-            id: 101,
-            source: {
-              branch: { name: 'feature-branch' },
-            },
-          } as Pullrequest,
-        ],
-      ],
-    });
     const contextService = createMockContextService({
       workspace: 'workspace',
       repoSlug: 'repo',
@@ -3263,52 +3353,6 @@ describe('EditPRCommand', () => {
     );
     await command.execute(
       { title: 'Updated via auto-detect' },
-      { globalOptions: {} }
-    );
-
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
-  });
-
-  it('should auto-detect PR across paginated results', async () => {
-    const pullrequestsApi = createMockPullrequestsApi({
-      pullRequestPages: [
-        [
-          {
-            ...mockPullRequest,
-            id: 50,
-            source: {
-              branch: { name: 'other-branch' },
-            },
-          } as Pullrequest,
-        ],
-        [
-          {
-            ...mockPullRequest,
-            id: 51,
-            source: {
-              branch: { name: 'feature-branch' },
-            },
-          } as Pullrequest,
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new EditPRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
-    await command.execute(
-      { title: 'Updated via paginated auto-detect' },
       { globalOptions: {} }
     );
 
@@ -5292,5 +5336,325 @@ describe('RemoveReviewerPRCommand', () => {
     await expect(
       command.execute({ id: '42', username: 'unknown' }, { globalOptions: {} })
     ).rejects.toThrow('User not found');
+  });
+});
+
+describe('findPullRequestIdForCurrentBranch', () => {
+  const repoContext = { workspace: 'workspace', repoSlug: 'repo' };
+  const contextService = createMockContextService(repoContext);
+  const openPullRequest = (
+    id: number,
+    branch: string,
+    sourceRepo = 'workspace/repo'
+  ): Pullrequest =>
+    ({
+      ...mockPullRequest,
+      id,
+      source: {
+        branch: { name: branch },
+        repository: { full_name: sourceRepo },
+      },
+    }) as Pullrequest;
+
+  it('returns the only open pull request for the branch, filtered server-side', async () => {
+    const calls: Array<{ request: unknown; axiosOptions: unknown }> = [];
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [
+        openPullRequest(7, 'other-branch'),
+        openPullRequest(8, 'feature-branch'),
+      ],
+      onListCall: (request, axiosOptions) =>
+        calls.push({ request, axiosOptions }),
+    });
+
+    const id = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'feature-branch' }),
+      contextService,
+      repoContext
+    );
+
+    expect(id).toBe(8);
+    expect(calls).toEqual([
+      {
+        request: { workspace: 'workspace', repoSlug: 'repo', state: 'OPEN' },
+        axiosOptions: {
+          params: { q: 'source.branch.name = "feature-branch"', pagelen: 50 },
+        },
+      },
+    ]);
+  });
+
+  it('fails with a not-found error when the branch has no open pull request', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [openPullRequest(7, 'other-branch')],
+    });
+
+    const error = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'feature-branch' }),
+      contextService,
+      repoContext
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.API_NOT_FOUND);
+    expect((error as BBError).message).toBe(
+      'No open pull request found for branch "feature-branch". Pass a pull request ID.'
+    );
+  });
+
+  it('refuses to guess when the branch has several open pull requests', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [
+        openPullRequest(7, 'feature-branch'),
+        openPullRequest(9, 'feature-branch'),
+      ],
+    });
+
+    const error = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'feature-branch' }),
+      contextService,
+      repoContext
+    ).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+    expect((error as BBError).message).toBe(
+      'Branch "feature-branch" has 2 open pull requests (#7, #9). Pass a pull request ID.'
+    );
+  });
+
+  it('ignores pull requests from another repository with the same branch name', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [
+        openPullRequest(7, 'main', 'stranger/repo'),
+        openPullRequest(8, 'main', 'Workspace/Repo'),
+      ],
+    });
+
+    const id = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'main' }),
+      contextService,
+      repoContext
+    );
+
+    expect(id).toBe(8);
+  });
+
+  it('matches the checkout repository when targeting upstream from a fork', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [
+        openPullRequest(7, 'feature-branch', 'upstream/repo'),
+        openPullRequest(8, 'feature-branch', 'workspace/repo'),
+      ],
+    });
+
+    const id = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'feature-branch' }),
+      contextService,
+      { workspace: 'upstream', repoSlug: 'repo' }
+    );
+
+    expect(id).toBe(8);
+  });
+
+  it('escapes quotes and backslashes in the branch name', async () => {
+    const queries: unknown[] = [];
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [openPullRequest(3, 'fix/"quoted"\\name')],
+      onListCall: (_request, axiosOptions) =>
+        queries.push((axiosOptions as { params: { q: string } }).params.q),
+    });
+
+    const id = await findPullRequestIdForCurrentBranch(
+      pullrequestsApi,
+      createMockGitService({ currentBranch: 'fix/"quoted"\\name' }),
+      contextService,
+      repoContext
+    );
+
+    expect(id).toBe(3);
+    expect(queries).toEqual([
+      'source.branch.name = "fix/\\"quoted\\"\\\\name"',
+    ]);
+  });
+
+  it('asks for an ID on a detached HEAD without calling the API', async () => {
+    let listCalls = 0;
+    const pullrequestsApi = createMockPullrequestsApi({
+      onListCall: () => listCalls++,
+    });
+
+    await expect(
+      findPullRequestIdForCurrentBranch(
+        pullrequestsApi,
+        createMockGitService({ currentBranch: 'HEAD' }),
+        contextService,
+        repoContext
+      )
+    ).rejects.toThrow(
+      'No pull request ID given and HEAD is detached. Pass a pull request ID.'
+    );
+    expect(listCalls).toBe(0);
+  });
+
+  it('asks for an ID when the current branch cannot be read', async () => {
+    await expect(
+      findPullRequestIdForCurrentBranch(
+        createMockPullrequestsApi(),
+        createMockGitService({ throwOnGetCurrentBranch: true }),
+        contextService,
+        repoContext
+      )
+    ).rejects.toThrow(
+      'No pull request ID given and the current git branch could not be determined. Pass a pull request ID.'
+    );
+  });
+});
+
+describe('pr commands without an ID', () => {
+  const setup = () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [
+        { ...mockPullRequest, id: 5, source: { branch: { name: 'other' } } },
+        mockPullRequest,
+      ] as Pullrequest[],
+    });
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService({
+      currentBranch: 'feature-branch',
+    });
+    const output = createMockOutputService();
+    return { pullrequestsApi, contextService, gitService, output };
+  };
+
+  it('view shows the pull request for the current branch', async () => {
+    const { pullrequestsApi, contextService, gitService, output } = setup();
+    await new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    ).execute({}, { globalOptions: {} });
+
+    expect(output.logs.some((log) => log.includes('#1'))).toBe(true);
+  });
+
+  it('approve, decline, ready and merge act on the inferred pull request', async () => {
+    const commands = [
+      [ApprovePRCommand, 'Approved pull request #1'],
+      [DeclinePRCommand, 'Declined pull request #1'],
+      [ReadyPRCommand, 'Marked pull request #1 as ready for review'],
+      [MergePRCommand, 'Merged pull request #1'],
+    ] as const;
+
+    for (const [Command, expected] of commands) {
+      const { pullrequestsApi, contextService, gitService, output } = setup();
+      await new Command(
+        pullrequestsApi,
+        contextService,
+        gitService,
+        output
+      ).execute({}, { globalOptions: {} });
+
+      expect(output.logs.join('\n')).toContain(expected);
+    }
+  });
+
+  it('activity and comments list read the inferred pull request', async () => {
+    const activityRequests: unknown[] = [];
+    const commentRequests: unknown[] = [];
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const gitService = createMockGitService({
+      currentBranch: 'feature-branch',
+    });
+    const pullrequestsApi = createMockPullrequestsApi({
+      onActivityCall: (request) => activityRequests.push(request),
+      onCommentsListCall: (request) => commentRequests.push(request),
+    });
+
+    await new ActivityPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      createMockOutputService()
+    ).execute({}, { globalOptions: {} });
+    await new ListCommentsPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      createMockOutputService()
+    ).execute({}, { globalOptions: {} });
+
+    expect(activityRequests).toEqual([
+      expect.objectContaining({ pullRequestId: 1 }),
+    ]);
+    expect(commentRequests).toEqual([
+      expect.objectContaining({ pullRequestId: 1 }),
+    ]);
+  });
+
+  it('checks reads statuses for the inferred pull request', async () => {
+    const { pullrequestsApi, contextService, gitService, output } = setup();
+    const statusRequests: unknown[] = [];
+    const commitStatusesApi = {
+      async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(
+        request: unknown
+      ) {
+        statusRequests.push(request);
+        return createAxiosResponse({ values: createSet([]) });
+      },
+    } as unknown as CommitStatusesApi;
+
+    await new ChecksPRCommand(
+      commitStatusesApi,
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    ).execute({}, { globalOptions: {} });
+
+    expect(statusRequests).toEqual([
+      expect.objectContaining({ pullRequestId: 1 }),
+    ]);
+  });
+
+  it('rejects an empty ID instead of falling back to the current branch', async () => {
+    const { contextService, gitService, output } = setup();
+    let listCalls = 0;
+    const api = createMockPullrequestsApi({ onListCall: () => listCalls++ });
+
+    await expect(
+      new MergePRCommand(api, contextService, gitService, output).execute(
+        { id: '' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow(/--id must be a positive integer/);
+    expect(listCalls).toBe(0);
+    expect(api.lastMergeBody).toBeUndefined();
+  });
+
+  it('does not touch git when an ID is given', async () => {
+    const { pullrequestsApi, contextService, output } = setup();
+    const gitService = createMockGitService({ throwOnGetCurrentBranch: true });
+
+    await new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      gitService,
+      output
+    ).execute({ id: '5' }, { globalOptions: {} });
+
+    expect(output.logs.some((log) => log.includes('#5'))).toBe(true);
   });
 });
