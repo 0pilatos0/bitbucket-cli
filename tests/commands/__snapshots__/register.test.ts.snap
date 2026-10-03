@@ -638,24 +638,28 @@ exports[`command tree snapshot bb pr 1`] = `
 Manage pull requests
 
 Options:
-  -h, --help               display help for command
+  -h, --help                      display help for command
 
 Commands:
-  create [options]         Create a pull request
-  list [options]           List pull requests
-  view <id>                View pull request details
-  activity [options] <id>  Show pull request activity log
-  checks <id>              Show CI/CD checks and build status for a pull request
-  edit [options] [id]      Edit a pull request
-  merge [options] <id>     Merge a pull request
-  approve <id>             Approve a pull request
-  decline <id>             Decline a pull request
-  ready <id>               Mark a draft pull request as ready for review
-  checkout <id>            Checkout a pull request locally
-  diff [options] [id]      View pull request diff
-  comments                 Manage pull request comments
-  reviewers                Manage pull request reviewers
-  help [command]           display help for command
+  create [options]                Create a pull request
+  list [options]                  List pull requests
+  status                          Show the status of your pull requests
+  view <id>                       View pull request details
+  activity [options] <id>         Show pull request activity log
+  checks <id>                     Show CI/CD checks and build status for a pull
+                                  request
+  edit [options] [id]             Edit a pull request
+  merge [options] <id>            Merge a pull request
+  approve <id>                    Approve a pull request
+  unapprove <id>                  Withdraw your approval of a pull request
+  request-changes [options] <id>  Request changes on a pull request
+  decline <id>                    Decline a pull request
+  ready <id>                      Mark a draft pull request as ready for review
+  checkout <id>                   Checkout a pull request locally
+  diff [options] [id]             View pull request diff
+  comments                        Manage pull request comments
+  reviewers                       Manage pull request reviewers
+  help [command]                  display help for command
 "
 ,
 }
@@ -727,8 +731,13 @@ exports[`command tree snapshot bb pr list 1`] = `
     "contextOptions": undefined,
     "options": {
       "all": true,
+      "author": "author-value",
+      "destination": "destination-value",
       "limit": "limit-value",
       "mine": true,
+      "query": "query-value",
+      "reviewer": "reviewer-value",
+      "source": "source-value",
       "state": "state-value",
     },
     "token": "ListPRsCommand",
@@ -740,20 +749,32 @@ exports[`command tree snapshot bb pr list 1`] = `
 List pull requests
 
 Options:
-  -s, --state <state>  Filter by state (OPEN, MERGED, DECLINED, SUPERSEDED)
-                       (choices: "OPEN", "MERGED", "DECLINED", "SUPERSEDED",
-                       default: "OPEN")
-  --limit <number>     Maximum number of PRs to list (default: "25")
-  --all                List all pull requests (overrides --limit)
-  --mine               Show only PRs where you are a reviewer (not authored by
-                       you)
-  -h, --help           display help for command
+  -s, --state <state>     Filter by state (OPEN, MERGED, DECLINED, SUPERSEDED)
+                          (choices: "OPEN", "MERGED", "DECLINED", "SUPERSEDED",
+                          default: "OPEN")
+  --limit <number>        Maximum number of PRs to list (default: "25")
+  --all                   List all pull requests (overrides --limit)
+  --author <user>         Only PRs authored by this user: @me, an account ID, or
+                          {uuid}
+  --reviewer <user>       Only PRs with this reviewer: @me, an account ID, or
+                          {uuid}
+  --mine                  Same as --reviewer @me: PRs you review, not authored
+                          by you
+  --source <branch>       Only PRs from this source branch
+  --destination <branch>  Only PRs into this destination branch
+  --query <bbql>          Raw Bitbucket query (BBQL), ANDed with the other
+                          filters
+  -h, --help              display help for command
 
 Examples:
   $ bb pr list
   $ bb pr list -s MERGED --limit 10
   $ bb pr list --all
-  $ bb pr list --mine
+  $ bb pr list --author @me
+  $ bb pr list --reviewer @me
+  $ bb pr list --source feature/login
+  $ bb pr list --destination develop -s MERGED
+  $ bb pr list --query 'title ~ "hotfix"'
   $ bb pr list --json
 
 Valid states:
@@ -1022,6 +1043,89 @@ Examples:
   $ bb pr ready 42
   $ bb pr ready 42 --json
   $ bb pr ready 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr status 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {},
+    "token": "StatusPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr status [options]
+
+Show the status of your pull requests
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr status
+  $ bb pr status --json
+  $ bb pr status -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr unapprove 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "UnapprovePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr unapprove [options] <id>
+
+Withdraw your approval of a pull request
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr unapprove 42
+  $ bb pr unapprove 42 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr request-changes 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+      "undo": true,
+    },
+    "token": "RequestChangesPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr request-changes [options] <id>
+
+Request changes on a pull request
+
+Options:
+  --undo      Remove your change request instead
+  -h, --help  display help for command
+
+Examples:
+  $ bb pr request-changes 42
+  $ bb pr request-changes 42 --undo
+  $ bb pr request-changes 42 --json
 
 "
 ,

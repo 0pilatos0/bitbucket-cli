@@ -64,10 +64,13 @@ import { DeleteDownloadCommand } from './commands/repo/downloads.delete.command.
 // PR commands
 import { CreatePRCommand } from './commands/pr/create.command.js';
 import { ListPRsCommand } from './commands/pr/list.command.js';
+import { StatusPRCommand } from './commands/pr/status.command.js';
 import { ViewPRCommand } from './commands/pr/view.command.js';
 import { EditPRCommand } from './commands/pr/edit.command.js';
 import { MergePRCommand } from './commands/pr/merge.command.js';
 import { ApprovePRCommand } from './commands/pr/approve.command.js';
+import { UnapprovePRCommand } from './commands/pr/unapprove.command.js';
+import { RequestChangesPRCommand } from './commands/pr/request-changes.command.js';
 import { DeclinePRCommand } from './commands/pr/decline.command.js';
 import { ReadyPRCommand } from './commands/pr/ready.command.js';
 import { CheckoutPRCommand } from './commands/pr/checkout.command.js';
@@ -495,6 +498,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);
+  registerCommand(container, ServiceTokens.StatusPRCommand, StatusPRCommand, [
+    ServiceTokens.PullrequestsApi,
+    ServiceTokens.UsersApi,
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
+    ServiceTokens.OutputService,
+  ]);
   registerCommand(container, ServiceTokens.ViewPRCommand, ViewPRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
@@ -516,6 +526,26 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.OutputService,
   ]);
+  registerCommand(
+    container,
+    ServiceTokens.UnapprovePRCommand,
+    UnapprovePRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.RequestChangesPRCommand,
+    RequestChangesPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
   registerCommand(container, ServiceTokens.DeclinePRCommand, DeclinePRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,

@@ -153,12 +153,19 @@ bb pr list [options]
 
 ### Options
 
-| Option                | Description                                                         |
-| --------------------- | ------------------------------------------------------------------- |
-| `-s, --state <state>` | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
-| `--limit <number>`    | Maximum number of PRs (default: 25)                                 |
-| `--all`               | List all PRs (overrides `--limit`)                                  |
-| `--mine`              | Show only PRs where you are a reviewer                              |
+| Option                   | Description                                                         |
+| ------------------------ | ------------------------------------------------------------------- |
+| `-s, --state <state>`    | Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (default: OPEN) |
+| `--limit <number>`       | Maximum number of PRs (default: 25)                                 |
+| `--all`                  | List all PRs (overrides `--limit`)                                  |
+| `--author <user>`        | Only PRs authored by `@me`, an account ID, or a `{uuid}`            |
+| `--reviewer <user>`      | Only PRs with this reviewer: `@me`, an account ID, or a `{uuid}`    |
+| `--mine`                 | Same as `--reviewer @me`                                            |
+| `--source <branch>`      | Only PRs from this source branch                                    |
+| `--destination <branch>` | Only PRs into this destination branch                               |
+| `--query <bbql>`         | Raw [BBQL] filter, combined with the other filters using `AND`      |
+
+[BBQL]: https://developer.atlassian.com/cloud/bitbucket/rest/intro/#filtering
 
 ### Examples
 
@@ -190,8 +197,20 @@ bb pr list --limit 50
 # Fetch every open PR, ignoring the default limit of 25
 bb pr list --all
 
-# Show only PRs assigned to you for review
-bb pr list --mine
+# PRs you opened
+bb pr list --author @me
+
+# PRs assigned to you for review (same as --mine)
+bb pr list --reviewer @me
+
+# The open PR for a branch
+bb pr list --source feature/login
+
+# Merged PRs into develop
+bb pr list --destination develop -s MERGED
+
+# Anything BBQL can express, e.g. a title search
+bb pr list --query 'title ~ "hotfix"'
 ```
 
 ### Notes
@@ -200,14 +219,40 @@ bb pr list --mine
 - `--limit` is enforced across paginated API responses
 - The TITLE column is truncated to 50 characters, and the `[DRAFT] ` prefix counts against that budget. Pass `--no-truncate` for full titles; `--json` output is never truncated
 
-:::caution[`--mine` does not mean "my PRs"]
-`--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, filter the JSON yourself:
+- All filters run server-side through the Bitbucket `q` parameter, so `--limit` counts matching PRs only
+- `--author` and `--reviewer` look the user up first (`@me` is the account you are logged in as), then match on their UUID
+- `--mine` is kept for compatibility. It means "PRs I review", not "PRs I wrote"; use `--author @me` for those
+- A malformed `--query` is rejected by Bitbucket with an HTTP 400 and its error message
+
+---
+
+## `bb pr status`
+
+Show what needs your attention in the current repository: the open PR for the branch you have checked out, your open PRs, and open PRs where you are a reviewer.
 
 ```bash
-bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "your-username")'
+bb pr status
 ```
 
-:::
+```
+myworkspace/myrepo
+
+Current branch
+  #42  Add login page  [feature/login]
+
+Created by you
+  #42  Add login page  [feature/login]
+  #40  [DRAFT] Rework settings  [settings]
+
+Requesting your review
+  #38  Bump dependencies  [deps]
+```
+
+### Notes
+
+- The "Current branch" section only appears filled when you run the command inside a clone of the target repository; with `-w`/`-r` pointing at another repository it reads "Not on a branch of this repository"
+- Each list shows up to 25 PRs; the footer names the `bb pr list` command that shows the rest
+- `--json` returns `{ workspace, repoSlug, currentBranch, currentBranchPullRequest, createdByYou, reviewRequested }`; `currentBranch` and `currentBranchPullRequest` are `null` when there is nothing to show
 
 ---
 

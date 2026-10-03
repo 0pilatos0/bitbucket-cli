@@ -618,7 +618,10 @@ describe('CLI command registration', () => {
       'list',
       'merge',
       'ready',
+      'request-changes',
       'reviewers',
+      'status',
+      'unapprove',
       'view',
     ]);
 

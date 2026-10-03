@@ -14,7 +14,13 @@ import type {
   UsersApi,
 } from '../../generated/api.js';
 import { resolveLimit } from '../../services/pagination.js';
+import {
+  bbqlString,
+  CURRENT_USER,
+  resolveUserUuid,
+} from '../../services/pr-filters.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 import { PR_STATES } from '../../types/pr.js';
 
 export interface ListPRsOptions extends GlobalOptions {
@@ -22,6 +28,11 @@ export interface ListPRsOptions extends GlobalOptions {
   limit?: string;
   all?: boolean;
   mine?: boolean;
+  author?: string;
+  reviewer?: string;
+  source?: string;
+  destination?: string;
+  query?: string;
 }
 
 export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
@@ -49,12 +60,11 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     const state = options.state
       ? this.parseEnumOption(options.state, 'state', PR_STATES)
       : 'OPEN';
-    // Validate --limit before the --mine user lookup so an invalid limit
-    // fails fast without an API call; runList re-resolves the same value.
+    // Validate --limit before any user lookup so an invalid limit fails fast
+    // without an API call; runList re-resolves the same value.
     resolveLimit(options);
-    const reviewerQuery = options.mine
-      ? await this.buildMineFilter()
-      : undefined;
+    const reviewer = this.resolveReviewerOption(options);
+    const query = await this.buildQuery({ ...options, reviewer });
 
     const arrow = this.output.symbol('→', '->');
     await this.runList<Pullrequest>(
@@ -72,7 +82,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
                 params: {
                   page,
                   pagelen,
-                  ...(reviewerQuery ? { q: reviewerQuery } : {}),
+                  ...(query ? { q: query } : {}),
                 },
               }
             );
@@ -86,9 +96,16 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
           state,
           filters: {
             mine: options.mine === true,
+            author: options.author ?? null,
+            reviewer: reviewer ?? null,
+            source: options.source ?? null,
+            destination: options.destination ?? null,
+            query: options.query ?? null,
           },
         },
-        emptyMessage: `No ${state.toLowerCase()} pull requests found`,
+        emptyMessage: query
+          ? `No ${state.toLowerCase()} pull requests match the filters`
+          : `No ${state.toLowerCase()} pull requests found`,
         tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES'],
         mapRow: (pr: Pullrequest) => {
           const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
@@ -109,17 +126,44 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     );
   }
 
-  private async buildMineFilter(): Promise<string | undefined> {
-    const response = await this.usersApi.userGet();
-    const userUuid = response.data.uuid;
-
-    if (!userUuid) {
-      this.output.warning(
-        'Could not determine your user UUID. Showing all pull requests.'
-      );
-      return undefined;
+  /** `--mine` is shorthand for `--reviewer @me`. */
+  private resolveReviewerOption(options: ListPRsOptions): string | undefined {
+    if (!options.mine) {
+      return options.reviewer;
     }
+    if (options.reviewer && options.reviewer !== CURRENT_USER) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: `--mine means --reviewer ${CURRENT_USER}; it cannot be combined with --reviewer ${options.reviewer}.`,
+        context: { reviewer: options.reviewer },
+      });
+    }
+    return CURRENT_USER;
+  }
 
-    return `reviewers.uuid="${userUuid}"`;
+  private async buildQuery(
+    options: ListPRsOptions
+  ): Promise<string | undefined> {
+    const clauses: string[] = [];
+    if (options.author) {
+      const uuid = await resolveUserUuid(this.usersApi, options.author);
+      clauses.push(`author.uuid=${bbqlString(uuid)}`);
+    }
+    if (options.reviewer) {
+      const uuid = await resolveUserUuid(this.usersApi, options.reviewer);
+      clauses.push(`reviewers.uuid=${bbqlString(uuid)}`);
+    }
+    if (options.source) {
+      clauses.push(`source.branch.name=${bbqlString(options.source)}`);
+    }
+    if (options.destination) {
+      clauses.push(
+        `destination.branch.name=${bbqlString(options.destination)}`
+      );
+    }
+    if (options.query) {
+      clauses.push(`(${options.query})`);
+    }
+    return clauses.length > 0 ? clauses.join(' AND ') : undefined;
   }
 }
