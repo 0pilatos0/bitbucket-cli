@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Actions only: npm dependencies are bumped by hand (see CONTRIBUTING.md).
+  # Dependabot keeps the SHA pins and their `# vX` comments in step.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
