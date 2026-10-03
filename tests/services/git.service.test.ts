@@ -227,8 +227,13 @@ describe('GitService', () => {
     it.skipIf(!Bun.which('ssh'))(
       'resolves a host with no ssh config entry to itself',
       async () => {
+        // Inherit the real environment like production does: ssh reads its
+        // config from the OS home, not HOME, and Windows ssh.exe exits 255
+        // under the stripped hermetic env.
+        const inheritingEnv = new GitService(testDir);
+
         expect(
-          await gitService.resolveSshHostname('bb-cli-test-unknown-alias')
+          await inheritingEnv.resolveSshHostname('bb-cli-test-unknown-alias')
         ).toBe('bb-cli-test-unknown-alias');
       }
     );

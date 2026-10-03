@@ -180,7 +180,8 @@ export class GitService implements IGitService {
       if (result.exitCode !== 0) {
         return null;
       }
-      return /^hostname\s+(\S+)$/m.exec(result.stdout)?.[1] ?? null;
+      // Windows OpenSSH ends lines with CRLF.
+      return /^hostname\s+(\S+)\r?$/m.exec(result.stdout)?.[1] ?? null;
     } catch {
       // ssh is missing or timed out: treat the alias as unresolvable.
       return null;
