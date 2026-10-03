@@ -6,16 +6,18 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface ViewPROptions extends GlobalOptions {}
 
 export class ViewPRCommand extends BaseCommand<
-  { id: string } & ViewPROptions,
+  { id?: string } & ViewPROptions,
   void
 > {
   public readonly name = 'view';
@@ -25,13 +27,14 @@ export class ViewPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & ViewPROptions,
+    options: { id?: string } & ViewPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -39,7 +42,15 @@ export class ViewPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveInt(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     const response = await this.pullrequestsApi
       .repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet({

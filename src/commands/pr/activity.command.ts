@@ -7,6 +7,7 @@ import { didYouMeanSuffix } from '../../core/suggest.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
@@ -18,6 +19,7 @@ import {
 } from '../../services/response-parsers.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 const VALID_ACTIVITY_TYPES = [
   'comment',
@@ -38,7 +40,7 @@ export interface ActivityPROptions extends GlobalOptions {
 }
 
 export class ActivityPRCommand extends BaseCommand<
-  { id: string } & ActivityPROptions,
+  { id?: string } & ActivityPROptions,
   void
 > {
   public readonly name = 'activity';
@@ -47,13 +49,14 @@ export class ActivityPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & ActivityPROptions,
+    options: { id?: string } & ActivityPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -61,7 +64,15 @@ export class ActivityPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveInt(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
     const filterTypes = this.parseTypeFilter(options.type);
 
     await this.runList<PullrequestActivity>(
