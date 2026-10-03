@@ -566,7 +566,7 @@ describe('CLI command registration', () => {
   it('should register all auth subcommands', () => {
     const authCmd = requireCommand('auth');
     const names = authCmd.commands.map((c) => c.name()).sort();
-    expect(names).toEqual(['login', 'logout', 'status', 'token']);
+    expect(names).toEqual(['login', 'logout', 'status', 'switch', 'token']);
   });
 
   it('should register all repo subcommands (including default-reviewers and downloads)', () => {

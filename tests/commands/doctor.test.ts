@@ -20,6 +20,7 @@ const REPO = { workspace: 'acme', repoSlug: 'widgets' };
 interface Setup {
   config?: BBConfig;
   configError?: Error;
+  credentialError?: Error;
   repo?: { workspace: string; repoSlug: string };
   probe?: NetworkProbe;
   userGet?: () => Promise<unknown>;
@@ -28,6 +29,12 @@ interface Setup {
 
 function createCommand(setup: Setup = {}) {
   const configService = createMockConfigService(setup.config ?? LOGGED_IN);
+  if (setup.credentialError) {
+    const error = setup.credentialError;
+    configService.hasCredentials = async () => {
+      throw error;
+    };
+  }
   if (setup.configError) {
     const error = setup.configError;
     configService.getConfig = async () => {
@@ -48,6 +55,7 @@ function createCommand(setup: Setup = {}) {
   } as unknown as UsersApi;
   const output = createMockOutputService();
   const command = new DoctorCommand(
+    configService,
     configService,
     createMockContextService(setup.repo ?? REPO),
     usersApi,
@@ -97,7 +105,7 @@ describe('DoctorCommand', () => {
       'read:user:bitbucket, account'
     );
     expect(byId(result.checks, 'git')?.message).toBe('acme/widgets');
-    expect(process.exitCode).toBe(0);
+    expect(process.exitCode ?? 0).toBe(0);
   });
 
   it('fails auth and exits 1 when not logged in', async () => {
@@ -195,7 +203,7 @@ describe('DoctorCommand', () => {
 
     expect(result.ok).toBe(true);
     expect(byId(result.checks, 'scopes')?.status).toBe('warn');
-    expect(process.exitCode).toBe(0);
+    expect(process.exitCode ?? 0).toBe(0);
   });
 
   it('warns when no Bitbucket repository is detected', async () => {
@@ -223,6 +231,18 @@ describe('DoctorCommand', () => {
     expect(byId(result.checks, 'auth')).toMatchObject({
       status: 'fail',
       message: 'Not checked: config is unreadable',
+    });
+    expect(result.userGetCalls).toBe(0);
+  });
+
+  it('fails auth when the credential store cannot be read', async () => {
+    const result = await runJson({
+      credentialError: new Error('Keychain is locked'),
+    });
+
+    expect(byId(result.checks, 'auth')).toMatchObject({
+      status: 'fail',
+      message: 'Could not read stored credentials: Keychain is locked',
     });
     expect(result.userGetCalls).toBe(0);
   });

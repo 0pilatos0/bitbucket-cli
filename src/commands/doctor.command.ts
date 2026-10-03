@@ -8,12 +8,12 @@ import type { CommandContext } from '../core/interfaces/commands.js';
 import type {
   IConfigService,
   IContextService,
+  ICredentialStore,
   IOutputService,
 } from '../core/interfaces/services.js';
 import type { UsersApi } from '../generated/api.js';
 import { resolveBaseUrl } from '../services/api-client.service.js';
 import { DOCS_BASE_URL } from '../constants.js';
-import { hasStoredCredentials, type BBConfig } from '../types/config.js';
 import { APIError } from '../types/errors.js';
 import pkg from '../../package.json' with { type: 'json' };
 
@@ -56,6 +56,7 @@ export class DoctorCommand extends BaseCommand<void, void> {
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     private readonly contextService: IContextService,
     private readonly usersApi: UsersApi,
     output: IOutputService,
@@ -66,13 +67,16 @@ export class DoctorCommand extends BaseCommand<void, void> {
   }
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
-    const { check: configCheck, config } = await this.checkConfig();
+    const configCheck = await this.checkConfig();
     const network = await this.checkNetwork();
     const checks: DoctorCheck[] = [
       this.checkBun(),
       configCheck,
       network,
-      ...(await this.checkAuth(config, network.status === 'pass')),
+      ...(await this.checkAuth(
+        configCheck.status === 'pass',
+        network.status === 'pass'
+      )),
       await this.checkGitRemote(),
     ];
     const ok = checks.every((check) => check.status !== 'fail');
@@ -101,28 +105,19 @@ export class DoctorCommand extends BaseCommand<void, void> {
     };
   }
 
-  private async checkConfig(): Promise<{
-    check: DoctorCheck;
-    config?: BBConfig;
-  }> {
+  private async checkConfig(): Promise<DoctorCheck> {
     const path = this.configService.getConfigPath();
     const base = { id: 'config', label: 'Config' };
-    let config: BBConfig;
     try {
-      config = await this.configService.getConfig();
+      await this.configService.getConfig();
     } catch (error) {
-      return {
-        check: { ...base, status: 'fail', message: errorMessage(error) },
-      };
+      return { ...base, status: 'fail', message: errorMessage(error) };
     }
     const exists = await Bun.file(path).exists();
     return {
-      check: {
-        ...base,
-        status: 'pass',
-        message: exists ? path : `${path} (not created yet)`,
-      },
-      config,
+      ...base,
+      status: 'pass',
+      message: exists ? path : `${path} (not created yet)`,
     };
   }
 
@@ -147,13 +142,13 @@ export class DoctorCommand extends BaseCommand<void, void> {
   }
 
   private async checkAuth(
-    config: BBConfig | undefined,
+    configReadable: boolean,
     networkOk: boolean
   ): Promise<DoctorCheck[]> {
     const base = { id: 'auth', label: 'Auth' };
     const loginHint = 'Run `bb auth login`';
 
-    if (!config) {
+    if (!configReadable) {
       return [
         {
           ...base,
@@ -163,13 +158,31 @@ export class DoctorCommand extends BaseCommand<void, void> {
       ];
     }
 
-    if (!hasStoredCredentials(config)) {
+    let method: string;
+    try {
+      if (!(await this.credentialStore.hasCredentials())) {
+        return [
+          {
+            ...base,
+            status: 'fail',
+            message: 'Not logged in',
+            hint: loginHint,
+          },
+        ];
+      }
+      method =
+        (await this.credentialStore.getAuthMethod()) === 'oauth'
+          ? 'OAuth'
+          : 'API token';
+    } catch (error) {
       return [
-        { ...base, status: 'fail', message: 'Not logged in', hint: loginHint },
+        {
+          ...base,
+          status: 'fail',
+          message: `Could not read stored credentials: ${errorMessage(error)}`,
+        },
       ];
     }
-
-    const method = config.authMethod === 'oauth' ? 'OAuth' : 'API token';
 
     if (!networkOk) {
       return [

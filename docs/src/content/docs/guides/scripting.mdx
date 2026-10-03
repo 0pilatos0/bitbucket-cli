@@ -150,9 +150,8 @@ which is one of the [error codes](/reference/error-codes/).
 ## Error handling
 
 In `--json` mode, success JSON goes to stdout and the error envelope goes to
-stderr. HTTP debug tracing writes to stdout even in JSON mode, so leave
-`BB_DEBUG` and `DEBUG` unset or set `BB_DEBUG=off` when parsing output.
-Redirect the normal streams separately:
+stderr. HTTP debug tracing also writes to stderr, so it never corrupts the
+JSON on stdout. Redirect the two streams separately:
 
 ```bash
 #!/bin/bash

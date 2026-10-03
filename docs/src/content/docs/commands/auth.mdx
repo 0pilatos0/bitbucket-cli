@@ -1,10 +1,14 @@
 ---
 title: Auth commands
-description: Log in, inspect credentials, and log out of Bitbucket.
+description: Log in, switch accounts, inspect credentials, and log out of Bitbucket.
 ---
 
 Use the [authentication guide](/getting-started/authentication/) for setup.
 These commands accept the [global flags](/reference/global-flags/).
+
+Each command acts on the current account: `--account <name>`, else
+`BB_ACCOUNT`, else the active account (`default` until you add another). See
+[Multiple accounts](/getting-started/authentication/#multiple-accounts).
 
 ## `bb auth login`
 
@@ -41,6 +45,7 @@ variables](/reference/environment-variables/#resolution-order).
 bb auth login
 printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
 bb auth login --client-id YOUR_KEY --client-secret YOUR_SECRET
+bb auth login --account personal   # add a second account
 ```
 
 The flag retains its historical name, but [Atlassian requires your account
@@ -61,7 +66,9 @@ require another login.
 
 API-token login stores the credentials, verifies them against `GET /user`,
 and clears them if verification fails. A failed login can replace and clear
-previous credentials, so it is not a harmless validation of a second account.
+the current account's previous credentials, so log in to a second account with
+`--account <name>`. After a successful login that account becomes the active
+one, and `--json` includes its name as `account`.
 
 `--app-password` selects API-token auth; it does not restore support for
 Bitbucket app passwords.
@@ -88,7 +95,9 @@ bb auth logout --json
 
 ### What gets removed
 
-Logout clears credentials for the active authentication method. OAuth logout
+Logout clears the current account's credentials for its authentication
+method. If that was the active account and others are saved, the first
+remaining one becomes active; JSON reports it as `switchedTo`. OAuth logout
 also removes custom consumer credentials. It attempts OAuth revocation first and preserves settings such
 as `defaultWorkspace` and aliases. If revocation fails, local credentials are
 still cleared and JSON includes `revokeFailed: true`.
@@ -119,16 +128,41 @@ bb auth status --json
 
 The displayed username comes from Bitbucket, even when login used an email.
 OAuth adds a token-expiry line. The default workspace appears only when set.
-With no credentials, the command reports `Not logged in`, JSON is
-`{ "authenticated": false }`, and it exits 1 (like `gh auth status`), so
-`bb auth status >/dev/null && ...` only continues when you are logged in.
-Invalid or expired credentials also exit 1. For a wider check of your setup,
-run [`bb doctor`](/commands/doctor/).
+With more than one saved account, an `Account:` line names the one in use and
+an `Other accounts:` line lists the rest. JSON always includes `account` (the
+current account name) and `accounts` (all saved names). With no credentials,
+the command reports `Not logged in`, JSON is
+`{ "authenticated": false, "account": "default", "accounts": [] }`, and it
+exits 1 (like `gh auth status`), so `bb auth status >/dev/null && ...` only
+continues when you are logged in. Invalid or expired credentials also exit 1.
+For a wider check of your setup, run [`bb doctor`](/commands/doctor/).
 
 `auth status --json` reports `method: "basic"` for API tokens, while
 `auth login --json` reports `method: "api_token"`. Check `authenticated` first,
 then use the command's documented method value. See [JSON
 output](/reference/json-output/#pattern-5-auth--config-custom).
+
+## `bb auth switch`
+
+```bash
+bb auth switch [account] [options]
+```
+
+Make a saved account the active one. Without a name, an interactive terminal
+asks which account to use; otherwise the command fails with `5001` and lists
+the saved accounts. An unknown name fails with `5002`.
+
+### Examples
+
+```bash
+bb auth switch work
+bb auth switch          # pick from a list
+bb auth switch personal --json
+```
+
+JSON output is `{ "success": true, "account": "personal" }`. To use another
+account for a single command without switching, pass `--account <name>` or
+set `BB_ACCOUNT`.
 
 ## `bb auth token`
 

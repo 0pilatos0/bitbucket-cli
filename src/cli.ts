@@ -20,12 +20,11 @@ import type {
 } from './core/command-registrar.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type {
-  IConfigService,
+  ICredentialStore,
   IOutputService,
   IPromptService,
 } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
-import { hasStoredCredentials } from './types/config.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
 import { buildCommandPath } from './core/command-tree.js';
@@ -314,6 +313,10 @@ cli
     'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
   )
   .option('-r, --repo <repo>', 'Specify repository')
+  .option(
+    '--account <name>',
+    'Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -324,6 +327,8 @@ cli
       envVars: {
         BB_USERNAME: 'Atlassian account email (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
+        BB_ACCOUNT:
+          'Saved account to use (overrides the active account; --account still wins)',
         BB_WORKSPACE:
           'Default workspace (overrides config.defaultWorkspace; --workspace still wins)',
         NO_COLOR: 'Disable color output when set',
@@ -385,11 +390,10 @@ cli
     // this path immediately after install, so it's the right moment to point
     // at the next step.
     try {
-      const configService = container.resolve<IConfigService>(
-        ServiceTokens.ConfigService
+      const credentialStore = container.resolve<ICredentialStore>(
+        ServiceTokens.CredentialStore
       );
-      const config = await configService.getConfig();
-      if (!hasStoredCredentials(config)) {
+      if (!(await credentialStore.hasCredentials())) {
         output.text('');
         output.text(
           `Tip: Run '${output.highlight('bb auth login')}' to get started.`
@@ -405,6 +409,12 @@ cli
 // accurate `bb <path> --help` footer. Inherited by every subcommand.
 cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
+  const { account } = cli.opts<{ account?: string }>();
+  if (account !== undefined) {
+    container
+      .resolve<ICredentialStore>(ServiceTokens.CredentialStore)
+      .useAccount(account);
+  }
 });
 
 // Surface an update-available notice after every command (like `gh`). The

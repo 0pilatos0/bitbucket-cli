@@ -148,7 +148,8 @@ bb pr reviewers add 48 '{alice-uuid}'
 
 Normal `bb` commands use stored credentials internally, so the assistant does
 not need a token in its prompt. This is not a security boundary: an agent with
-file or shell access can read the plaintext config or run `bb auth token`.
+file or shell access can read the config (plaintext unless
+`credentialStorage` is `keychain`) or run `bb auth token`.
 Use your assistant's tool permissions to control that access. Rule and skill
 files provide instructions, not credential isolation.
 
@@ -200,13 +201,18 @@ agents that fetch documentation on demand (Cursor, Cline, Continue, Aider,
 and similar) can pull a clean markdown view of the full reference instead
 of scraping HTML:
 
-| URL                                                                         | Contents                                                                    |
-| --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`/llms.txt`](https://bitbucket-cli.paulvanderlei.com/llms.txt)             | Index pointing to the two content files below                               |
-| [`/llms-full.txt`](https://bitbucket-cli.paulvanderlei.com/llms-full.txt)   | Every doc page concatenated as markdown                                     |
-| [`/llms-small.txt`](https://bitbucket-cli.paulvanderlei.com/llms-small.txt) | Abridged subset (excludes Help / FAQ / Changelog) for tight context windows |
+| URL                                                                                                         | Contents                                                                    |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [`/llms.txt`](https://bitbucket-cli.paulvanderlei.com/llms.txt)                                             | Index of every page with a one-line description, plus the sets below        |
+| [`/<page>.md`](https://bitbucket-cli.paulvanderlei.com/commands/pr.md)                                      | Any single page as markdown: add `.md` to its path, e.g. `/commands/pr.md`  |
+| [`/_llms-txt/pull-requests.txt`](https://bitbucket-cli.paulvanderlei.com/_llms-txt/pull-requests.txt)       | Topic set: every `pr` page plus the reviewer and auto-merge recipes         |
+| [`/_llms-txt/pipelines-and-ci.txt`](https://bitbucket-cli.paulvanderlei.com/_llms-txt/pipelines-and-ci.txt) | Topic set: pipelines, deployments, commit statuses and CI/CD setup          |
+| [`/_llms-txt/scripting.txt`](https://bitbucket-cli.paulvanderlei.com/_llms-txt/scripting.txt)               | Topic set: JSON output, error codes, environment variables and scripting    |
+| [`/llms-full.txt`](https://bitbucket-cli.paulvanderlei.com/llms-full.txt)                                   | Every doc page concatenated as markdown                                     |
+| [`/llms-small.txt`](https://bitbucket-cli.paulvanderlei.com/llms-small.txt)                                 | Abridged subset (excludes Help / FAQ / Changelog) for tight context windows |
 
-All three are generated at build time, so they always match the live docs.
+Start an agent at `/llms.txt` so it fetches only the pages it needs. All of
+these are generated at build time, so they always match the live docs.
 Give your assistant one of these URLs when it needs the reference. Automatic
 discovery depends on the assistant; publishing the files does not guarantee
 that it will fetch them.

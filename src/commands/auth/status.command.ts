@@ -10,11 +10,13 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
-import { hasStoredCredentials } from '../../types/config.js';
+import { DEFAULT_ACCOUNT } from '../../services/credential-store.service.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface AuthStatus {
   authenticated: boolean;
+  account?: string;
+  accounts?: string[];
   method?: string;
   user?: {
     username: string;
@@ -41,22 +43,39 @@ export class StatusCommand extends BaseCommand<void, void> {
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const config = await this.configService.getConfig();
     const authMethod = await this.credentialStore.getAuthMethod();
+    const account = await this.credentialStore.getAccountName();
+    const accounts = (await this.credentialStore.listAccounts()).map(
+      (summary) => summary.name
+    );
+    const otherAccounts = accounts.filter((name) => name !== account);
 
-    if (!hasStoredCredentials(config)) {
+    if (!(await this.credentialStore.hasCredentials())) {
       // Exit 1 like `gh auth status` so scripts can gate on it; the output
       // stays a status report rather than an error.
       process.exitCode = 1;
       if (context.globalOptions.json) {
-        await this.output.json({ authenticated: false });
+        await this.output.json({ authenticated: false, account, accounts });
         return;
       }
 
-      this.output.info('Not logged in');
-      this.output.text(
-        `Run ${this.output.highlight('bb auth login')} to authenticate.`
+      const login =
+        account === DEFAULT_ACCOUNT
+          ? 'bb auth login'
+          : `bb auth login --account ${account}`;
+      this.output.info(
+        accounts.length > 0
+          ? `Not logged in to account '${account}'`
+          : 'Not logged in'
       );
+      this.output.text(`Run ${this.output.highlight(login)} to authenticate.`);
+      this.printOtherAccounts(otherAccounts);
       return;
     }
+
+    const expiresAt =
+      authMethod === 'oauth'
+        ? (await this.credentialStore.getOAuthCredentials()).expiresAt
+        : undefined;
 
     // Verify credentials by fetching user info
     try {
@@ -66,6 +85,8 @@ export class StatusCommand extends BaseCommand<void, void> {
       if (context.globalOptions.json) {
         const jsonOutput: Record<string, unknown> = {
           authenticated: true,
+          account,
+          accounts,
           method: authMethod,
           user: {
             username: user.username,
@@ -74,14 +95,17 @@ export class StatusCommand extends BaseCommand<void, void> {
           },
           defaultWorkspace: config.defaultWorkspace,
         };
-        if (authMethod === 'oauth' && config.oauthExpiresAt) {
-          jsonOutput.tokenExpiresAt = config.oauthExpiresAt;
+        if (expiresAt) {
+          jsonOutput.tokenExpiresAt = expiresAt;
         }
         await this.output.json(jsonOutput);
         return;
       }
 
       this.output.success('Logged in to Bitbucket');
+      if (accounts.length > 1) {
+        this.output.text(`  Account: ${this.output.highlight(account)}`);
+      }
       this.output.text(
         `  Authentication: ${this.output.highlight(authMethod === 'oauth' ? 'OAuth' : 'API Token')}`
       );
@@ -91,8 +115,8 @@ export class StatusCommand extends BaseCommand<void, void> {
       this.output.text(`  Display name: ${user.display_name}`);
       this.output.text(`  Account ID: ${user.account_id}`);
 
-      if (authMethod === 'oauth' && config.oauthExpiresAt) {
-        const expiresIn = config.oauthExpiresAt - Math.floor(Date.now() / 1000);
+      if (expiresAt) {
+        const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
         if (expiresIn > 0) {
           const hours = Math.floor(expiresIn / 3600);
           const minutes = Math.floor((expiresIn % 3600) / 60);
@@ -112,6 +136,7 @@ export class StatusCommand extends BaseCommand<void, void> {
           `  Default workspace: ${this.output.highlight(config.defaultWorkspace)}`
         );
       }
+      this.printOtherAccounts(otherAccounts);
     } catch (error) {
       throw new BBError({
         code: ErrorCode.AUTH_INVALID,
@@ -119,5 +144,14 @@ export class StatusCommand extends BaseCommand<void, void> {
         cause: error instanceof Error ? error : undefined,
       });
     }
+  }
+
+  private printOtherAccounts(names: string[]): void {
+    if (names.length === 0) {
+      return;
+    }
+    this.output.text(
+      `  Other accounts: ${names.join(', ')} (switch with ${this.output.highlight('bb auth switch <account>')})`
+    );
   }
 }

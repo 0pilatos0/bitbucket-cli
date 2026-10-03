@@ -2,19 +2,165 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightLlmsTxt from "starlight-llms-txt";
 import { readFileSync, existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { buildPageIndex } from "./src/llms-page-index.ts";
 
 const rootPkg = new URL("../package.json", import.meta.url);
 const cliVersion = existsSync(rootPkg)
   ? JSON.parse(readFileSync(rootPkg, "utf-8")).version
   : "latest";
 
+const site = "https://bitbucket-cli.paulvanderlei.com";
+
+const sidebar = [
+  {
+    label: "Getting Started",
+    items: [
+      { label: "Quick Start", slug: "getting-started/quickstart" },
+      { label: "Installation", slug: "getting-started/installation" },
+      { label: "Authentication", slug: "getting-started/authentication" },
+    ],
+  },
+  {
+    label: "Command Reference",
+    items: [
+      { label: "Auth Commands", slug: "commands/auth" },
+      {
+        label: "Repo Commands",
+        items: [
+          { label: "Repository basics", slug: "commands/repo" },
+          { label: "Downloads", slug: "commands/repo/downloads" },
+          { label: "Default reviewers", slug: "commands/repo/default-reviewers" },
+        ],
+      },
+      {
+        label: 'PR Commands',
+        items: [{ autogenerate: { directory: 'commands/pr' } }],
+      },
+      {
+        label: "Snippet Commands",
+        items: [
+          { label: "Snippet basics", slug: "commands/snippet" },
+          { label: "Comments", slug: "commands/snippet/comments" },
+        ],
+      },
+      {
+        label: "Pipeline Commands",
+        slug: "commands/pipeline",
+      },
+      {
+        label: "Commit Commands",
+        slug: "commands/commit",
+      },
+      {
+        label: "Status Commands",
+        slug: "commands/status",
+      },
+      {
+        label: "Workspace Commands",
+        slug: "commands/workspace",
+      },
+      {
+        label: "Project Commands",
+        slug: "commands/project",
+      },
+      {
+        label: "Search Commands",
+        slug: "commands/search",
+      },
+      {
+        label: "Webhook Commands",
+        slug: "commands/webhook",
+      },
+      {
+        label: "Branch Restriction Commands",
+        slug: "commands/branch-restriction",
+      },
+      {
+        label: "Deployment Commands",
+        slug: "commands/deployment",
+      },
+      { label: "SSH Key Commands", slug: "commands/ssh-key" },
+      { label: "GPG Key Commands", slug: "commands/gpg-key" },
+      {
+        label: "Browse",
+        slug: "commands/browse",
+      },
+      {
+        label: "API",
+        slug: "commands/api",
+      },
+      { label: "Alias Commands", slug: "commands/alias" },
+      { label: "Config Commands", slug: "commands/config" },
+      { label: "Doctor", slug: "commands/doctor" },
+      { label: "Completion", slug: "commands/completion" },
+    ],
+  },
+  {
+    label: "Guides",
+    items: [
+      { label: "Repository Context", slug: "guides/repository-context" },
+      { label: "Scripting & Automation", slug: "guides/scripting" },
+      { label: "CI/CD Integration", slug: "guides/cicd" },
+      {
+        label: 'AI Agent Integration',
+        slug: 'guides/ai-agents',
+        badge: {
+          text: 'New',
+          variant: 'tip',
+        },
+      },
+    ],
+  },
+  {
+    label: "Recipes",
+    badge: { text: 'New', variant: 'tip' },
+    items: [
+      { label: "Overview", slug: "recipes" },
+      { label: "Auto-merge on green CI", slug: "recipes/auto-merge-on-ci-green" },
+      { label: "Bulk reviewer assignment", slug: "recipes/bulk-reviewer-assignment" },
+      { label: "Fork synchronization", slug: "recipes/fork-synchronization" },
+      { label: "Reporting & analytics", slug: "recipes/reporting-analytics" },
+      { label: "Retry wrapper", slug: "recipes/retry-wrapper" },
+    ],
+  },
+  {
+    label: "Reference",
+    items: [
+      { label: "Global Flags", slug: "reference/global-flags" },
+      { label: "Environment Variables", slug: "reference/environment-variables" },
+      { label: "JSON Output", slug: "reference/json-output" },
+      { label: "Error Codes", slug: "reference/error-codes" },
+      { label: "Configuration File", slug: "reference/configuration" },
+      { label: "Token Scopes", slug: "reference/token-scopes" },
+    ],
+  },
+  {
+    label: "Help",
+    items: [
+      { label: "Troubleshooting", slug: "help/troubleshooting" },
+      { label: "FAQ", slug: "help/faq" },
+      { label: "Changelog", slug: "help/changelog" },
+    ],
+  },
+];
+
 export default defineConfig({
   vite: {
     define: {
       __CLI_VERSION__: JSON.stringify(cliVersion),
     },
+    resolve: {
+      alias: {
+        "starlight-llms-txt-internal": dirname(
+          createRequire(import.meta.url).resolve("starlight-llms-txt"),
+        ),
+      },
+    },
   },
-  site: "https://bitbucket-cli.paulvanderlei.com",
+  site,
   integrations: [
     starlight({
       title: "Bitbucket CLI",
@@ -34,15 +180,57 @@ export default defineConfig({
           projectName: "Bitbucket CLI",
           description:
             "Fast, scriptable CLI for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows from the terminal.",
-          details:
+          details: [
             "Unofficial, community-maintained CLI inspired by GitHub's gh CLI. Built on Bun, written in TypeScript. Distributed on npm as @pilatos/bitbucket-cli.",
+            "Every page below is plain Markdown. Fetch only the pages you need, or a topic set from Documentation Sets.",
+            buildPageIndex(sidebar, {
+              contentDir: fileURLToPath(new URL("./src/content/docs/", import.meta.url)),
+              site,
+            }),
+          ].join("\n\n"),
+          customSets: [
+            {
+              label: "Pull requests",
+              description: "every pr command plus reviewer and auto-merge recipes",
+              paths: [
+                "commands/pr/**",
+                "commands/repo/default-reviewers",
+                "recipes/auto-merge-on-ci-green",
+                "recipes/bulk-reviewer-assignment",
+              ],
+            },
+            {
+              label: "Pipelines and CI",
+              description: "pipeline, deployment and commit status commands, CI/CD setup and retry recipes",
+              paths: [
+                "commands/pipeline",
+                "commands/deployment",
+                "commands/status",
+                "guides/cicd",
+                "recipes/auto-merge-on-ci-green",
+                "recipes/retry-wrapper",
+              ],
+            },
+            {
+              label: "Scripting",
+              description: "JSON output, exit and error codes, environment variables, the api command and scripting guides",
+              paths: [
+                "guides/scripting",
+                "guides/ai-agents",
+                "guides/repository-context",
+                "reference/**",
+                "commands/api",
+              ],
+            },
+          ],
           // Keep llms-small.txt focused on actionable docs by dropping the
           // troubleshooting / FAQ / changelog pages.
           exclude: ["help/**"],
-          // Strip site chrome from the page content so the generated files
-          // don't include nav/header/footer noise.
-          minify: {
-            customSelectors: ["header", "nav", "footer", "aside.sidebar"],
+          // Strip site chrome from the abridged file, and heading anchor
+          // links ("Section titled ...") from every output.
+          customSelectors: {
+            small: ["header", "nav", "footer", "aside.sidebar"],
+            all: [".sl-anchor-link"],
           },
         }),
       ],
@@ -85,138 +273,7 @@ export default defineConfig({
           href: 'https://github.com/0pilatos0/bitbucket-cli',
         },
       ],
-      sidebar: [
-        {
-          label: "Getting Started",
-          items: [
-            { label: "Quick Start", slug: "getting-started/quickstart" },
-            { label: "Installation", slug: "getting-started/installation" },
-            { label: "Authentication", slug: "getting-started/authentication" },
-          ],
-        },
-        {
-          label: "Command Reference",
-          items: [
-            { label: "Auth Commands", slug: "commands/auth" },
-            {
-              label: "Repo Commands",
-              items: [
-                { label: "Repository basics", slug: "commands/repo" },
-                { label: "Downloads", slug: "commands/repo/downloads" },
-                { label: "Default reviewers", slug: "commands/repo/default-reviewers" },
-              ],
-            },
-            {
-              label: 'PR Commands',
-              items: [{ autogenerate: { directory: 'commands/pr' } }],
-            },
-            {
-              label: "Snippet Commands",
-              items: [
-                { label: "Snippet basics", slug: "commands/snippet" },
-                { label: "Comments", slug: "commands/snippet/comments" },
-              ],
-            },
-            {
-              label: "Pipeline Commands",
-              slug: "commands/pipeline",
-            },
-            {
-              label: "Commit Commands",
-              slug: "commands/commit",
-            },
-            {
-              label: "Status Commands",
-              slug: "commands/status",
-            },
-            {
-              label: "Workspace Commands",
-              slug: "commands/workspace",
-            },
-            {
-              label: "Project Commands",
-              slug: "commands/project",
-            },
-            {
-              label: "Search Commands",
-              slug: "commands/search",
-            },
-            {
-              label: "Webhook Commands",
-              slug: "commands/webhook",
-            },
-            {
-              label: "Branch Restriction Commands",
-              slug: "commands/branch-restriction",
-            },
-            {
-              label: "Deployment Commands",
-              slug: "commands/deployment",
-            },
-            { label: "SSH Key Commands", slug: "commands/ssh-key" },
-            { label: "GPG Key Commands", slug: "commands/gpg-key" },
-            {
-              label: "Browse",
-              slug: "commands/browse",
-            },
-            {
-              label: "API",
-              slug: "commands/api",
-            },
-            { label: "Alias Commands", slug: "commands/alias" },
-            { label: "Config Commands", slug: "commands/config" },
-            { label: "Doctor", slug: "commands/doctor" },
-            { label: "Completion", slug: "commands/completion" },
-          ],
-        },
-        {
-          label: "Guides",
-          items: [
-            { label: "Repository Context", slug: "guides/repository-context" },
-            { label: "Scripting & Automation", slug: "guides/scripting" },
-            { label: "CI/CD Integration", slug: "guides/cicd" },
-            {
-              label: 'AI Agent Integration',
-              slug: 'guides/ai-agents',
-              badge: {
-                text: 'New',
-                variant: 'tip',
-              },
-            },
-          ],
-        },
-        {
-          label: "Recipes",
-          badge: { text: 'New', variant: 'tip' },
-          items: [
-            { label: "Overview", slug: "recipes" },
-            { label: "Auto-merge on green CI", slug: "recipes/auto-merge-on-ci-green" },
-            { label: "Bulk reviewer assignment", slug: "recipes/bulk-reviewer-assignment" },
-            { label: "Fork synchronization", slug: "recipes/fork-synchronization" },
-            { label: "Reporting & analytics", slug: "recipes/reporting-analytics" },
-            { label: "Retry wrapper", slug: "recipes/retry-wrapper" },
-          ],
-        },
-        {
-          label: "Reference",
-          items: [
-            { label: "Global Flags", slug: "reference/global-flags" },
-            { label: "Environment Variables", slug: "reference/environment-variables" },
-            { label: "JSON Output", slug: "reference/json-output" },
-            { label: "Error Codes", slug: "reference/error-codes" },
-            { label: "Configuration File", slug: "reference/configuration" },
-            { label: "Token Scopes", slug: "reference/token-scopes" },
-          ],
-        },
-        {
-          label: "Help",
-          items: [
-            { label: "Troubleshooting", slug: "help/troubleshooting" },
-            { label: "FAQ", slug: "help/faq" },
-            { label: "Changelog", slug: "help/changelog" },
-          ],
-        },
-      ],
+      sidebar,
     }),
   ],
 });
