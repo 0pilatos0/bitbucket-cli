@@ -266,7 +266,7 @@ if [ -z "$branch" ]; then
   exit 0
 fi
 
-if ! prs=$(BB_DEBUG=off bb pr list --all --json | \
+if ! prs=$(bb pr list --all --json | \
   jq --arg branch "$branch" '[.pullRequests[] | select(.source.branch.name == $branch)] | length'); then
   echo "Could not check for an existing PR" >&2
   exit 1
