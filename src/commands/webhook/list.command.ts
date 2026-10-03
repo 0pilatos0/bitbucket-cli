@@ -55,7 +55,8 @@ export class ListWebhooksCommand extends BaseCommand<
     await this.runList<WebhookSubscription>(
       {
         options,
-        fetchPage: (page, pagelen) => hooks.list(page, pagelen),
+        concurrency: 1,
+        fetchPage: (page, pagelen, next) => hooks.list(page, pagelen, next),
         wrapperKey: 'webhooks',
         jsonMetadata: hooks.metadata,
         emptyMessage: `No webhooks found for ${hooks.label}`,

@@ -68,20 +68,14 @@ function createMockWebhooksApi(
   });
 
   return {
-    repositoriesWorkspaceRepoSlugHooksGet: record('repoList', list),
-    repositoriesWorkspaceRepoSlugHooksUidGet: record('repoGet', get),
-    repositoriesWorkspaceRepoSlugHooksPost: record('repoCreate', create),
-    repositoriesWorkspaceRepoSlugHooksUidDelete: record(
-      'repoDelete',
-      () => undefined
-    ),
-    workspacesWorkspaceHooksGet: record('workspaceList', list),
-    workspacesWorkspaceHooksUidGet: record('workspaceGet', get),
-    workspacesWorkspaceHooksPost: record('workspaceCreate', create),
-    workspacesWorkspaceHooksUidDelete: record(
-      'workspaceDelete',
-      () => undefined
-    ),
+    listRepositoryHooks: record('repoList', list),
+    getRepositoryHook: record('repoGet', get),
+    createRepositoryHook: record('repoCreate', create),
+    deleteRepositoryHook: record('repoDelete', () => undefined),
+    listWorkspaceHooks: record('workspaceList', list),
+    getWorkspaceHook: record('workspaceGet', get),
+    createWorkspaceHook: record('workspaceCreate', create),
+    deleteWorkspaceHook: record('workspaceDelete', () => undefined),
   } as unknown as WebhooksApi;
 }
 
