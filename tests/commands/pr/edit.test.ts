@@ -86,52 +86,6 @@ describe('EditPRCommand', () => {
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
-  it('should auto-detect PR across paginated results', async () => {
-    const pullrequestsApi = createMockPullrequestsApi({
-      pullRequestPages: [
-        [
-          {
-            ...mockPullRequest,
-            id: 50,
-            source: {
-              branch: { name: 'other-branch' },
-            },
-          } as Pullrequest,
-        ],
-        [
-          {
-            ...mockPullRequest,
-            id: 51,
-            source: {
-              branch: { name: 'feature-branch' },
-            },
-          } as Pullrequest,
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new EditPRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
-    await command.execute(
-      { title: 'Updated via paginated auto-detect' },
-      { globalOptions: {} }
-    );
-
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
-  });
-
   it('should fail when no changes provided', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({

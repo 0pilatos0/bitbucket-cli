@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, spyOn } from 'bun:test';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,6 +24,28 @@ describe('ReplyCommentPRCommand', () => {
       output,
     };
   };
+
+  it('should post the stdin text for --body-file -', async () => {
+    const stdin = spyOn(Bun.stdin, 'text').mockResolvedValue(
+      'Fixed in `abc123`.\n'
+    );
+    try {
+      const pullrequestsApi = createMockPullrequestsApi();
+      const { command } = makeCommand(pullrequestsApi);
+
+      await command.execute(
+        { prId: '42', commentId: '7', bodyFile: '-' },
+        { globalOptions: {} }
+      );
+
+      expect(pullrequestsApi.lastCommentBody).toEqual({
+        content: { raw: 'Fixed in `abc123`.\n' },
+        parent: { id: 7 },
+      });
+    } finally {
+      stdin.mockRestore();
+    }
+  });
 
   it('should post the file content for --body-file <path>', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'bb-pr-reply-'));
