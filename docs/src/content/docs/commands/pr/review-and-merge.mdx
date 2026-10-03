@@ -41,7 +41,7 @@ bb pr merge [id] [options]
 
 Omitting `--strategy` uses the repository's configured merge strategy (typically `merge_commit`), not a CLI default. The CLI sends no strategy at all unless you pass one.
 
-Strategy names are checked when the command runs, not by the argument parser. An unknown value fails with [`5002` VALIDATION_INVALID](/reference/error-codes/#5002---validation_invalid) and the message `--strategy must be one of: merge_commit, squash, …`. A wrong-case value such as `SQUASH` gets a case-sensitivity note; a typo such as `sqush` gets a "did you mean" suggestion. Under `--json` that failure comes back as a JSON error envelope.
+Strategy names are checked when the command runs, not by the argument parser. An unknown value fails with [`5002` VALIDATION_INVALID](/reference/error-codes/#5002---validation_invalid) and the message `--strategy must be one of: merge_commit, squash, …`. Case doesn't matter (`SQUASH` works); a typo such as `sqush` gets a "did you mean" suggestion. Under `--json` that failure comes back as a JSON error envelope.
 
 ### Examples
 

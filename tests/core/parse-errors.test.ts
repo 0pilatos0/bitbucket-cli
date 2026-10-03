@@ -35,6 +35,7 @@ function harness(argv: string[]) {
   group.configureOutput({ writeErr: (str) => stderr.push(str) });
   installParseErrorHandling(root, {
     argv: () => argv,
+    writeTextError: (message) => stderr.push(message),
     writeJsonError: (payload) => payloads.push(payload),
     exit: (code) => {
       throw new ExitSignal(code);
@@ -104,12 +105,12 @@ describe('installParseErrorHandling', () => {
     });
   });
 
-  it("keeps Commander's text output without --json", async () => {
+  it("writes text errors without Commander's prefix when --json is absent", async () => {
     const { parse, stderr, payloads } = harness(['pr', 'lsit']);
 
     expect(await parse()).toBe(1);
     expect(payloads).toEqual([]);
-    expect(stderr.join('')).toContain("error: unknown command 'lsit'");
+    expect(stderr.join('')).toStartWith("unknown command 'lsit'");
   });
 
   it('reports a group run without a subcommand instead of printing help', async () => {

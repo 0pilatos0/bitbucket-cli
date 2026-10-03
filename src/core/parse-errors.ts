@@ -63,6 +63,8 @@ export function parseErrorEnvelope(
 export interface ParseErrorHandlingOptions {
   /** The user's arguments, read when an error occurs. */
   argv: () => readonly string[];
+  /** Plain-text error, without Commander's `error: ` prefix. */
+  writeTextError: (message: string) => void;
   writeJsonError: (payload: Record<string, unknown>) => void;
   exit: (code: number) => never;
 }
@@ -85,6 +87,11 @@ export function installParseErrorHandling(
     command.configureOutput({
       writeErr: (str) => {
         if (!jsonRequested()) writeErr?.(str);
+      },
+      outputError: (str) => {
+        if (!jsonRequested()) {
+          options.writeTextError(str.replace(/^error: /, '').trimEnd());
+        }
       },
     });
     command.exitOverride((error) => {

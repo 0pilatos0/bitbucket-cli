@@ -11,6 +11,7 @@ import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
 import { formatCompletions, generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
+import { addGlobalOptions } from './global-options.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
 import type { BaseCommand } from './core/base-command.js';
@@ -28,9 +29,17 @@ import type { DryRunMode } from './services/dry-run.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
-import { buildCommandPath } from './core/command-tree.js';
+import {
+  buildCommandPath,
+  forEachCommand,
+  visibleChildNames,
+} from './core/command-tree.js';
 import { exitCodeFor } from './core/exit-codes.js';
-import { installParseErrorHandling } from './core/parse-errors.js';
+import {
+  argvRequestsJson,
+  installParseErrorHandling,
+} from './core/parse-errors.js';
+import { didYouMeanSuffix } from './core/suggest.js';
 import { resolveRootInvocation } from './root-dispatch.js';
 import { resolveLocale } from './services/locale.js';
 
@@ -310,49 +319,9 @@ export const cli = new Command();
 cli
   .name('bb')
   .description('A command-line interface for Bitbucket Cloud')
-  .version(pkg.version)
-  .option(
-    '--json [fields]',
-    'Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)'
-  )
-  .option(
-    '--jq <expression>',
-    'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
-  )
-  .option(
-    '--raw-output',
-    'With --jq, print string results without JSON quotes (like jq -r)'
-  )
-  .option(
-    '--lean',
-    'Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json'
-  )
-  .option('--no-color', 'Disable color output')
-  .option(
-    '--no-unicode',
-    'Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE'
-  )
-  .option(
-    '--no-truncate',
-    'Show full values in table output without truncation'
-  )
-  .option(
-    '--no-input',
-    'Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)'
-  )
-  .option(
-    '--locale <locale>',
-    'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
-  )
-  .option(
-    '-w, --workspace <workspace>',
-    'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
-  )
-  .option('-r, --repo <repo>', 'Specify repository')
-  .option(
-    '--account <name>',
-    'Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)'
-  )
+  .version(pkg.version);
+
+addGlobalOptions(cli)
   .addHelpText(
     'after',
     buildHelpText({
@@ -488,11 +457,39 @@ registerCommands(cli, registrar);
 
 installParseErrorHandling(cli, {
   argv: userArgv,
+  writeTextError: (message) =>
+    container
+      .resolve<IOutputService>(ServiceTokens.OutputService)
+      .error(message),
   writeJsonError: (payload) =>
     container
       .resolve<IOutputService>(ServiceTokens.OutputService)
       .jsonError(payload),
   exit: (code) => process.exit(code),
+});
+
+// A bare group (`bb status`) prints its help and exits 0, like bare `bb`;
+// under --json it stays a `missingSubcommand` error. An action is what stops
+// Commander treating the bare group as an error, but it also drops the
+// implicit `help` subcommand and the unknown-subcommand check, so restore
+// both, reporting typos exactly as Commander would.
+forEachCommand(cli, (command) => {
+  if (!command.parent || command.commands.length === 0) return;
+  command
+    .helpCommand(true)
+    .allowExcessArguments()
+    .action(() => {
+      const [token] = command.args;
+      if (token !== undefined) {
+        command.error(
+          `error: unknown command '${token}'` +
+            didYouMeanSuffix(token, visibleChildNames(command)),
+          { code: 'commander.unknownCommand' }
+        );
+      }
+      if (argvRequestsJson(userArgv())) command.help({ error: true });
+      command.outputHelp();
+    });
 });
 
 // Let unknown top-level tokens reach the root action (which turns them into a

@@ -128,6 +128,61 @@ describe('unknown top-level command', () => {
   });
 });
 
+describe('group without a subcommand', () => {
+  it('prints the group help and exits 0', async () => {
+    const result = await run(['status']);
+
+    expect(result.stdout).toContain('Usage: bb status');
+    expect(result.stdout).toContain('Commands:');
+    expect(result.stderr).toBe('');
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  // The cases below run out-of-process: Commander exits the process itself.
+  async function runCli(
+    argv: string[]
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...argv], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const [exitCode, stdout, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    return { exitCode, stdout, stderr };
+  }
+
+  it('suggests the closest subcommand for a typo and exits 1', async () => {
+    const result = await runCli(['pr', 'lsit', '--no-color']);
+
+    expect(result.stderr).toStartWith("✗ unknown command 'lsit'");
+    expect(result.stderr).toContain('(Did you mean list?)');
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('reports a missing subcommand under --json instead of printing help', async () => {
+    const result = await runCli(['pr', '--json']);
+
+    expect(result.stdout).toBe('');
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      context: { parseError: 'missingSubcommand', commandPath: 'pr' },
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('keeps the `help` subcommand', async () => {
+    const result = await runCli(['pr', 'help', 'list']);
+
+    expect(result.stdout).toContain('Usage: bb pr list');
+    expect(result.exitCode).toBe(0);
+  });
+});
+
 describe('--json before the subcommand', () => {
   it('explains that --json swallowed the group name', async () => {
     // `--json [fields]` takes an optional value, so it consumes `pr` and
@@ -223,17 +278,23 @@ describe('bare bb', () => {
 });
 
 describe('allowExcessArguments placement', () => {
-  it('applies to the root only, so subcommand arity checks survive', () => {
+  it('applies to the root and groups only, so leaf arity checks survive', () => {
     // `copyInheritedSettings()` would propagate this to commands created with
     // `.command()` if it were called before the tree was built, silently
-    // disabling arity checking on `browse`/`api`. Reaching into a Commander
-    // private is precedented elsewhere in the suite.
-    expect(
-      (cli as unknown as { _allowExcessArguments: boolean })
-        ._allowExcessArguments
-    ).toBe(true);
+    // disabling arity checking on `browse`/`api`. Groups opt in themselves to
+    // report unknown subcommands. Reaching into a Commander private is
+    // precedented elsewhere in the suite.
+    for (const command of [
+      cli,
+      ...cli.commands.filter((c) => c.commands.length),
+    ]) {
+      expect(
+        (command as unknown as { _allowExcessArguments: boolean })
+          ._allowExcessArguments
+      ).toBe(true);
+    }
 
-    for (const name of ['browse', 'api', 'pr', 'auth']) {
+    for (const name of ['browse', 'api']) {
       const command = cli.commands.find((c) => c.name() === name);
       expect(command).toBeDefined();
       expect(
@@ -261,6 +322,28 @@ describe('allowExcessArguments placement', () => {
     ]);
 
     expect(errorOutput).toContain('too many arguments');
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('Commander parse errors', () => {
+  it('use the same prefix as every other error', async () => {
+    // Out-of-process for the same reason as the arity check above.
+    const proc = Bun.spawn(
+      ['bun', 'run', 'src/index.ts', 'pr', 'list', '--bogus', '--no-color'],
+      {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
+        env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
+    const [exitCode, errorOutput] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+
+    expect(errorOutput).toStartWith("✗ unknown option '--bogus'");
     expect(exitCode).toBe(1);
   });
 });

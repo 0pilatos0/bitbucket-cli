@@ -163,6 +163,10 @@ class TestCommandWithParseHelpers extends BaseCommand<
     return this.parsePositiveInt(value, name);
   }
 
+  public callParsePositiveIntArg(value: string, name: string): number {
+    return this.parsePositiveIntArg(value, name);
+  }
+
   public callParseEnumOption<T extends string>(
     value: string,
     name: string,
@@ -850,6 +854,29 @@ describe('BaseCommand', () => {
     });
   });
 
+  describe('parsePositiveIntArg', () => {
+    it('returns the integer for a positive value', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callParsePositiveIntArg('42', 'id')).toBe(42);
+    });
+
+    it('names the positional as the usage line does, not as a flag', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      try {
+        command.callParsePositiveIntArg('abc', 'pr-id');
+        throw new Error('expected parsePositiveIntArg to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).message).toStartWith(
+          '<pr-id> must be a positive integer.'
+        );
+        expect((error as BBError).context).toEqual({ 'pr-id': 'abc' });
+      }
+    });
+  });
+
   describe('parsePositiveInt', () => {
     it('returns the integer for a positive value', () => {
       const command = new TestCommandWithParseHelpers(output);
@@ -1176,21 +1203,21 @@ describe('BaseCommand', () => {
       ).toThrow('(Did you mean open?)');
     });
 
-    it('should call out a case-only mismatch instead of echoing the input', () => {
+    it('should match case-insensitively and return the canonical value', () => {
       const command = new TestCommandWithParseHelpers(output);
 
-      let message = '';
-      try {
+      expect(
         command.callParseEnumOption('open', 'state', [
           'OPEN',
           'MERGED',
-        ] as const);
-      } catch (error) {
-        message = (error as Error).message;
-      }
-
-      expect(message).toContain('(Values are case-sensitive — use OPEN.)');
-      expect(message).not.toContain('(Did you mean');
+        ] as const)
+      ).toBe('OPEN');
+      expect(
+        command.callParseEnumOption('Squash', 'strategy', [
+          'merge_commit',
+          'squash',
+        ] as const)
+      ).toBe('squash');
     });
 
     it('should add no second line when nothing is close enough', () => {

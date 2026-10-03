@@ -58,8 +58,8 @@ export class ReplyCommentPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.prId, 'pr-id');
-    const parentId = this.parsePositiveInt(options.commentId, 'comment-id');
+    const prId = this.parsePositiveIntArg(options.prId, 'pr-id');
+    const parentId = this.parsePositiveIntArg(options.commentId, 'comment-id');
 
     // Bitbucket rejects `type` here and on `parent` with 400 "extra keys not
     // allowed", so send content and the bare parent id only.

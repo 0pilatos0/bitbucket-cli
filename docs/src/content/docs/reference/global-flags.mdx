@@ -32,7 +32,9 @@ see [Precedence summary](#precedence-summary).
 
 `bb help <command>` is equivalent to `bb <command> --help` and works at every
 depth (`bb help pr`, `bb help pr comments`). The root `Commands:` list does not
-show `help`, but it is there.
+show `help`, but it is there. Every subcommand's help lists these flags under
+`Global Options:`. A group run without a subcommand (`bb pr`) prints its help
+and exits 0.
 
 ## Output flags
 
@@ -236,7 +238,7 @@ nothing is changed. Ctrl+C exits with status 130, the rest with 1.
 ## List-command flags
 
 `--limit` and `--all` are options on list commands, not global flags.
-`bb pr view --limit 5` fails with `error: unknown option '--limit'`.
+`bb pr view --limit 5` fails with `✗ unknown option '--limit'`.
 
 ### `--limit <n>`
 

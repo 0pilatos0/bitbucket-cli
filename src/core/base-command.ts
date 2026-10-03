@@ -342,12 +342,28 @@ export abstract class BaseCommand<
    * surface immediately rather than silently truncating.
    */
   protected parsePositiveInt(value: string, name: string): number {
+    return this.positiveIntOrThrow(value, name, `--${name}`);
+  }
+
+  /**
+   * {@link parsePositiveInt} for a positional argument: the error names it
+   * as the usage line does (`<id>`), not as a flag the command doesn't have.
+   */
+  protected parsePositiveIntArg(value: string, name: string): number {
+    return this.positiveIntOrThrow(value, name, `<${name}>`);
+  }
+
+  private positiveIntOrThrow(
+    value: string,
+    name: string,
+    label: string
+  ): number {
     const trimmed = value.trim();
     const parsed = Number.parseInt(trimmed, 10);
     if (!Number.isFinite(parsed) || parsed < 1 || String(parsed) !== trimmed) {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: this.appendHelpHint(`--${name} must be a positive integer.`),
+        message: this.appendHelpHint(`${label} must be a positive integer.`),
         context: { [name]: value },
       });
     }
@@ -482,31 +498,25 @@ export abstract class BaseCommand<
   }
 
   /**
-   * Validate a string option against a set of allowed values.
-   *
-   * Matching stays case-SENSITIVE (some callers upper-case ahead of this,
-   * others don't), so a value that differs only in case gets its own
-   * message rather than a "did you mean" line — echoing the user's own word
-   * back at them reads as a bug.
+   * Validate a string option against a set of allowed values, ignoring case
+   * and returning the canonical spelling (`open` -> `OPEN`).
    */
   protected parseEnumOption<T extends string>(
     value: string,
     name: string,
     allowed: readonly T[]
   ): T {
-    if (!allowed.includes(value as T)) {
-      const caseOnlyMatch = allowed.find(
-        (candidate) => candidate.toLowerCase() === value.toLowerCase()
-      );
-      const suffix = caseOnlyMatch
-        ? `\n(Values are case-sensitive — use ${caseOnlyMatch}.)`
-        : didYouMeanSuffix(value, allowed);
+    const folded = value.toLowerCase();
+    const match = allowed.find(
+      (candidate) => candidate.toLowerCase() === folded
+    );
+    if (match === undefined) {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: `--${name} must be one of: ${allowed.join(', ')}${suffix}`,
+        message: `--${name} must be one of: ${allowed.join(', ')}${didYouMeanSuffix(value, allowed)}`,
         context: { [name]: value },
       });
     }
-    return value as T;
+    return match;
   }
 }
