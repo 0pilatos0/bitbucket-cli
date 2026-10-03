@@ -204,6 +204,11 @@ A new version is available: <latest> (you have <current>)
 There is no warning glyph. The separator rules are 50 box-drawing dashes, or
 50 ASCII hyphens under `--no-unicode`.
 
+The update line matches the install method, read from where `bb` is
+installed: `npm install -g` for npm, `pnpm add -g` for pnpm, `bun install -g`
+for Bun, and a release download link for the standalone binary. Anything else,
+such as a source checkout, gets the `bun install -g` line.
+
 ### Disable notifications
 
 ```bash

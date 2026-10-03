@@ -91,6 +91,10 @@ the result and then fail to exit.
 
 For other platforms and install methods, see [bun.sh](https://bun.sh). Then install the CLI with any package manager:
 
+<Aside type="caution">
+  npm and pnpm install `bb` without Bun. If Bun is missing, `bb` fails before it starts, with `env: bun: No such file or directory` (on Windows, an error that `bun` is not recognized). Install Bun, or use the [standalone binary](#standalone-binary).
+</Aside>
+
 <Tabs>
   <TabItem label="npm">
     ```bash

@@ -26,6 +26,30 @@ export function isStandaloneBinary(mainPath: string): boolean {
   return EMBEDDED_ENTRY.test(mainPath);
 }
 
+export type InstallChannel = 'standalone' | 'npm' | 'pnpm' | 'bun' | 'unknown';
+
+// Package managers leave a recognizable layout in the entrypoint's real path:
+// pnpm keeps packages in a `.pnpm` store, Bun's global installs live under
+// `<BUN_INSTALL>/install/global` and bunx runs from a `bunx-*` temp dir. Any
+// other `node_modules` is npm's. Outside node_modules (a source checkout or
+// `bun link`) the channel is unknown.
+export function detectInstallChannel(mainPath: string): InstallChannel {
+  if (isStandaloneBinary(mainPath)) {
+    return 'standalone';
+  }
+  const path = mainPath.replaceAll('\\', '/');
+  if (path.includes('/.pnpm/')) {
+    return 'pnpm';
+  }
+  if (/\/install\/global\/node_modules\/|\/bunx-/.test(path)) {
+    return 'bun';
+  }
+  if (path.includes('/node_modules/')) {
+    return 'npm';
+  }
+  return 'unknown';
+}
+
 interface NpmRegistryResponse {
   'dist-tags': {
     latest: string;
@@ -35,16 +59,16 @@ interface NpmRegistryResponse {
 export class VersionService {
   private readonly configService: IConfigService;
   private readonly currentVersion: string;
-  private readonly standalone: boolean;
+  private readonly channel: InstallChannel;
 
   constructor(
     configService: IConfigService,
     currentVersion: string,
-    standalone: boolean = isStandaloneBinary(Bun.main)
+    channel: InstallChannel = detectInstallChannel(Bun.main)
   ) {
     this.configService = configService;
     this.currentVersion = currentVersion;
-    this.standalone = standalone;
+    this.channel = channel;
   }
 
   /**
@@ -239,12 +263,20 @@ export class VersionService {
 
   /**
    * How to update this installation: standalone binaries are replaced by a
-   * new download, package installs are updated through Bun.
+   * new download, package installs through the package manager that made
+   * them. An unknown channel falls back to Bun, the runtime bb needs anyway.
    */
   public getUpdateHint(): string {
-    if (this.standalone) {
-      return `Download the new binary from ${RELEASES_URL}`;
+    switch (this.channel) {
+      case 'standalone':
+        return `Download the new binary from ${RELEASES_URL}`;
+      case 'npm':
+        return `Run 'npm install -g ${PACKAGE_NAME}' to update`;
+      case 'pnpm':
+        return `Run 'pnpm add -g ${PACKAGE_NAME}' to update`;
+      case 'bun':
+      case 'unknown':
+        return `Run 'bun install -g ${PACKAGE_NAME}' to update`;
     }
-    return `Run 'bun install -g ${PACKAGE_NAME}' to update`;
   }
 }

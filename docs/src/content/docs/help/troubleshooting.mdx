@@ -12,6 +12,18 @@ Argument-parser errors, such as an unknown option or subcommand, remain plain
 text. Unknown top-level commands can return a JSON validation error.
 Interrupting an interactive prompt with Ctrl+C exits 130.
 
+## Installation
+
+### `env: bun: No such file or directory`
+
+The npm package runs on [Bun](https://bun.sh), and `npm install -g` or
+`pnpm add -g` does not install it. On Windows the error says `bun` is not
+recognized. Install Bun 1.1.30 or newer (see
+[Installation](/getting-started/installation/#package-manager)), open a new
+shell, and check `bun --version`. Or switch to the
+[standalone binary](/getting-started/installation/#standalone-binary), which
+needs no runtime.
+
 ## Authentication
 
 ### Authentication required
