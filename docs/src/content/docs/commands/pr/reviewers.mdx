@@ -26,12 +26,12 @@ Both forms come back from `bb pr reviewers list --json`, as the `account_id` and
 # One object per reviewer: [{"account_id": "712020:3cfed..."}, …]
 bb pr reviewers list 42 --json account_id
 
-# Raw IDs for shell scripts, using the external jq binary
-bb pr reviewers list 42 --json | jq -r '.reviewers[].account_id'
+# Raw IDs for shell scripts
+bb pr reviewers list 42 --json --jq '.reviewers[].account_id' --raw-output
 ```
 
 `--json account_id` returns a flat array of objects. Built-in `--jq` prints
-JSON-quoted strings; use external `jq -r` when a script needs unquoted IDs.
+JSON-quoted strings unless you add `--raw-output`.
 For assigning reviewers in bulk, including author exclusion, see the
 [reviewer assignment recipe](/recipes/bulk-reviewer-assignment/).
 

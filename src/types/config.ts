@@ -43,6 +43,8 @@ export interface GlobalOptions {
   json?: boolean;
   jsonFields?: string[];
   jq?: string;
+  rawOutput?: boolean;
+  lean?: boolean;
   noColor?: boolean;
   noUnicode?: boolean;
   noTruncate?: boolean;

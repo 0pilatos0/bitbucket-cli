@@ -134,6 +134,10 @@ export interface JsonFormatOptions {
   json?: boolean;
   fields?: string[];
   jq?: string;
+  /** Print `--jq` string results without JSON quotes (jq `-r`). */
+  rawOutput?: boolean;
+  /** Prune every `links` map down to its `html` entry. */
+  lean?: boolean;
 }
 
 /**

@@ -58,12 +58,50 @@ describe('OutputService', () => {
   });
 
   describe('json', () => {
-    it('should output formatted JSON', async () => {
+    const originalIsTTY = process.stdout.isTTY;
+    const setStdoutTTY = (value: boolean): void => {
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value,
+        configurable: true,
+      });
+    };
+
+    beforeEach(() => {
+      setStdoutTTY(false);
+    });
+
+    afterEach(() => {
+      setStdoutTTY(originalIsTTY);
+    });
+
+    it('pretty-prints JSON when stdout is a terminal', async () => {
+      setStdoutTTY(true);
       await output.json({ name: 'test', value: 42 });
 
-      expect(consoleLogs).toHaveLength(1);
-      expect(consoleLogs[0]).toContain('"name": "test"');
-      expect(consoleLogs[0]).toContain('"value": 42');
+      expect(consoleLogs).toEqual(['{\n  "name": "test",\n  "value": 42\n}']);
+    });
+
+    it('prints compact JSON when stdout is piped', async () => {
+      setStdoutTTY(false);
+      await output.json({ name: 'test', nested: { value: 42 } });
+
+      expect(consoleLogs).toEqual(['{"name":"test","nested":{"value":42}}']);
+    });
+
+    it('prints compact --jq results when stdout is piped', async () => {
+      setStdoutTTY(false);
+      output.setJsonFormatOptions({ jq: '.items[]' });
+      await output.json({ items: [{ id: 1 }, { id: 2 }] });
+
+      expect(consoleLogs).toEqual(['{"id":1}\n{"id":2}']);
+    });
+
+    it('pretty-prints --jq results when stdout is a terminal', async () => {
+      setStdoutTTY(true);
+      output.setJsonFormatOptions({ jq: '.items[0]' });
+      await output.json({ items: [{ id: 1 }] });
+
+      expect(consoleLogs).toEqual(['{\n  "id": 1\n}']);
     });
 
     it('should handle arrays', async () => {
@@ -228,10 +266,89 @@ describe('OutputService', () => {
       expect(lines).toEqual(['"first"', '"second"']);
     });
 
+    it('quotes string results by default', async () => {
+      output.setJsonFormatOptions({ jq: '.[].title' });
+      await output.json([{ title: 'first' }, { title: 'a "quoted" one' }]);
+
+      expect(consoleLogs).toEqual(['"first"\n"a \\"quoted\\" one"']);
+    });
+
+    it('prints string results unquoted with rawOutput', async () => {
+      output.setJsonFormatOptions({ jq: '.[].title', rawOutput: true });
+      await output.json([{ title: 'first' }, { title: 'a "quoted" one' }]);
+
+      expect(consoleLogs).toEqual(['first\na "quoted" one']);
+    });
+
     it('throws BBError on invalid jq expression', async () => {
       output.setJsonFormatOptions({ jq: '.invalid syntax [' });
 
       await expect(output.json({ id: 1 })).rejects.toThrow(/jq evaluation/);
+    });
+  });
+
+  describe('json with --lean', () => {
+    const pullRequest = {
+      id: 1,
+      links: {
+        self: { href: 'https://api.bitbucket.org/2.0/pr/1' },
+        html: { href: 'https://bitbucket.org/ws/repo/pull-requests/1' },
+        diff: { href: 'https://api.bitbucket.org/2.0/pr/1/diff' },
+      },
+      author: {
+        display_name: 'Jane',
+        links: { avatar: { href: 'https://avatar' } },
+      },
+      reviewers: [
+        {
+          display_name: 'Joe',
+          links: {
+            self: { href: 'https://api' },
+            html: { href: 'https://bitbucket.org/joe' },
+          },
+        },
+      ],
+    };
+
+    it('keeps only links.html in every links map', async () => {
+      output.setJsonFormatOptions({ lean: true });
+      await output.json({ count: 1, pullRequests: [pullRequest] });
+
+      expect(JSON.parse(consoleLogs[0]!)).toEqual({
+        count: 1,
+        pullRequests: [
+          {
+            id: 1,
+            links: {
+              html: { href: 'https://bitbucket.org/ws/repo/pull-requests/1' },
+            },
+            author: { display_name: 'Jane' },
+            reviewers: [
+              {
+                display_name: 'Joe',
+                links: { html: { href: 'https://bitbucket.org/joe' } },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('leaves output unchanged without lean', async () => {
+      await output.json(pullRequest);
+
+      expect(JSON.parse(consoleLogs[0]!)).toEqual(pullRequest);
+    });
+
+    it('prunes after field projection and before jq', async () => {
+      output.setJsonFormatOptions({
+        lean: true,
+        fields: ['id', 'author'],
+        jq: '.[0].author | keys',
+      });
+      await output.json({ pullRequests: [pullRequest] });
+
+      expect(JSON.parse(consoleLogs.join(''))).toEqual(['display_name']);
     });
   });
 

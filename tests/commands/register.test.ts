@@ -194,7 +194,7 @@ describe('registerCommands', () => {
         field: [],
         header: ['X-A:1'],
       },
-      contextOptions: { allowJqWithoutJson: true },
+      contextOptions: { outputIsJson: true },
     });
   });
 });
