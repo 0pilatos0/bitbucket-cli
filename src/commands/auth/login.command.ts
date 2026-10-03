@@ -7,7 +7,6 @@ import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   ICredentialStore,
   IOutputService,
-  IPromptService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
 import type { OAuthService } from '../../services/oauth.service.js';
@@ -39,19 +38,21 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     options: LoginOptions,
     context: CommandContext
   ): Promise<void> {
-    const method = await this.resolveMethod(options, context.prompt);
+    const method = await this.resolveMethod(options, context);
     return method === 'api_token'
       ? this.loginWithApiToken(options, context)
       : this.loginWithOAuth(options, context);
   }
 
   /**
-   * Token flags or `BB_API_TOKEN` pick API token auth; OAuth client flags or
-   * a non-interactive terminal pick OAuth; otherwise the user chooses.
+   * Token flags or `BB_API_TOKEN` pick API token auth. Browser login needs a
+   * human at an interactive terminal, so anywhere else it fails fast instead
+   * of blocking on a callback nobody will complete. Otherwise OAuth client
+   * flags or `--json` (no prompt) pick OAuth, or the user chooses.
    */
   private async resolveMethod(
     options: LoginOptions,
-    prompt: IPromptService | undefined
+    context: CommandContext
   ): Promise<'oauth' | 'api_token'> {
     if (
       options.appPassword ||
@@ -63,6 +64,15 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       return 'api_token';
     }
 
+    if (!context.interactive) {
+      throw new BBError({
+        code: ErrorCode.AUTH_REQUIRED,
+        message:
+          'Browser login needs an interactive terminal. Set BB_USERNAME and BB_API_TOKEN (or pass --username with --password or --with-token), or ask a human to run `bb auth login` in a terminal.',
+      });
+    }
+
+    const { prompt } = context;
     if (!prompt || options.clientId || options.clientSecret) {
       return 'oauth';
     }

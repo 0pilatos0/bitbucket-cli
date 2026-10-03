@@ -3,6 +3,7 @@ import { ServiceTokens } from '../../core/container.js';
 import {
   collectRepeated,
   withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
 } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import {
@@ -106,6 +107,7 @@ export function registerBranchRestrictionCommands(
       collectRepeated,
       [] as string[]
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -132,6 +134,7 @@ export function registerBranchRestrictionCommands(
     .command('delete <id>')
     .description('Delete a branch restriction rule')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

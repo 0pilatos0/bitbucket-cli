@@ -122,6 +122,7 @@ bb pipeline run [options]
 | `--commit <hash>`       | Run against a specific commit on the branch               |
 | `-p, --pipeline <name>` | Custom pipeline definition from `bitbucket-pipelines.yml` |
 | `--var <key=value...>`  | Pipeline variable; repeatable, value may contain `=`      |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -156,6 +157,12 @@ Stop a running pipeline. `<id>` is a build number or UUID.
 ```bash
 bb pipeline stop <id> [options]
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
