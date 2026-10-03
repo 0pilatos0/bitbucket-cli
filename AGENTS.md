@@ -162,8 +162,20 @@ bun run release
 
 - Use Bun test runner (`bun:test`)
 - Single test file: `bun test tests/commands/<name>.test.ts`
-- Test files: `<name>.test.ts` or `<name>.expanded.test.ts`
-- Mocks/utilities live in `tests/setup.ts` (container reset hooks included)
+- Test files: `<name>.test.ts` or `<name>.expanded.test.ts`; a command group
+  with many subcommands gets a folder (e.g. `tests/commands/pr/<sub>.test.ts`)
+  with its shared fakes in `fakes.ts`
+- New command tests default to the mock Bitbucket server: call
+  `startCommandHarness(routes)` from `tests/helpers/mock-bitbucket.ts`, build
+  real API classes with `api(SomeApi)` and assert on `server.requests`. See
+  `tests/integration/admin-commands.test.ts`
+- When a unit test needs a stub instead, use `fakeApi<SomeApi>({...})` and
+  `fakeUsersApi()` from `tests/helpers/fake-api.ts` rather than
+  `as unknown as SomeApi`, so the type-checker can match method names and
+  parameters against the generated client
+- Read recorded output with `getTableRows()` / `getJsonPayload()` from
+  `tests/helpers/output-logs.ts`
+- Service mocks, fixtures and container reset hooks live in `tests/setup.ts`
 - Prefer descriptive test names focused on behavior
 
 ### Generated Code

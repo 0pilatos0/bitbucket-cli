@@ -69,7 +69,10 @@ Use `feat/` for new features and `fix/` for bug fixes. Other prefixes
   [AGENTS.md → Output and JSON](AGENTS.md#output-and-json).
 - Use `BBError` / `ErrorCode` for expected failures. See
   [AGENTS.md → Error Handling](AGENTS.md#error-handling).
-- Add tests next to existing ones in `tests/`.
+- Add tests next to existing ones in `tests/`. For new commands, drive the
+  real API client against the local mock server
+  (`startCommandHarness` in `tests/helpers/mock-bitbucket.ts`). See
+  [AGENTS.md → Testing](AGENTS.md#testing).
 - Never edit `src/generated/`; regenerate with `bun run generate:api`.
 
 Before pushing:

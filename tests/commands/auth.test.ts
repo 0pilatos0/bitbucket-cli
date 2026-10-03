@@ -12,23 +12,8 @@ import {
   createMockOutputService,
   mockUser,
 } from '../setup.js';
-import type { UsersApi } from '../../src/generated/api.js';
 import type { OAuthService } from '../../src/services/oauth.service.js';
-
-// Helper to create mock UsersApi
-function createMockUsersApi(user = mockUser): UsersApi {
-  return {
-    userGet: async () => ({ data: user }),
-  } as unknown as UsersApi;
-}
-
-function createMockUsersApiError(message: string): UsersApi {
-  return {
-    userGet: async () => {
-      throw new Error(message);
-    },
-  } as unknown as UsersApi;
-}
+import { fakeUsersApi } from '../helpers/fake-api.js';
 
 // Restore an env var, deleting it if the original was unset. Plain assignment
 // of `undefined` stringifies to "undefined" on Bun/Windows, which then leaks
@@ -66,7 +51,7 @@ describe('LoginCommand', () => {
   it('should explain how to provide an email for API token login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -86,7 +71,7 @@ describe('LoginCommand', () => {
   it('should fail when password is not provided for app-password flow', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -107,7 +92,7 @@ describe('LoginCommand', () => {
   it('should store credentials and return user on success with api token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -141,7 +126,7 @@ describe('LoginCommand', () => {
     try {
       const configService = createMockConfigService();
       const output = createMockOutputService();
-      const usersApi = createMockUsersApi();
+      const usersApi = fakeUsersApi();
       const oauthService = createMockOAuthService();
 
       const command = new LoginCommand(
@@ -165,7 +150,9 @@ describe('LoginCommand', () => {
       defaultWorkspace: 'team-workspace',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApiError('Invalid credentials');
+    const usersApi = fakeUsersApi({
+      currentUserError: new Error('Invalid credentials'),
+    });
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -197,7 +184,7 @@ describe('LoginCommand', () => {
   it('should use OAuth flow when no flags are provided', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -216,7 +203,7 @@ describe('LoginCommand', () => {
   it('should use API token flow when --app-password flag is set', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -238,7 +225,7 @@ describe('LoginCommand', () => {
   it('should use API token flow when -u flag is provided', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -264,7 +251,7 @@ describe('LoginCommand', () => {
     try {
       const configService = createMockConfigService();
       const output = createMockOutputService();
-      const usersApi = createMockUsersApi();
+      const usersApi = fakeUsersApi();
       const oauthService = createMockOAuthService();
 
       const command = new LoginCommand(
@@ -293,7 +280,7 @@ describe('LoginCommand', () => {
       oauthExpiresAt: 9999999999,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -317,7 +304,7 @@ describe('LoginCommand', () => {
   it('should clear OAuth credentials when OAuth login fails', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = {
       ...createMockOAuthService(),
       authorize: async () => {
@@ -340,7 +327,7 @@ describe('LoginCommand', () => {
   it('should output JSON with method field for OAuth login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -362,7 +349,7 @@ describe('LoginCommand', () => {
   it('should output JSON with method field for API token login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -384,7 +371,7 @@ describe('LoginCommand', () => {
   it('should read the API token from stdin with --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -408,7 +395,7 @@ describe('LoginCommand', () => {
   it('should trim surrounding whitespace from the stdin token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -432,7 +419,7 @@ describe('LoginCommand', () => {
   it('should fail when stdin is empty for --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -456,7 +443,7 @@ describe('LoginCommand', () => {
   it('should reject combining --password with --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -478,7 +465,7 @@ describe('LoginCommand', () => {
   it('should require an Atlassian account email for --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -502,7 +489,7 @@ describe('LoginCommand', () => {
 
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = {
       authorize: async (cid?: string, cs?: string) => {
         receivedClientId = cid;
@@ -643,7 +630,7 @@ describe('StatusCommand', () => {
   it('should show not logged in when no credentials', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -662,7 +649,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -682,7 +669,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -701,7 +688,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -722,7 +709,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -743,7 +730,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -764,7 +751,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -785,7 +772,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -804,7 +791,7 @@ describe('StatusCommand', () => {
   it('should show not logged in when json flag is set and no credentials', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -825,7 +812,9 @@ describe('StatusCommand', () => {
       apiToken: 'badtoken',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApiError('Unauthorized');
+    const usersApi = fakeUsersApi({
+      currentUserError: new Error('Unauthorized'),
+    });
 
     const command = new StatusCommand(
       configService,
