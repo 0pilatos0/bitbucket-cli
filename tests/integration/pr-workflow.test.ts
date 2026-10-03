@@ -205,9 +205,12 @@ describe('pr list filters', () => {
 });
 
 describe('pr status', () => {
+  const BRANCH_QUERY =
+    'source.branch.name="feature/login" AND ' +
+    'source.repository.full_name="acme/app"';
   const routes = [
     pullRequestsRoute((q) => {
-      if (q === 'source.branch.name="feature/login"') {
+      if (q === BRANCH_QUERY) {
         return [pr(7, 'Add login', 'feature/login')];
       }
       if (q === `author.uuid="${ME}"`) {
@@ -232,7 +235,7 @@ describe('pr status', () => {
     expect(listQueries(server).sort()).toEqual([
       `author.uuid="${ME}"`,
       `reviewers.uuid="${ME}"`,
-      'source.branch.name="feature/login"',
+      BRANCH_QUERY,
     ]);
     const text = output.logs.join('\n');
     expect(text).toContain('Current branch\ntext:  #7  Add login');
@@ -256,9 +259,7 @@ describe('pr status', () => {
       { globalOptions: { json: true } }
     );
 
-    expect(listQueries(server)).not.toContain(
-      'source.branch.name="feature/login"'
-    );
+    expect(listQueries(server)).not.toContain(BRANCH_QUERY);
     const json = JSON.parse(output.logs[0]!.replace(/^json:/, '')) as Record<
       string,
       unknown
@@ -267,6 +268,24 @@ describe('pr status', () => {
     expect(json.currentBranchPullRequest).toBeNull();
     expect((json.createdByYou as unknown[]).length).toBe(2);
     expect(json.reviewRequested).toEqual([]);
+  });
+
+  it('treats a branch without commits as no current branch', async () => {
+    const { server, output, build } = await startHarness(routes);
+    const command = new StatusPRCommand(
+      build(PullrequestsApi),
+      build(UsersApi),
+      repoContext(),
+      createMockGitService({ throwOnGetCurrentBranch: true }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(listQueries(server)).toHaveLength(2);
+    expect(output.logs.join('\n')).toContain(
+      'Not on a branch of this repository'
+    );
   });
 
   it('treats a detached HEAD as no current branch', async () => {

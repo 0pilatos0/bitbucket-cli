@@ -890,7 +890,7 @@ describe('ListPRsCommand', () => {
 
     await expect(
       command.execute({ mine: true }, { globalOptions: {} })
-    ).rejects.toThrow("Could not determine the UUID for user '@me'.");
+    ).rejects.toThrow('Could not determine your account UUID from GET /user.');
     expect(listCalled).toBe(false);
   });
 

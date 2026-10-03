@@ -4,6 +4,7 @@
 
 import type { UsersApi } from '../generated/api.js';
 import { BBError, ErrorCode } from '../types/errors.js';
+import { resolveCurrentUserUuid } from './account-keys.js';
 
 export const CURRENT_USER = '@me';
 
@@ -19,10 +20,10 @@ export async function resolveUserUuid(
   usersApi: UsersApi,
   user: string
 ): Promise<string> {
-  const response =
-    user === CURRENT_USER
-      ? await usersApi.userGet()
-      : await usersApi.usersSelectedUserGet({ selectedUser: user });
+  if (user === CURRENT_USER) {
+    return resolveCurrentUserUuid(usersApi);
+  }
+  const response = await usersApi.usersSelectedUserGet({ selectedUser: user });
   const uuid = response.data.uuid;
 
   if (!uuid) {

@@ -24,6 +24,7 @@ import {
   CURRENT_USER,
   resolveUserUuid,
 } from '../../services/pr-filters.js';
+import { getBranchName } from '../../services/response-parsers.js';
 import type { GlobalOptions, RepoContext } from '../../types/config.js';
 
 export interface StatusPROptions extends GlobalOptions {}
@@ -59,7 +60,8 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
       currentBranch
         ? this.listOpen(
             repoContext,
-            `source.branch.name=${bbqlString(currentBranch)}`,
+            `source.branch.name=${bbqlString(currentBranch)} AND ` +
+              `source.repository.full_name=${bbqlString(`${repoContext.workspace}/${repoContext.repoSlug}`)}`,
             1
           )
         : undefined,
@@ -124,7 +126,13 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
     if (!sameRepo) {
       return null;
     }
-    const branch = await this.gitService.getCurrentBranch();
+    let branch: string;
+    try {
+      branch = await this.gitService.getCurrentBranch();
+    } catch {
+      // A branch with no commits yet has no resolvable HEAD.
+      return null;
+    }
     // `rev-parse --abbrev-ref HEAD` prints `HEAD` on a detached checkout.
     return branch === 'HEAD' ? null : branch;
   }
@@ -186,8 +194,7 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
 
   private printPullRequest(pr: Pullrequest, context: CommandContext): void {
     const title = pr.draft ? `[DRAFT] ${pr.title}` : (pr.title ?? '');
-    const source = pr.source as { branch?: { name?: string } } | undefined;
-    const branch = source?.branch?.name ?? 'unknown';
+    const branch = getBranchName(pr.source) ?? 'unknown';
     this.output.text(
       `  #${pr.id}  ${this.truncateText(title, 60, context.globalOptions)}  ${this.output.dim(`[${branch}]`)}`
     );
