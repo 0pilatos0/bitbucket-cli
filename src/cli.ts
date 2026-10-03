@@ -6,7 +6,6 @@
 
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
-import tabtab from 'tabtab/lib/index.js';
 import systemShell from 'tabtab/lib/utils/systemShell.js';
 import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
@@ -511,8 +510,11 @@ cli.allowExcessArguments();
 // imports `cli` before calling parseAsync), and must come AFTER the command
 // tree is fully built so `generateCompletions` can walk the live `cli` tree.
 // bootstrap() above only registers lazy DI factories — no I/O — so reaching
-// this point stays fast and silent, as shell completion requires.
+// this point stays fast and silent, as shell completion requires. tabtab is
+// imported only here: it touches `process.stdout` at load and slows every
+// other command's startup.
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
+  const { default: tabtab } = await import('tabtab/lib/index.js');
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
     // The scripts from `bb completion <shell>` name their shell; older
