@@ -111,8 +111,10 @@ Commit the generated file in `.changeset/` alongside your code changes.
 
 Dependencies are updated by hand. Run `bun outdated` in the root and in `docs/`,
 bump what you need, and commit the manifest together with `bun.lock`. GitHub
-Actions stay pinned to commit SHAs with a `# vX` comment, and `BUN_VERSION` is
-pinned in each workflow under `.github/workflows/`.
+Actions stay pinned to commit SHAs with a `# vX` comment; Dependabot opens a
+weekly PR to bump them. Every workflow installs the Bun version in
+`.bun-version`, so bump it there. The `engines.bun` floor in `package.json` is
+checked by the "Minimum Bun" CI job, which runs the built CLI on that version.
 
 ## Release Process
 
