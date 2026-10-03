@@ -11,40 +11,8 @@ import type {
   DefaultReviewerService,
 } from '../../src/services/default-reviewer.service.js';
 import type { IContextService } from '../../src/core/interfaces/services.js';
-import type { UsersApi } from '../../src/generated/api.js';
-import {
-  createMockOutputService,
-  createMockPromptService,
-  mockUser,
-} from '../setup.js';
-
-function createMockUsersApi(): UsersApi {
-  const api = {
-    async userGet() {
-      return {
-        data: mockUser,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as never,
-      };
-    },
-    async usersSelectedUserGet(params: { selectedUser: string }) {
-      return {
-        data: {
-          ...mockUser,
-          uuid: `{${params.selectedUser}-uuid}`,
-          display_name: `Display ${params.selectedUser}`,
-        },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as never,
-      };
-    },
-  };
-  return api as unknown as UsersApi;
-}
+import { createMockOutputService, createMockPromptService } from '../setup.js';
+import { fakeApi, fakeUsersApi } from '../helpers/fake-api.js';
 
 function createMockService(
   overrides: Partial<DefaultReviewerService> & {
@@ -78,7 +46,7 @@ function createMockService(
     },
   };
 
-  return svc as unknown as DefaultReviewerService;
+  return fakeApi<DefaultReviewerService>(svc);
 }
 
 function createContextService(): IContextService {
@@ -251,7 +219,7 @@ describe('AddDefaultReviewerCommand', () => {
     const output = createMockOutputService();
     const cmd = new AddDefaultReviewerCommand(
       createMockService({ addCalls }),
-      createMockUsersApi(),
+      fakeUsersApi(),
       createContextService(),
       output
     );
@@ -271,7 +239,7 @@ describe('RemoveDefaultReviewerCommand', () => {
     const output = createMockOutputService();
     const cmd = new RemoveDefaultReviewerCommand(
       createMockService({ removeCalls }),
-      createMockUsersApi(),
+      fakeUsersApi(),
       createContextService(),
       output
     );
@@ -287,7 +255,7 @@ describe('RemoveDefaultReviewerCommand', () => {
     const output = createMockOutputService();
     const cmd = new RemoveDefaultReviewerCommand(
       createMockService({ removeCalls }),
-      createMockUsersApi(),
+      fakeUsersApi(),
       createContextService(),
       output
     );
@@ -303,7 +271,7 @@ describe('RemoveDefaultReviewerCommand', () => {
     const prompt = createMockPromptService([true]);
     const cmd = new RemoveDefaultReviewerCommand(
       createMockService({ removeCalls }),
-      createMockUsersApi(),
+      fakeUsersApi(),
       createContextService(),
       createMockOutputService()
     );

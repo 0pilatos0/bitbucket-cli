@@ -168,6 +168,7 @@ import { ListConfigCommand } from './commands/config/list.command.js';
 // Completion commands
 import { InstallCompletionCommand } from './commands/completion/install.command.js';
 import { UninstallCompletionCommand } from './commands/completion/uninstall.command.js';
+import { PrintCompletionCommand } from './commands/completion/print.command.js';
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
@@ -1182,6 +1183,12 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     container,
     ServiceTokens.UninstallCompletionCommand,
     UninstallCompletionCommand,
+    [ServiceTokens.OutputService]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.PrintCompletionCommand,
+    PrintCompletionCommand,
     [ServiceTokens.OutputService]
   );
 
