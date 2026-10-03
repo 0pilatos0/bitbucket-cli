@@ -15,6 +15,8 @@ import {
   SearchApi,
   type SearchCodeSearchResult,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const mockResult: SearchCodeSearchResult = {
   type: 'code_search_result',
@@ -64,7 +66,7 @@ function createMockSearchApi(
 ): SearchApi {
   const results = options.results ?? [mockResult];
 
-  return {
+  return fakeApi<SearchApi>({
     searchWorkspace: async (
       request: SearchCall['request'],
       axiosOptions?: SearchCall['axiosOptions']
@@ -87,23 +89,7 @@ function createMockSearchApi(
         },
       };
     },
-  } as unknown as SearchApi;
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  return rowsLog
-    ? (JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][])
-    : [];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
+  });
 }
 
 describe('SearchCodeCommand', () => {

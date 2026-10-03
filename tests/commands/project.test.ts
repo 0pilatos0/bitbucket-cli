@@ -13,6 +13,8 @@ import type {
   ProjectsApi,
   WorkspacesApi,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const mockProject: Project = {
   type: 'project',
@@ -28,23 +30,6 @@ const mockProject: Project = {
   },
 };
 
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
 function createMockWorkspacesApi(
   options: {
     projects?: Project[];
@@ -53,7 +38,7 @@ function createMockWorkspacesApi(
 ): WorkspacesApi {
   const projects = options.projects ?? [mockProject];
 
-  return {
+  return fakeApi<WorkspacesApi>({
     workspacesWorkspaceProjectsGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -79,7 +64,7 @@ function createMockWorkspacesApi(
         },
       };
     },
-  } as unknown as WorkspacesApi;
+  });
 }
 
 function createMockProjectsApi(
@@ -89,7 +74,7 @@ function createMockProjectsApi(
     onCreateCall?: (request: unknown) => void;
   } = {}
 ): ProjectsApi {
-  return {
+  return fakeApi<ProjectsApi>({
     workspacesWorkspaceProjectsProjectKeyGet: async (request: unknown) => {
       if (options.projectNotFound) {
         throw new APIError('Resource not found', 404);
@@ -102,7 +87,7 @@ function createMockProjectsApi(
       const project = (request as { body: Project }).body;
       return { data: { ...mockProject, ...project } };
     },
-  } as unknown as ProjectsApi;
+  });
 }
 
 function workspaceContextService() {

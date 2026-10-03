@@ -16,6 +16,7 @@ import type {
   GPGApi,
   UsersApi,
 } from '../../src/generated/api.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const gpgKey: GPGAccountKey = {
   type: 'gpg_key',
@@ -25,9 +26,9 @@ const gpgKey: GPGAccountKey = {
   added_on: '2026-01-01T00:00:00.000Z',
 };
 
-const usersApi = {
+const usersApi = fakeApi<UsersApi>({
   userGet: async () => ({ data: { type: 'user', uuid: '{me}' } }),
-} as unknown as UsersApi;
+});
 
 const ARMORED =
   '-----BEGIN PGP PUBLIC KEY BLOCK-----\nabc\n-----END PGP PUBLIC KEY BLOCK-----';
@@ -47,7 +48,7 @@ function createMockGpgApi(options: { notFound?: boolean } = {}): {
   calls: Record<string, unknown[]>;
 } {
   const calls: Record<string, unknown[]> = { list: [], post: [], delete: [] };
-  const api = {
+  const api = fakeApi<GPGApi>({
     usersSelectedUserGpgKeysGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -64,7 +65,7 @@ function createMockGpgApi(options: { notFound?: boolean } = {}): {
       if (options.notFound) throw new APIError('Resource not found', 404);
       return { data: undefined };
     },
-  } as unknown as GPGApi;
+  });
   return { api, calls };
 }
 

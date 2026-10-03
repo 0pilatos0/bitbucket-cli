@@ -18,6 +18,8 @@ import type {
   Branchrestriction,
   UsersApi,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi, fakeUsersApi } from '../helpers/fake-api.js';
 
 const globRestriction: Branchrestriction = {
   type: 'branchrestriction',
@@ -41,22 +43,6 @@ const modelRestriction: Branchrestriction = {
 
 function repoContextService() {
   return createMockContextService({ workspace: 'acme', repoSlug: 'app' });
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  return rowsLog
-    ? (JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][])
-    : [];
 }
 
 interface ApiCalls {
@@ -84,7 +70,7 @@ function createMockApi(
     post: [],
     delete: [],
   };
-  const api = {
+  const api = fakeApi<BranchRestrictionsApi>({
     repositoriesWorkspaceRepoSlugBranchRestrictionsGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -114,16 +100,17 @@ function createMockApi(
       if (options.notFound) throw new APIError('Resource not found', 404);
       return { data: undefined };
     },
-  } as unknown as BranchRestrictionsApi;
+  });
   return { api, calls };
 }
 
 function createMockUsersApi(uuids: Record<string, string> = {}): UsersApi {
-  return {
-    usersSelectedUserGet: async (request: { selectedUser: string }) => ({
-      data: { type: 'user', uuid: uuids[request.selectedUser] },
+  return fakeUsersApi({
+    resolveUser: (selectedUser) => ({
+      type: 'user',
+      uuid: uuids[selectedUser],
     }),
-  } as unknown as UsersApi;
+  });
 }
 
 describe('ListBranchRestrictionsCommand', () => {
@@ -416,11 +403,11 @@ describe('CreateBranchRestrictionCommand', () => {
 
   it('names the --user value when the user is not found', async () => {
     const { api, calls } = createMockApi();
-    const usersApi = {
+    const usersApi = fakeApi<UsersApi>({
       usersSelectedUserGet: async () => {
         throw new APIError('Resource not found', 404);
       },
-    } as unknown as UsersApi;
+    });
     const { command } = makeCommand(api, usersApi);
 
     await expect(

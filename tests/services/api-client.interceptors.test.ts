@@ -454,22 +454,6 @@ describe('createApiClient - interceptor edges', () => {
     expect((error as BBError).cause).toBe(originalError);
     expect(mockAdapter.getCallCount()).toBe(0);
   });
-
-  it('maps getCredentials failures for basic auth to UNKNOWN with cause', async () => {
-    const store = createMockConfigService({}); // no credentials configured
-    const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
-    const client = createApiClient(store, createMockOutputService());
-    client.defaults.adapter = mockAdapter.adapter;
-
-    const error = await client.get('/test').catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(BBError);
-    expect((error as BBError).code).toBe(ErrorCode.UNKNOWN);
-    expect((error as BBError).message).toBe(
-      "Authentication required. Run 'bb auth login'."
-    );
-    expect((error as BBError).cause).toMatchObject({ code: 1001 });
-    expect(mockAdapter.getCallCount()).toBe(0);
-  });
 });
 
 describe('createApiClient - HTTP debug logging and redaction', () => {

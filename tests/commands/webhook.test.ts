@@ -19,6 +19,8 @@ import {
   WebhooksApi,
   type WebhookSubscription,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const UID = '{a1b2c3d4-0000-0000-0000-000000000000}';
 
@@ -51,9 +53,10 @@ function createMockWebhooksApi(
   const record =
     (method: string, respond: (request: Record<string, unknown>) => unknown) =>
     async (
-      request: Record<string, unknown>,
+      requestParameters: object,
       axiosOptions?: ApiCall['axiosOptions']
     ) => {
+      const request = requestParameters as Record<string, unknown>;
       options.calls?.push({ method, request, axiosOptions });
       if (options.notFound) {
         throw new APIError('Resource not found', 404);
@@ -67,7 +70,7 @@ function createMockWebhooksApi(
     uuid: UID,
   });
 
-  return {
+  return fakeApi<WebhooksApi>({
     listRepositoryHooks: record('repoList', list),
     getRepositoryHook: record('repoGet', get),
     createRepositoryHook: record('repoCreate', create),
@@ -76,27 +79,11 @@ function createMockWebhooksApi(
     getWorkspaceHook: record('workspaceGet', get),
     createWorkspaceHook: record('workspaceCreate', create),
     deleteWorkspaceHook: record('workspaceDelete', () => undefined),
-  } as unknown as WebhooksApi;
+  });
 }
 
 function repoContextService() {
   return createMockContextService({ workspace: 'acme', repoSlug: 'demo' });
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  return rowsLog
-    ? (JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][])
-    : [];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
 }
 
 describe('ListWebhooksCommand', () => {

@@ -17,6 +17,8 @@ import type {
   DeploymentEnvironment,
   DeploymentsApi,
 } from '../../src/generated/api.js';
+import { getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const completed: Deployment = {
   type: 'deployment',
@@ -79,7 +81,7 @@ function createMockDeploymentsApi(
     environments: [],
     environment: [],
   };
-  const api = {
+  const api = fakeApi<DeploymentsApi>({
     getDeploymentsForRepository: async (
       request: unknown,
       axiosOptions?: unknown
@@ -113,14 +115,8 @@ function createMockDeploymentsApi(
       if (!environment) throw new APIError('Resource not found', 404);
       return { data: environment };
     },
-  } as unknown as DeploymentsApi;
+  });
   return { api, calls };
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const log = logs.find((l) => l.startsWith('json:'));
-  expect(log).toBeDefined();
-  return JSON.parse(log!.slice('json:'.length)) as Record<string, unknown>;
 }
 
 describe('deployment shared helpers', () => {

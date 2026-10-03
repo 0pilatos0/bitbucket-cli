@@ -11,6 +11,7 @@ import {
   resolveCurrentUserUuid,
 } from '../../src/services/account-keys.js';
 import type { UsersApi } from '../../src/generated/api.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 let dir: string;
 
@@ -104,17 +105,17 @@ describe('readPublicKey', () => {
 
 describe('resolveCurrentUserUuid', () => {
   it('returns the authenticated account UUID', async () => {
-    const usersApi = {
+    const usersApi = fakeApi<UsersApi>({
       userGet: async () => ({ data: { type: 'user', uuid: '{me}' } }),
-    } as unknown as UsersApi;
+    });
 
     expect(await resolveCurrentUserUuid(usersApi)).toBe('{me}');
   });
 
   it('fails when GET /user has no UUID', async () => {
-    const usersApi = {
+    const usersApi = fakeApi<UsersApi>({
       userGet: async () => ({ data: { type: 'user' } }),
-    } as unknown as UsersApi;
+    });
 
     await expect(resolveCurrentUserUuid(usersApi)).rejects.toThrow(
       'Could not determine your account UUID'

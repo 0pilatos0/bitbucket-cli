@@ -9,6 +9,7 @@ import { CreateRepoCommand } from '../../src/commands/repo/create.command.js';
 import { DeleteRepoCommand } from '../../src/commands/repo/delete.command.js';
 import { CloneCommand } from '../../src/commands/repo/clone.command.js';
 import {
+  createMockConfigService,
   createMockContextService,
   createMockOutputService,
   createMockGitService,
@@ -17,45 +18,9 @@ import {
 } from '../setup.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
-
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  if (!axiosOptions || typeof axiosOptions !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-
-  const params = (axiosOptions as { params?: unknown }).params;
-  if (!params || typeof params !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-
-  const pageValue = (params as { page?: unknown }).page;
-  const pagelenValue = (params as { pagelen?: unknown }).pagelen;
-
-  const page =
-    typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
-      ? pageValue
-      : 1;
-  const pagelen =
-    typeof pagelenValue === 'number' &&
-    Number.isFinite(pagelenValue) &&
-    pagelenValue > 0
-      ? pagelenValue
-      : 25;
-
-  return { page, pagelen };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
+import type { BBConfig } from '../../src/types/config.js';
+import { getTableRows } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 // Helper to create mock RepositoriesApi
 function createMockRepositoriesApi(
@@ -65,7 +30,7 @@ function createMockRepositoriesApi(
     onCreateCall?: (request: unknown) => void;
   } = {}
 ): RepositoriesApi {
-  return {
+  return fakeApi<RepositoriesApi>({
     repositoriesWorkspaceGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -110,7 +75,7 @@ function createMockRepositoriesApi(
     repositoriesWorkspaceRepoSlugDelete: async () => ({
       data: undefined,
     }),
-  } as unknown as RepositoriesApi;
+  });
 }
 
 describe('ListReposCommand', () => {
@@ -713,12 +678,12 @@ describe('DeleteRepoCommand', () => {
 describe('DeleteRepoCommand confirmation prompt', () => {
   function buildDelete() {
     const deleted: unknown[] = [];
-    const repositoriesApi = {
+    const repositoriesApi = fakeApi<RepositoriesApi>({
       repositoriesWorkspaceRepoSlugDelete: async (request: unknown) => {
         deleted.push(request);
         return { data: undefined };
       },
-    } as unknown as RepositoriesApi;
+    });
     const command = new DeleteRepoCommand(
       repositoriesApi,
       createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
@@ -780,44 +745,101 @@ describe('DeleteRepoCommand confirmation prompt', () => {
 });
 
 describe('CloneCommand', () => {
-  it('should clone repository', async () => {
+  function makeClone(
+    options: {
+      config?: BBConfig;
+      defaultWorkspace?: string;
+    } = {}
+  ) {
+    const clonedUrls: string[] = [];
     const gitService = createMockGitService();
-    const contextService = createMockContextService();
+    gitService.clone = async (url: string) => {
+      clonedUrls.push(url);
+    };
+    const contextService = createMockContextService({
+      defaultWorkspace: options.defaultWorkspace,
+    });
     const output = createMockOutputService();
+    const command = new CloneCommand(
+      gitService,
+      contextService,
+      createMockConfigService(options.config),
+      output
+    );
+    return { command, output, gitService, clonedUrls };
+  }
 
-    const command = new CloneCommand(gitService, contextService, output);
+  it('should clone over SSH by default', async () => {
+    const { command, output, clonedUrls } = makeClone();
     await command.execute(
       { repository: 'workspace/repo' },
       { globalOptions: {} }
     );
 
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+    expect(clonedUrls).toEqual(['git@bitbucket.org:workspace/repo.git']);
+    expect(output.logs).toContain('success:Cloned workspace/repo into repo');
   });
 
-  it('should use SSH by default', async () => {
-    const gitService = createMockGitService();
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
+  it('should clone over HTTPS with --protocol https', async () => {
+    const { command, clonedUrls } = makeClone();
+    await command.execute(
+      { repository: 'workspace/repo', protocol: 'https' },
+      { globalOptions: {} }
+    );
 
-    const command = new CloneCommand(gitService, contextService, output);
+    expect(clonedUrls).toEqual(['https://bitbucket.org/workspace/repo.git']);
+  });
+
+  it('should use the gitProtocol config key when --protocol is omitted', async () => {
+    const { command, clonedUrls } = makeClone({
+      config: { gitProtocol: 'https' },
+    });
     await command.execute(
       { repository: 'workspace/repo' },
       { globalOptions: {} }
     );
 
-    // Clone command outputs success message with repo name
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
-    expect(output.logs.some((log) => log.includes('workspace/repo'))).toBe(
-      true
+    expect(clonedUrls).toEqual(['https://bitbucket.org/workspace/repo.git']);
+  });
+
+  it('should let --protocol override the gitProtocol config key', async () => {
+    const { command, clonedUrls } = makeClone({
+      config: { gitProtocol: 'https' },
+    });
+    await command.execute(
+      { repository: 'workspace/repo', protocol: 'ssh' },
+      { globalOptions: {} }
     );
+
+    expect(clonedUrls).toEqual(['git@bitbucket.org:workspace/repo.git']);
+  });
+
+  it('should reject an unknown --protocol before cloning', async () => {
+    const { command, clonedUrls } = makeClone();
+    await expect(
+      command.execute(
+        { repository: 'workspace/repo', protocol: 'git' },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow('--protocol must be one of: ssh, https');
+    expect(clonedUrls).toEqual([]);
+  });
+
+  it('should clone a full URL as given', async () => {
+    const { command, clonedUrls } = makeClone();
+    await command.execute(
+      {
+        repository: 'https://bitbucket.org/workspace/repo.git',
+        protocol: 'ssh',
+      },
+      { globalOptions: {} }
+    );
+
+    expect(clonedUrls).toEqual(['https://bitbucket.org/workspace/repo.git']);
   });
 
   it('should support custom destination', async () => {
-    const gitService = createMockGitService();
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
-
-    const command = new CloneCommand(gitService, contextService, output);
+    const { command, output } = makeClone();
     await command.execute(
       { repository: 'workspace/repo', directory: '/tmp/my-clone' },
       { globalOptions: {} }
@@ -827,69 +849,42 @@ describe('CloneCommand', () => {
   });
 
   it('should use default workspace when only repo name provided', async () => {
-    const gitService = createMockGitService();
-    const contextService = createMockContextService({
+    const { command, clonedUrls } = makeClone({
       defaultWorkspace: 'myworkspace',
     });
-    const output = createMockOutputService();
-
-    const command = new CloneCommand(gitService, contextService, output);
     await command.execute({ repository: 'myrepo' }, { globalOptions: {} });
 
-    // Clone command outputs success message with repo name
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
-    expect(output.logs.some((log) => log.includes('myrepo'))).toBe(true);
+    expect(clonedUrls).toEqual(['git@bitbucket.org:myworkspace/myrepo.git']);
   });
 
   it('should fail when no workspace available for single repo name', async () => {
-    const gitService = createMockGitService();
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
-
-    const command = new CloneCommand(gitService, contextService, output);
+    const { command } = makeClone();
 
     await expect(
       command.execute({ repository: 'myrepo' }, { globalOptions: {} })
     ).rejects.toThrow();
   });
 
-  it('should run a spinner around the git clone call', async () => {
-    const gitService = createMockGitService();
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
-
-    const command = new CloneCommand(gitService, contextService, output);
+  it('should not run a spinner over git progress output', async () => {
+    const { command, output } = makeClone();
     await command.execute(
       { repository: 'workspace/repo' },
       { globalOptions: {} }
     );
 
-    expect(
-      output.logs.some((log) =>
-        log.startsWith('spinner-start:Cloning workspace/repo')
-      )
-    ).toBe(true);
-    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
+    expect(output.logs.some((log) => log.startsWith('spinner-start:'))).toBe(
+      false
+    );
   });
 
-  it('should stop the spinner when the git clone call fails', async () => {
-    const gitService = createMockGitService();
+  it('should propagate git clone failures', async () => {
+    const { command, gitService } = makeClone();
     gitService.clone = async () => {
       throw new Error('clone failed');
     };
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
 
-    const command = new CloneCommand(gitService, contextService, output);
     await expect(
       command.execute({ repository: 'workspace/repo' }, { globalOptions: {} })
     ).rejects.toThrow('clone failed');
-
-    expect(
-      output.logs.some((log) =>
-        log.startsWith('spinner-start:Cloning workspace/repo')
-      )
-    ).toBe(true);
-    expect(output.logs.some((log) => log === 'spinner-stop')).toBe(true);
   });
 });

@@ -12,6 +12,8 @@ import type {
   CommitStatusesApi,
   Commitstatus,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 const mockStatus: Commitstatus = {
   type: 'build',
@@ -25,33 +27,6 @@ const mockStatus: Commitstatus = {
   updated_on: '2024-01-01T00:05:00.000Z',
 };
 
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  const params = (
-    axiosOptions as { params?: { page?: number; pagelen?: number } }
-  )?.params;
-  return { page: params?.page ?? 1, pagelen: params?.pagelen ?? 25 };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
 function createMockCommitStatusesApi(
   options: {
     statuses?: Commitstatus[];
@@ -64,7 +39,7 @@ function createMockCommitStatusesApi(
 ): CommitStatusesApi {
   const statuses = options.statuses ?? [mockStatus];
 
-  return {
+  return fakeApi<CommitStatusesApi>({
     repositoriesWorkspaceRepoSlugCommitCommitStatusesGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -109,7 +84,7 @@ function createMockCommitStatusesApi(
       const { body } = request as { body: Commitstatus };
       return { data: { ...mockStatus, ...body } };
     },
-  } as unknown as CommitStatusesApi;
+  });
 }
 
 function repoContextService() {
@@ -189,9 +164,8 @@ describe('ListCommitStatusesCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(extractPaginationParams(capturedAxios)).toEqual({
-      page: 1,
-      pagelen: 10,
+    expect(capturedAxios).toMatchObject({
+      params: { page: 1, pagelen: 10 },
     });
   });
 

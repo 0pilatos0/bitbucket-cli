@@ -123,6 +123,7 @@ Documented so they aren't surprising during troubleshooting.
 | ----------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`  | Test runners        | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
 | `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually.        |
+| `BB_COMPLETION_SHELL` | The completion scripts | Set by the scripts from `bb completion <shell>` to `bash`, `zsh`, `fish` or `powershell`, so candidates come back in that shell's format. Scripts written by older versions don't set it, and `$SHELL` decides instead. Don't set it manually. |
 | `APPDATA`   | Windows             | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set.  |
 
 ## Resolution order

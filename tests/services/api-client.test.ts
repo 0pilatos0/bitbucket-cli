@@ -156,6 +156,8 @@ describe('createApiClient - OAuth auth', () => {
       expect(err).toBeInstanceOf(BBError);
       expect(err.code).toBe(ErrorCode.AUTH_EXPIRED);
       expect(err.message).toContain('bb auth login');
+      expect(err.cause).toBeInstanceOf(Error);
+      expect(err.cause.message).toBe('Refresh failed');
     }
   });
 

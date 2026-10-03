@@ -8,22 +8,12 @@ import type {
   Pullrequest,
   PullrequestsApi,
 } from '../../src/generated/api.js';
-import type { AxiosResponse } from 'axios';
 import {
   extractReviewerUuids,
   buildReviewersUpdateBody,
   updatePullRequestReviewers,
 } from '../../src/services/reviewer.service.js';
-
-function createAxiosResponse<T>(data: T): AxiosResponse<T> {
-  return {
-    data,
-    status: 200,
-    statusText: 'OK',
-    headers: {},
-    config: {} as any,
-  };
-}
+import { axiosResponse, fakeApi } from '../helpers/fake-api.js';
 
 const basePr: Pullrequest = {
   type: 'pullrequest',
@@ -120,20 +110,20 @@ describe('updatePullRequestReviewers', () => {
   } {
     let capturedBody: Pullrequest | undefined;
 
-    const api = {
+    const api = fakeApi<PullrequestsApi>({
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet() {
-        return createAxiosResponse(pr);
+        return axiosResponse(pr);
       },
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(params: {
         body?: Pullrequest;
       }) {
         capturedBody = params.body;
-        return createAxiosResponse({
+        return axiosResponse({
           ...pr,
           reviewers: params.body?.reviewers ?? pr.reviewers,
         });
       },
-    } as unknown as PullrequestsApi;
+    });
 
     return { api, lastPutBody: () => capturedBody };
   }
@@ -238,11 +228,11 @@ describe('updatePullRequestReviewers', () => {
   });
 
   it('should propagate API errors from GET', async () => {
-    const api = {
+    const api = fakeApi<PullrequestsApi>({
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet() {
         throw new Error('GET failed');
       },
-    } as unknown as PullrequestsApi;
+    });
 
     await expect(
       updatePullRequestReviewers(api, repoContext, 1, (u) => u)
@@ -250,14 +240,14 @@ describe('updatePullRequestReviewers', () => {
   });
 
   it('should propagate API errors from PUT', async () => {
-    const api = {
+    const api = fakeApi<PullrequestsApi>({
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet() {
-        return createAxiosResponse(basePr);
+        return axiosResponse(basePr);
       },
       async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut() {
         throw new Error('PUT failed');
       },
-    } as unknown as PullrequestsApi;
+    });
 
     await expect(
       updatePullRequestReviewers(api, repoContext, 1, (u) => u)
@@ -265,23 +255,19 @@ describe('updatePullRequestReviewers', () => {
   });
 
   it('should pass correct workspace and repoSlug to API calls', async () => {
-    let getParams: Record<string, unknown> = {};
-    let putParams: Record<string, unknown> = {};
+    let getParams: unknown;
+    let putParams: unknown;
 
-    const api = {
-      async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(
-        params: Record<string, unknown>
-      ) {
+    const api = fakeApi<PullrequestsApi>({
+      async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(params) {
         getParams = params;
-        return createAxiosResponse(basePr);
+        return axiosResponse(basePr);
       },
-      async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(
-        params: Record<string, unknown>
-      ) {
+      async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(params) {
         putParams = params;
-        return createAxiosResponse(basePr);
+        return axiosResponse(basePr);
       },
-    } as unknown as PullrequestsApi;
+    });
 
     await updatePullRequestReviewers(
       api,
