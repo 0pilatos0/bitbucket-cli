@@ -182,15 +182,25 @@ export class OutputService implements IOutputService {
 
   public async json(data: unknown): Promise<void> {
     this.stopActiveSpinner();
-    const { fields, jq } = this.jsonFormatOptions;
+    const { fields, jq, rawOutput, lean } = this.jsonFormatOptions;
+    // Pretty for people reading a terminal, compact for pipes, files, and
+    // agents, where indentation is only extra bytes to parse.
+    const pretty = !!this.terminal.isTTY;
 
     let result: unknown = data;
     if (fields && fields.length > 0) {
       result = projectByFieldsRespectingWrapper(result, fields);
     }
+    if (lean) {
+      result = pruneLinks(result);
+    }
 
     if (jq) {
-      const jqOutput = await runJq(result, jq);
+      const flags = [
+        ...(pretty ? [] : ['--compact-output']),
+        ...(rawOutput ? ['--raw-output'] : []),
+      ];
+      const jqOutput = await runJq(result, jq, flags);
       // jq terminates each value with a newline; strip the trailing one so
       // console.log doesn't double it. Preserve internal newlines between
       // emitted values.
@@ -203,7 +213,7 @@ export class OutputService implements IOutputService {
       return;
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result, null, pretty ? 2 : undefined));
   }
 
   public jsonError(data: unknown): void {
@@ -601,7 +611,34 @@ function projectByFieldsRespectingWrapper(
   return projectFields(data, fields);
 }
 
-async function runJq(data: unknown, expression: string): Promise<string> {
+/**
+ * `--lean`: Bitbucket nests a `links` map of API and avatar URLs in nearly
+ * every object, which dominates list payloads. Keep only `links.html` (the
+ * web URL people and agents actually open) so `.links.html.href` still works.
+ */
+function pruneLinks(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(pruneLinks);
+  }
+  if (!isPlainObject(value)) {
+    return value;
+  }
+  const result: Record<string, unknown> = {};
+  for (const [key, inner] of Object.entries(value)) {
+    if (key !== 'links' || !isPlainObject(inner)) {
+      result[key] = pruneLinks(inner);
+    } else if (inner.html !== undefined) {
+      result[key] = { html: inner.html };
+    }
+  }
+  return result;
+}
+
+async function runJq(
+  data: unknown,
+  expression: string,
+  flags: string[]
+): Promise<string> {
   if (needsWindowsJqBunUpgrade(process.platform, Bun.version)) {
     throw new BBError({
       code: ErrorCode.JQ_FAILED,
@@ -628,7 +665,7 @@ async function runJq(data: unknown, expression: string): Promise<string> {
 
   let result: { stdout: string; stderr: string; exitCode: number };
   try {
-    result = await jq.raw(data as object, expression);
+    result = await jq.raw(data as object, expression, flags);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     throw new BBError({
