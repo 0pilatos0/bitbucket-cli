@@ -5,8 +5,13 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
-import { uninstallCompletion } from '../../completion-install.js';
+import type { uninstallCompletion } from '../../completion-install.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
+
+// Loaded on demand so tabtab and its prompt stack stay out of every other
+// command's startup.
+const uninstallCompletionOnDemand: typeof uninstallCompletion = async (name) =>
+  (await import('../../completion-install.js')).uninstallCompletion(name);
 
 export class UninstallCompletionCommand extends BaseCommand<void, void> {
   public readonly name = 'uninstall';
@@ -14,7 +19,7 @@ export class UninstallCompletionCommand extends BaseCommand<void, void> {
 
   constructor(
     output: IOutputService,
-    private readonly uninstall: typeof uninstallCompletion = uninstallCompletion
+    private readonly uninstall: typeof uninstallCompletion = uninstallCompletionOnDemand
   ) {
     super(output);
   }

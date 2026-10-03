@@ -28,55 +28,56 @@ describe('Windows jq runtime requirement', () => {
 
 describe('OutputService', () => {
   let output: OutputService;
-  let consoleLogs: string[];
-  let consoleErrors: string[];
-  let consoleWarns: string[];
-  let originalLog: typeof console.log;
-  let originalError: typeof console.error;
-  let originalWarn: typeof console.warn;
+  let stdoutLines: string[];
+  let stderrLines: string[];
+  let stdoutSpy: ReturnType<typeof spyOn>;
+  let stderrSpy: ReturnType<typeof spyOn>;
+
+  const captureLines =
+    (lines: string[]) =>
+    (chunk: unknown): boolean => {
+      lines.push(String(chunk).replace(/\n$/, ''));
+      return true;
+    };
 
   beforeEach(() => {
-    consoleLogs = [];
-    consoleErrors = [];
-    consoleWarns = [];
-
-    originalLog = console.log;
-    originalError = console.error;
-    originalWarn = console.warn;
-
-    console.log = (...args: unknown[]) => consoleLogs.push(args.join(' '));
-    console.error = (...args: unknown[]) => consoleErrors.push(args.join(' '));
-    console.warn = (...args: unknown[]) => consoleWarns.push(args.join(' '));
+    stdoutLines = [];
+    stderrLines = [];
+    stdoutSpy = spyOn(process.stdout, 'write').mockImplementation(
+      captureLines(stdoutLines)
+    );
+    stderrSpy = spyOn(process.stderr, 'write').mockImplementation(
+      captureLines(stderrLines)
+    );
 
     output = new OutputService();
   });
 
   afterEach(() => {
-    console.log = originalLog;
-    console.error = originalError;
-    console.warn = originalWarn;
+    stdoutSpy.mockRestore();
+    stderrSpy.mockRestore();
   });
 
   describe('json', () => {
     it('should output formatted JSON', async () => {
       await output.json({ name: 'test', value: 42 });
 
-      expect(consoleLogs).toHaveLength(1);
-      expect(consoleLogs[0]).toContain('"name": "test"');
-      expect(consoleLogs[0]).toContain('"value": 42');
+      expect(stdoutLines).toHaveLength(1);
+      expect(stdoutLines[0]).toContain('"name": "test"');
+      expect(stdoutLines[0]).toContain('"value": 42');
     });
 
     it('should handle arrays', async () => {
       await output.json([1, 2, 3]);
 
-      expect(consoleLogs[0]).toContain('1');
-      expect(consoleLogs[0]).toContain('2');
-      expect(consoleLogs[0]).toContain('3');
+      expect(stdoutLines[0]).toContain('1');
+      expect(stdoutLines[0]).toContain('2');
+      expect(stdoutLines[0]).toContain('3');
     });
 
     it('should handle null and undefined', async () => {
       await output.json(null);
-      expect(consoleLogs[0]).toBe('null');
+      expect(stdoutLines[0]).toBe('null');
     });
   });
 
@@ -85,7 +86,7 @@ describe('OutputService', () => {
       output.setJsonFormatOptions({ fields: ['id', 'title'] });
       await output.json({ id: 1, title: 'hello', state: 'OPEN' });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual({ id: 1, title: 'hello' });
     });
 
@@ -96,7 +97,7 @@ describe('OutputService', () => {
         { id: 2, name: 'b' },
       ]);
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([{ id: 1 }, { id: 2 }]);
     });
 
@@ -111,7 +112,7 @@ describe('OutputService', () => {
         ],
       });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([
         { id: 1, title: 'first' },
         { id: 2, title: 'second' },
@@ -125,7 +126,7 @@ describe('OutputService', () => {
         { id: 2, author: { display_name: 'bob' } },
       ]);
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([
         { id: 1, 'author.display_name': 'alice' },
         { id: 2, 'author.display_name': 'bob' },
@@ -140,7 +141,7 @@ describe('OutputService', () => {
         unrelated: { foo: 'bar' },
       });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual({ workspace: 'ws', count: 0 });
     });
 
@@ -174,7 +175,7 @@ describe('OutputService', () => {
         [key]: [{ id: 99, other: 'x' }],
       });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([{ id: 99 }]);
     });
 
@@ -182,7 +183,7 @@ describe('OutputService', () => {
       output.setJsonFormatOptions({ fields: ['id'] });
       await output.json({ workspace: 'ws', count: 0, pullRequests: [] });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([]);
     });
 
@@ -197,7 +198,7 @@ describe('OutputService', () => {
 
       // A buggy implementation that stopped at the first non-array wrapper
       // key would project the envelope instead; the later array key wins.
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual([{ id: 1 }]);
     });
   });
@@ -208,7 +209,7 @@ describe('OutputService', () => {
       await output.json([{ id: 1 }, { id: 2 }, { id: 3 }]);
 
       // jq emits one value per line.
-      const lines = consoleLogs.join('').trim().split('\n');
+      const lines = stdoutLines.join('').trim().split('\n');
       expect(lines).toEqual(['1', '2', '3']);
     });
 
@@ -224,7 +225,7 @@ describe('OutputService', () => {
         ],
       });
 
-      const lines = consoleLogs.join('').trim().split('\n');
+      const lines = stdoutLines.join('').trim().split('\n');
       expect(lines).toEqual(['"first"', '"second"']);
     });
 
@@ -241,7 +242,7 @@ describe('OutputService', () => {
       output.setJsonFormatOptions({});
       await output.json({ id: 1, title: 'hello' });
 
-      const parsed = JSON.parse(consoleLogs[0]!);
+      const parsed = JSON.parse(stdoutLines[0]!);
       expect(parsed).toEqual({ id: 1, title: 'hello' });
     });
   });
@@ -277,8 +278,8 @@ describe('OutputService', () => {
     it('should output compact JSON to stderr', () => {
       output.jsonError({ name: 'BBError', code: 4003, message: 'Invalid key' });
 
-      expect(consoleErrors).toHaveLength(1);
-      expect(consoleErrors[0]).toBe(
+      expect(stderrLines).toHaveLength(1);
+      expect(stderrLines[0]).toBe(
         '{"name":"BBError","code":4003,"message":"Invalid key"}'
       );
     });
@@ -294,16 +295,16 @@ describe('OutputService', () => {
         ]
       );
 
-      expect(consoleLogs.length).toBeGreaterThanOrEqual(3); // header, separator, 2 rows
-      expect(consoleLogs[0]).toContain('NAME');
-      expect(consoleLogs[0]).toContain('VALUE');
-      expect(consoleLogs[1]).toMatch(/^-+/); // separator
+      expect(stdoutLines.length).toBeGreaterThanOrEqual(3); // header, separator, 2 rows
+      expect(stdoutLines[0]).toContain('NAME');
+      expect(stdoutLines[0]).toContain('VALUE');
+      expect(stdoutLines[1]).toMatch(/^-+/); // separator
     });
 
     it('should handle empty rows', () => {
       output.table(['NAME'], []);
 
-      expect(consoleLogs).toHaveLength(0);
+      expect(stdoutLines).toHaveLength(0);
     });
 
     it('should pad columns to equal width', () => {
@@ -316,7 +317,7 @@ describe('OutputService', () => {
       );
 
       // Check that columns are aligned (lines should have consistent spacing)
-      expect(consoleLogs.length).toBeGreaterThan(0);
+      expect(stdoutLines.length).toBeGreaterThan(0);
     });
 
     it('should handle missing values in rows', () => {
@@ -325,7 +326,7 @@ describe('OutputService', () => {
         [['only', 'two']] // Missing third column
       );
 
-      expect(consoleLogs.length).toBeGreaterThan(0);
+      expect(stdoutLines.length).toBeGreaterThan(0);
     });
   });
 
@@ -333,8 +334,8 @@ describe('OutputService', () => {
     it('should output success message with symbol', () => {
       output.success('Operation completed');
 
-      expect(consoleLogs[0]).toContain('✓');
-      expect(consoleLogs[0]).toContain('Operation completed');
+      expect(stdoutLines[0]).toContain('✓');
+      expect(stdoutLines[0]).toContain('Operation completed');
     });
   });
 
@@ -342,8 +343,8 @@ describe('OutputService', () => {
     it('should output error message with symbol', () => {
       output.error('Something failed');
 
-      expect(consoleErrors[0]).toContain('✗');
-      expect(consoleErrors[0]).toContain('Something failed');
+      expect(stderrLines[0]).toContain('✗');
+      expect(stderrLines[0]).toContain('Something failed');
     });
   });
 
@@ -351,8 +352,8 @@ describe('OutputService', () => {
     it('should output warning message with symbol', () => {
       output.warning('Be careful');
 
-      expect(consoleWarns[0]).toContain('⚠');
-      expect(consoleWarns[0]).toContain('Be careful');
+      expect(stderrLines[0]).toContain('⚠');
+      expect(stderrLines[0]).toContain('Be careful');
     });
   });
 
@@ -360,8 +361,8 @@ describe('OutputService', () => {
     it('should output info message with symbol', () => {
       output.info('Here is some info');
 
-      expect(consoleLogs[0]).toContain('ℹ');
-      expect(consoleLogs[0]).toContain('Here is some info');
+      expect(stdoutLines[0]).toContain('ℹ');
+      expect(stdoutLines[0]).toContain('Here is some info');
     });
   });
 
@@ -369,13 +370,13 @@ describe('OutputService', () => {
     it('should output plain text', () => {
       output.text('Plain message');
 
-      expect(consoleLogs[0]).toBe('Plain message');
+      expect(stdoutLines[0]).toBe('Plain message');
     });
 
     it('should handle empty string', () => {
       output.text('');
 
-      expect(consoleLogs[0]).toBe('');
+      expect(stdoutLines[0]).toBe('');
     });
   });
 
@@ -383,14 +384,14 @@ describe('OutputService', () => {
     it('writes raw text to stderr with no symbol prefix', () => {
       output.stderr('Bad Request');
 
-      expect(consoleErrors[0]).toBe('Bad Request');
-      expect(consoleLogs).toHaveLength(0);
+      expect(stderrLines[0]).toBe('Bad Request');
+      expect(stdoutLines).toHaveLength(0);
     });
 
     it('strips terminal control sequences', () => {
       output.stderr('ok\x1b]0;pwned\x07after');
 
-      expect(consoleErrors[0]).toBe('okafter');
+      expect(stderrLines[0]).toBe('okafter');
     });
   });
 
@@ -427,7 +428,7 @@ describe('OutputService', () => {
       output.raw(bytes);
 
       expect(writes).toEqual([bytes]);
-      expect(consoleLogs).toHaveLength(0);
+      expect(stdoutLines).toHaveLength(0);
     });
 
     it('strips terminal control sequences when stdout is a TTY', () => {
@@ -443,16 +444,16 @@ describe('OutputService', () => {
     it('should render a 60-character Unicode line by default', () => {
       output.separator();
 
-      expect(consoleLogs).toHaveLength(1);
+      expect(stdoutLines).toHaveLength(1);
       // Strip ANSI color codes for the character/length assertion
-      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
       expect(plain).toBe('─'.repeat(60));
     });
 
     it('should respect a custom width', () => {
       output.separator(20);
 
-      const plain = consoleLogs[0]!.replace(/\[[0-9;]*m/g, '');
+      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
       expect(plain).toBe('─'.repeat(20));
     });
 
@@ -460,14 +461,14 @@ describe('OutputService', () => {
       output.separator(0);
       output.separator(-5);
 
-      expect(consoleLogs).toEqual(['', '']);
+      expect(stdoutLines).toEqual(['', '']);
     });
 
     it('should emit no ANSI codes when noColor is true', () => {
       const noColorOutput = new OutputService({ noColor: true });
       noColorOutput.separator(10);
 
-      expect(consoleLogs[0]).toBe('─'.repeat(10));
+      expect(stdoutLines[0]).toBe('─'.repeat(10));
     });
   });
 
@@ -532,35 +533,35 @@ describe('OutputService', () => {
       const out = new OutputService({ noUnicode: true });
       out.success('done');
 
-      expect(consoleLogs[0]).toContain('OK');
-      expect(consoleLogs[0]).toContain('done');
-      expect(consoleLogs[0]).not.toContain('✓');
+      expect(stdoutLines[0]).toContain('OK');
+      expect(stdoutLines[0]).toContain('done');
+      expect(stdoutLines[0]).not.toContain('✓');
     });
 
     it('substitutes ASCII fallbacks in error output', () => {
       const out = new OutputService({ noUnicode: true });
       out.error('boom');
 
-      expect(consoleErrors[0]).toContain('ERR');
-      expect(consoleErrors[0]).toContain('boom');
-      expect(consoleErrors[0]).not.toContain('✗');
+      expect(stderrLines[0]).toContain('ERR');
+      expect(stderrLines[0]).toContain('boom');
+      expect(stderrLines[0]).not.toContain('✗');
     });
 
     it('substitutes ASCII fallbacks in warning output', () => {
       const out = new OutputService({ noUnicode: true });
       out.warning('careful');
 
-      expect(consoleWarns[0]).toContain('!!');
-      expect(consoleWarns[0]).toContain('careful');
-      expect(consoleWarns[0]).not.toContain('⚠');
+      expect(stderrLines[0]).toContain('!!');
+      expect(stderrLines[0]).toContain('careful');
+      expect(stderrLines[0]).not.toContain('⚠');
     });
 
     it('substitutes ASCII fallbacks in info output', () => {
       const out = new OutputService({ noUnicode: true });
       out.info('hello');
 
-      expect(consoleLogs[0]).toContain('hello');
-      expect(consoleLogs[0]).not.toContain('ℹ');
+      expect(stdoutLines[0]).toContain('hello');
+      expect(stdoutLines[0]).not.toContain('ℹ');
     });
 
     it('keeps Unicode glyphs in info/success/warning/error when noUnicode is false', () => {
@@ -570,10 +571,10 @@ describe('OutputService', () => {
       out.warning('c');
       out.info('d');
 
-      expect(consoleLogs[0]).toContain('✓');
-      expect(consoleErrors[0]).toContain('✗');
-      expect(consoleWarns[0]).toContain('⚠');
-      expect(consoleLogs[1]).toContain('ℹ');
+      expect(stdoutLines[0]).toContain('✓');
+      expect(stderrLines[0]).toContain('✗');
+      expect(stderrLines[1]).toContain('⚠');
+      expect(stdoutLines[1]).toContain('ℹ');
     });
 
     it('is independent from noColor', () => {
@@ -773,9 +774,9 @@ describe('OutputService', () => {
     it('should serialize objects without pretty-printing', () => {
       output.jsonError({ code: 1, nested: { ok: true } });
 
-      expect(consoleErrors[0]).toBe('{"code":1,"nested":{"ok":true}}');
+      expect(stderrLines[0]).toBe('{"code":1,"nested":{"ok":true}}');
       // Pretty-printed would contain newlines / indentation.
-      expect(consoleErrors[0]).not.toContain('\n');
+      expect(stderrLines[0]).not.toContain('\n');
     });
   });
 
@@ -790,7 +791,7 @@ describe('OutputService', () => {
       );
 
       // Header is padded to the wider column width; rows follow suit.
-      const [headerLine, separator, row1, row2] = consoleLogs;
+      const [headerLine, separator, row1, row2] = stdoutLines;
       expect(headerLine).toContain('A ');
       expect(headerLine).toContain('BBBB');
       expect(separator).toMatch(/^-+  -+$/);
@@ -810,11 +811,11 @@ describe('OutputService', () => {
     // This block locks in the strip behavior for every text output method
     // and the table renderer.
     it.each([
-      ['text', 'log'],
-      ['info', 'log'],
-      ['success', 'log'],
-      ['warning', 'warn'],
-      ['error', 'error'],
+      ['text', 'stdout'],
+      ['info', 'stdout'],
+      ['success', 'stdout'],
+      ['warning', 'stderr'],
+      ['error', 'stderr'],
     ] as const)(
       '%s strips ESC, OSC and cursor-manipulation sequences',
       (method, channel) => {
@@ -827,20 +828,14 @@ describe('OutputService', () => {
         ];
 
         for (const payload of payloads) {
-          consoleLogs.length = 0;
-          consoleErrors.length = 0;
-          consoleWarns.length = 0;
+          stdoutLines.length = 0;
+          stderrLines.length = 0;
 
           (output as unknown as Record<string, (m: string) => void>)[method](
             payload
           );
 
-          const sink =
-            channel === 'log'
-              ? consoleLogs
-              : channel === 'warn'
-                ? consoleWarns
-                : consoleErrors;
+          const sink = channel === 'stdout' ? stdoutLines : stderrLines;
           const printed = sink.join('');
           // No raw ESC byte should survive sanitization.
           expect(printed).not.toContain('\x1b');
@@ -860,7 +855,7 @@ describe('OutputService', () => {
         ]
       );
 
-      const printed = consoleLogs.join('\n');
+      const printed = stdoutLines.join('\n');
       expect(printed).not.toContain('\x1b');
       expect(printed).not.toContain('\x07');
       // Visible characters survive stripping.
@@ -880,10 +875,10 @@ describe('OutputService', () => {
         [['\x1b]8;;https://evil\x1b\\x\x1b]8;;\x1b\\', 'y']]
       );
 
-      const printed = consoleLogs.join('\n');
+      const printed = stdoutLines.join('\n');
       expect(printed).not.toContain('\x1b');
       // Width should match 'x' (1 char), not the raw escape-laden string.
-      const dataRow = consoleLogs[2];
+      const dataRow = stdoutLines[2];
       expect(dataRow).toMatch(/^x\s+y\s*$/);
     });
 
@@ -907,18 +902,18 @@ describe('OutputService', () => {
       // table() emits exactly one console.log per visual line: header,
       // separator, then one line per row. No emitted line may contain an
       // embedded whitespace control char, or it spans multiple terminal rows.
-      expect(consoleLogs).toHaveLength(5); // header + separator + 3 rows
-      for (const line of consoleLogs) {
+      expect(stdoutLines).toHaveLength(5); // header + separator + 3 rows
+      for (const line of stdoutLines) {
         expect(line).not.toContain('\n');
         expect(line).not.toContain('\r');
         expect(line).not.toContain('\t');
       }
 
       // The description tail must not start a new line at column 0.
-      expect(consoleLogs.some((line) => /^To connect/.test(line))).toBe(false);
+      expect(stdoutLines.some((line) => /^To connect/.test(line))).toBe(false);
 
       // Visible words survive — only the control chars are removed/collapsed.
-      const printed = consoleLogs.join('\n');
+      const printed = stdoutLines.join('\n');
       expect(printed).toContain('Various tools');
       expect(printed).toContain('To connect to the database');
     });
@@ -934,9 +929,9 @@ describe('OutputService', () => {
         const composed = `${colored} normal`;
         output.text(composed);
 
-        expect(consoleLogs[0]).toContain('\x1b[1m');
-        expect(consoleLogs[0]).toContain('#42');
-        expect(consoleLogs[0]).toContain('normal');
+        expect(stdoutLines[0]).toContain('\x1b[1m');
+        expect(stdoutLines[0]).toContain('#42');
+        expect(stdoutLines[0]).toContain('normal');
       } finally {
         chalk.level = originalLevel;
       }
@@ -951,7 +946,7 @@ describe('OutputService', () => {
         const composed = `${chalk.red('safe')}\x1b[2Jevil`;
         output.text(composed);
 
-        const printed = consoleLogs[0]!;
+        const printed = stdoutLines[0]!;
         expect(printed).toContain('\x1b[31m'); // chalk red foreground
         expect(printed).toContain('safe');
         expect(printed).toContain('evil');

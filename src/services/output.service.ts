@@ -70,7 +70,7 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'values', // generic fallback for paginated payloads
 ];
 
-let closedPipeGuardInstalled = false;
+const closedPipeGuarded = new WeakSet<NodeJS.WriteStream>();
 
 // A reader that exits early (`bb repo cat big.bin | head`) closes the pipe
 // mid-write. That is a normal end of output, like `cat` under SIGPIPE, not
@@ -78,16 +78,26 @@ let closedPipeGuardInstalled = false;
 // when stdout is a socketpair, which is what Node/Bun spawn hands a child.
 const CLOSED_READER_CODES = new Set(['EPIPE', 'ENOTCONN']);
 
-function ignoreClosedStdoutPipe(): void {
-  if (closedPipeGuardInstalled) {
+function ignoreClosedPipe(stream: NodeJS.WriteStream): void {
+  if (closedPipeGuarded.has(stream)) {
     return;
   }
-  closedPipeGuardInstalled = true;
-  process.stdout.on('error', (error: NodeJS.ErrnoException) => {
+  closedPipeGuarded.add(stream);
+  stream.on('error', (error: NodeJS.ErrnoException) => {
     if (!CLOSED_READER_CODES.has(error.code ?? '')) {
       throw error;
     }
   });
+}
+
+// All output goes through the stream, never console.*: once anything touches
+// `process.stdout` (a spinner or dependency reading `isTTY` is enough), Bun's
+// console.log writes only what fits in a pipe's 64 KB buffer and silently
+// drops the rest. stream.write() queues the remainder and drains it before
+// the process exits.
+function writeLine(stream: NodeJS.WriteStream, line: string): void {
+  ignoreClosedPipe(stream);
+  stream.write(`${line}\n`);
 }
 
 export class OutputService implements IOutputService {
@@ -160,23 +170,23 @@ export class OutputService implements IOutputService {
     if (jq) {
       const jqOutput = await runJq(result, jq);
       // jq terminates each value with a newline; strip the trailing one so
-      // console.log doesn't double it. Preserve internal newlines between
+      // writeLine doesn't double it. Preserve internal newlines between
       // emitted values.
       const trimmed = jqOutput.endsWith('\n')
         ? jqOutput.slice(0, -1)
         : jqOutput;
       if (trimmed.length > 0) {
-        console.log(trimmed);
+        writeLine(process.stdout, trimmed);
       }
       return;
     }
 
-    console.log(JSON.stringify(result, null, 2));
+    writeLine(process.stdout, JSON.stringify(result, null, 2));
   }
 
   public jsonError(data: unknown): void {
     this.stopActiveSpinner();
-    console.error(JSON.stringify(data));
+    writeLine(process.stderr, JSON.stringify(data));
   }
 
   public table(headers: string[], rows: string[][]): void {
@@ -210,42 +220,45 @@ export class OutputService implements IOutputService {
       .map((header, index) => header.padEnd(widths[index]!))
       .join('  ');
 
-    console.log(this.format(headerRow, chalk.bold));
+    writeLine(process.stdout, this.format(headerRow, chalk.bold));
 
     // Print separator
-    console.log(widths.map((width) => '-'.repeat(width)).join('  '));
+    writeLine(
+      process.stdout,
+      widths.map((width) => '-'.repeat(width)).join('  ')
+    );
 
     // Print rows
     for (const row of sanitizedRows) {
       const formattedRow = row
         .map((cell, index) => cell.padEnd(widths[index]!))
         .join('  ');
-      console.log(formattedRow);
+      writeLine(process.stdout, formattedRow);
     }
   }
 
   public success(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✓', 'OK'), chalk.green);
-    console.log(`${symbol} ${stripControl(message)}`);
+    writeLine(process.stdout, `${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✗', 'ERR'), chalk.red);
-    console.error(`${symbol} ${stripControl(message)}`);
+    writeLine(process.stderr, `${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('⚠', '!!'), chalk.yellow);
-    console.warn(`${symbol} ${stripControl(message)}`);
+    writeLine(process.stderr, `${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
-    console.log(`${symbol} ${stripControl(message)}`);
+    writeLine(process.stdout, `${symbol} ${stripControl(message)}`);
   }
 
   public symbol(unicode: string, ascii: string): string {
@@ -254,17 +267,17 @@ export class OutputService implements IOutputService {
 
   public text(message: string): void {
     this.stopActiveSpinner();
-    console.log(stripControl(message));
+    writeLine(process.stdout, stripControl(message));
   }
 
   public stderr(message: string): void {
     this.stopActiveSpinner();
-    console.error(stripControl(message));
+    writeLine(process.stderr, stripControl(message));
   }
 
   public raw(data: Uint8Array): void {
     this.stopActiveSpinner();
-    ignoreClosedStdoutPipe();
+    ignoreClosedPipe(process.stdout);
     if (process.stdout.isTTY) {
       process.stdout.write(stripControl(new TextDecoder().decode(data)));
       return;
@@ -275,10 +288,13 @@ export class OutputService implements IOutputService {
   public separator(width = 60): void {
     this.stopActiveSpinner();
     if (width <= 0) {
-      console.log('');
+      writeLine(process.stdout, '');
       return;
     }
-    console.log(this.format(this.symbol('─', '-').repeat(width), chalk.gray));
+    writeLine(
+      process.stdout,
+      this.format(this.symbol('─', '-').repeat(width), chalk.gray)
+    );
   }
 
   /**

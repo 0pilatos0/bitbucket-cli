@@ -28,10 +28,10 @@ import { ErrorCode } from '../src/types/errors.js';
 
 let stderr: string[] = [];
 let stdout: string[] = [];
-const originalConsoleError = console.error;
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
 afterAll(() => {
-  console.error = originalConsoleError;
+  process.stderr.write = originalStderrWrite;
 });
 
 // Cases here deliberately set process.exitCode = 1 in-process. Reset after each
@@ -49,9 +49,10 @@ beforeEach(() => {
   // does not apply here — do it ourselves or a failing case leaks into the
   // next one's assertion.
   process.exitCode = 0;
-  console.error = (...args: unknown[]) => {
-    stderr.push(args.map(String).join(' '));
-  };
+  process.stderr.write = ((chunk: unknown) => {
+    stderr.push(String(chunk).replace(/\n$/, ''));
+    return true;
+  }) as typeof process.stderr.write;
   // `outputHelp()` writes through the OWN output configuration of whichever
   // command is printing, and children get theirs at creation time — so
   // configuring only the root would let `bb help pr` escape to real stdout.
