@@ -206,10 +206,10 @@ the message already names the missing resource) and on argument-parsing errors.
 Treat it as optional in scripts.
 
 Argument-parsing failures use the same envelope whenever `--json` or `--jq`
-appears before any `--`. An unknown subcommand or option, a missing argument,
-too many arguments, or a group run without a subcommand returns code 5002 (or
-5001 for a missing value) with `context.parseError`, `context.commandPath` and
-a `hint`:
+appears before any `--`. An unknown subcommand or option, or too many
+arguments, returns code 5002; a missing argument, option value or subcommand
+returns 5001. Both carry `context.parseError`, `context.commandPath` and a
+`hint`:
 
 ```bash
 bb pr bogus --json 2> err.json

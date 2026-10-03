@@ -433,8 +433,9 @@ like any other interrupted command.
 `webhook delete`, ...) ran without `--yes` where it could not ask: a pipe, CI,
 `--json`, or [`--no-input`](/reference/global-flags/#--no-input).
 
-**Solution:** Rerun with `--yes`. `context.retry` holds the exact command,
-with `--yes` added:
+**Solution:** Rerun with `--yes`. `context.retry` holds the command with
+`--yes` added, quoted for POSIX shells on macOS and Linux and for PowerShell on
+Windows (`cmd.exe` is not supported):
 
 ```bash
 bb repo delete acme/old-site --json

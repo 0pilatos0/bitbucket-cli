@@ -231,9 +231,10 @@ output instead: `bb pr list --json | jq '.pullRequests[].title'`.
   Without `--jq`, `--raw-output` exits non-zero with error 8002
   (`--raw-output requires --jq`).
 
-- `--jq` requires `--json`. Using `--jq` alone exits non-zero with error 8002
-  (`--jq requires --json`), reported as a JSON envelope on stderr because
-  `--jq` asked for machine-readable output.
+- `--jq` requires `--json` everywhere except `bb api` (next item). Elsewhere,
+  `--jq` alone exits non-zero with error 8002 (`--jq requires --json`),
+  reported as a JSON envelope on stderr because `--jq` asked for
+  machine-readable output.
 - `bb api` is the exception: its output is already JSON, so `bb api
 /repositories/my-ws --jq '.values[].name'` works without `--json`.
 - jq runs _after_ field projection, so `.` refers to the projected shape; a
@@ -786,7 +787,7 @@ present, the shape is:
 | `5001` VALIDATION_REQUIRED         | `field` (when thrown by `ValidationError`); `parseError`, `commandPath` for a missing argument or option value                                                                                                                                                                              |
 | `5002` VALIDATION_INVALID          | varies; usually `{ key, value }`, the offending option name, or the rejected ID. Argument-parsing errors carry `parseError` (`unknownOption`, `unknownCommand`, `excessArguments`, ...) and `commandPath`                                                                                    |
 | `5003` FILE_NOT_FOUND              | `file` (`snippet create/edit/view`), `bodyFile` (`--body-file` on `pr create/edit`, `pr comments add/reply`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet                                          |
-| `5005` CONFIRMATION_REQUIRED       | `retry`: the exact command to rerun with `--yes`                                                                                                                                                                                                                                            |
+| `5005` CONFIRMATION_REQUIRED       | `retry`: the command to rerun with `--yes`, quoted for `sh` (PowerShell on Windows)                                                                                                                                                                                                                                          |
 | `6001` CONTEXT_REPO_NOT_FOUND      | `reason` (`not_a_git_repo`, `no_remote`, `remote_not_bitbucket`, `ambiguous_remote`, or `unknown`), optional `remoteUrl` or `remotes` (remote names)                                                                                                                                                                                        |
 | `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_                                                                                                                                                                                                                                                                                    |
 | `7001` NETWORK_ERROR               | _(usually none; OAuth revoke failures include `status`, `body`)_                                                                                                                                                                                                                            |

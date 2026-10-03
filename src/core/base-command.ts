@@ -11,6 +11,7 @@ import {
   type PaginatedCollection,
 } from '../services/pagination.js';
 import { DryRunStop, type DryRunRequest } from '../services/dry-run.js';
+import { quotePowerShell } from '../alias.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { didYouMeanSuffix } from './suggest.js';
 import { remediationHintLines } from './error-hints.js';
@@ -74,7 +75,15 @@ export interface RunListSpec<TItem> {
   noun: string;
 }
 
-function shellQuote(arg: string): string {
+/**
+ * Quote for the shell the retry will most likely be pasted into: POSIX `sh`
+ * off Windows, PowerShell on Windows (the shell `!` aliases run under there).
+ * PowerShell needs the narrower bare set: `,` and a leading `@` are syntax.
+ */
+function shellQuote(arg: string, platform: NodeJS.Platform): string {
+  if (platform === 'win32') {
+    return /^[\w./-]+$/.test(arg) ? arg : quotePowerShell(arg);
+  }
   return /^[\w@%+=:,./-]+$/.test(arg)
     ? arg
     : `'${arg.replaceAll("'", `'\\''`)}'`;
@@ -84,13 +93,16 @@ function shellQuote(arg: string): string {
  * The invocation rerun with `--yes`, placed before any `--` so it stays an
  * option rather than becoming a positional argument.
  */
-function retryWithYes(argv: readonly string[]): string {
+export function retryWithYes(
+  argv: readonly string[],
+  platform: NodeJS.Platform = process.platform
+): string {
   const separator = argv.indexOf('--');
   const args =
     separator === -1
       ? [...argv, '--yes']
       : [...argv.slice(0, separator), '--yes', ...argv.slice(separator)];
-  return ['bb', ...args.map(shellQuote)].join(' ');
+  return ['bb', ...args.map((arg) => shellQuote(arg, platform))].join(' ');
 }
 
 export abstract class BaseCommand<
