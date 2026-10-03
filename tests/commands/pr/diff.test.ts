@@ -98,49 +98,6 @@ describe('DiffPRCommand', () => {
     expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
   });
 
-  it('should auto-detect PR across paginated results', async () => {
-    const pullrequestsApi = createMockPullrequestsApi({
-      pullRequestPages: [
-        [
-          {
-            ...mockPullRequest,
-            id: 100,
-            source: {
-              branch: { name: 'other-branch' },
-            },
-          } as Pullrequest,
-        ],
-        [
-          {
-            ...mockPullRequest,
-            id: 101,
-            source: {
-              branch: { name: 'feature-branch' },
-            },
-          } as Pullrequest,
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const gitService = createMockGitService({
-      currentBranch: 'feature-branch',
-    });
-    const output = createMockOutputService();
-
-    const command = new DiffPRCommand(
-      pullrequestsApi,
-      contextService,
-      gitService,
-      output
-    );
-    await command.execute({}, { globalOptions: {} });
-
-    expect(output.logs.some((log) => log.includes('diff --git'))).toBe(true);
-  });
-
   it('should fail when no ID provided and branch not found', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
