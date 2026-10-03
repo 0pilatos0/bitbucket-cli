@@ -91,7 +91,14 @@ bb pr list --json id,title,author.display_name
   "workspace": "myworkspace",
   "repoSlug": "myrepo",
   "state": "OPEN",
-  "filters": { "mine": false },
+  "filters": {
+    "mine": false,
+    "author": null,
+    "reviewer": null,
+    "source": null,
+    "destination": null,
+    "query": null
+  },
   "count": 2,
   "hasMore": false,
   "limit": 25,
@@ -401,7 +408,14 @@ plumbing. They have no `--limit`/`--all`, and so carry no `hasMore` or
   "workspace": "myworkspace",
   "repoSlug": "myrepo",
   "state": "OPEN",
-  "filters": { "mine": true },
+  "filters": {
+    "mine": true,
+    "author": null,
+    "reviewer": "@me",
+    "source": null,
+    "destination": null,
+    "query": null
+  },
   "count": 1,
   "hasMore": false,
   "limit": 25,
@@ -467,6 +481,7 @@ envelope. Read the resource from the named key, not from the root:
 | `webhook view`, `webhook create` | `{ workspace, repoSlug, webhook }` (no `repoSlug` with `--scope workspace`) |
 | `workspace view`                 | `{ workspace }` (the workspace object)                                      |
 | `status set`                     | `{ workspace, repoSlug, commit, status }`                                   |
+| `pr status`                      | `{ workspace, repoSlug, currentBranch, currentBranchPullRequest, createdByYou, reviewRequested }` |
 | `pipeline view`, `pipeline watch` | `{ workspace, repoSlug, pipeline, steps }`                                 |
 | `pipeline run`                   | `{ workspace, repoSlug, pipeline }`                                         |
 | `pipeline logs --step <uuid>`    | `{ workspace, repoSlug, pipelineId, stepUuid, log }`                        |
@@ -481,7 +496,7 @@ a projection wrapper key; see the trap above.
 
 ### Pattern 3: action (approve/merge/decline commands)
 
-Used by: `pr approve`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `webhook delete`, `auth logout`
+Used by: `pr approve`, `pr unapprove`, `pr request-changes`, `pr decline`, `pr merge`, `pr ready`, `pr comments add/edit/delete/reply/resolve/unresolve`, `pr reviewers add/remove`, `webhook delete`, `auth logout`
 
 Returns a success indicator plus resource identifiers:
 
