@@ -850,7 +850,25 @@ describe('ListPRsCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should truncate long titles by default', async () => {
+  it('should show when each pull request was last updated', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [{ ...mockPullRequest, id: 1 }],
+    });
+    const output = createMockOutputService();
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      createMockUsersApi({ uuid: '{user-uuid}' }),
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(output.logs).toContain('table:ID,TITLE,AUTHOR,BRANCHES,UPDATED');
+    expect(getTableRows(output.logs)[0]?.[4]).toBe(mockPullRequest.updated_on);
+  });
+
+  it('should pass long titles whole so the table can fit them', async () => {
     const longTitle = 'A'.repeat(80);
     const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -868,29 +886,6 @@ describe('ListPRsCommand', () => {
       output
     );
     await command.execute({}, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[1]).toBe('A'.repeat(47) + '...');
-  });
-
-  it('should show full titles when noTruncate is set', async () => {
-    const longTitle = 'A'.repeat(80);
-    const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
-    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-
-    const command = new ListPRsCommand(
-      pullrequestsApi,
-      usersApi,
-      contextService,
-      output
-    );
-    await command.execute({}, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[1]).toBe(longTitle);
@@ -1436,7 +1431,7 @@ describe('ActivityPRCommand', () => {
     ).rejects.toThrow(/--id must be a positive integer/);
   });
 
-  it('should truncate long comment activity by default', async () => {
+  it('should pass long comment activity whole so the table can fit it', async () => {
     const longContent = 'D'.repeat(120);
     const pullrequestsApi = createMockPullrequestsApi({
       activityPages: [
@@ -1464,39 +1459,6 @@ describe('ActivityPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[3]).toBe('#99 ' + 'D'.repeat(77) + '...');
-  });
-
-  it('should show full comment activity when noTruncate is set', async () => {
-    const longContent = 'D'.repeat(120);
-    const pullrequestsApi = createMockPullrequestsApi({
-      activityPages: [
-        [
-          {
-            comment: {
-              id: 99,
-              content: { raw: longContent },
-              user: mockUser,
-              created_on: '2024-01-01T00:00:00.000Z',
-            },
-          },
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ActivityPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[3]).toBe('#99 ' + longContent);
@@ -1665,7 +1627,7 @@ describe('ListCommentsPRCommand', () => {
     expect(rows).toHaveLength(2);
   });
 
-  it('should truncate long comment content by default', async () => {
+  it('should pass long comment content whole so the table can fit it', async () => {
     const longContent = 'B'.repeat(120);
     const comments: PullrequestComment[] = [
       {
@@ -1690,36 +1652,6 @@ describe('ListCommentsPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('B'.repeat(57) + '...');
-  });
-
-  it('should show full comment content when noTruncate is set', async () => {
-    const longContent = 'B'.repeat(120);
-    const comments: PullrequestComment[] = [
-      {
-        id: 1,
-        type: 'pullrequest_comment',
-        content: { raw: longContent },
-        user: mockUser,
-        created_on: '2024-01-01T00:00:00.000Z',
-        deleted: false,
-      } as PullrequestComment,
-    ];
-    const pullrequestsApi = createMockPullrequestsApi({ comments });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ListCommentsPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longContent);
@@ -2055,7 +1987,7 @@ describe('ChecksPRCommand', () => {
     ).toBe(true);
   });
 
-  it('should truncate long check descriptions by default', async () => {
+  it('should pass long check descriptions whole so the table can fit them', async () => {
     const longDescription = 'C'.repeat(80);
     const commitStatusesApi = createMockCommitStatusesApi({
       statuses: [
@@ -2081,37 +2013,6 @@ describe('ChecksPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('C'.repeat(37) + '...');
-  });
-
-  it('should show full check descriptions when noTruncate is set', async () => {
-    const longDescription = 'C'.repeat(80);
-    const commitStatusesApi = createMockCommitStatusesApi({
-      statuses: [
-        {
-          type: 'commit_status',
-          key: 'build',
-          name: 'Build',
-          state: 'SUCCESSFUL',
-          description: longDescription,
-          updated_on: '2024-01-01T00:00:00.000Z',
-        },
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ChecksPRCommand(
-      commitStatusesApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longDescription);

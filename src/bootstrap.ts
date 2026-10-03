@@ -176,6 +176,7 @@ import { ApiCommand } from './commands/api.command.js';
 export interface BootstrapOptions {
   noColor?: boolean;
   noUnicode?: boolean;
+  noTruncate?: boolean;
   locale?: string;
 }
 
@@ -261,6 +262,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       new OutputService({
         noColor: options.noColor,
         noUnicode: options.noUnicode,
+        noTruncate: options.noTruncate,
         locale: options.locale,
       })
   );

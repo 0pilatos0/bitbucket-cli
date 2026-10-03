@@ -201,7 +201,8 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
-- The TITLE column is truncated to 50 characters, and the `[DRAFT] ` prefix counts against that budget. Pass `--no-truncate` for full titles; `--json` output is never truncated
+- Columns: ID, TITLE, AUTHOR, BRANCHES, UPDATED. UPDATED is relative on a terminal (`2 hours ago`) and ISO 8601 when piped
+- Long titles and branch names are shortened to fit the terminal width. Pass `--no-truncate` for full titles; `--json` output is never truncated
 
 :::caution[`--mine` does not mean "my PRs"]
 `--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, filter the JSON yourself:
@@ -242,3 +243,7 @@ bb pr view 42 --json --jq '{id, title, state, author: .author.display_name}'
 # Extract just the web URL
 bb pr view 42 --json --jq '.links.html.href'
 ```
+
+### Notes
+
+- On a terminal the output opens in your pager (`less -FRX` unless [`BB_PAGER` or `PAGER`](/reference/environment-variables/#pager) says otherwise). Short output prints and returns straight away
