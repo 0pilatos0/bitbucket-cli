@@ -413,6 +413,18 @@ describe('CLI help text integration', () => {
     expect(output).toContain('BB_LOCALE');
   });
 
+  it('should list the global flags in subcommand help', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const listCmd = prCmd.commands.find((c) => c.name() === 'list')!;
+    const output = captureHelp(listCmd);
+
+    expect(output).toContain('Global Options:');
+    expect(output).toContain('-w, --workspace <workspace>');
+    expect(output).toContain('-r, --repo <repo>');
+    expect(output).toContain('--json [fields]');
+    expect(output).toContain('--no-input');
+  });
+
   it('should include merge strategies and examples in pr merge help', () => {
     const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
     const mergeCmd = prCmd.commands.find((c) => c.name() === 'merge')!;

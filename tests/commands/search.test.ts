@@ -218,6 +218,8 @@ describe('SearchCodeCommand', () => {
       'workspace',
       'query',
       'count',
+      'hasMore',
+      'limit',
       'results',
     ]);
     expect(payload.query).toBe('foo');

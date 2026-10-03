@@ -137,6 +137,8 @@ describe('ListCommitStatusesCommand', () => {
       'repoSlug',
       'commit',
       'count',
+      'hasMore',
+      'limit',
       'statuses',
     ]);
     expect(payload.commit).toBe('abc1234');

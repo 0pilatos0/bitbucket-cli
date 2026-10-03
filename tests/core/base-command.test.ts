@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { BaseCommand } from '../../src/core/base-command.js';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BaseCommand, retryWithYes } from '../../src/core/base-command.js';
 import { createMockOutputService, createMockPromptService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import type { IOutputService } from '../../src/core/interfaces/services.js';
@@ -157,6 +161,10 @@ class TestCommandWithParseHelpers extends BaseCommand<
 
   public callParsePositiveInt(value: string, name: string): number {
     return this.parsePositiveInt(value, name);
+  }
+
+  public callParsePositiveIntArg(value: string, name: string): number {
+    return this.parsePositiveIntArg(value, name);
   }
 
   public callParseEnumOption<T extends string>(
@@ -647,6 +655,22 @@ describe('BaseCommand', () => {
       expect(process.exitCode).toBe(1);
     });
 
+    it('should set the detailed exit code when BB_DETAILED_EXIT_CODES is set', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.BB_DETAILED_EXIT_CODES = '1';
+      process.exitCode = 0;
+      const command = new TestCommandWithBBError(output);
+
+      try {
+        await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+          'Unknown config key'
+        );
+        expect(process.exitCode).toBe(2);
+      } finally {
+        delete process.env.BB_DETAILED_EXIT_CODES;
+      }
+    });
+
     it('should not set process.exitCode when NODE_ENV is test', async () => {
       process.env.NODE_ENV = 'test';
       process.exitCode = 0;
@@ -830,6 +854,29 @@ describe('BaseCommand', () => {
     });
   });
 
+  describe('parsePositiveIntArg', () => {
+    it('returns the integer for a positive value', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      expect(command.callParsePositiveIntArg('42', 'id')).toBe(42);
+    });
+
+    it('names the positional as the usage line does, not as a flag', () => {
+      const command = new TestCommandWithParseHelpers(output);
+
+      try {
+        command.callParsePositiveIntArg('abc', 'pr-id');
+        throw new Error('expected parsePositiveIntArg to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(BBError);
+        expect((error as BBError).message).toStartWith(
+          '<pr-id> must be a positive integer.'
+        );
+        expect((error as BBError).context).toEqual({ 'pr-id': 'abc' });
+      }
+    });
+  });
+
   describe('parsePositiveInt', () => {
     it('returns the integer for a positive value', () => {
       const command = new TestCommandWithParseHelpers(output);
@@ -950,7 +997,7 @@ describe('BaseCommand', () => {
         (e: unknown) => e
       );
       expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect((error as BBError).code).toBe(ErrorCode.CONFIRMATION_REQUIRED);
       expect((error as BBError).message).toBe(
         'This will permanently delete repo/x.\nUse --yes to confirm.'
       );
@@ -994,6 +1041,18 @@ describe('BaseCommand', () => {
       );
     });
 
+    it('puts the rerun command in context.retry', async () => {
+      const command = new TestCommandWithParseHelpers(output);
+      const argv = ['repo', 'delete', 'acme/site', '--json'];
+
+      const error = await command
+        .callRequireConfirmation(false, warning, { globalOptions: {}, argv })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).context).toEqual({
+        retry: retryWithYes(argv),
+      });
+    });
     it('asks with the warning in the question and resolves on yes', async () => {
       const prompt = createMockPromptService([true]);
       const command = new TestCommandWithParseHelpers(output);
@@ -1021,6 +1080,45 @@ describe('BaseCommand', () => {
       expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
       expect((error as BBError).message).toBe('Cancelled.');
     });
+  });
+
+  describe('retryWithYes', () => {
+    const argv = ['repo', 'downloads', 'delete', "it's my file.zip", '--json'];
+
+    it('POSIX-quotes for sh and puts --yes before --', () => {
+      expect(retryWithYes([...argv, '--', 'x'], 'darwin')).toBe(
+        "bb repo downloads delete 'it'\\''s my file.zip' --json --yes -- x"
+      );
+    });
+
+    it('PowerShell-quotes on Windows, including commas', () => {
+      expect(retryWithYes([...argv, '--json=id,name'], 'win32')).toBe(
+        "bb repo downloads delete 'it''s my file.zip' --json '--json=id,name' --yes"
+      );
+    });
+
+    it.skipIf(process.platform !== 'win32' || !Bun.which('pwsh'))(
+      'round-trips through a real PowerShell on Windows',
+      () => {
+        const dir = mkdtempSync(join(tmpdir(), 'bb-retry-'));
+        const script = join(dir, 'args.js');
+        writeFileSync(
+          script,
+          'console.log(JSON.stringify(process.argv.slice(2)))'
+        );
+        const input = [...argv, '--json=id,name', '@me', 'a "b"'];
+        const command = retryWithYes(input, 'win32').replace(
+          /^bb /,
+          `& '${process.execPath}' '${script}' `
+        );
+
+        const result = spawnSync('pwsh', ['-NoProfile', '-Command', command], {
+          encoding: 'utf8',
+        });
+
+        expect(JSON.parse(result.stdout)).toEqual([...input, '--yes']);
+      }
+    );
   });
 
   describe('appendHelpHint command path', () => {
@@ -1105,21 +1203,21 @@ describe('BaseCommand', () => {
       ).toThrow('(Did you mean open?)');
     });
 
-    it('should call out a case-only mismatch instead of echoing the input', () => {
+    it('should match case-insensitively and return the canonical value', () => {
       const command = new TestCommandWithParseHelpers(output);
 
-      let message = '';
-      try {
+      expect(
         command.callParseEnumOption('open', 'state', [
           'OPEN',
           'MERGED',
-        ] as const);
-      } catch (error) {
-        message = (error as Error).message;
-      }
-
-      expect(message).toContain('(Values are case-sensitive — use OPEN.)');
-      expect(message).not.toContain('(Did you mean');
+        ] as const)
+      ).toBe('OPEN');
+      expect(
+        command.callParseEnumOption('Squash', 'strategy', [
+          'merge_commit',
+          'squash',
+        ] as const)
+      ).toBe('squash');
     });
 
     it('should add no second line when nothing is close enough', () => {

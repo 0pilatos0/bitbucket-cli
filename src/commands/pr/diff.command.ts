@@ -66,7 +66,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
 
     const prId =
       options.id !== undefined
-        ? this.parsePositiveInt(options.id, 'id')
+        ? this.parsePositiveIntArg(options.id, 'id')
         : await findPullRequestIdForCurrentBranch(
             this.pullrequestsApi,
             this.gitService,

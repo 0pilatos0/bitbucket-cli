@@ -50,7 +50,7 @@ export class SetCommitStatusCommand extends BaseCommand<
     const sha = this.requireOption(options.sha, 'sha');
     const key = this.requireOption(options.key, 'key');
     const state = this.parseEnumOption(
-      this.requireOption(options.state, 'state').toUpperCase(),
+      this.requireOption(options.state, 'state'),
       'state',
       COMMIT_STATUS_STATES
     ) as CommitstatusStateEnum;
