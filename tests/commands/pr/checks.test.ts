@@ -2,10 +2,14 @@ import { describe, it, expect } from 'bun:test';
 import { ChecksPRCommand } from '../../../src/commands/pr/checks.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
 } from '../../setup.js';
 import { getTableRows } from '../../helpers/output-logs.js';
-import { createMockCommitStatusesApi } from './fakes.js';
+import {
+  createMockCommitStatusesApi,
+  createMockPullrequestsApi,
+} from './fakes.js';
 
 describe('ChecksPRCommand', () => {
   it('should list check statuses for a pull request', async () => {
@@ -37,7 +41,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -57,7 +63,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: { json: true } });
@@ -75,7 +83,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
@@ -109,7 +119,9 @@ describe('ChecksPRCommand', () => {
 
     const command = new ChecksPRCommand(
       commitStatusesApi,
+      createMockPullrequestsApi(),
       contextService,
+      createMockGitService(),
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });

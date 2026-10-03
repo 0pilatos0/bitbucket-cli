@@ -14,14 +14,14 @@ See [Global flags](/reference/global-flags/) for JSON output, workspace/reposito
 Show a pull request activity log.
 
 ```bash
-bb pr activity <id> [options]
+bb pr activity [id] [options]
 ```
 
 ### Arguments
 
-| Argument | Description     |
-| -------- | --------------- |
-| `id`     | Pull request ID |
+| Argument | Description                                                                |
+| -------- | -------------------------------------------------------------------------- |
+| `id`     | Pull request ID (optional, defaults to the open PR for the current branch) |
 
 ### Options
 
@@ -76,14 +76,14 @@ COMMIT    Sam Ali   yesterday    commit a1b2c3d
 Show CI/CD checks and build status for a pull request.
 
 ```bash
-bb pr checks <id> [options]
+bb pr checks [id] [options]
 ```
 
 ### Arguments
 
-| Argument | Description     |
-| -------- | --------------- |
-| `id`     | Pull request ID |
+| Argument | Description                                                                |
+| -------- | -------------------------------------------------------------------------- |
+| `id`     | Pull request ID (optional, defaults to the open PR for the current branch) |
 
 ### Options
 
