@@ -20,7 +20,7 @@ import type {
 } from './core/command-registrar.js';
 import type { CommandContext } from './core/interfaces/commands.js';
 import type {
-  IConfigService,
+  ICredentialStore,
   IOutputService,
   IPromptService,
 } from './core/interfaces/services.js';
@@ -316,6 +316,10 @@ cli
     'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
   )
   .option('-r, --repo <repo>', 'Specify repository')
+  .option(
+    '--account <name>',
+    'Use this saved account for one command (also BB_ACCOUNT; see bb auth switch)'
+  )
   .addHelpText(
     'after',
     buildHelpText({
@@ -326,6 +330,8 @@ cli
       envVars: {
         BB_USERNAME: 'Atlassian account email (fallback for auth login)',
         BB_API_TOKEN: 'Bitbucket API token (fallback for auth login)',
+        BB_ACCOUNT:
+          'Saved account to use (overrides the active account; --account still wins)',
         BB_WORKSPACE:
           'Default workspace (overrides config.defaultWorkspace; --workspace still wins)',
         NO_COLOR: 'Disable color output when set',
@@ -387,15 +393,10 @@ cli
     // this path immediately after install, so it's the right moment to point
     // at the next step.
     try {
-      const configService = container.resolve<IConfigService>(
-        ServiceTokens.ConfigService
+      const credentialStore = container.resolve<ICredentialStore>(
+        ServiceTokens.CredentialStore
       );
-      const config = await configService.getConfig();
-      const hasBasicAuth = Boolean(config.username && config.apiToken);
-      const hasOAuth = Boolean(
-        config.oauthAccessToken && config.oauthRefreshToken
-      );
-      if (!hasBasicAuth && !hasOAuth) {
+      if (!(await credentialStore.hasCredentials())) {
         output.text('');
         output.text(
           `Tip: Run '${output.highlight('bb auth login')}' to get started.`
@@ -414,6 +415,12 @@ cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
   if (actionCommand.opts().dryRun === true) {
     container.resolve<DryRunMode>(ServiceTokens.DryRunMode).enable();
+  }
+  const { account } = cli.opts<{ account?: string }>();
+  if (account !== undefined) {
+    container
+      .resolve<ICredentialStore>(ServiceTokens.CredentialStore)
+      .useAccount(account);
   }
 });
 

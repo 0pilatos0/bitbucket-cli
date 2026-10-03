@@ -3,6 +3,8 @@
  */
 
 export { ConfigService } from './config.service.js';
+export { CredentialStore } from './credential-store.service.js';
+export { KeychainSecretStorage } from './keychain.js';
 export { GitService } from './git.service.js';
 export { ContextService } from './context.service.js';
 export { OutputService } from './output.service.js';

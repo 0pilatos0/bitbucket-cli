@@ -118,10 +118,48 @@ also attempts to revoke the OAuth token.
 It preserves other settings. If revocation fails, local credentials are still
 removed and the command reports `revokeFailed: true` under `--json`.
 
+## Multiple accounts
+
+bb keeps any number of named accounts, for example a work and a personal
+Atlassian login. Your first login is the `default` account, and an existing
+single-account config is read as `default` too, so nothing changes until you
+add a second one:
+
+```bash
+bb auth login --account personal      # add (or re-authenticate) an account
+bb auth switch work                   # change the active account
+bb --account personal pr list         # one command as another account
+BB_ACCOUNT=personal bb pr list        # same, from the environment
+```
+
+`bb auth login` without `--account` re-authenticates the current account, and
+the account you log in to becomes the active one. `bb auth status` shows which
+account is in use and lists the others. Logging out of the active account
+switches to another saved account if there is one.
+
+Account names use letters, digits, `.`, `_`, `-`, `@` and `+`, so an email
+address works as a name.
+
 ## Configuration storage
 
-Credentials are plaintext in `~/.config/bb/config.json` on Linux/macOS, or
-`%APPDATA%\bb\config.json` on Windows.
+By default, credentials are plaintext in `~/.config/bb/config.json` on
+Linux/macOS, or `%APPDATA%\bb\config.json` on Windows.
+
+To keep tokens in the OS keychain instead (macOS Keychain, Windows Credential
+Manager, or libsecret on Linux):
+
+```bash
+bb config set credentialStorage keychain
+```
+
+This moves the tokens of every saved account right away, and later logins and
+OAuth refreshes write there too. The config file keeps only non-secret fields
+such as the account email and token expiry. `bb config set credentialStorage
+file` moves them back. The keychain needs Bun 1.2.21 or newer (the standalone
+binaries include it) and, on Linux, a running secret service such as GNOME
+Keyring. If the keychain is unavailable, bb fails with error `4001`/`4002`
+instead of silently writing plaintext. Keep `file` storage on headless CI
+hosts.
 
 On Linux/macOS, the CLI writes directory mode `700` and file mode `600` and
 rejects group/other access with error `4001`. Windows uses profile permissions

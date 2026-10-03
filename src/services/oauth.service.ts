@@ -4,10 +4,7 @@
 
 import { createServer, type Server } from 'node:http';
 import { createHash, randomBytes } from 'node:crypto';
-import type {
-  IConfigService,
-  ICredentialStore,
-} from '../core/interfaces/services.js';
+import type { ICredentialStore } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { isDebugEnabled } from './http-debug.js';
 
@@ -116,10 +113,7 @@ export class OAuthService {
    */
   private refreshInFlight: Promise<string> | null = null;
 
-  constructor(
-    private readonly configService: IConfigService,
-    private readonly credentialStore: ICredentialStore
-  ) {}
+  constructor(private readonly credentialStore: ICredentialStore) {}
 
   /**
    * Start the OAuth authorization flow: open browser, wait for callback, exchange code for tokens
@@ -149,21 +143,16 @@ export class OAuthService {
       clientSecret
     );
 
-    // Store tokens
+    // Store tokens, plus the custom OAuth consumer if one was provided
     const expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expires_in;
-    await this.credentialStore.setOAuthCredentials({
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      expiresAt,
-    });
-
-    // Store custom OAuth consumer credentials if provided
-    if (clientId) {
-      await this.configService.setValue('oauthClientId', clientId);
-    }
-    if (clientSecret) {
-      await this.configService.setValue('oauthClientSecret', clientSecret);
-    }
+    await this.credentialStore.setOAuthCredentials(
+      {
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token,
+        expiresAt,
+      },
+      { clientId, clientSecret }
+    );
 
     // Verify by fetching user info
     const userInfo = await this.fetchUserInfo(tokenResponse.access_token);
@@ -279,13 +268,13 @@ export class OAuthService {
   }
 
   private async getClientId(): Promise<string> {
-    const customClientId = await this.configService.getValue('oauthClientId');
-    return customClientId ?? DEFAULT_CLIENT_ID;
+    const { clientId } = await this.credentialStore.getOAuthClient();
+    return clientId ?? DEFAULT_CLIENT_ID;
   }
 
   private async getClientSecret(): Promise<string> {
-    const customSecret = await this.configService.getValue('oauthClientSecret');
-    return customSecret ?? DEFAULT_CLIENT_SECRET;
+    const { clientSecret } = await this.credentialStore.getOAuthClient();
+    return clientSecret ?? DEFAULT_CLIENT_SECRET;
   }
 
   private buildAuthUrl(

@@ -158,6 +158,7 @@ export const ServiceTokens = {
   LogoutCommand: 'LogoutCommand',
   StatusCommand: 'StatusCommand',
   TokenCommand: 'TokenCommand',
+  SwitchCommand: 'SwitchCommand',
 
   // Commands - Repo
   CloneCommand: 'CloneCommand',
