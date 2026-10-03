@@ -40,7 +40,6 @@ beforeEach(() => {
 
 afterEach(() => {
   Container.reset();
-  process.exitCode = 0;
   if (originalNodeEnv !== undefined) {
     process.env.NODE_ENV = originalNodeEnv;
   } else {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 import {
   DoctorCommand,
   type DoctorCheck,
@@ -78,10 +78,6 @@ function byId(checks: DoctorCheck[], id: string): DoctorCheck | undefined {
 }
 
 describe('DoctorCommand', () => {
-  beforeEach(() => {
-    process.exitCode = 0;
-  });
-
   it('passes every check when logged in inside a Bitbucket repo', async () => {
     const result = await runJson();
 

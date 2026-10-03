@@ -674,7 +674,6 @@ describe('StatusCommand', () => {
   });
 
   it('should show logged in when credentials valid', async () => {
-    process.exitCode = 0;
     const configService = createMockConfigService({
       username: 'testuser',
       apiToken: 'testpass',
