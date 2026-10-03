@@ -66,6 +66,8 @@ export interface RunListSpec<TItem> {
   tableHeaders: string[];
   /** Maps one item to its table row. */
   mapRow: (item: TItem) => string[];
+  /** Columns that may shrink to fit the terminal; see `TableOptions`. */
+  flexColumns?: number[];
   /** Noun for the "Showing N <noun>..." more-results footer. */
   noun: string;
 }
@@ -100,6 +102,14 @@ export abstract class BaseCommand<
    */
   protected readonly suppressNotFoundHint: boolean = false;
 
+  /**
+   * Send this command's stdout through the user's pager on a terminal. Meant
+   * for long, read-once output such as diffs, logs and PR descriptions.
+   */
+  protected usesPager(_options: TOptions): boolean {
+    return false;
+  }
+
   constructor(protected readonly output: IOutputService) {}
 
   public abstract execute(
@@ -119,13 +129,17 @@ export abstract class BaseCommand<
       json: !!context.globalOptions.json,
       fields: context.globalOptions.jsonFields,
       jq: context.globalOptions.jq,
+      rawOutput: context.globalOptions.rawOutput,
+      lean: context.globalOptions.lean,
     });
 
     try {
       if (context.validationError) {
         throw context.validationError;
       }
-      return await this.execute(options, context);
+      return this.usesPager(options)
+        ? await this.output.withPager(() => this.execute(options, context))
+        : await this.execute(options, context);
     } catch (error) {
       this.handleError(error, context);
       throw error;
@@ -301,7 +315,8 @@ export abstract class BaseCommand<
    * Print a dimmed footer after a list table when the output was capped by
    * `--limit` and more results exist on the server. No-op when nothing was
    * truncated. Callers omit this in JSON mode by returning before rendering
-   * the table (JSON payloads carry their own `count`).
+   * the table (JSON payloads carry their own `count`). Goes to stderr so a
+   * piped table stays pure data.
    */
   protected printMoreHint(
     shown: number,
@@ -309,7 +324,7 @@ export abstract class BaseCommand<
     noun = 'results'
   ): void {
     if (!hasMore) return;
-    this.output.text(
+    this.output.stderr(
       this.output.dim(
         `Showing ${shown} ${noun}. Use --limit <n> or --all to see more.`
       )
@@ -393,7 +408,8 @@ export abstract class BaseCommand<
 
     this.output.table(
       spec.tableHeaders,
-      items.map((item) => spec.mapRow(item))
+      items.map((item) => spec.mapRow(item)),
+      { flexColumns: spec.flexColumns }
     );
     this.printMoreHint(items.length, hasMore, spec.noun);
   }

@@ -51,6 +51,10 @@ export class LogsPipelineCommand extends BaseCommand<
 > {
   public readonly name = 'logs';
   public readonly description = 'Print the log of a pipeline step';
+  // A pager buffers until the command ends, which would hide a live tail.
+  protected override usesPager(options: LogsPipelineOptions): boolean {
+    return !options.follow;
+  }
 
   constructor(
     private readonly pipelinesApi: PipelinesApi,

@@ -156,6 +156,8 @@ describe('createApiClient - OAuth auth', () => {
       expect(err).toBeInstanceOf(BBError);
       expect(err.code).toBe(ErrorCode.AUTH_EXPIRED);
       expect(err.message).toContain('bb auth login');
+      expect(err.cause).toBeInstanceOf(Error);
+      expect(err.cause.message).toBe('Refresh failed');
     }
   });
 
@@ -297,7 +299,7 @@ describe('createApiClient - shared instance concurrency', () => {
       oauthRefreshToken: 'the-refresh-token',
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
-    const oauthService = new OAuthService(configService, configService);
+    const oauthService = new OAuthService(configService);
 
     // OAuthService talks to the token endpoint via global fetch (axios is
     // only used for API calls). Gate the response so the refresh stays

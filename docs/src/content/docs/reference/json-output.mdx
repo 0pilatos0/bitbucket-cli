@@ -8,10 +8,15 @@ import { Aside } from '@astrojs/starlight/components';
 All commands support the global `--json` flag, with optional field selection
 and a built-in `--jq` filter modeled on the [`gh` CLI](https://cli.github.com/manual/gh_help_formatting).
 
-With debug tracing off, `--json` writes command data to stdout and command
-errors to stderr. Update banners and retry notices are suppressed. HTTP debug
-traces share stdout, even with `--json`; leave `BB_DEBUG` and `DEBUG` unset
-when capturing JSON. Parser errors such as unknown flags can still be plain text.
+`--json` writes command data to stdout and command errors to stderr. Update
+banners and retry notices are suppressed. HTTP debug traces from `BB_DEBUG`
+also go to stderr, so stdout stays parseable with tracing on. Parser errors
+such as unknown flags can still be plain text.
+
+JSON is pretty-printed with two-space indentation when stdout is a terminal,
+and compact (one line, no indentation) when stdout is a pipe or a file. The
+data is the same either way; pipe to `jq .` if you want indentation in a
+file. `--jq` results follow the same rule.
 
 ## Quick usage
 
@@ -161,8 +166,11 @@ engine ([jq-wasm](https://www.npmjs.com/package/jq-wasm)); no external `jq`
 binary required, no `bash` pipe to fail on Windows.
 
 ```bash
-# One value per line (strings come out quoted — see the raw-output note below)
+# One value per line (strings come out quoted, see the raw-output note below)
 bb pr list --json --jq '.pullRequests[].title'
+
+# Same, as plain text for the shell
+bb pr list --json --jq '.pullRequests[].title' --raw-output
 
 # Combine with field selection (jq runs after projection)
 bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
@@ -179,9 +187,9 @@ bb pr diff 42 --stat --json --jq '.files[].path'
 # Auth status as a bare boolean
 bb auth status --json --jq '.authenticated'
 
-# Project + format with jq string interpolation (external jq -r for raw TSV)
-bb pr list --json id,title,author.display_name \
-  | jq -r '.[] | "\(.id)\t\(.["author.display_name"])\t\(.title)"'
+# Project + format with jq string interpolation as raw TSV
+bb pr list --json id,title,author.display_name --raw-output \
+  --jq '.[] | "\(.id)\t\(.["author.display_name"])\t\(.title)"'
 
 # Pull request URLs
 bb pr list --json --jq '.pullRequests[].links.html.href'
@@ -200,8 +208,8 @@ output instead: `bb pr list --json | jq '.pullRequests[].title'`.
 
 **Rules:**
 
-- There is no raw-output switch. `--jq` behaves like `jq` **without** `-r`, so
-  string results keep their quotes:
+- By default `--jq` behaves like `jq` **without** `-r`, so string results
+  keep their quotes:
 
   ```bash
   bb pr list --json --jq '.pullRequests[].title'
@@ -209,13 +217,17 @@ output instead: `bb pr list --json | jq '.pullRequests[].title'`.
   # "Fix bug"
   ```
 
-  When a script needs unquoted text, pipe the full JSON to an external `jq -r`:
+  Add `--raw-output` (the built-in equivalent of `jq -r`) when a script needs
+  unquoted text. Objects, arrays, numbers and booleans are unaffected:
 
   ```bash
-  bb pr list --json | jq -r '.pullRequests[].title'
+  bb pr list --json --jq '.pullRequests[].title' --raw-output
   # Add feature
   # Fix bug
   ```
+
+  Without `--jq`, `--raw-output` exits non-zero with error 8002
+  (`--raw-output requires --jq`).
 
 - `--jq` requires `--json`. Using `--jq` alone exits non-zero with `✗ --jq
 requires --json`. That message prints as plain text on stderr, not as a JSON
@@ -232,6 +244,35 @@ requires --json`. That message prints as plain text on stderr, not as a JSON
   The embedded jq is jq 1.8.x. Module imports (`include`, `import`) and
   filesystem-dependent features are not supported.
 </Aside>
+
+## Lean output (`--lean`)
+
+Almost every Bitbucket object carries a `links` map of API, avatar and action
+URLs, and in list output those maps are most of the bytes. `--lean` trims every
+`links` map, at any depth, down to its `html` entry (the web URL) and drops
+maps that have none. Everything else is untouched, so `.links.html.href` keeps
+working:
+
+```bash
+bb pr list --json --lean
+bb pr list --json --lean --jq '.pullRequests[].links.html.href'
+```
+
+```json
+{
+  "id": 42,
+  "title": "Add feature",
+  "author": { "display_name": "Jane Doe", "uuid": "{...}" },
+  "links": {
+    "html": { "href": "https://bitbucket.org/ws/repo/pull-requests/42" }
+  }
+}
+```
+
+`--lean` is opt-in and needs `--json` (except in `bb api`). It runs after
+field projection and before `--jq`, so `--json links --lean` also comes back
+with only `links.html`. Clone URLs (`links.clone`) and other non-web links are
+removed too; leave `--lean` off when you need them.
 
 ## Output patterns
 
@@ -445,11 +486,12 @@ Some action commands include the full resource in the response:
 Two action-style commands do **not** emit `success`; branch on their own key
 instead:
 
-- `auth login` → `{ "authenticated": true, "method": "oauth" | "api_token", "user": {...} }`
+- `auth login` → `{ "authenticated": true, "method": "oauth" | "api_token", "account": "...", "user": {...} }`
 - `pipeline stop` → `{ "workspace": "...", "repoSlug": "...", "pipelineId": "...", "stopped": true }`
 
-(`auth logout` does emit `success`: `{ "authenticated": false, "success": true }`,
-plus `"revokeFailed": true` when the OAuth token could not be revoked.)
+(`auth logout` does emit `success`: `{ "authenticated": false, "success": true, "account": "..." }`,
+plus `"switchedTo"` when another saved account became active and
+`"revokeFailed": true` when the OAuth token could not be revoked.)
 
 ---
 
@@ -484,11 +526,11 @@ writing to a `.patch` file.
 }
 ```
 
-Extract just the diff text in scripts. Use an external `jq -r` here; the
-built-in `--jq` would emit the value as a quoted, escaped JSON string:
+Extract just the diff text in scripts with `--raw-output`; without it,
+`--jq` would emit the value as a quoted, escaped JSON string:
 
 ```bash
-bb pr diff 42 --json | jq -r '.diff' > pr-42.patch
+bb pr diff 42 --json --jq '.diff' --raw-output > pr-42.patch
 ```
 
 #### `bb pr diff 42 --stat --json`
@@ -541,6 +583,8 @@ These commands have unique output shapes:
 ```json
 {
   "authenticated": true,
+  "account": "default",
+  "accounts": ["default"],
   "method": "oauth",
   "user": {
     "username": "myuser",
@@ -553,16 +597,18 @@ These commands have unique output shapes:
 ```
 
 `tokenExpiresAt` (a Unix timestamp in seconds) is present only for OAuth
-credentials. When no credentials are stored the whole payload is:
+credentials. `account` is the account in use and `accounts` lists every saved
+account. When the current account has no credentials the payload is:
 
 ```json
-{ "authenticated": false }
+{ "authenticated": false, "account": "default", "accounts": [] }
 ```
 
-`method` is spelled differently by the two commands. `auth status` reports the
-stored value, `"basic"` or `"oauth"`; `auth login` reports `"api_token"` or
-`"oauth"` for the same credentials. Check `authenticated` first, then compare the command-specific method value.
-An absent method is not proof of API-token authentication.
+`method` is `"api_token"` or `"oauth"`, the same values `auth login --json`
+reports. The config file stores API-token auth as `authMethod: "basic"`, which
+is what `auth status --json` reported in earlier releases. Check
+`authenticated` first, and accept both values if your script must run against
+older versions.
 
 #### `bb auth token --json`
 
@@ -634,7 +680,7 @@ Example:
 ```bash
 bb config get invalidKey --json 2>error.json
 cat error.json
-# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}
+# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol","context":{"key":"invalidKey"}}
 ```
 
 Error JSON fields:

@@ -63,19 +63,12 @@ export class ListWebhooksCommand extends BaseCommand<
         tableHeaders: ['UUID', 'DESCRIPTION', 'URL', 'EVENTS', 'ACTIVE'],
         mapRow: (webhook) => [
           webhook.uuid ?? '',
-          this.truncateText(
-            webhook.description ?? '',
-            40,
-            context.globalOptions
-          ),
+          webhook.description ?? '',
           webhook.url ?? '',
-          this.truncateText(
-            (webhook.events ?? []).join(','),
-            50,
-            context.globalOptions
-          ),
+          (webhook.events ?? []).join(','),
           webhook.active ? 'yes' : 'no',
         ],
+        flexColumns: [1, 3],
         noun: 'webhooks',
       },
       context

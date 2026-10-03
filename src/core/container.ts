@@ -157,6 +157,7 @@ export const ServiceTokens = {
   LogoutCommand: 'LogoutCommand',
   StatusCommand: 'StatusCommand',
   TokenCommand: 'TokenCommand',
+  SwitchCommand: 'SwitchCommand',
 
   // Commands - Repo
   CloneCommand: 'CloneCommand',
@@ -175,6 +176,9 @@ export const ServiceTokens = {
 
   // Services - Default Reviewers
   DefaultReviewerService: 'DefaultReviewerService',
+
+  // Services - User reference resolution (@me, IDs, names, emails)
+  UserResolverService: 'UserResolverService',
 
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: 'UrlBuilderService',
@@ -293,6 +297,7 @@ export const ServiceTokens = {
   // Commands - Completion
   InstallCompletionCommand: 'InstallCompletionCommand',
   UninstallCompletionCommand: 'UninstallCompletionCommand',
+  PrintCompletionCommand: 'PrintCompletionCommand',
 } as const;
 
 export type ServiceToken = (typeof ServiceTokens)[keyof typeof ServiceTokens];

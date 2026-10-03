@@ -34,6 +34,18 @@ class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
   }
 }
 
+class PagedTestCommand extends BaseCommand<Record<string, never>, void> {
+  public readonly name = 'paged';
+  public readonly description = 'Paged test command';
+  protected override usesPager(): boolean {
+    return true;
+  }
+
+  async execute(): Promise<void> {
+    this.output.text('page body');
+  }
+}
+
 class TestCommandWithError extends BaseCommand<{ option?: string }, void> {
   public readonly name = 'test-error';
   public readonly description = 'Test command with error';
@@ -312,6 +324,25 @@ describe('BaseCommand', () => {
   });
 
   describe('run', () => {
+    it('runs commands that use the pager inside withPager', async () => {
+      const calls: string[] = [];
+      const paged: IOutputService = {
+        ...output,
+        withPager: async <T>(run: () => Promise<T>): Promise<T> => {
+          calls.push('pager-start');
+          const result = await run();
+          calls.push('pager-end');
+          return result;
+        },
+        text: (message: string) => calls.push(`text:${message}`),
+      };
+
+      await new PagedTestCommand(paged).run({}, { globalOptions: {} });
+      await new TestCommand(paged).run({}, { globalOptions: {} });
+
+      expect(calls).toEqual(['pager-start', 'text:page body', 'pager-end']);
+    });
+
     it('should return the execute result', async () => {
       const command = new TestCommand(output);
 

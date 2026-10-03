@@ -27,10 +27,18 @@ export type CompileTarget = (typeof COMPILE_TARGETS)[number];
 
 const repoRoot = resolve(import.meta.dir, '..');
 
+export function isWindowsTarget(target: CompileTarget): boolean {
+  return target.startsWith('bun-windows-');
+}
+
+/** Release asset name of the binary, e.g. `bb-linux-x64`. */
+export function assetName(target: CompileTarget): string {
+  const suffix = isWindowsTarget(target) ? '.exe' : '';
+  return `bb-${target.slice('bun-'.length)}${suffix}`;
+}
+
 function defaultOutfile(target: CompileTarget): string {
-  const name = `bb-${target.slice('bun-'.length)}`;
-  const suffix = target.startsWith('bun-windows-') ? '.exe' : '';
-  return resolve(repoRoot, 'dist-bin', `${name}${suffix}`);
+  return resolve(repoRoot, 'dist-bin', assetName(target));
 }
 
 // Bun's default x64 runtime needs AVX2; baseline also runs on older CPUs and
