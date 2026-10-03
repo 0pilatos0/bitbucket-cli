@@ -30,11 +30,15 @@ Every failure carries a numeric `code` in the `--json` error payload
 **Message:** Authentication required
 
 **Cause:** You haven't logged in yet, or your credentials have been cleared.
+`bb auth login` also returns it outside an interactive terminal when no API
+token is given, because browser login needs a person to finish it.
 
 **Solution:**
 
 ```bash
 bb auth login
+# Scripts, CI and agents:
+BB_USERNAME=you@example.com BB_API_TOKEN=... bb auth login
 ```
 
 ### 1002 - AUTH_INVALID
@@ -365,7 +369,7 @@ bb pr list --state open
 **Message:** File not found: `<path>`
 
 **Cause:** A file referenced by an option (`--file` on `bb snippet create`/`edit`,
-`--body-file` on `bb pr edit`, `-F key=@file` or `--input` on
+`--body-file` on `bb pr create`/`edit` or `bb pr comments add`/`reply`, `-F key=@file` or `--input` on
 `bb api`) doesn't exist on disk, or a named file isn't present inside a snippet.
 
 **Solution:**
@@ -376,16 +380,16 @@ bb pr list --state open
 The `context` field carries the offending path, so scripts can tell this apart
 from a generic `VALIDATION_INVALID`. The key depends on the command:
 
-| Key        | Set by                                         |
-| ---------- | ---------------------------------------------- |
-| `file`     | `bb snippet create/edit/view`                  |
-| `bodyFile` | `bb pr edit --body-file` only                  |
-| `path`     | `bb api -F key=@file`, `bb api --input <file>` |
+| Key        | Set by                                                              |
+| ---------- | ------------------------------------------------------------------- |
+| `file`     | `bb snippet create/edit/view`                                       |
+| `bodyFile` | `--body-file` on `bb pr create/edit` and `bb pr comments add/reply` |
+| `path`     | `bb api -F key=@file`, `bb api --input <file>`                      |
 
 `bb snippet view --file` also attaches `available`, the list of filenames the
 snippet actually contains.
 
-`bb pr edit --body-file` only reports `5003` when the read failed with `ENOENT`.
+`--body-file` only reports `5003` when the read failed with `ENOENT`.
 Any other read failure (a permission error, or pointing at a directory) is
 reported as [9999 UNKNOWN](#9999---unknown).
 

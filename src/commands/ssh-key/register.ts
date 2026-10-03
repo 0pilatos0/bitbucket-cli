@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerSshKeyCommands(
   parent: Command,
@@ -35,6 +36,7 @@ export function registerSshKeyCommands(
     .command('add <key-file>')
     .description('Add an SSH public key to your account (- reads stdin)')
     .option('--label <label>', 'Label for the key')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -56,6 +58,7 @@ export function registerSshKeyCommands(
     .command('delete <key-id>')
     .description('Delete an SSH key from your account (key-id is its {uuid})')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

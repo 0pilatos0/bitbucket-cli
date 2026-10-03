@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 import { PR_ID_ARGUMENT_DESCRIPTION } from './shared.js';
 
 export function registerPrCommentsCommands(
@@ -43,17 +44,23 @@ export function registerPrCommentsCommands(
     });
 
   prCommentsCmd
-    .command('add <id> <message>')
+    .command('add <id> [message]')
     .description('Add a comment to a pull request')
+    .option(
+      '-F, --body-file <file>',
+      'Read comment text from file (- for stdin)'
+    )
     .option('--file <path>', 'File path in the diff for inline comment')
     .option('--line-to <number>', 'Line number in the new file version')
     .option('--line-from <number>', 'Line number in the old file version')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
           'bb pr comments add 42 "LGTM"',
           'bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10',
+          'bb pr comments add 42 -F review.md',
         ],
       })
     )
@@ -68,6 +75,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('edit <pr-id> <comment-id> <message>')
     .description('Edit a comment on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -89,6 +97,7 @@ export function registerPrCommentsCommands(
     .command('delete <pr-id> <comment-id>')
     .description('Delete a comment on a pull request')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -125,27 +134,31 @@ export function registerPrCommentsCommands(
     });
 
   prCommentsCmd
-    .command('reply <pr-id> <comment-id> <message>')
+    .command('reply <pr-id> <comment-id> [message]')
     .description('Reply to a comment on a pull request')
+    .option('-F, --body-file <file>', 'Read reply text from file (- for stdin)')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
           'bb pr comments reply 42 12345 "Good catch, fixed."',
           'bb pr comments reply 42 12345 "Fixed in the latest push" --json',
+          'echo "Fixed, thanks" | bb pr comments reply 42 12345 -F -',
         ],
       })
     )
-    .action(async (prId, commentId, message) => {
+    .action(async (prId, commentId, message, options) => {
       await registrar.runWithGlobalOptions(
         ServiceTokens.ReplyCommentPRCommand,
-        { prId, commentId, message }
+        { prId, commentId, message, ...options }
       );
     });
 
   prCommentsCmd
     .command('resolve <pr-id> <comment-id>')
     .description('Resolve a comment thread on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -165,6 +178,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('unresolve <pr-id> <comment-id>')
     .description('Reopen a resolved comment thread on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

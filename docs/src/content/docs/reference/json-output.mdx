@@ -494,6 +494,29 @@ plus `"switchedTo"` when another saved account became active and
 
 ---
 
+### Dry run
+
+Any command run with [`--dry-run`](/reference/global-flags/#--dry-run) prints
+the write request it would have sent instead of its usual JSON, and exits 0:
+
+```json
+{
+  "dryRun": true,
+  "request": {
+    "method": "POST",
+    "url": "https://api.bitbucket.org/2.0/repositories/myworkspace/myrepo/pullrequests/42/merge",
+    "body": {
+      "type": "pullrequest_merge_parameters",
+      "merge_strategy": "squash"
+    }
+  }
+}
+```
+
+`body` is left out when the request has none.
+
+---
+
 ### Pattern 4: mode-based (diff command)
 
 Used by: `pr diff` (with `--stat`, `--web`, `--name-only`, or default diff mode)
@@ -651,6 +674,8 @@ API-token credentials return the base64 of `email:apiToken` (the stored key is n
 ## Scripting notes
 
 - Prefer `--json` in scripts rather than parsing text output.
+- Under `--json`, stdout carries only the JSON document. Status lines such as
+  "Opening browser..." go to stderr.
 - Do not rely on text formatting symbols (`✓`, table separators, colors).
 - Prefer the built-in `--jq` and `--json fields` over external pipes; they
   avoid an extra binary dependency and behave identically across platforms.
@@ -720,7 +745,7 @@ present, the shape is:
 | `4003` CONFIG_INVALID_KEY          | `key`                                                                                                                                                                                                                                                                                       |
 | `5001` VALIDATION_REQUIRED         | `field` (when thrown by `ValidationError`)                                                                                                                                                                                                                                                  |
 | `5002` VALIDATION_INVALID          | varies; usually `{ key, value }`, the offending option name, or the rejected ID                                                                                                                                                                                                             |
-| `5003` FILE_NOT_FOUND              | `file` (`snippet create/edit/view`), `bodyFile` (`pr edit --body-file`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet                                                                               |
+| `5003` FILE_NOT_FOUND              | `file` (`snippet create/edit/view`), `bodyFile` (`--body-file` on `pr create/edit`, `pr comments add/reply`), or `path` (`bb api -F key=@file` / `--input`). `snippet view --file` also attaches `available`, the list of filenames in the snippet                                          |
 | `6001` CONTEXT_REPO_NOT_FOUND      | `reason` (`not_a_git_repo`, `no_remote`, `remote_not_bitbucket`, `ambiguous_remote`, or `unknown`), optional `remoteUrl` or `remotes` (remote names)                                                                                                                                                                                        |
 | `6002` CONTEXT_WORKSPACE_NOT_FOUND | _(none)_                                                                                                                                                                                                                                                                                    |
 | `7001` NETWORK_ERROR               | _(usually none; OAuth revoke failures include `status`, `body`)_                                                                                                                                                                                                                            |

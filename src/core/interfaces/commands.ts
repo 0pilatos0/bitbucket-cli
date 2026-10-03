@@ -33,6 +33,19 @@ export interface CommandContext {
    * behavior.
    */
   prompt?: IPromptService;
+  /**
+   * Set when a human is at an interactive terminal: stdin and stdout are
+   * TTYs, `BB_PROMPT_DISABLED` is unset and `--no-input` was not passed.
+   * Unlike `prompt`, `--json` leaves it set. Gates flows that need a person,
+   * such as completing a browser login.
+   */
+  interactive?: boolean;
+  /**
+   * Set when the command was invoked with `--dry-run`: confirmations are
+   * skipped and the API client stops at the first write request instead of
+   * sending it.
+   */
+  dryRun?: boolean;
 }
 
 /**
