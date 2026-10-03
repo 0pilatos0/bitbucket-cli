@@ -149,10 +149,11 @@ bb api /repositories/my-ws --json name --jq '.[].name'
 - **Authentication is automatic.** The same credentials as the rest of the CLI
   are attached to every request; you cannot (and need not) set `Authorization`
   yourself.
-- **Only the Bitbucket API host is allowed.** Absolute URLs are accepted only
-  when they point at `api.bitbucket.org`. This prevents the CLI from sending
-  your token to a foreign host. Pagination cursors (which are absolute
-  `api.bitbucket.org` URLs) are followed safely.
+- **Absolute endpoints require HTTPS on the Bitbucket API host.** Use
+  `https://api.bitbucket.org/...` without embedded URL credentials. Malformed
+  URLs, protocol-relative paths such as `//host/path`, backslashes and raw
+  control characters are rejected. Pagination cursors follow the same rules.
+  Relative endpoints such as `/user` and `/2.0/user` are still accepted.
 - **`--paginate` degrades instead of erroring.** On a non-`GET`/`HEAD` request
   it prints `--paginate only applies to GET/HEAD requests; ignoring it.` on
   stderr and sends the request unpaginated. If the first response has no
