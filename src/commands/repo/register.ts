@@ -3,6 +3,7 @@ import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { registerRepoDefaultReviewersCommands } from './default-reviewers.register.js';
 import { registerRepoDownloadsCommands } from './downloads.register.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerRepoCommands(
   parent: Command,
@@ -39,6 +40,7 @@ export function registerRepoCommands(
     .option('--private', 'Create a private repository (default)')
     .option('--public', 'Create a public repository')
     .option('-p, --project <project>', 'Project key')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -105,6 +107,7 @@ export function registerRepoCommands(
     .command('delete <repository>')
     .description('Delete a repository')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

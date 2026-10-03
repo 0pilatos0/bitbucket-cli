@@ -206,7 +206,7 @@ describe('LoginCommand', () => {
       oauthService,
       output
     );
-    await command.execute({}, { globalOptions: {} });
+    await command.execute({}, { globalOptions: {}, interactive: true });
 
     expect(output.logs).toContain(
       'success:Logged in as OAuth User (oauthuser)'
@@ -332,9 +332,9 @@ describe('LoginCommand', () => {
       output
     );
 
-    await expect(command.execute({}, { globalOptions: {} })).rejects.toThrow(
-      'OAuth failed'
-    );
+    await expect(
+      command.execute({}, { globalOptions: {}, interactive: true })
+    ).rejects.toThrow('OAuth failed');
   });
 
   it('should output JSON with method field for OAuth login', async () => {
@@ -349,7 +349,10 @@ describe('LoginCommand', () => {
       oauthService,
       output
     );
-    await command.execute({}, { globalOptions: { json: true } });
+    await command.execute(
+      {},
+      { globalOptions: { json: true }, interactive: true }
+    );
 
     const jsonLog = output.logs.find((l) => l.startsWith('json:'));
     expect(jsonLog).toBeDefined();
@@ -526,7 +529,7 @@ describe('LoginCommand', () => {
     );
     await command.execute(
       { clientId: 'my-id', clientSecret: 'my-secret' },
-      { globalOptions: {} }
+      { globalOptions: {}, interactive: true }
     );
 
     expect(receivedClientId).toBe('my-id');

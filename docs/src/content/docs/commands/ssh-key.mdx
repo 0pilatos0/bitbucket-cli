@@ -45,6 +45,12 @@ Add a public key. Pass the `.pub` file, or `-` to read the key from stdin.
 bb ssh-key add <key-file> [--label <label>]
 ```
 
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ### Examples
 
 ```bash
@@ -67,6 +73,12 @@ Delete a key by its UUID (the `UUID` column of `bb ssh-key list`). Without `--ye
 ```bash
 bb ssh-key delete <key-id> --yes
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

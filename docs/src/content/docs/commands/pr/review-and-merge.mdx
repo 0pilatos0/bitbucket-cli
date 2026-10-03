@@ -26,6 +26,7 @@ bb pr merge <id> [options]
 | `-m, --message <message>` | Merge commit message                   |
 | `--close-source-branch`   | Delete the source branch after merging |
 | `--strategy <strategy>`   | Merge strategy (see below)             |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Merge strategies
 
@@ -65,7 +66,7 @@ bb pr merge 42 --json --jq '.pullRequest.merge_commit.hash' | tr -d '"'
 
 ## `bb pr approve`, `bb pr decline`, `bb pr ready`
 
-Each takes a pull request ID and nothing else, no command-specific options, only the global ones.
+Each takes a pull request ID. The only command-specific option is `--dry-run`, which prints the write request instead of sending it ([details](/reference/global-flags/#--dry-run)).
 
 ```bash
 bb pr approve 42   # Approve

@@ -3,6 +3,7 @@ import { ServiceTokens } from '../../core/container.js';
 import {
   collectRepeated,
   withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
 } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
@@ -45,6 +46,7 @@ export function registerPrCommands(
       '--no-default-reviewers',
       "Skip the repository's default reviewers even when prCreateIncludeDefaultReviewers is true"
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -209,6 +211,7 @@ export function registerPrCommands(
     .option('-t, --title <title>', 'New pull request title')
     .option('-b, --body <body>', 'New pull request description')
     .option('-F, --body-file <file>', 'Read description from file')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -238,6 +241,7 @@ export function registerPrCommands(
         MERGE_STRATEGIES
       )
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -265,6 +269,7 @@ export function registerPrCommands(
   prCmd
     .command('approve <id>')
     .description('Approve a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -285,6 +290,7 @@ export function registerPrCommands(
   prCmd
     .command('decline <id>')
     .description('Decline a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -305,6 +311,7 @@ export function registerPrCommands(
   prCmd
     .command('ready <id>')
     .description('Mark a draft pull request as ready for review')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerPrCommentsCommands(
   parent: Command,
@@ -45,6 +46,7 @@ export function registerPrCommentsCommands(
     .option('--file <path>', 'File path in the diff for inline comment')
     .option('--line-to <number>', 'Line number in the new file version')
     .option('--line-from <number>', 'Line number in the old file version')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -65,6 +67,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('edit <pr-id> <comment-id> <message>')
     .description('Edit a comment on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -86,6 +89,7 @@ export function registerPrCommentsCommands(
     .command('delete <pr-id> <comment-id>')
     .description('Delete a comment on a pull request')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -124,6 +128,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('reply <pr-id> <comment-id> <message>')
     .description('Reply to a comment on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -143,6 +148,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('resolve <pr-id> <comment-id>')
     .description('Resolve a comment thread on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -162,6 +168,7 @@ export function registerPrCommentsCommands(
   prCommentsCmd
     .command('unresolve <pr-id> <comment-id>')
     .description('Reopen a resolved comment thread on a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

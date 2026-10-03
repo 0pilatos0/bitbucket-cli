@@ -245,7 +245,13 @@ export class OutputService implements IOutputService {
   public info(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
-    console.log(`${symbol} ${stripControl(message)}`);
+    const line = `${symbol} ${stripControl(message)}`;
+    // In JSON mode stdout carries only the JSON document.
+    if (this.isJsonMode()) {
+      console.error(line);
+    } else {
+      console.log(line);
+    }
   }
 
   public symbol(unicode: string, ascii: string): string {

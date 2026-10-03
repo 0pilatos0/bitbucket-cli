@@ -32,6 +32,7 @@ bb pr create [options]
 | `--reviewer <user>`          | Add a reviewer by account ID or `{uuid}` (repeatable)                  |
 | `--default-reviewers`        | Include the repository's default reviewers (opt-in)                    |
 | `--no-default-reviewers`     | Skip default reviewers even when the config key enables them           |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -111,6 +112,7 @@ bb pr edit [id] [options]
 | `-t, --title <title>`    | New PR title               |
 | `-b, --body <body>`      | New PR description         |
 | `-F, --body-file <file>` | Read description from file |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

@@ -65,6 +65,7 @@ bb snippet comments add <id> [message] [options]
 | Option                 | Description                                            |
 | ---------------------- | ------------------------------------------------------ |
 | `-m, --message <text>` | Comment body (alternative to the positional `message`) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -97,6 +98,12 @@ bb snippet comments edit <snippet-id> <comment-id> <message> [options]
 | `snippet-id` | Snippet encoded ID (e.g. `kypj`)    |
 | `comment-id` | Numeric comment ID (e.g. `123`)     |
 | `message`    | Replacement comment body (Markdown) |
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -132,6 +139,7 @@ bb snippet comments delete <snippet-id> <comment-id> [options]
 | Option      | Description                                                                 |
 | ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

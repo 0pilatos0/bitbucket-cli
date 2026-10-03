@@ -93,6 +93,12 @@ Add a reviewer using an [account ID or UUID](#identifying-users).
 bb pr reviewers add <id> <user>
 ```
 
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ```bash
 # By account ID
 bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
@@ -112,6 +118,12 @@ Remove a reviewer by account ID or UUID. Same `<user>` rules as `add`.
 ```bash
 bb pr reviewers remove <id> <user>
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ```bash
 # By account ID

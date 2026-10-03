@@ -38,7 +38,8 @@ export function registerAuthCommands(
     )
     .addHelpText(
       'before',
-      '\nInteractive: choose OAuth or an API token. Non-interactive default: OAuth.\n' +
+      '\nInteractive: choose OAuth or an API token. Without a terminal, use an API\n' +
+        'token (BB_API_TOKEN, --with-token, or -u with -p); browser login fails with 1001.\n' +
         'For CI/CD: API token via --app-password or BB_API_TOKEN env var.\n' +
         'For headless/secret-safe: pipe the token in with --with-token.\n' +
         'OAuth needs a loopback browser (http://localhost:19872/callback); there\n' +

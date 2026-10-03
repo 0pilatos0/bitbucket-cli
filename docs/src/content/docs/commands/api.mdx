@@ -35,6 +35,7 @@ bb api [options] [method] <endpoint>
 | `-H, --header <key:value>`    | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here.                                                               |
 | `-i, --include`               | Print the HTTP status line and response headers before the body, on success and failure (text mode only, suppressed under `--json`).                             |
 | `--paginate`                  | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only).                                     |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Argument errors
 

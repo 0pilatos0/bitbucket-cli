@@ -13,6 +13,7 @@ import {
   ErrorCode,
   rethrowWithNotFoundContext,
 } from '../../src/types/errors.js';
+import { DryRunStop } from '../../src/services/dry-run.js';
 
 class TestCommand extends BaseCommand<{ option?: string }, { data: string }> {
   public readonly name = 'test';
@@ -318,6 +319,55 @@ describe('BaseCommand', () => {
       const result = await command.run({}, { globalOptions: {} });
 
       expect(result).toEqual({ data: 'test' });
+    });
+
+    it('reports a dry-run stop as the request that was not sent', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({
+          method: 'POST',
+          url: 'https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests/7/decline',
+          body: { reason: 'stale' },
+        })
+      );
+
+      const result = await command.run({}, { globalOptions: {} });
+
+      expect(result).toBeUndefined();
+      expect(output.logs).toEqual([
+        'info:Dry run: this request was not sent.',
+        'text:POST https://api.bitbucket.org/2.0/repositories/ws/repo/pullrequests/7/decline',
+        'text:{\n  "reason": "stale"\n}',
+      ]);
+    });
+
+    it('reports a dry-run stop as JSON in json mode', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({
+          method: 'DELETE',
+          url: 'https://api.bitbucket.org/2.0/repositories/ws/repo',
+        })
+      );
+
+      await command.run({}, { globalOptions: { json: true } });
+
+      expect(output.logs).toEqual([
+        'json:{"dryRun":true,"request":{"method":"DELETE","url":"https://api.bitbucket.org/2.0/repositories/ws/repo"}}',
+      ]);
+    });
+
+    it('reports a dry-run stop as JSON when only --jq is set (bb api)', async () => {
+      const command = new TestCommandThrowing(
+        output,
+        new DryRunStop({ method: 'POST', url: 'https://api.example/x' })
+      );
+
+      await command.run({}, { globalOptions: { jq: '.request.method' } });
+
+      expect(output.logs).toEqual([
+        'json:{"dryRun":true,"request":{"method":"POST","url":"https://api.example/x"}}',
+      ]);
     });
 
     it('should output error and rethrow on failure', async () => {
@@ -883,6 +933,23 @@ describe('BaseCommand', () => {
 
       await command.callRequireConfirmation(true, warning, {
         globalOptions: {},
+        prompt,
+      });
+
+      expect(prompt.calls).toEqual([]);
+    });
+
+    it('resolves without prompting under --dry-run', async () => {
+      const prompt = createMockPromptService();
+      const command = new TestCommandWithParseHelpers(output);
+
+      await command.callRequireConfirmation(undefined, warning, {
+        globalOptions: {},
+        dryRun: true,
+      });
+      await command.callRequireConfirmation(false, warning, {
+        globalOptions: {},
+        dryRun: true,
         prompt,
       });
 

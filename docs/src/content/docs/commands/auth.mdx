@@ -12,9 +12,10 @@ These commands accept the [global flags](/reference/global-flags/).
 bb auth login [options]
 ```
 
-In an interactive terminal, choose OAuth or an API token. Outside a terminal,
-login defaults to OAuth unless token flags or `BB_API_TOKEN` select API-token
-authentication.
+In an interactive terminal, choose OAuth or an API token. Outside one, token
+flags or `BB_API_TOKEN` select API-token authentication, and anything else
+fails fast with [`1001`](/reference/error-codes/#1001---auth_required) instead
+of opening a browser.
 
 The `--username` flag, `BB_USERNAME` variable, and stored `username` key keep
 their existing names for compatibility.
@@ -55,7 +56,9 @@ disabled for pipes, redirected output, `--json`, `--no-input`, or
 combining `--with-token` and `-p` fails with `5002`.
 
 OAuth opens a browser and waits for a callback at
-`http://localhost:19872/callback`. There is no device-code flow. Normal token
+`http://localhost:19872/callback`. It only starts when stdin and stdout are
+terminals and neither `--no-input` nor `BB_PROMPT_DISABLED` is set; `--json`
+alone still allows it, with the "Opening browser" line on stderr. There is no device-code flow. Normal token
 expiry is refreshed automatically; revoked or invalid refresh credentials
 require another login.
 

@@ -4,6 +4,7 @@ import { ServiceTokens } from '../core/container.js';
 import {
   collectRepeated,
   withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
 } from '../core/command-options.js';
 import type { CommandRegistrar } from '../core/command-registrar.js';
 import { HTTP_METHODS } from '../services/api-passthrough.js';
@@ -58,6 +59,7 @@ export function registerApiCommand(
       '--paginate',
       'Follow the cursor (next) and merge every page into a single {"values": [...]} result (GET/HEAD only)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'before',
       '\nEscape hatch for endpoints not yet wrapped by a typed command.\n' +
