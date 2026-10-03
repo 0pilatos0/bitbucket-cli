@@ -11,9 +11,11 @@ import {
   type PaginatedCollection,
 } from '../services/pagination.js';
 import { DryRunStop, type DryRunRequest } from '../services/dry-run.js';
+import { quotePowerShell } from '../alias.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { didYouMeanSuffix } from './suggest.js';
 import { remediationHintLines } from './error-hints.js';
+import { exitCodeForError } from './exit-codes.js';
 
 /**
  * Declarative spec for {@link BaseCommand.runList}. Captures everything that
@@ -73,13 +75,34 @@ export interface RunListSpec<TItem> {
   noun: string;
 }
 
-/** Ctrl+C at a prompt; exits 130 like a SIGINT-terminated process. */
-function isInterrupt(error: unknown): boolean {
-  return (
-    error instanceof BBError &&
-    error.code === ErrorCode.PROMPT_CANCELLED &&
-    error.context?.interrupted === true
-  );
+/**
+ * Quote for the shell the retry will most likely be pasted into: POSIX `sh`
+ * off Windows, PowerShell on Windows (the shell `!` aliases run under there).
+ * PowerShell needs the narrower bare set: `,` and a leading `@` are syntax.
+ */
+function shellQuote(arg: string, platform: NodeJS.Platform): string {
+  if (platform === 'win32') {
+    return /^[\w./-]+$/.test(arg) ? arg : quotePowerShell(arg);
+  }
+  return /^[\w@%+=:,./-]+$/.test(arg)
+    ? arg
+    : `'${arg.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * The invocation rerun with `--yes`, placed before any `--` so it stays an
+ * option rather than becoming a positional argument.
+ */
+export function retryWithYes(
+  argv: readonly string[],
+  platform: NodeJS.Platform = process.platform
+): string {
+  const separator = argv.indexOf('--');
+  const args =
+    separator === -1
+      ? [...argv, '--yes']
+      : [...argv.slice(0, separator), '--yes', ...argv.slice(separator)];
+  return ['bb', ...args.map((arg) => shellQuote(arg, platform))].join(' ');
 }
 
 export abstract class BaseCommand<
@@ -216,7 +239,7 @@ export abstract class BaseCommand<
     // Only set exit code in production - during tests this causes false failures
     // because the exit code persists across test files
     if (process.env.NODE_ENV !== 'test') {
-      process.exitCode = isInterrupt(error) ? 130 : 1;
+      process.exitCode = exitCodeForError(error);
     }
   }
 
@@ -374,6 +397,8 @@ export abstract class BaseCommand<
    * else this throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.
    * `--dry-run` skips the gate because nothing will be changed.
+   * Its `context.retry` is the exact command to rerun, when the raw argv is
+   * known.
    */
   protected async requireConfirmation(
     confirmed: boolean | undefined,
@@ -384,8 +409,9 @@ export abstract class BaseCommand<
 
     if (!context.prompt) {
       throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
+        code: ErrorCode.CONFIRMATION_REQUIRED,
         message: `${warning}\nUse --yes to confirm.`,
+        context: context.argv ? { retry: retryWithYes(context.argv) } : {},
       });
     }
 
@@ -401,7 +427,8 @@ export abstract class BaseCommand<
    * Shared driver for paginated list commands. Runs the common tail of every
    * `bb ... list`-style command: resolve `--limit`/`--all`, collect pages via
    * `collectPagesWithMeta`, then either emit the JSON envelope
-   * (`{ ...jsonMetadata, count, [wrapperKey]: items }`), print the
+   * (`{ ...jsonMetadata, count, hasMore, limit, [wrapperKey]: items }`,
+   * `limit` being `null` for `--all`), print the
    * empty-state message, or render the table followed by the more-results
    * hint. Context resolution and filter construction remain the caller's
    * responsibility — build those first, then delegate here.
@@ -430,6 +457,8 @@ export abstract class BaseCommand<
       await this.output.json({
         ...(spec.jsonMetadata ?? {}),
         count: items.length,
+        hasMore,
+        limit: Number.isFinite(limit) ? limit : null,
         [spec.wrapperKey]: items,
       });
       return;

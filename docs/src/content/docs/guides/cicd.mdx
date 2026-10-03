@@ -324,11 +324,13 @@ reports and diff statistics.
 ## Exit codes and errors
 
 Commands exit `0` on success and `1` on failure. Interrupted interactive prompts
-exit `130`; disable prompts in automation with `--no-input`.
+exit `130`; disable prompts in automation with `--no-input`. Set
+`BB_DETAILED_EXIT_CODES=1` to tell usage (`2`), not found (`3`), authentication
+(`4`) and confirmation required (`5`) apart.
 
-In `--json` mode, successful JSON goes to stdout and command errors go to
-stderr. HTTP traces from `BB_DEBUG` also go to stderr, so stdout stays
-parseable. Argument-parser errors may be plain text even under `--json`.
+In `--json` mode, successful JSON goes to stdout and command errors,
+argument-parsing errors included, go to stderr as JSON. HTTP traces from
+`BB_DEBUG` also go to stderr, so stdout stays parseable.
 
 See [Scripting and automation](/guides/scripting/#error-handling) for an error
 handling example and [Error codes](/reference/error-codes/) for numeric codes.

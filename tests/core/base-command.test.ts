@@ -3,7 +3,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { BaseCommand } from '../../src/core/base-command.js';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BaseCommand, retryWithYes } from '../../src/core/base-command.js';
 import { createMockOutputService, createMockPromptService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import type { IOutputService } from '../../src/core/interfaces/services.js';
@@ -647,6 +651,22 @@ describe('BaseCommand', () => {
       expect(process.exitCode).toBe(1);
     });
 
+    it('should set the detailed exit code when BB_DETAILED_EXIT_CODES is set', async () => {
+      process.env.NODE_ENV = 'production';
+      process.env.BB_DETAILED_EXIT_CODES = '1';
+      process.exitCode = 0;
+      const command = new TestCommandWithBBError(output);
+
+      try {
+        await expect(command.run({}, { globalOptions: {} })).rejects.toThrow(
+          'Unknown config key'
+        );
+        expect(process.exitCode).toBe(2);
+      } finally {
+        delete process.env.BB_DETAILED_EXIT_CODES;
+      }
+    });
+
     it('should not set process.exitCode when NODE_ENV is test', async () => {
       process.env.NODE_ENV = 'test';
       process.exitCode = 0;
@@ -950,7 +970,7 @@ describe('BaseCommand', () => {
         (e: unknown) => e
       );
       expect(error).toBeInstanceOf(BBError);
-      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect((error as BBError).code).toBe(ErrorCode.CONFIRMATION_REQUIRED);
       expect((error as BBError).message).toBe(
         'This will permanently delete repo/x.\nUse --yes to confirm.'
       );
@@ -994,6 +1014,18 @@ describe('BaseCommand', () => {
       );
     });
 
+    it('puts the rerun command in context.retry', async () => {
+      const command = new TestCommandWithParseHelpers(output);
+      const argv = ['repo', 'delete', 'acme/site', '--json'];
+
+      const error = await command
+        .callRequireConfirmation(false, warning, { globalOptions: {}, argv })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).context).toEqual({
+        retry: retryWithYes(argv),
+      });
+    });
     it('asks with the warning in the question and resolves on yes', async () => {
       const prompt = createMockPromptService([true]);
       const command = new TestCommandWithParseHelpers(output);
@@ -1021,6 +1053,45 @@ describe('BaseCommand', () => {
       expect((error as BBError).code).toBe(ErrorCode.PROMPT_CANCELLED);
       expect((error as BBError).message).toBe('Cancelled.');
     });
+  });
+
+  describe('retryWithYes', () => {
+    const argv = ['repo', 'downloads', 'delete', "it's my file.zip", '--json'];
+
+    it('POSIX-quotes for sh and puts --yes before --', () => {
+      expect(retryWithYes([...argv, '--', 'x'], 'darwin')).toBe(
+        "bb repo downloads delete 'it'\\''s my file.zip' --json --yes -- x"
+      );
+    });
+
+    it('PowerShell-quotes on Windows, including commas', () => {
+      expect(retryWithYes([...argv, '--json=id,name'], 'win32')).toBe(
+        "bb repo downloads delete 'it''s my file.zip' --json '--json=id,name' --yes"
+      );
+    });
+
+    it.skipIf(process.platform !== 'win32' || !Bun.which('pwsh'))(
+      'round-trips through a real PowerShell on Windows',
+      () => {
+        const dir = mkdtempSync(join(tmpdir(), 'bb-retry-'));
+        const script = join(dir, 'args.js');
+        writeFileSync(
+          script,
+          'console.log(JSON.stringify(process.argv.slice(2)))'
+        );
+        const input = [...argv, '--json=id,name', '@me', 'a "b"'];
+        const command = retryWithYes(input, 'win32').replace(
+          /^bb /,
+          `& '${process.execPath}' '${script}' `
+        );
+
+        const result = spawnSync('pwsh', ['-NoProfile', '-Command', command], {
+          encoding: 'utf8',
+        });
+
+        expect(JSON.parse(result.stdout)).toEqual([...input, '--yes']);
+      }
+    );
   });
 
   describe('appendHelpHint command path', () => {
