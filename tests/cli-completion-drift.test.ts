@@ -47,6 +47,7 @@ describe('CLI completion drift (issue #255)', () => {
       'gpgKeys',
       'deployments',
       'environments',
+      'checks',
       'values',
     ];
 
@@ -79,6 +80,7 @@ describe('CLI completion drift (issue #255)', () => {
       'gpg-key list': 'gpgKeys',
       'deployment list': 'deployments',
       'deployment environments': 'environments',
+      doctor: 'checks',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {

@@ -132,6 +132,7 @@ export const ServiceTokens = {
   PromptService: 'PromptService',
   OAuthService: 'OAuthService',
   VersionService: 'VersionService',
+  DryRunMode: 'DryRunMode',
 
   // API Clients
   SharedApiAxios: 'SharedApiAxios',
@@ -186,6 +187,7 @@ export const ServiceTokens = {
   // Commands - Top level
   BrowseCommand: 'BrowseCommand',
   ApiCommand: 'ApiCommand',
+  DoctorCommand: 'DoctorCommand',
 
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',

@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerRepoDownloadsCommands(
   parent: Command,
@@ -40,6 +41,7 @@ export function registerRepoDownloadsCommands(
     .description(
       'Upload files as download artifacts (replaces artifacts with the same name)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -60,6 +62,7 @@ export function registerRepoDownloadsCommands(
     .command('delete <filename>')
     .description('Delete a download artifact from a repository')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

@@ -171,3 +171,41 @@ describe('EditPRCommand', () => {
     ).toBe(true);
   });
 });
+
+describe('EditPRCommand --body-file', () => {
+  class StdinEditPRCommand extends EditPRCommand {
+    protected override async readStdin(): Promise<string> {
+      return 'From stdin\n';
+    }
+  }
+
+  const buildCommand = (pullrequestsApi = createMockPullrequestsApi()) => ({
+    pullrequestsApi,
+    command: new StdinEditPRCommand(
+      pullrequestsApi,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockGitService(),
+      createMockOutputService()
+    ),
+  });
+
+  it('reads the description from stdin for -', async () => {
+    const { command, pullrequestsApi } = buildCommand();
+    await command.execute({ id: '1', bodyFile: '-' }, { globalOptions: {} });
+
+    expect(pullrequestsApi.lastPutBody).toEqual({
+      type: 'pullrequest',
+      description: 'From stdin\n',
+    });
+  });
+
+  it('keeps letting --body-file override --body', async () => {
+    const { command, pullrequestsApi } = buildCommand();
+    await command.execute(
+      { id: '1', body: 'inline', bodyFile: '-' },
+      { globalOptions: {} }
+    );
+
+    expect(pullrequestsApi.lastPutBody?.description).toBe('From stdin\n');
+  });
+});

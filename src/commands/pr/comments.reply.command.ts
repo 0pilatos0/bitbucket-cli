@@ -12,13 +12,20 @@ import type {
   PullrequestComment,
   PullrequestsApi,
 } from '../../generated/api.js';
+import { resolveCommentText } from '../../services/body-input.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { rethrowWithNotFoundContext } from '../../types/errors.js';
 
-export interface ReplyCommentPROptions extends GlobalOptions {}
+export interface ReplyCommentPROptions extends GlobalOptions {
+  bodyFile?: string;
+}
 
 export class ReplyCommentPRCommand extends BaseCommand<
-  { prId: string; commentId: string; message: string } & ReplyCommentPROptions,
+  {
+    prId: string;
+    commentId: string;
+    message?: string;
+  } & ReplyCommentPROptions,
   void
 > {
   public readonly name = 'reply';
@@ -36,10 +43,16 @@ export class ReplyCommentPRCommand extends BaseCommand<
     options: {
       prId: string;
       commentId: string;
-      message: string;
+      message?: string;
     } & ReplyCommentPROptions,
     context: CommandContext
   ): Promise<void> {
+    const message = await resolveCommentText(
+      options.message,
+      options.bodyFile,
+      () => this.readStdin()
+    );
+
     const repoContext = await this.contextService.requireRepoContextFor(
       options,
       context
@@ -52,7 +65,7 @@ export class ReplyCommentPRCommand extends BaseCommand<
     // allowed", so send content and the bare parent id only.
     const body = {
       content: {
-        raw: options.message,
+        raw: message,
       },
       parent: {
         id: parentId,
@@ -84,5 +97,9 @@ export class ReplyCommentPRCommand extends BaseCommand<
     }
 
     this.output.success(`Replied to comment #${parentId} on PR #${prId}`);
+  }
+
+  protected async readStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 }

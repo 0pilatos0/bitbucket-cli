@@ -2,7 +2,6 @@
  * Edit PR command implementation
  */
 
-import * as fs from 'node:fs';
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
@@ -11,6 +10,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
+import { readBodyFile } from '../../services/body-input.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 import { findPullRequestIdForCurrentBranch } from './shared.js';
@@ -54,22 +54,11 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
             repoContext
           );
 
-    let body = options.body;
-    if (options.bodyFile) {
-      try {
-        body = fs.readFileSync(options.bodyFile, 'utf-8');
-      } catch (err) {
-        const isNotFound =
-          err instanceof Error &&
-          (err as NodeJS.ErrnoException).code === 'ENOENT';
-        throw new BBError({
-          code: isNotFound ? ErrorCode.FILE_NOT_FOUND : ErrorCode.UNKNOWN,
-          message: `Failed to read file '${options.bodyFile}': ${err instanceof Error ? err.message : 'Unknown error'}`,
-          cause: err instanceof Error ? err : undefined,
-          context: { bodyFile: options.bodyFile },
-        });
-      }
-    }
+    // Unlike create/comments, edit lets --body-file override --body; kept for
+    // existing scripts that pass both.
+    const body = options.bodyFile
+      ? await readBodyFile(options.bodyFile, () => this.readStdin())
+      : options.body;
 
     if (!options.title && !body) {
       throw new BBError({
@@ -118,5 +107,9 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       this.output.text(`  ${this.output.dim('Description:')} ${truncatedDesc}`);
     }
     this.output.text(`  ${this.output.dim('URL:')} ${links?.html?.href}`);
+  }
+
+  protected async readStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 }

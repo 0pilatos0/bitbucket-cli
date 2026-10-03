@@ -14,7 +14,11 @@ Install `bb` and authenticate yourself first. A [standalone binary](/getting-sta
 ```bash
 bb auth login
 bb auth status
+bb doctor
 ```
+
+`bb doctor --json` gives an agent a pass/warn/fail row per check and exits 1
+when something is broken.
 
 Ask your assistant to run `bb --help`, then `bb pr list --all --json`.
 For repeated use, put these instructions in its project rules or skill file:
@@ -28,7 +32,7 @@ Use `bb` for Bitbucket Cloud operations.
 - Use `--json` after the command for structured output. Use `--all` on list
   commands that support it when the task needs every result. Add `--lean` to
   drop link noise, or `--jq <filter> --raw-output` to get plain strings.
-- Workspace and repository come from the origin remote. Pass -w and -r
+- Workspace and repository come from the Bitbucket git remote. Pass -w and -r
   explicitly when operating outside that checkout.
 - Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
   `bb pr comments list <id> --all --unresolved`.
@@ -37,7 +41,11 @@ Use `bb` for Bitbucket Cloud operations.
 - Use `bb api <endpoint>` for operations without a typed command.
 - Follow the user's approval rules before posting comments, approving,
   pushing, merging, or deleting resources.
+- Add `--dry-run` to a write command to show the exact request (method, URL,
+  body) without sending it.
 - Never read, print, or copy credentials. Ask the user to authenticate.
+  Without a terminal, `bb auth login` fails with code 1001 instead of opening
+  a browser.
 ```
 
 <Tabs>
@@ -128,6 +136,16 @@ bb pr comments reply 45 109820 "Capped retries at 3 attempts in a1b2c3d."
 bb pr comments resolve 45 109820
 ```
 
+For multi-line markdown, pass the text on stdin with `-F -` and a quoted
+heredoc, so backticks and `$` reach Bitbucket as written. The same flag works on
+`bb pr create`, `bb pr edit` and `bb pr comments add`:
+
+```bash
+bb pr comments reply 45 109820 -F - <<'EOF'
+Capped retries at 3 attempts in `a1b2c3d`.
+EOF
+```
+
 ### Draft PR workflow
 
 ```bash
@@ -180,6 +198,7 @@ scopes or configure a custom consumer with those scopes. See
 | Issue                         | Solution                                                                                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | "Not authenticated"           | Run `bb auth login`; for tokens, set `BB_USERNAME` to your account email and `BB_API_TOKEN` before login                        |
+| "Browser login needs an interactive terminal" | The agent has no terminal, so OAuth can't finish. Set `BB_USERNAME` and `BB_API_TOKEN`, or run `bb auth login` yourself |
 | Claude doesn't use `bb`       | Restart Claude Code after creating the skill file. Check `/bb-cli` shows in the slash menu                                      |
 | "Could not determine repo"    | Run from a git repo with a Bitbucket remote, or pass `-w`/`-r` flags explicitly                                                 |
 | Skill not auto-activating     | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md                                                    |

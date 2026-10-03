@@ -6,7 +6,6 @@
 
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
-import tabtab from 'tabtab/lib/index.js';
 import systemShell from 'tabtab/lib/utils/systemShell.js';
 import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
@@ -25,6 +24,7 @@ import type {
   IOutputService,
   IPromptService,
 } from './core/interfaces/services.js';
+import type { DryRunMode } from './services/dry-run.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
@@ -178,6 +178,9 @@ export function createContext(
     });
   }
 
+  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  const interactive = opts.input !== false && prompt.isAvailable();
+
   return {
     globalOptions: {
       json: json || undefined,
@@ -193,13 +196,12 @@ export function createContext(
     },
     validationError,
     commandPath: activeCommandPath || undefined,
-    prompt: json || opts.input === false ? undefined : availablePrompt(),
+    dryRun:
+      container.resolve<DryRunMode>(ServiceTokens.DryRunMode).isEnabled() ||
+      undefined,
+    prompt: interactive && !json ? prompt : undefined,
+    interactive: interactive || undefined,
   };
-}
-
-function availablePrompt(): IPromptService | undefined {
-  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
-  return prompt.isAvailable() ? prompt : undefined;
 }
 
 async function runCommand<TOptions, TResult>(
@@ -429,9 +431,13 @@ cli
 
 // Capture the exact path of the command about to run so `createContext` can
 // stamp it onto the context and `BaseCommand.appendHelpHint()` can build an
-// accurate `bb <path> --help` footer. Inherited by every subcommand.
+// accurate `bb <path> --help` footer. Inherited by every subcommand. Also arm
+// dry-run mode here, so the API client and `context.dryRun` share one switch.
 cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
+  if (actionCommand.opts().dryRun === true) {
+    container.resolve<DryRunMode>(ServiceTokens.DryRunMode).enable();
+  }
   const { account } = cli.opts<{ account?: string }>();
   if (account !== undefined) {
     container
@@ -482,8 +488,11 @@ cli.allowExcessArguments();
 // imports `cli` before calling parseAsync), and must come AFTER the command
 // tree is fully built so `generateCompletions` can walk the live `cli` tree.
 // bootstrap() above only registers lazy DI factories — no I/O — so reaching
-// this point stays fast and silent, as shell completion requires.
+// this point stays fast and silent, as shell completion requires. tabtab is
+// imported only here: it touches `process.stdout` at load and slows every
+// other command's startup.
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
+  const { default: tabtab } = await import('tabtab/lib/index.js');
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
     // The scripts from `bb completion <shell>` name their shell; older

@@ -50,6 +50,8 @@ export function createMockPullrequestsApi(
     throwOnGet?: boolean;
     throwOnList?: boolean;
     throwOnCreate?: boolean;
+    /** The branch a created PR targets when the request has no destination. */
+    mainBranch?: string;
     throwOnMerge?: boolean;
     throwOnApprove?: boolean;
     throwOnDecline?: boolean;
@@ -173,7 +175,13 @@ export function createMockPullrequestsApi(
         description: body.description,
         draft: body.draft ?? false,
         source: body.source ?? mockPullRequest.source,
-        destination: body.destination ?? mockPullRequest.destination,
+        destination:
+          body.destination ??
+          (options.mainBranch
+            ? ({
+                branch: { name: options.mainBranch },
+              } as Pullrequest['destination'])
+            : mockPullRequest.destination),
         close_source_branch: body.close_source_branch ?? false,
       };
       return axiosResponse(newPr);
