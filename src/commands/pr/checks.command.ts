@@ -38,7 +38,7 @@ export class ChecksPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId = this.parsePositiveIntArg(options.id, 'id');
 
     const response =
       await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(

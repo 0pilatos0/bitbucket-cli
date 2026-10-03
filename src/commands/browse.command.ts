@@ -141,7 +141,7 @@ export class BrowseCommand extends BaseCommand<BrowseOptions, BrowseResult> {
       if (PR_NUMBER_PATTERN.test(target)) {
         return this.urlBuilder.pullRequest(
           ctx,
-          this.parsePositiveInt(target, 'target')
+          this.parsePositiveIntArg(target, 'target')
         );
       }
       if (SHA_PATTERN.test(target)) {

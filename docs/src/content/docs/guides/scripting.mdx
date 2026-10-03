@@ -185,9 +185,8 @@ optional in scripts.
 Argument-parsing failures are the exception. An unknown option, a missing
 argument, or too many arguments prints a **plain text** usage error to stderr
 and exits 1 even under `--json`, so `jq` cannot parse it. The one parse failure
-that still emits an envelope is an unknown top-level command, `bb bogus --json`
-returns code 5002, while `bb pr bogus --json` prints
-`error: unknown command 'bogus'` as plain text.
+that still emits an envelope is an unknown command: `bb bogus --json` and
+`bb pr bogus --json` both return code 5002.
 
 ---
 

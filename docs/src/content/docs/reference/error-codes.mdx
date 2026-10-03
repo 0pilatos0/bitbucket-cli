@@ -342,14 +342,7 @@ bb config set defaultWorkspce foo
 # (Did you mean defaultWorkspace?)
 ```
 
-Enum values are matched **case-sensitively**, so a value that is right apart
-from its case gets a distinct message rather than a suggestion:
-
-```bash
-bb pr list --state open
-# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
-# (Values are case-sensitive — use OPEN.)
-```
+Enum values ignore case, so `--state open` is accepted as `OPEN`.
 
 ### 5003 - FILE_NOT_FOUND
 

@@ -11,6 +11,7 @@ import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
 import { generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
+import { addGlobalOptions } from './global-options.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
 import type { BaseCommand } from './core/base-command.js';
@@ -27,8 +28,8 @@ import type {
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
-import { buildCommandPath } from './core/command-tree.js';
-import { resolveRootInvocation } from './root-dispatch.js';
+import { buildCommandPath, forEachCommand } from './core/command-tree.js';
+import { resolveRootInvocation, unknownCommandError } from './root-dispatch.js';
 import { resolveLocale } from './services/locale.js';
 
 // Re-exported so `buildCommandPath` keeps its historical import path.
@@ -276,43 +277,34 @@ export async function maybePrintUpdateNotice(
   }
 }
 
+function resolveOutput(): IOutputService {
+  return container.resolve<IOutputService>(ServiceTokens.OutputService);
+}
+
+// Usage errors caught outside BaseCommand.run() (unknown commands): render
+// them like command errors, honouring --json.
+function reportUsageError(error: BBError): void {
+  const output = resolveOutput();
+  const jsonOption = cli.opts().json;
+  if (jsonOption !== undefined && jsonOption !== false) {
+    output.jsonError(error.toJSON());
+  } else {
+    output.error(error.message);
+  }
+  // Unconditional, matching runCommand(). BaseCommand.handleError() guards
+  // on NODE_ENV; this path is driven directly by tests that assert on it.
+  process.exitCode = 1;
+}
+
 // Create CLI
 export const cli = new Command();
 
 cli
   .name('bb')
   .description('A command-line interface for Bitbucket Cloud')
-  .version(pkg.version)
-  .option(
-    '--json [fields]',
-    'Output as JSON; optionally project to a comma-separated field list (e.g. number,title,author.display_name)'
-  )
-  .option(
-    '--jq <expression>',
-    'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
-  )
-  .option('--no-color', 'Disable color output')
-  .option(
-    '--no-unicode',
-    'Use ASCII fallbacks for symbols (separators, arrows, status icons) — also enabled by BB_NO_UNICODE'
-  )
-  .option(
-    '--no-truncate',
-    'Show full values in table output without truncation'
-  )
-  .option(
-    '--no-input',
-    'Never prompt, even in an interactive terminal, except in completion install (also enabled by BB_PROMPT_DISABLED)'
-  )
-  .option(
-    '--locale <locale>',
-    'BCP-47 locale tag for date/time formatting (e.g. de-DE, ja-JP). Falls back to BB_LOCALE, then LC_TIME/LC_ALL/LANG, then en-US.'
-  )
-  .option(
-    '-w, --workspace <workspace>',
-    'Specify workspace (falls back to BB_WORKSPACE, then config defaultWorkspace)'
-  )
-  .option('-r, --repo <repo>', 'Specify repository')
+  .version(pkg.version);
+
+addGlobalOptions(cli)
   .addHelpText(
     'after',
     buildHelpText({
@@ -355,25 +347,15 @@ cli
   .action(async () => {
     // The update-available check runs in the root `postAction` hook so it fires
     // after every command, not just the bare `bb` invocation handled here.
-    const output = container.resolve<IOutputService>(
-      ServiceTokens.OutputService
-    );
+    const output = resolveOutput();
 
-    const jsonOption = cli.opts().json;
     const invocation = resolveRootInvocation(cli, {
       args: cli.args,
-      jsonOption,
+      jsonOption: cli.opts().json,
     });
 
     if (invocation.kind === 'error') {
-      if (jsonOption !== undefined && jsonOption !== false) {
-        output.jsonError(invocation.error.toJSON());
-      } else {
-        output.error(invocation.error.message);
-      }
-      // Unconditional, matching runCommand(). BaseCommand.handleError() guards
-      // on NODE_ENV; this path is driven directly by tests that assert on it.
-      process.exitCode = 1;
+      reportUsageError(invocation.error);
       return;
     }
 
@@ -436,6 +418,33 @@ const registrar: CommandRegistrar = {
 };
 
 registerCommands(cli, registrar);
+
+forEachCommand(cli, (command) => {
+  // Commander's own parse errors (unknown option, missing argument, ...)
+  // would print as `error: ...`; give them the same `✗` prefix as ours.
+  command.configureOutput({
+    outputError: (message) =>
+      resolveOutput().error(message.replace(/^error: /, '').trimEnd()),
+  });
+
+  // A bare group (`bb status`) shows its help and succeeds, like `bb` itself.
+  // Without an action Commander prints that help as an error and exits 1.
+  // Adding one drops Commander's implicit `help` subcommand and its unknown-
+  // subcommand check, so restore the first and handle leftovers ourselves.
+  if (command.parent && command.commands.length > 0) {
+    command
+      .helpCommand(true)
+      .allowExcessArguments()
+      .action(() => {
+        const [token] = command.args;
+        if (token === undefined) {
+          command.outputHelp();
+          return;
+        }
+        reportUsageError(unknownCommandError(token, command));
+      });
+  }
+});
 
 // Let unknown top-level tokens reach the root action (which turns them into a
 // "did you mean" error) instead of Commander's bare "too many arguments".

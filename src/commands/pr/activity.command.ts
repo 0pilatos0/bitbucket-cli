@@ -61,7 +61,7 @@ export class ActivityPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId = this.parsePositiveIntArg(options.id, 'id');
     const filterTypes = this.parseTypeFilter(options.type);
 
     await this.runList<PullrequestActivity>(

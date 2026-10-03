@@ -1027,7 +1027,7 @@ describe('ViewPRCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -1039,7 +1039,7 @@ describe('ViewPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should render "No reviewers assigned" when there are no reviewer participants', async () => {
@@ -1362,7 +1362,7 @@ describe('ActivityPRCommand', () => {
     expect(requestedPages).toEqual([1, 2]);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -1378,7 +1378,7 @@ describe('ActivityPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should truncate long comment activity by default', async () => {
@@ -2535,7 +2535,7 @@ describe('MergePRCommand', () => {
     expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -2547,7 +2547,7 @@ describe('MergePRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should run a spinner labeled with the PR id', async () => {
@@ -4131,7 +4131,7 @@ describe('ResolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -4147,7 +4147,7 @@ describe('ResolveCommentPRCommand', () => {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
       expect((error as BBError).message).toContain(
-        '--comment-id must be a positive integer.'
+        '<comment-id> must be a positive integer.'
       );
     }
   });
@@ -4249,7 +4249,7 @@ describe('UnresolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -4257,7 +4257,7 @@ describe('UnresolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should throw when no repo context available', async () => {
@@ -4412,7 +4412,7 @@ describe('ViewCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should wrap a 404 with a not-found message naming the comment', async () => {
@@ -4737,7 +4737,7 @@ describe('ReplyCommentPRCommand', () => {
         { prId: 'abc', commentId: '7', message: 'Agreed' },
         { globalOptions: {} }
       )
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -4748,7 +4748,7 @@ describe('ReplyCommentPRCommand', () => {
         { prId: '42', commentId: '0', message: 'Agreed' },
         { globalOptions: {} }
       )
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should throw when no repo context available', async () => {

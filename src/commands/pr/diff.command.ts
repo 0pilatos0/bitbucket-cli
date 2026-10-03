@@ -67,7 +67,7 @@ export class DiffPRCommand extends BaseCommand<DiffPROptions, void> {
 
     let prId: number;
     if (options.id) {
-      prId = this.parsePositiveInt(options.id, 'id');
+      prId = this.parsePositiveIntArg(options.id, 'id');
     } else {
       const currentBranch = await this.gitService.getCurrentBranch();
 

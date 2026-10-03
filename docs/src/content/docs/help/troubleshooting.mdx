@@ -407,7 +407,7 @@ bb prr
 # (Did you mean pr?)
 
 bb pr lst
-# error: unknown command 'lst'
+# ✗ unknown command 'lst'
 # (Did you mean list?)
 
 bb pr list --state opne
@@ -415,15 +415,7 @@ bb pr list --state opne
 # (Did you mean OPEN?)
 ```
 
-Option values are matched case-sensitively, so `--state open` (lowercase against
-an uppercase set) tells you to fix the case rather than suggesting the same word
-back:
-
-```bash
-bb pr list --state open
-# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
-# (Values are case-sensitive, use OPEN.)
-```
+Option values ignore case, so `--state open` works the same as `--state OPEN`.
 
 Use `bb help <command>` (or `bb <command> --help`) to see a command's valid
 values.

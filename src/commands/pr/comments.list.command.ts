@@ -50,7 +50,7 @@ export class ListCommentsPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId = this.parsePositiveIntArg(options.id, 'id');
 
     if (options.resolved && options.unresolved) {
       throw new BBError({

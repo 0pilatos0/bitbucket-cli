@@ -127,6 +127,65 @@ describe('unknown top-level command', () => {
   });
 });
 
+describe('group without a subcommand', () => {
+  it('prints the group help and exits 0', async () => {
+    const result = await run(['status']);
+
+    expect(result.stdout).toContain('Usage: bb status');
+    expect(result.stdout).toContain('Commands:');
+    expect(result.stderr).toBe('');
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  it('suggests the closest subcommand for a typo and exits 1', async () => {
+    const result = await run(['pr', 'lsit']);
+
+    expect(result.stderr).toContain("unknown command 'lsit'");
+    expect(result.stderr).toContain('(Did you mean list?)');
+    expect(result.stderr).not.toContain('error:');
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('points a nested group at its own --help', async () => {
+    const result = await run(['pr', 'comments', 'zzzzzzzzzz']);
+
+    expect(result.stderr).toContain("unknown command 'zzzzzzzzzz'");
+    expect(result.stderr).toContain(
+      'Run `bb pr comments --help` to see available commands.'
+    );
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('emits a JSON envelope for a mistyped subcommand under --json', async () => {
+    const result = await run(['pr', 'lsit', '--json']);
+
+    const payload = JSON.parse(result.stderr) as Record<string, unknown>;
+    expect(payload.code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(payload.context).toEqual({ command: 'lsit' });
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('keeps the `help` subcommand', async () => {
+    // Out-of-process: Commander exits the process after printing help.
+    const proc = Bun.spawn(
+      ['bun', 'run', 'src/index.ts', 'pr', 'help', 'list'],
+      {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
+        env: { ...process.env, CI: 'true' },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
+    const [exitCode, helpOutput] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+    ]);
+
+    expect(helpOutput).toContain('Usage: bb pr list');
+    expect(exitCode).toBe(0);
+  });
+});
+
 describe('--json before the subcommand', () => {
   it('explains that --json swallowed the group name', async () => {
     // `--json [fields]` takes an optional value, so it consumes `pr` and
@@ -222,17 +281,23 @@ describe('bare bb', () => {
 });
 
 describe('allowExcessArguments placement', () => {
-  it('applies to the root only, so subcommand arity checks survive', () => {
+  it('applies to the root and groups only, so leaf arity checks survive', () => {
     // `copyInheritedSettings()` would propagate this to commands created with
     // `.command()` if it were called before the tree was built, silently
-    // disabling arity checking on `browse`/`api`. Reaching into a Commander
-    // private is precedented elsewhere in the suite.
-    expect(
-      (cli as unknown as { _allowExcessArguments: boolean })
-        ._allowExcessArguments
-    ).toBe(true);
+    // disabling arity checking on `browse`/`api`. Groups opt in themselves to
+    // report unknown subcommands. Reaching into a Commander private is
+    // precedented elsewhere in the suite.
+    for (const command of [
+      cli,
+      ...cli.commands.filter((c) => c.commands.length),
+    ]) {
+      expect(
+        (command as unknown as { _allowExcessArguments: boolean })
+          ._allowExcessArguments
+      ).toBe(true);
+    }
 
-    for (const name of ['browse', 'api', 'pr', 'auth']) {
+    for (const name of ['browse', 'api']) {
       const command = cli.commands.find((c) => c.name() === name);
       expect(command).toBeDefined();
       expect(
@@ -260,6 +325,28 @@ describe('allowExcessArguments placement', () => {
     ]);
 
     expect(errorOutput).toContain('too many arguments');
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('Commander parse errors', () => {
+  it('use the same prefix as every other error', async () => {
+    // Out-of-process for the same reason as the arity check above.
+    const proc = Bun.spawn(
+      ['bun', 'run', 'src/index.ts', 'pr', 'list', '--bogus', '--no-color'],
+      {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
+        env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
+    const [exitCode, errorOutput] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+
+    expect(errorOutput).toStartWith("✗ unknown option '--bogus'");
     expect(exitCode).toBe(1);
   });
 });

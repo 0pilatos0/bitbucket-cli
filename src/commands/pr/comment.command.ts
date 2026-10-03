@@ -81,7 +81,7 @@ export class CommentPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId = this.parsePositiveIntArg(options.id, 'id');
 
     // Build inline object when --file is provided
     const inline: CommentInline | undefined = options.file
