@@ -12,6 +12,25 @@ Argument-parser errors, such as an unknown option or subcommand, remain plain
 text. Unknown top-level commands can return a JSON validation error.
 Interrupting an interactive prompt with Ctrl+C exits 130.
 
+## Installation
+
+### `bb` fails because `bun` is not found
+
+The npm package runs on [Bun](https://bun.sh), and `npm install -g` or
+`pnpm add -g` does not install it. Without Bun, `bb` stops before it starts.
+The exact error depends on the system:
+
+- macOS: `env: bun: No such file or directory`
+- Linux: `/usr/bin/env: 'bun': No such file or directory`
+- pnpm on macOS or Linux: `exec: bun: not found`
+- Windows: `'bun' is not recognized as an internal or external command`
+
+Install Bun 1.1.30 or newer (see
+[Installation](/getting-started/installation/#package-manager)), open a new
+shell, and check `bun --version`. Or switch to the
+[standalone binary](/getting-started/installation/#standalone-binary), which
+needs no runtime.
+
 ## Authentication
 
 ### Authentication required
