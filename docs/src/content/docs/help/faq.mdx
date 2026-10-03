@@ -38,10 +38,7 @@ No. This is an **unofficial**, community-maintained CLI tool. It is not affiliat
 - **Shell completion** - Bash, Zsh, Fish
 - **Raw API access** - `bb api` passthrough to any Bitbucket Cloud 2.0 endpoint
 
-No typed command yet — use `bb api`:
-
-- Branch permissions
-- Webhooks
+Use `bb api` for other endpoints, such as deploy keys. Run `bb --help` for the current command groups.
 
 ---
 
@@ -59,31 +56,31 @@ If you need Bitbucket Server support, [open an issue](https://github.com/0pilato
 
 Credentials are stored in a local configuration file:
 
-| Platform | Location |
-|----------|----------|
+| Platform    | Location                   |
+| ----------- | -------------------------- |
 | macOS/Linux | `~/.config/bb/config.json` |
-| Windows | `%APPDATA%\bb\config.json` |
+| Windows     | `%APPDATA%\bb\config.json` |
 
 The file is created with restricted permissions (owner read/write only on Unix systems).
 
 <Aside type="caution">
-Never share this file or commit it to version control.
+  Never share this file or commit it to version control.
 </Aside>
 
 ---
 
 ### Can I use app passwords?
 
-**No.** Atlassian disabled all Bitbucket app passwords on June 9, 2026 (see the [deprecation notice](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation)).
+**No.** Atlassian disabled all Bitbucket app passwords on July 28, 2026 (see the [deprecation notice](https://developer.atlassian.com/cloud/bitbucket/changelog/)).
 
 Use **OAuth** (recommended) or **API tokens** instead:
 
 ```bash
-# OAuth (recommended — opens browser)
+# OAuth (recommended, opens browser)
 bb auth login
 
 # API token
-bb auth login -u your-username -p your-api-token
+printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
 ```
 
 ---
@@ -94,50 +91,32 @@ One config file, one active account. Switch by logging in again:
 
 ```bash
 # Switch to account A
-export BB_USERNAME=account-a
+export BB_USERNAME=account-a@example.com
 export BB_API_TOKEN=token-a
 bb auth login
 
 # Later, switch to account B
-export BB_USERNAME=account-b
+export BB_USERNAME=account-b@example.com
 export BB_API_TOKEN=token-b
 bb auth login
 ```
 
-Each login overwrites the credentials in the config file, so parallel shells cannot hold different accounts.
+Each login overwrites the credentials in the shared config file. Environment
+variables are read at login time; changing them does not isolate accounts in
+parallel shells.
 
 ---
 
 ### What scopes does my token need?
 
-**OAuth login requests one fixed set:** `account`, `repository`, `repository:admin`, `pullrequest`, `pullrequest:write`. You cannot change it. That covers auth, repositories, pull requests, branch restrictions, and listing SSH/GPG keys, but **not** `bb repo delete`, `bb pipeline *`, `bb deployment *`, `bb snippet *`, `bb project *`, `bb webhook *`, or `bb ssh-key`/`bb gpg-key` add and delete — for those, log in with an API token carrying the scopes below.
+Use the [token scope reference](/reference/token-scopes/) to select the
+API-token scopes for your commands. For API-token authentication, `BB_USERNAME`
+and `-u` contain your Atlassian account email, not your Bitbucket username.
 
-**API token scopes:**
-
-| Scope | Required for |
-|-------|-------------|
-| `read:user:bitbucket` | `bb auth status`, plus the user lookups in `bb pr list --mine`, `bb pr create --reviewer`, `bb pr reviewers add/remove`, `bb branch-restriction create --user`, and all `bb ssh-key` / `bb gpg-key` subcommands |
-| `read:repository:bitbucket` | `bb repo list`, `bb repo view`, `bb repo ls/cat`, `bb repo downloads list`, `bb commit list/view`, `bb status list`, `bb search code` |
-| `write:repository:bitbucket` | `bb status set`, `bb repo downloads upload/delete` |
-| `admin:repository:bitbucket` | `bb repo create`, `bb repo default-reviewers add/remove`, all `bb branch-restriction` subcommands |
-| `delete:repository:bitbucket` | `bb repo delete` |
-| `read:pullrequest:bitbucket` | `bb pr list`, `bb pr view`, `bb repo default-reviewers list`, all `bb pr comments` subcommands |
-| `write:pullrequest:bitbucket` | `bb pr create`, `bb pr edit`, `bb pr merge`, `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr reviewers add/remove` |
-| `read:pipeline:bitbucket` | `bb pipeline list/view/logs`, all `bb deployment` subcommands |
-| `write:pipeline:bitbucket` | `bb pipeline run`, `bb pipeline stop` |
-| `read:snippet:bitbucket` | `bb snippet list`, `bb snippet view`, all `bb snippet comments` subcommands |
-| `write:snippet:bitbucket` | `bb snippet create/edit/watch/unwatch` |
-| `delete:snippet:bitbucket` | `bb snippet delete` |
-| `read:project:bitbucket` | `bb project list`, `bb project view` |
-| `admin:project:bitbucket` | `bb project create` |
-| `read:workspace:bitbucket` | `bb workspace list`, `bb workspace view` |
-| `read:webhook:bitbucket` | `bb webhook list`, `bb webhook view`, `bb webhook create` |
-| `write:webhook:bitbucket` | `bb webhook create` |
-| `delete:webhook:bitbucket` | `bb webhook delete` |
-| `read:ssh-key:bitbucket` / `write:ssh-key:bitbucket` / `delete:ssh-key:bitbucket` | `bb ssh-key list` / `add` / `delete` (`add` also needs `read`) |
-| `read:gpg-key:bitbucket` / `write:gpg-key:bitbucket` / `delete:gpg-key:bitbucket` | `bb gpg-key list` / `add` / `delete` (`add` also needs `read`) |
-
-See [Token Scopes](/reference/token-scopes/) for the per-command breakdown.
+OAuth grants depend on the consumer's configured scopes. The CLI's requested
+scope list does not limit a custom consumer to that list. See
+[Authentication](/getting-started/authentication/#using-a-custom-oauth-consumer)
+and [Atlassian's OAuth documentation](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/).
 
 ---
 
@@ -148,17 +127,20 @@ See [Token Scopes](/reference/token-scopes/) for the per-command breakdown.
 Don't know your workspace slug? Run `bb workspace list`.
 
 **Option 1:** Set a default
+
 ```bash
 bb config set defaultWorkspace myworkspace
 ```
 
 **Option 2:** Work from a cloned repository
+
 ```bash
 cd /path/to/myrepo
 bb pr list  # workspace and repo come from the git remote
 ```
 
 **Option 3:** Export `BB_WORKSPACE` for a shell session
+
 ```bash
 export BB_WORKSPACE=myworkspace
 ```
@@ -176,7 +158,7 @@ for what is missing when you run them in an interactive terminal:
 
 - Destructive commands (`bb repo delete`, `bb repo default-reviewers remove`, `bb repo downloads delete`, `bb pr comments delete`, `bb snippet delete`, `bb snippet comments delete`, `bb webhook delete`, `bb branch-restriction delete`, `bb ssh-key delete`, `bb gpg-key delete`) ask `Continue? (y/N)` when `-y/--yes` is missing.
 - `bb pr create` asks for the title (and an optional description) when `--title` is missing.
-- `bb auth login` asks whether to use the browser or an API token, and for a missing username or token.
+- `bb auth login` asks whether to use the browser or an API token, and for a missing account email or token.
 
 Scripts and CI are unaffected. Prompts need stdin and stdout to both be terminals, and `--json`, `--no-input` or `BB_PROMPT_DISABLED=1` turn them off.
 
@@ -195,6 +177,7 @@ See [`--no-input`](/reference/global-flags/#--no-input) for the details.
 ### Can I create a PR from uncommitted changes?
 
 No. You must:
+
 1. Commit your changes
 2. Push to a remote branch
 3. Then create the PR
@@ -211,6 +194,7 @@ bb pr create -t "My PR"
 ### How do I see what's in a PR before checking it out?
 
 Use `bb pr diff`:
+
 ```bash
 # View changes
 bb pr diff 42
@@ -231,9 +215,10 @@ bb pr diff 42 --stat
 Yes. See the [CI/CD Integration Guide](/guides/cicd/) for complete examples.
 
 Quick setup:
+
 1. Store credentials as CI/CD secrets
 2. Set `BB_USERNAME` and `BB_API_TOKEN`
-3. Install the CLI and run `bb auth login` — those two variables are read only at login time, so every job needs the login step before any other command
+3. Install the CLI and run `bb auth login`. These variables are read at login time, so each fresh job needs the login step before other commands.
 
 ---
 
@@ -246,7 +231,7 @@ Quick setup:
 bb pr list --json --jq '.pullRequests[].title'
 
 # PR count
-bb pr list --json --jq '.count'
+bb pr list --all --json --jq '.count'
 
 # Filter by author
 bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.display_name) == "alice")'
@@ -258,7 +243,9 @@ bb pr list --json --jq '.pullRequests[] | select((.author.nickname // .author.di
 bb pr list --json id,title --jq '.[] | .title'
 ```
 
-List commands return 25 items by default. Pass `--limit <n>` for a different cap, or `--all` to fetch every page (`--all` overrides `--limit`).
+Paginated list commands generally return 25 items by default. For commands
+that support them, `--limit <n>` changes the cap and `--all` fetches every page.
+See [list-command flags](/reference/global-flags/#list-command-flags).
 
 ---
 
@@ -266,21 +253,32 @@ List commands return 25 items by default. Pass `--limit <n>` for a different cap
 
 Yes. Example pre-push hook that warns when a PR already exists:
 
+This hook uses an external `jq` so the branch name can be passed as data
+without shell interpolation into the filter:
+
 ```bash
 #!/bin/bash
 # .git/hooks/pre-push
+set -euo pipefail
 
 branch=$(git branch --show-current)
-prs=$(bb pr list --json --jq "[.pullRequests[] | select(.source.branch.name == \"$branch\")] | length" 2>/dev/null)
+if [ -z "$branch" ]; then
+  exit 0
+fi
+
+if ! prs=$(BB_DEBUG=off bb pr list --all --json | \
+  jq --arg branch "$branch" '[.pullRequests[] | select(.source.branch.name == $branch)] | length'); then
+  echo "Could not check for an existing PR" >&2
+  exit 1
+fi
 
 if [ "$prs" -gt 0 ]; then
   echo "Note: PR already exists for branch $branch"
 fi
 ```
 
-The branch name is interpolated by the shell, not read from the environment:
-the embedded jq runs in a sandbox where `env` and `$ENV` do not see your shell
-variables.
+`--all` includes PRs beyond the first page. The hook checks the current local
+branch; it does not inspect every ref in a multi-ref push.
 
 ---
 
@@ -312,6 +310,7 @@ See [CONTRIBUTING.md](https://github.com/0pilatos0/bitbucket-cli/blob/main/CONTR
 ### How do I request features?
 
 [Open an issue](https://github.com/0pilatos0/bitbucket-cli/issues/new) with:
+
 - Clear description of the feature
 - Use case / why it's needed
 - Examples of how it would work
@@ -354,6 +353,7 @@ Both settings are stored as typed JSON values, so JSON output returns:
 ### Will update checks slow down the CLI?
 
 No. The check is:
+
 - Performed after the command's own output, on stderr
 - Cached for 24 hours (or your configured interval)
 - Skipped entirely in CI environments

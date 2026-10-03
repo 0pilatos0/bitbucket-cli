@@ -81,7 +81,7 @@ describe('LoginCommand interactive prompts', () => {
 
     expect(prompt.calls).toEqual([
       'select:How would you like to authenticate?',
-      'text:Bitbucket username',
+      'text:Atlassian account email',
       'secret:API token',
     ]);
     expect(oauthCalls()).toBe(0);

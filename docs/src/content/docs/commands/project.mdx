@@ -10,7 +10,7 @@ Project commands run at **workspace** scope; no repository context is required.
 Unlike `bb workspace view` and the repo-scoped commands, they never infer the
 workspace from your git remote. Resolution is `-w/--workspace` → `BB_WORKSPACE`
 → `defaultWorkspace`. With none of those set, `bb project list` fails with
-`No workspace specified.` even inside a Bitbucket checkout — see
+`No workspace specified.` even inside a Bitbucket checkout, see
 [Repository Context](/guides/repository-context/).
 
 All three subcommands are non-interactive and accept the
@@ -29,12 +29,10 @@ bb project list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
+| Option             | Description                              |
+| ------------------ | ---------------------------------------- |
 | `--limit <number>` | Maximum number of projects (default: 25) |
-| `--all` | List all projects (overrides `--limit`) |
-| `--json` | Output as JSON |
+| `--all`            | List all projects (overrides `--limit`)  |
 
 ### Examples
 
@@ -89,16 +87,13 @@ bb project view <key> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `key` | Project key (e.g. `PROJ`; lowercase input is uppercased automatically, so `proj` and `PROJ` resolve the same project) |
+| Argument | Description                                                                                                           |
+| -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `key`    | Project key (e.g. `PROJ`; lowercase input is uppercased automatically, so `proj` and `PROJ` resolve the same project) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `--json` | Output as JSON |
+Only [global flags](/reference/global-flags/) apply.
 
 ### Examples
 
@@ -113,7 +108,7 @@ bb project view PROJ --json --jq '.project.name'
 ### Notes
 
 - An unknown key fails with `Project <KEY> not found in workspace <workspace>.`
-  — exit code 1, and `--json` writes a structured error envelope to stderr.
+  , exit code 1, and `--json` writes a structured error envelope to stderr.
 
 ---
 
@@ -127,15 +122,13 @@ bb project create [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace |
-| `-k, --key <key>` | Project key, e.g. `PROJ` (required; uppercased automatically) |
-| `-n, --name <name>` | Project name (required) |
-| `-d, --description <description>` | Project description |
-| `--private` | Create a private project (default) |
-| `--public` | Create a public project |
-| `--json` | Output as JSON |
+| Option                            | Description                                                   |
+| --------------------------------- | ------------------------------------------------------------- |
+| `-k, --key <key>`                 | Project key, e.g. `PROJ` (required; uppercased automatically) |
+| `-n, --name <name>`               | Project name (required)                                       |
+| `-d, --description <description>` | Project description                                           |
+| `--private`                       | Create a private project (default)                            |
+| `--public`                        | Create a public project                                       |
 
 ### Examples
 
@@ -161,7 +154,7 @@ bb project create -k PROJ -n "My Project" --json --jq '.project.key'
 
 ### Related
 
-- [Workspace Commands](/commands/workspace/) — find the workspace slug these
+- [Workspace Commands](/commands/workspace/), find the workspace slug these
   commands need.
-- [Repository Context](/guides/repository-context/) — how the CLI resolves
+- [Repository Context](/guides/repository-context/), how the CLI resolves
   workspace and repository.

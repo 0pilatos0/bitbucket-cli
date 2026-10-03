@@ -44,12 +44,14 @@ UUID                                    ENVIRONMENT  STATUS      RELEASE  COMMIT
 ### Notes
 
 - Bitbucket's deployment payloads reference environments by UUID only, so the
-  table view makes one extra call to the environments endpoint to show names.
+  table view fetches all environment pages to show names. If that lookup fails,
+  it falls back to UUIDs.
   `--json` skips that call and returns the deployments exactly as the API
-  sends them (`environment` carries just the `uuid`).
+  sends them (`environment` is not enriched by the CLI).
 - `STATUS` is the completed result (`SUCCESSFUL`, `FAILED`, `STOPPED`) when
   there is one, otherwise the state (`IN_PROGRESS`, `UNDEPLOYED`).
-- `DATE` is when the deployment completed, else when it started.
+- `DATE` is when the deployment completed, else when it started, else the
+  release creation time.
 - Rows come in the order Bitbucket returns them: the deployments endpoint
   documents no sort order and takes no sort parameter. On a repository with
   more than 25 deployments, pass `--all` (or a higher `--limit`) before

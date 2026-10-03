@@ -15,7 +15,7 @@ const siteTitle = 'Bitbucket CLI';
 const fullTitle = pageTitle === siteTitle ? siteTitle : `${pageTitle} | ${siteTitle}`;
 
 // Ensure we have a description
-const metaDescription = description || (entry?.data?.description) || 'A powerful command-line interface for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows — all from your terminal.';
+const metaDescription = description || (entry?.data?.description) || 'A command-line interface for Bitbucket Cloud. Clone repositories, manage pull requests, and automate workflows from your terminal.';
 
 // Dedupe <title> on the home page: Starlight suffixes the site name
 // ("Bitbucket CLI | Bitbucket CLI") — collapse that back to the site title.
@@ -83,7 +83,7 @@ if (routeHead) {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     "name": "Bitbucket CLI",
-    "description": "A powerful command-line interface for Bitbucket Cloud",
+    "description": "A command-line interface for Bitbucket Cloud",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "macOS, Linux, Windows",
     "offers": {

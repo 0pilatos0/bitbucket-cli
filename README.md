@@ -126,7 +126,7 @@ bb api /user                           # any Bitbucket API endpoint
 | [`api`](https://bitbucket-cli.paulvanderlei.com/commands/api/)                                                                                                                                                                                                                           | Authenticated request to any Bitbucket Cloud 2.0 endpoint                     |
 | [`auth`](https://bitbucket-cli.paulvanderlei.com/commands/auth/), [`config`](https://bitbucket-cli.paulvanderlei.com/commands/config/), [`alias`](https://bitbucket-cli.paulvanderlei.com/commands/alias/), [`completion`](https://bitbucket-cli.paulvanderlei.com/commands/completion/) | Login, settings, command shortcuts, shell completion                          |
 
-Every command takes `-w/--workspace` and `-r/--repo` to point somewhere other than the current checkout. Run `bb help <command>` for flags and examples, or see [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
+Use `-w/--workspace` and `-r/--repo` to select the target for commands that need workspace or repository context. Run `bb help <command>` for flags and examples, or see [Global Flags](https://bitbucket-cli.paulvanderlei.com/reference/global-flags/).
 
 ---
 
@@ -145,22 +145,24 @@ bb pr list --json --jq '.pullRequests[] | select(.author.display_name == "Ada Lo
 build=$(bb pipeline run --branch main --json --jq '.pipeline.build_number')
 ```
 
-Commands never prompt when stdin or stdout is not a terminal, in CI, with `--json`, or with `--no-input`. See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/), the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) and [CI/CD](https://bitbucket-cli.paulvanderlei.com/guides/cicd/).
+Command prompts are disabled when stdin or stdout is not a terminal, with `--json`, or with `--no-input`. The completion installer has its own interactive prompts. See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/), the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) and [CI/CD](https://bitbucket-cli.paulvanderlei.com/guides/cicd/).
 
 ---
 
 ## Authentication
 
-- **OAuth (default)**: `bb auth login` opens your browser. Tokens refresh automatically. It needs a browser that can reach `localhost`, so it doesn't work over SSH or in containers.
+Interactive login lets you choose OAuth or an API token. API-token login uses your Atlassian account email, even though the flag is named `--username` and the environment variable is `BB_USERNAME`.
+
+- **OAuth (default)**: `bb auth login` opens your browser. Tokens refresh automatically. The browser must reach the callback on this machine. Use API-token login on headless hosts.
 - **API token** (CI and headless hosts): create one in your [Bitbucket settings](https://bitbucket.org/account/settings/api-tokens/), then:
 
   ```bash
-  echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+  printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
   ```
 
-OAuth doesn't cover `pipeline`, `deployment`, `snippet`, `project`, `repo delete` or adding and deleting keys. Use an API token for those; see [Token Scopes](https://bitbucket-cli.paulvanderlei.com/reference/token-scopes/).
+OAuth permissions come from the consumer configured in Bitbucket. For workflows that need other permissions, use a scoped API token or a custom consumer; see [Token Scopes](https://bitbucket-cli.paulvanderlei.com/reference/token-scopes/).
 
-Bitbucket app passwords [stopped working on June 9, 2026](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation). If you still log in with one, switch to OAuth or an API token.
+Bitbucket app passwords [stopped working on July 28, 2026](https://developer.atlassian.com/cloud/bitbucket/changelog/). If you still log in with one, switch to OAuth or an API token.
 
 More: [Authentication](https://bitbucket-cli.paulvanderlei.com/getting-started/authentication/).
 

@@ -107,7 +107,7 @@ export function registerPipelineCommands(
           'bb pipeline run',
           'bb pipeline run --branch main',
           'bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false',
-          "bb pipeline run --branch main --json --jq '.build_number'",
+          "bb pipeline run --branch main --json --jq '.pipeline.build_number'",
         ],
         defaults: { branch: 'current git branch' },
       })

@@ -115,13 +115,13 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
     const username =
       options.username ||
       process.env.BB_USERNAME ||
-      (await prompt?.text('Bitbucket username', { required: true }));
+      (await prompt?.text('Atlassian account email', { required: true }));
 
     if (!username) {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
         message:
-          'Username is required. Use --username option or set BB_USERNAME environment variable.',
+          'Atlassian account email is required. Use --username option or set BB_USERNAME environment variable.',
       });
     }
 
@@ -194,7 +194,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       throw new BBError({
         code: ErrorCode.VALIDATION_REQUIRED,
         message:
-          'No API token found on stdin. Pipe a token, e.g. `echo "$BB_API_TOKEN" | bb auth login -u <username> --with-token`.',
+          'No API token found on stdin. Pipe a token, e.g. `echo "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token`.',
       });
     }
 
@@ -216,7 +216,7 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
       if (error.statusCode === 401 || error.statusCode === 403) {
         return new BBError({
           code: ErrorCode.AUTH_INVALID,
-          message: `Invalid username or token: ${detail}. Verify your Bitbucket username and that the API token is current and has the required scopes.`,
+          message: `Invalid email or token: ${detail}. Verify your Atlassian account email and that the API token is current and has the required scopes.`,
           cause: error,
         });
       }

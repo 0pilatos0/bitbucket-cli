@@ -30,8 +30,9 @@ const REMEDIATION_HINTS: Record<number, readonly string[]> = {
     'Your Bitbucket credentials were rejected. Run `bb auth login` to re-authenticate.',
   ],
   403: [
-    "Your token may be missing a required scope. Scopes can't be added to an " +
-      'existing token — mint a new one, then run `bb auth login`.',
+    'Your token may be missing a required scope, or your account may lack permission. ' +
+      'For API tokens, create a token with the required scopes. For OAuth, check ' +
+      'consumer permissions, then run `bb auth login`.',
     `Docs: ${DOCS_BASE_URL}/reference/token-scopes/`,
   ],
   404: [

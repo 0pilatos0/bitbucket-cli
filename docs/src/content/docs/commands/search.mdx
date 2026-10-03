@@ -17,6 +17,7 @@ on can depend on your Bitbucket plan.
 
 Atlassian has also marked the code search endpoint as deprecated from
 November 1, 2026. It may stop working after that date.
+
 </Aside>
 
 `bb search code` is non-interactive and accepts the
@@ -35,19 +36,17 @@ bb search code <query...> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `query` | Search query. Multiple words are joined with spaces and searched as separate terms; for an exact phrase, keep the double quotes in the query (`'"def main"'`). Supports Bitbucket's search modifiers such as `lang:`, `ext:`, `path:` and `repo:` |
+| Argument | Description                                                                                                                                                                                                                                       |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `query`  | Search query. Multiple words are joined with spaces and searched as separate terms; for an exact phrase, keep the double quotes in the query (`'"def main"'`). Supports Bitbucket's search modifiers such as `lang:`, `ext:`, `path:` and `repo:` |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace to search |
-| `-r, --repo <repo>` | Only search this repository (adds `repo:<repo>` to the query) |
-| `--limit <number>` | Maximum number of results (default: 25) |
-| `--all` | List all results (overrides `--limit`) |
-| `--json` | Output as JSON |
+| Option              | Description                                                      |
+| ------------------- | ---------------------------------------------------------------- |
+| `-r, --repo <repo>` | Only search this repository by adding `repo:<repo>` to the query |
+| `--limit <number>`  | Maximum number of results (default: 25)                          |
+| `--all`             | List all results (overrides `--limit`)                           |
 
 The workspace comes from `-w/--workspace`, then the current repository's
 Bitbucket remote, then `BB_WORKSPACE`, then `defaultWorkspace`. The search

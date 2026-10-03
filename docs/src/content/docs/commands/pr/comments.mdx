@@ -10,34 +10,26 @@ sidebar:
 
 Manage pull request comments.
 
-Global options available on all PR commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `-w, --workspace`, `-r, --repo`.
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
-Every `bb pr comments` subcommand accepts those globals. They work the same everywhere, so the per-command examples below leave them out:
-
-```bash
-# Target a repository other than the one you are standing in
-bb pr comments list 42 -w myworkspace -r myrepo
-
-# Machine-readable output
-bb pr comments list 42 --json
-```
-
-`view`, `edit`, `reply`, `resolve`, and `unresolve` have no options of their own — only the globals.
+`<id>` and `<pr-id>` identify the pull request. `<comment-id>` identifies a
+comment; find it with `bb pr comments list <id>`. `view`, `edit`, `reply`,
+`resolve`, and `unresolve` take only [global flags](/reference/global-flags/).
 
 ## `bb pr comments`
 
 ### Subcommands
 
-| Subcommand | Description |
-|------------|-------------|
-| `list <id>` | List comments on a pull request |
-| `add <id> <message>` | Add a comment to a pull request |
-| `view <pr-id> <comment-id>` | View a single comment on a pull request |
-| `edit <pr-id> <comment-id> <message>` | Edit a comment on a pull request |
-| `reply <pr-id> <comment-id> <message>` | Reply to a comment on a pull request |
-| `resolve <pr-id> <comment-id>` | Resolve a comment thread on a pull request |
-| `unresolve <pr-id> <comment-id>` | Reopen a resolved comment thread on a pull request |
-| `delete <pr-id> <comment-id>` | Delete a comment on a pull request |
+| Subcommand                             | Description                                        |
+| -------------------------------------- | -------------------------------------------------- |
+| `list <id>`                            | List comments on a pull request                    |
+| `add <id> <message>`                   | Add a comment to a pull request                    |
+| `view <pr-id> <comment-id>`            | View a single comment on a pull request            |
+| `edit <pr-id> <comment-id> <message>`  | Edit a comment on a pull request                   |
+| `reply <pr-id> <comment-id> <message>` | Reply to a comment on a pull request               |
+| `resolve <pr-id> <comment-id>`         | Resolve a comment thread on a pull request         |
+| `unresolve <pr-id> <comment-id>`       | Reopen a resolved comment thread on a pull request |
+| `delete <pr-id> <comment-id>`          | Delete a comment on a pull request                 |
 
 ---
 
@@ -51,19 +43,17 @@ bb pr comments list <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option | Description | Default |
-|---------|-------------|---------|
-| `--limit <number>` | Maximum number of comments | `25` |
-| `--all` | List all comments (overrides `--limit`) | |
-| `--resolved` | Only show resolved comments | |
-| `--unresolved` | Only show unresolved comments | |
-| `--no-truncate` | Global flag. Show full comment content without truncation | |
+| Option             | Description                                               | Default |
+| ------------------ | --------------------------------------------------------- | ------- |
+| `--limit <number>` | Maximum number of comments                                | `25`    |
+| `--all`            | List all comments (overrides `--limit`)                   |         |
+| `--resolved`       | Only show resolved comments                               |         |
+| `--unresolved`     | Only show unresolved comments                             |         |
+| `--no-truncate`    | Global flag. Show full comment content without truncation |         |
 
 ### Examples
 
@@ -99,7 +89,7 @@ ID         Author    Content                          Status    Date
 - Comment content is truncated to 60 characters in the table view. Use `--no-truncate` for the full text
 - The `Status` column shows `resolved`, `pending`, or `open`. Bitbucket records resolution on the comment that was resolved, so a reply inside a resolved thread shows `open` (or `pending` if it is an unpublished draft)
 - `--resolved` and `--unresolved` filter on the same resolution state and cannot be combined
-- With `--resolved`/`--unresolved` the filter is applied client-side after each page is fetched, so `--limit` counts comments that survive the filter — `--unresolved --limit 25` keeps fetching pages until 25 unresolved comments are found or the list is exhausted
+- With `--resolved`/`--unresolved` the filter is applied client-side after each page is fetched, so `--limit` counts comments that survive the filter, `--unresolved --limit 25` keeps fetching pages until 25 unresolved comments are found or the list is exhausted
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`)
 
 ---
@@ -114,18 +104,15 @@ bb pr comments add <id> <message> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Pull request ID |
-| `message` | Comment message |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option | Description |
-|---------|-------------|
-| `--file <path>` | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
-| `--line-to <number>` | Line number in the new version of the file (requires `--file`) |
-| `--line-from <number>` | Line number in the old version of the file (requires `--file`) |
+| Option                 | Description                                                                 |
+| ---------------------- | --------------------------------------------------------------------------- |
+| `--file <path>`        | File path for an inline comment (requires `--line-to` and/or `--line-from`) |
+| `--line-to <number>`   | Line number in the new version of the file (requires `--file`)              |
+| `--line-from <number>` | Line number in the old version of the file (requires `--file`)              |
 
 ### Examples
 
@@ -161,10 +148,7 @@ bb pr comments view <pr-id> <comment-id>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | Comment ID |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Examples
 
@@ -192,11 +176,7 @@ bb pr comments edit <pr-id> <comment-id> <message>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | Comment ID |
-| `message` | New comment message |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Examples
 
@@ -217,11 +197,7 @@ bb pr comments reply <pr-id> <comment-id> <message>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | ID of the comment to reply to |
-| `message` | Reply message |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Examples
 
@@ -247,10 +223,7 @@ bb pr comments resolve <pr-id> <comment-id>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | Comment ID |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Examples
 
@@ -262,7 +235,7 @@ bb pr comments resolve 42 486512301
 ### Notes
 
 - Resolving is reversible with `bb pr comments unresolve`
-- `--json` returns `{ success, pullRequestId, commentId, resolution }`; the API returns the resolution record, not the full comment — use `bb pr comments view` to read the comment back
+- `--json` returns `{ success, pullRequestId, commentId, resolution }`; the API returns the resolution record, not the full comment, use `bb pr comments view` to read the comment back
 
 ---
 
@@ -276,10 +249,7 @@ bb pr comments unresolve <pr-id> <comment-id>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | Comment ID |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Examples
 
@@ -304,15 +274,12 @@ bb pr comments delete <pr-id> <comment-id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `pr-id` | Pull request ID |
-| `comment-id` | Comment ID |
+Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option | Description |
-|---------|-------------|
+| Option      | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples

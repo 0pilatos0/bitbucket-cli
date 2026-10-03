@@ -1,18 +1,15 @@
 ---
-title: API Command — Raw Authenticated Bitbucket API Access
-description: Call any Bitbucket Cloud 2.0 API endpoint through the CLI's authenticated stack — the escape hatch for endpoints not yet wrapped by a typed command. Mirrors gh api.
+title: API command - Raw authenticated requests
+description: Call any Bitbucket Cloud 2.0 API endpoint through the CLI's authenticated stack, the escape hatch for endpoints not yet wrapped by a typed command. Mirrors gh api.
 ---
 
-`bb api` sends an authenticated request to any Bitbucket Cloud 2.0 endpoint
-through the same stack as every other command: Basic/Bearer auth, automatic
-OAuth token refresh, rate-limit and transient-error retries, and secret
-redaction. Same shape as `gh api`.
+`bb api` calls Bitbucket Cloud 2.0 endpoints using your configured credentials,
+OAuth refresh, and the CLI's retry settings. Use it for endpoints without a
+typed command.
 
-Every global flag is inherited — see [Global Flags](/reference/global-flags/).
-The ones that matter here are `--json [fields]`, `--jq <expression>`,
-`-w/--workspace`, `-r/--repo`, and `--no-color`/`--no-unicode`, which style the
-error and `--paginate` warning lines. `--no-truncate` and `--locale` change
-nothing: `bb api` prints no tables and no dates.
+See [Global flags](/reference/global-flags/) for output and context options.
+`--no-truncate` and `--locale` have no effect because this command prints no
+tables or dates.
 
 ## `bb api`
 
@@ -22,45 +19,36 @@ bb api [options] [method] <endpoint>
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `method` | Optional HTTP verb (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`), case-insensitive. When omitted, defaults to `GET`, or `POST` when fields/body are present. Both `bb api GET /user` and `bb api /user` work. |
+| Argument   | Description                                                                                                                                                                                                                                                                                                                         |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `method`   | Optional HTTP verb (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`), case-insensitive. When omitted, defaults to `GET`, or `POST` when fields/body are present. Both `bb api GET /user` and `bb api /user` work.                                                                                                        |
 | `endpoint` | The API path, relative to `https://api.bitbucket.org/2.0` (a leading `/` is optional). A redundant leading `/2.0` is stripped, so paths copied straight out of the Bitbucket REST docs (`/2.0/user`) work unchanged. `{workspace}` and `{repo}` placeholders are substituted from `--workspace`/`--repo` or the current repository. |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-X, --method <method>` | HTTP method. Overrides a positional verb. |
-| `-f, --raw-field <key=value>` | Add a string parameter. Query param on `GET`/`HEAD`, JSON body field otherwise. Repeatable. |
-| `-F, --field <key=value>` | Add a typed parameter: `true`/`false`/`null` and numbers are converted; `@file` reads a file and `@-` reads stdin. Repeatable. |
-| `--input <file>` | Read the raw request body from a file, or `-` for stdin. Sent as `application/json` (override with `-H 'Content-Type: ...'`). Mutually exclusive with `-f`/`-F`. |
-| `-H, --header <key:value>` | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here. |
-| `-i, --include` | Print the HTTP status line and response headers before the body, on success and failure (text mode only — suppressed under `--json`). |
-| `--paginate` | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only). |
+| Option                        | Description                                                                                                                                                      |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-X, --method <method>`       | HTTP method. Overrides a positional verb.                                                                                                                        |
+| `-f, --raw-field <key=value>` | Add a string parameter. Query param on `GET`/`HEAD`, JSON body field otherwise. Repeatable.                                                                      |
+| `-F, --field <key=value>`     | Add a typed parameter: `true`/`false`/`null` and numbers are converted; `@file` reads a file and `@-` reads stdin. Repeatable.                                   |
+| `--input <file>`              | Read the raw request body from a file, or `-` for stdin. Sent as `application/json` (override with `-H 'Content-Type: ...'`). Mutually exclusive with `-f`/`-F`. |
+| `-H, --header <key:value>`    | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here.                                                               |
+| `-i, --include`               | Print the HTTP status line and response headers before the body, on success and failure (text mode only, suppressed under `--json`).                             |
+| `--paginate`                  | Follow the cursor (`next`) across pages and merge every page into a single `{ "values": [...] }` result (`GET`/`HEAD` only).                                     |
 
 ### Argument errors
 
-Positionals are strict: at most two, and with two the first must be an HTTP
-verb. Every case below exits `1` without sending a request.
+Put bare `--json` after the endpoint. Its optional field-list argument can
+otherwise consume the HTTP verb or endpoint.
 
-```text
-$ bb api
-✗ An endpoint path is required (e.g. /user). Run `bb api --help` for usage.
+At most two positional arguments are accepted. With two, the first must be an
+HTTP verb. Missing endpoints and invalid verbs fail before sending a request.
 
-$ bb api GET
-✗ An endpoint path is required after the method (e.g. bb api GET /user). Run `bb api --help` for usage.
-
-$ bb api GTE /user
-✗ 'GTE' is not a valid HTTP method. Expected one of: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS. Run `bb api --help` for usage.
-(Did you mean GET?)
-
-$ bb api -X GTE /user
-✗ --method must be one of: GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
-(Did you mean GET?)
-
-$ bb api GET /user /extra
-error: too many arguments for 'api'. Expected 2 arguments but got 3: GET, /user, /extra.
+```bash
+bb api                # missing endpoint
+bb api GET            # missing endpoint after method
+bb api GTE /user      # invalid method
+bb api GET /user /extra # too many arguments
 ```
 
 ### Examples
@@ -99,10 +87,12 @@ bb api -i /user
 
 ### How fields are sent
 
-- **`GET` / `HEAD`** — `-f`/`-F` are appended as a URL query string
+- **`GET` / `HEAD`**, `-f`/`-F` are appended as a URL query string
   (`?key=value&...`).
-- **Every other method** — `-f`/`-F` are assembled into a JSON request body.
-- Repeating the same key turns it into an array, matching `gh`.
+- **Every other method**, `-f`/`-F` are assembled into a JSON request body.
+- Repeating the same key turns it into an array.
+- Field keys are literal. `-f target.commit=abc1234` does not create a nested
+  `target` object. Use `--input` for nested JSON.
 
 ### Placeholders
 
@@ -144,7 +134,7 @@ else a bare `--jq` fails with `✗ --jq requires --json`.
 On a paginated endpoint, `--json <fields>` unwraps the `values` array and drops
 the envelope (`pagelen`, `size`, `next`), returning a bare array of projected
 objects. Projection runs before `--jq`, so once you pass `--json <fields>` the
-expression sees that flat array — use `.[]`, not `.values[]`.
+expression sees that flat array, use `.[]`, not `.values[]`.
 
 ```bash
 # Envelope intact
@@ -166,7 +156,7 @@ bb api /repositories/my-ws --json name --jq '.[].name'
 - **`--paginate` degrades instead of erroring.** On a non-`GET`/`HEAD` request
   it prints `--paginate only applies to GET/HEAD requests; ignoring it.` on
   stderr and sends the request unpaginated. If the first response has no
-  `values` array — a single resource rather than a collection — it prints
+  `values` array, a single resource rather than a collection, it prints
   `--paginate: response has no "values" array; returning the first page only.`
   and returns page 1. Both warnings are suppressed under `--json`. Combined
   with `-i`, the status line and headers printed are the first page's.
@@ -178,27 +168,28 @@ bb api /repositories/my-ws --json name --jq '.[].name'
   object is emitted on stderr carrying `statusCode`, `response` (the body),
   `headers`, and `statusText` when the transport provides one. A `401` or `403`
   also carries a `hint` with the next step to take. The generic `404` hint is
-  deliberately suppressed here — you supplied the URL yourself, so advice about
+  deliberately suppressed here, you supplied the URL yourself, so advice about
   `--workspace`/`--repo` would not apply. Unlike success output, error bodies
   are **not** field-projected or `--jq`-filtered.
 
 ```bash
 # The failing request's status line, headers and body all land on stderr
-bb api -i POST /repositories/my-ws/my-repo/pullrequests/42/decline
+bb api GET /repositories/my-ws/no-such-repository -i
 
 # Structured error (status + headers + body) for scripts
-bb api --json POST /repositories/my-ws/my-repo/pullrequests/42/decline 2> err.json
+bb api GET /repositories/my-ws/no-such-repository --json 2> err.json
 jq '.statusCode, .response, .headers' err.json
 ```
-- **Retries and redaction are inherited** from the shared API client — rate
+
+- **Retries and redaction are inherited** from the shared API client, rate
   limits (`429`) and the transient gateway errors `502`/`503`/`504` are retried
   with backoff, and sensitive values are redacted from `BB_DEBUG` traces.
 
 ### Related
 
-- [Scripting & Automation](/guides/scripting/) — combine `bb api` with `--jq`
+- [Scripting & Automation](/guides/scripting/), combine `bb api` with `--jq`
   to build pipelines over endpoints without a typed command.
-- [JSON Output](/reference/json-output/) — how `--json` projection and `--jq`
+- [JSON Output](/reference/json-output/), how `--json` projection and `--jq`
   filtering work across the CLI.
-- [Authentication](/getting-started/authentication/) — the auth methods that
+- [Authentication](/getting-started/authentication/), the auth methods that
   `bb api` reuses.

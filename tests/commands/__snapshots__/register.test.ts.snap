@@ -37,22 +37,23 @@ exports[`command tree snapshot bb auth login 1`] = `
   },
   "help": 
 "
-Default: OAuth (browser-based, recommended).
+Interactive: choose OAuth or an API token. Non-interactive default: OAuth.
 For CI/CD: API token via --app-password or BB_API_TOKEN env var.
 For headless/secret-safe: pipe the token in with --with-token.
 OAuth needs a loopback browser (http://localhost:19872/callback); there
 is no device-code flow, so use token auth on headless hosts.
-Note: Bitbucket app passwords are deprecated; use OAuth or an API token.
+Note: Bitbucket app passwords are retired; use OAuth or an API token.
 
 Usage: bb auth login [options]
 
 Authenticate with Bitbucket (OAuth or API token)
 
 Options:
-  -u, --username <username>       Bitbucket username (implies API token auth)
+  -u, --username <username>       Atlassian account email (implies API token
+                                  auth)
   -p, --password <password>       Bitbucket API token (implies API token auth)
   --app-password                  Use API token authentication (instead of
-                                  OAuth). App passwords are deprecated; use API
+                                  OAuth). App passwords are retired; use API
                                   tokens.
   --with-token                    Read the API token from stdin (keeps it out of
                                   shell history and process args)
@@ -62,13 +63,13 @@ Options:
 
 Examples:
   $ bb auth login
-  $ bb auth login --app-password -u myuser -p mytoken
-  $ echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
-  $ bb auth login --client-id <id>
-  $ BB_USERNAME=myuser BB_API_TOKEN=mytoken bb auth login
+  $ bb auth login -u you@example.com --with-token < token.txt
+  $ printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
+  $ bb auth login --client-id <id> --client-secret <secret>
+  $ BB_USERNAME=you@example.com bb auth login --with-token < token.txt
 
 Environment variables:
-  BB_USERNAME   Used when --username is not provided
+  BB_USERNAME   Atlassian account email used when --username is not provided
   BB_API_TOKEN  Used when --password is not provided (implies API token auth)
 
 "
@@ -704,7 +705,7 @@ Examples:
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
   $ bb pr create -t "My PR" --default-reviewers
-  $ bb pr create -t "My PR" --reviewer jdoe --reviewer asmith
+  $ bb pr create -t "My PR" --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 Defaults:
   --source  current git branch
@@ -2019,7 +2020,7 @@ Examples:
   $ bb pipeline run
   $ bb pipeline run --branch main
   $ bb pipeline run --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
-  $ bb pipeline run --branch main --json --jq '.build_number'
+  $ bb pipeline run --branch main --json --jq '.pipeline.build_number'
 
 Defaults:
   --branch  current git branch
@@ -2880,7 +2881,7 @@ Examples:
   $ bb api /user
   $ bb api GET /user
   $ bb api /repositories/{workspace}/{repo}/pullrequests --paginate
-  $ bb api POST /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234
+  $ bb api POST /repositories/my-ws/my-repo/pipelines/ --input pipeline.json
   $ bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json
   $ cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -
   $ bb api /repositories/my-ws --jq '.values[].name'
@@ -2932,7 +2933,7 @@ exports[`command tree snapshot bb alias set 1`] = `
   "help": 
 "
 An alias expands in place of the first bb argument: \`bb co 42\` runs
-\`bb pr checkout 42\` after \`bb alias set co "pr checkout $1"\`. Extra
+\`bb pr checkout 42\` after \`bb alias set co 'pr checkout $1'\`. Extra
 arguments are appended unless consumed by $1-$9 placeholders. A \`!\`
 prefix runs the expansion through \`sh -c\` instead, with the remaining
 arguments available as shell positional parameters ($1, $@).
@@ -2946,7 +2947,7 @@ Options:
   -h, --help  display help for command
 
 Examples:
-  $ bb alias set co "pr checkout $1"
+  $ bb alias set co 'pr checkout $1'
   $ bb alias set prd "pr create --draft"
   $ bb alias set openpr '!bb pr list --json --jq ".pullRequests[0].id" | xargs bb browse --pr'
 
@@ -3077,10 +3078,10 @@ Options:
 Examples:
   $ bb config set defaultWorkspace my-workspace
   $ bb config set skipVersionCheck true
-  $ bb config set versionCheckInterval 86400
+  $ bb config set versionCheckInterval 7
 
 Settable config keys:
-  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, seconds), prCreateIncludeDefaultReviewers (true/false)
+  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false)
 
 See also:
   Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/

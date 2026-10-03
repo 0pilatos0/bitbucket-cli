@@ -7,7 +7,7 @@ Tab completion for bash, zsh, and fish.
 
 Global options: every global flag is accepted here (see
 [Global Flags](/reference/global-flags/)). Only `--json`, `--no-color` and
-`--no-unicode` change anything — `--jq` needs `--json`, and
+`--no-unicode` change anything; `--jq` needs `--json`, and
 `--no-truncate`/`--locale`/`-w`/`-r` have no output to affect.
 
 ## `bb completion install`
@@ -18,19 +18,19 @@ bb completion install [options]
 
 This command is interactive. It asks two questions:
 
-1. **"Which Shell do you use ?"** — pick `bash`, `zsh`, or `fish`. The default
+1. **"Which Shell do you use ?"**; pick `bash`, `zsh`, or `fish`. The default
    is `bash`; the prompt does **not** preselect your current shell.
-2. **"We will install completion to `<file>`, is it ok ?"** — confirm, or
+2. **"We will install completion to `<file>`, is it ok ?"**; confirm, or
    decline and supply an absolute path of your own.
 
 It then appends a source line to that file and writes the completion script
 under `~/.config/tabtab/`.
 
-| Shell | Config file offered |
-|-------|---------------------|
-| bash | `~/.bashrc` |
-| zsh | `~/.zshrc` |
-| fish | `~/.config/fish/config.fish` |
+| Shell | Config file offered          |
+| ----- | ---------------------------- |
+| bash  | `~/.bashrc`                  |
+| zsh   | `~/.zshrc`                   |
+| fish  | `~/.config/fish/config.fish` |
 
 Because it prompts, `bb completion install` is not scriptable. It blocks on the
 shell question in CI, `--json` included.
@@ -80,7 +80,7 @@ bb completion uninstall [options]
 No prompt. It deletes `~/.config/tabtab/bb.<shell>`, removes the `bb` lines from
 `~/.config/tabtab/__tabtab.<shell>`, and drops the source line from your shell
 config once no other package is left in that file. Both `<shell>` and that
-config file come from `$SHELL` — your login shell, not the shell you happen to
+config file come from `$SHELL` (your login shell), not the shell you happen to
 be typing in, and not the shell you picked at the install prompt. If they
 disagree, the source line is left behind and you have to delete it by hand.
 On success it prints `✓ Shell completions uninstalled successfully!`; with
@@ -97,8 +97,8 @@ failures thrown outside that handler.
 Completions are generated from the live command tree, so they always match the
 commands and flags the CLI actually ships.
 
-- **Commands and subcommands** — every command in the tree, at every depth.
-- **Options** — every flag on the command plus the inherited globals (`--json`,
+- **Commands and subcommands**; every command in the tree, at every depth.
+- **Options**; every flag on the command plus the inherited globals (`--json`,
   `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale`,
   `--workspace`, `--repo`, `--help`), plus `--version` on the bare `bb`. Only
   long forms are suggested; short aliases like `-w` still work but are never
@@ -154,8 +154,8 @@ $ bb pr create --<Tab>
 
 ### Related
 
-- [Global Flags](/reference/global-flags/) — the flags the completer offers on
+- [Global Flags](/reference/global-flags/); the flags the completer offers on
   every command.
-- [Error Codes](/reference/error-codes/) — `9001` and `9002` in context.
-- [Scripting & Automation](/guides/scripting/) — `--json` envelopes and exit
+- [Error Codes](/reference/error-codes/); `9001` and `9002` in context.
+- [Scripting & Automation](/guides/scripting/); `--json` envelopes and exit
   codes for the non-interactive commands.

@@ -436,7 +436,7 @@ describe('CLI help text integration', () => {
 
     expect(output).toContain('--app-password');
     expect(output).toContain('API token authentication');
-    expect(output).toContain('App passwords are deprecated');
+    expect(output).toContain('App passwords are retired');
   });
 
   it('should advertise variadic --file in snippet create help', () => {

@@ -4,7 +4,7 @@ description: Create shortcuts for bb commands
 ---
 
 Create your own shortcuts for `bb` commands, mirroring `gh alias`. An alias
-expands in place of the first argument: after `bb alias set co "pr checkout $1"`,
+expands in place of the first argument: after `bb alias set co 'pr checkout $1'`,
 running `bb co 42` runs `bb pr checkout 42`.
 
 Aliases are stored in the `aliases` map of the [configuration file](/reference/configuration/)
@@ -17,7 +17,7 @@ and are managed with the commands below (not with `bb config set`).
 - `$1`–`$9` placeholders in the expansion are filled from the arguments that
   follow the alias. Missing arguments are an error.
 - Arguments not consumed by a placeholder are appended to the expanded command.
-- Expansion is a single level deep — an alias cannot reference another alias.
+- Expansion runs once. An alias cannot reference another alias.
 
 ## `bb alias set`
 
@@ -56,9 +56,9 @@ bb igrep deploy               # → sh -c 'bb pipeline list --all --json | grep 
 
 :::caution
 Shell aliases execute arbitrary shell commands you define. They run with your
-permissions, exactly like a shell function or an entry in your shell rc file —
-only define shell aliases you understand. The config file is created with
-`0600` permissions so other local users cannot inject aliases.
+permissions, exactly like a shell function or an entry in your shell rc file;
+only define shell aliases you understand. Where supported, config files use `0600` permissions to restrict access to
+the file owner.
 :::
 
 ## `bb alias list`

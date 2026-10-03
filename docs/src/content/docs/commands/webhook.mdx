@@ -29,12 +29,11 @@ bb webhook list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--scope <scope>` | `repo` (default) or `workspace` |
+| Option             | Description                              |
+| ------------------ | ---------------------------------------- |
+| `--scope <scope>`  | `repo` (default) or `workspace`          |
 | `--limit <number>` | Maximum number of webhooks (default: 25) |
-| `--all` | List all webhooks (overrides `--limit`) |
-| `--json` | Output as JSON |
+| `--all`            | List all webhooks (overrides `--limit`)  |
 
 ### Examples
 
@@ -72,16 +71,15 @@ bb webhook view <uid> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `uid` | Webhook UUID, with or without the surrounding `{}` |
+| Argument | Description                                        |
+| -------- | -------------------------------------------------- |
+| `uid`    | Webhook UUID, with or without the surrounding `{}` |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option            | Description                     |
+| ----------------- | ------------------------------- |
 | `--scope <scope>` | `repo` (default) or `workspace` |
-| `--json` | Output as JSON |
 
 ### Examples
 
@@ -110,15 +108,14 @@ bb webhook create --url <url> --event <event...> [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--scope <scope>` | `repo` (default) or `workspace` |
-| `--url <url>` | URL events are delivered to (required) |
-| `-e, --event <event...>` | Event to subscribe to (required; repeat the flag or list several after it) |
-| `-d, --description <description>` | Webhook description |
-| `--secret <secret>` | Secret Bitbucket uses to sign each delivery in the `X-Hub-Signature` header |
-| `--inactive` | Create the webhook disabled |
-| `--json` | Output as JSON |
+| Option                            | Description                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------- |
+| `--scope <scope>`                 | `repo` (default) or `workspace`                                             |
+| `--url <url>`                     | URL events are delivered to (required)                                      |
+| `-e, --event <event...>`          | Event to subscribe to (required; repeat the flag or list several after it)  |
+| `-d, --description <description>` | Webhook description                                                         |
+| `--secret <secret>`               | Secret Bitbucket uses to sign each delivery in the `X-Hub-Signature` header |
+| `--inactive`                      | Create the webhook disabled                                                 |
 
 Events are checked against the list Bitbucket publishes (for example
 `repo:push`, `pullrequest:created`, `pullrequest:fulfilled`,
@@ -160,11 +157,10 @@ bb webhook delete <uid> --yes [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--scope <scope>` | `repo` (default) or `workspace` |
-| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
-| `--json` | Output as JSON |
+| Option            | Description                                                                 |
+| ----------------- | --------------------------------------------------------------------------- |
+| `--scope <scope>` | `repo` (default) or `workspace`                                             |
+| `-y, --yes`       | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
 
