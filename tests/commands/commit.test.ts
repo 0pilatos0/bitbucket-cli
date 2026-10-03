@@ -2,7 +2,7 @@
  * Commit command tests
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, mock } from 'bun:test';
 import { ListCommitsCommand } from '../../src/commands/commit/list.command.js';
 import { ViewCommitCommand } from '../../src/commands/commit/view.command.js';
 import {
@@ -48,8 +48,16 @@ function extractPaginationParams(axiosOptions: unknown): {
   pagelen: number;
 } {
   const params = (
-    axiosOptions as { params?: { page?: number; pagelen?: number } }
+    axiosOptions as {
+      params?: URLSearchParams | { page?: number; pagelen?: number };
+    }
   )?.params;
+  if (params instanceof URLSearchParams) {
+    return {
+      page: Number(params.get('page') ?? 1),
+      pagelen: Number(params.get('pagelen') ?? 25),
+    };
+  }
   return { page: params?.page ?? 1, pagelen: params?.pagelen ?? 25 };
 }
 
@@ -136,6 +144,84 @@ function repoContextService() {
 }
 
 describe('ListCommitsCommand', () => {
+  for (const ref of [undefined, 'feature/login']) {
+    for (const all of [false, true]) {
+      it(`follows opaque cursors for ${ref ?? 'default'} history with ${all ? '--all' : '--limit'}`, async () => {
+        const next =
+          'https://api.bitbucket.org/2.0/repositories/workspace/repo/commits' +
+          (ref ? '/feature%2Flogin' : '') +
+          '?page=opaque%2Bcursor%2F%3D&pagelen=2&include=main&include=release';
+        const fetchPage = mock(async (_request: unknown, config?: unknown) => {
+          if (fetchPage.mock.calls.length === 1) {
+            return {
+              data: { values: [mockCommit], next, size: 3 },
+            };
+          }
+          const params = (config as { params: URLSearchParams }).params;
+          expect(Array.from(params.entries())).toEqual([
+            ['page', 'opaque+cursor/='],
+            ['pagelen', '2'],
+            ['include', 'main'],
+            ['include', 'release'],
+          ]);
+          return { data: { values: [mockRawAuthorCommit] } };
+        });
+        const api = {
+          [ref
+            ? 'repositoriesWorkspaceRepoSlugCommitsRevisionGet'
+            : 'repositoriesWorkspaceRepoSlugCommitsGet']: fetchPage,
+        } as unknown as CommitsApi;
+        const output = createMockOutputService();
+        const command = new ListCommitsCommand(
+          api,
+          repoContextService(),
+          createMockGitService({ throwOnGetCurrentBranch: true }),
+          output
+        );
+
+        await command.execute(
+          { ref, all, limit: '2' },
+          { globalOptions: { json: true } }
+        );
+
+        expect(fetchPage).toHaveBeenCalledTimes(2);
+        expect(fetchPage.mock.calls[0]![1]).toEqual({
+          params: { pagelen: all ? 50 : 2 },
+        });
+        expect(getJsonPayload(output.logs).commits).toEqual([
+          mockCommit,
+          mockRawAuthorCommit,
+        ]);
+      });
+    }
+  }
+
+  it('stops at the limit without requesting the next cursor', async () => {
+    const fetchPage = mock(async () => ({
+      data: {
+        values: [mockCommit, mockRawAuthorCommit],
+        next: 'https://api.bitbucket.org/2.0/repositories/workspace/repo/commits?page=opaque-cursor',
+      },
+    }));
+    const output = createMockOutputService();
+    const command = new ListCommitsCommand(
+      {
+        repositoriesWorkspaceRepoSlugCommitsGet: fetchPage,
+      } as unknown as CommitsApi,
+      repoContextService(),
+      createMockGitService({ throwOnGetCurrentBranch: true }),
+      output
+    );
+
+    await command.execute({ limit: '1' }, { globalOptions: {} });
+
+    expect(fetchPage).toHaveBeenCalledTimes(1);
+    expect(getTableRows(output.logs)).toHaveLength(1);
+    expect(output.logs.some((log) => log.includes('Showing 1 commits.'))).toBe(
+      true
+    );
+  });
+
   it('should render the commits table with short hash, first message line, author, and date', async () => {
     const output = createMockOutputService();
     const command = new ListCommitsCommand(
