@@ -13,8 +13,9 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  # The full CI matrix (lint, API contract, tests on every OS, compile smoke)
-  # on the commit being released. Every publish path needs it to succeed.
+  # The full CI workflow (lint, API contract, tests on every OS, minimum Bun,
+  # compile smoke) on the commit being released. Every publish path needs it
+  # to succeed.
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
