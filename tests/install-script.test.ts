@@ -196,6 +196,8 @@ describe.skipIf(isWindows)('install.sh', () => {
 
 // Windows PowerShell 5.1 is what `irm | iex` runs on by default on Windows.
 const powershell = isWindows ? 'powershell' : Bun.which('pwsh');
+// A cold PowerShell start alone can take several seconds on CI runners.
+const POWERSHELL_TIMEOUT_MS = 30_000;
 
 // When CI runs `bun test` from pwsh 7, PSModulePath lists pwsh 7's modules
 // first, and Windows PowerShell 5.1 then fails to autoload Get-FileHash from
@@ -251,38 +253,54 @@ describe.skipIf(powershell === null)('install.ps1', () => {
     return { ...result, bb: join(installDir, 'bb.exe'), installDir };
   }
 
-  it('installs bb.exe from the archive of the latest release', async () => {
-    const { status, stdout, bb, installDir } = await install();
+  it(
+    'installs bb.exe from the archive of the latest release',
+    async () => {
+      const { status, stdout, bb, installDir } = await install();
 
-    expect(status).toBe(0);
-    expect(stdout).toContain(`Installed bb to ${bb}`);
-    expect(stdout).toContain(`Add ${installDir} to your PATH`);
-    expect(await readFile(bb, 'utf8')).toBe('from-archive');
-  });
+      expect(status).toBe(0);
+      expect(stdout).toContain(`Installed bb to ${bb}`);
+      expect(stdout).toContain(`Add ${installDir} to your PATH`);
+      expect(await readFile(bb, 'utf8')).toBe('from-archive');
+    },
+    POWERSHELL_TIMEOUT_MS
+  );
 
-  it('falls back to the raw binary for releases without archives', async () => {
-    const { status, bb } = await install({ BB_VERSION: '1.0.0' });
+  it(
+    'falls back to the raw binary for releases without archives',
+    async () => {
+      const { status, bb } = await install({ BB_VERSION: '1.0.0' });
 
-    expect(status).toBe(0);
-    expect(await readFile(bb, 'utf8')).toBe('raw binary');
-  });
+      expect(status).toBe(0);
+      expect(await readFile(bb, 'utf8')).toBe('raw binary');
+    },
+    POWERSHELL_TIMEOUT_MS
+  );
 
-  it('replaces an existing install', async () => {
-    const first = await install();
-    const { status, bb } = await install(
-      { BB_VERSION: '1.0.0' },
-      first.installDir
-    );
+  it(
+    'replaces an existing install',
+    async () => {
+      const first = await install();
+      const { status, bb } = await install(
+        { BB_VERSION: '1.0.0' },
+        first.installDir
+      );
 
-    expect(status).toBe(0);
-    expect(await readFile(bb, 'utf8')).toBe('raw binary');
-  });
+      expect(status).toBe(0);
+      expect(await readFile(bb, 'utf8')).toBe('raw binary');
+    },
+    POWERSHELL_TIMEOUT_MS
+  );
 
-  it('refuses a download that does not match SHA256SUMS', async () => {
-    const { status, stderr, bb } = await install({ BB_VERSION: '1.0.1' });
+  it(
+    'refuses a download that does not match SHA256SUMS',
+    async () => {
+      const { status, stderr, bb } = await install({ BB_VERSION: '1.0.1' });
 
-    expect(status).not.toBe(0);
-    expect(stderr).toContain(`checksum mismatch for ${archive}`);
-    expect(existsSync(bb)).toBe(false);
-  });
+      expect(status).not.toBe(0);
+      expect(stderr).toContain(`checksum mismatch for ${archive}`);
+      expect(existsSync(bb)).toBe(false);
+    },
+    POWERSHELL_TIMEOUT_MS
+  );
 });
