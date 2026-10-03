@@ -1,6 +1,9 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
-import { withCompletionChoices } from '../../core/command-options.js';
+import {
+  withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
+} from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { DEFAULT_POLL_INTERVAL_SECONDS } from '../../services/polling.js';
 import {
@@ -102,6 +105,7 @@ export function registerPipelineCommands(
       '--var <key=value...>',
       'Pipeline variable (repeatable; value may contain =)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -124,6 +128,7 @@ export function registerPipelineCommands(
   pipelineCmd
     .command('stop <id>')
     .description('Stop a running pipeline (id: build number or UUID)')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

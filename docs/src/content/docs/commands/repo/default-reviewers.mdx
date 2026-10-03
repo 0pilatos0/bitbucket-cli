@@ -40,6 +40,12 @@ bb repo default-reviewers list --json
 bb repo default-reviewers add <user>
 ```
 
+#### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 Adds a user as a default reviewer on the repository. Requires repository admin permission.
 
 `<user>` accepts an account ID or a UUID in braces, not a nickname. See
@@ -56,6 +62,12 @@ bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 ```bash
 bb repo default-reviewers remove <user> --yes
 ```
+
+#### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 Removes a user from the repository's default reviewers. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)). Requires repository admin permission.
 

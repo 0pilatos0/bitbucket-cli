@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerRepoDefaultReviewersCommands(
   parent: Command,
@@ -41,6 +42,7 @@ export function registerRepoDefaultReviewersCommands(
     .description(
       'Add a default reviewer to a repository (accepts account ID or {uuid})'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -63,6 +65,7 @@ export function registerRepoDefaultReviewersCommands(
       'Remove a default reviewer from a repository (accepts account ID or {uuid})'
     )
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

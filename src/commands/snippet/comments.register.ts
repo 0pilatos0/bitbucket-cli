@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerSnippetCommentsCommands(
   parent: Command,
@@ -42,6 +43,7 @@ export function registerSnippetCommentsCommands(
       '-m, --message <text>',
       'Comment message (alternative to the positional [message] argument; one of the two is required)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -62,6 +64,7 @@ export function registerSnippetCommentsCommands(
   snippetCommentsCmd
     .command('edit <snippet-id> <comment-id> <message>')
     .description('Edit a comment on a snippet')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -82,6 +85,7 @@ export function registerSnippetCommentsCommands(
     .command('delete <snippet-id> <comment-id>')
     .description('Delete a comment on a snippet')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
