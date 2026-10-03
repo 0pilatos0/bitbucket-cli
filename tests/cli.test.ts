@@ -32,12 +32,42 @@ describe('createContext --jq / --json validation', () => {
     expect(context.validationError?.message).toContain('--jq requires --json');
   });
 
-  it('allows --jq without --json when allowJqWithoutJson is set (bb api)', () => {
+  it('allows --jq without --json when outputIsJson is set (bb api)', () => {
     const context = createContext(fakeProgram({ jq: '.x' }), {
-      allowJqWithoutJson: true,
+      outputIsJson: true,
     });
     expect(context.validationError).toBeUndefined();
     expect(context.globalOptions.jq).toBe('.x');
+  });
+
+  it('rejects --lean without --json by default', () => {
+    const context = createContext(fakeProgram({ lean: true }));
+    expect(context.validationError?.message).toContain(
+      '--lean requires --json'
+    );
+  });
+
+  it('allows --lean without --json when outputIsJson is set (bb api)', () => {
+    const context = createContext(fakeProgram({ lean: true }), {
+      outputIsJson: true,
+    });
+    expect(context.validationError).toBeUndefined();
+    expect(context.globalOptions.lean).toBe(true);
+  });
+
+  it('rejects --raw-output without --jq', () => {
+    const context = createContext(fakeProgram({ json: true, rawOutput: true }));
+    expect(context.validationError?.message).toContain(
+      '--raw-output requires --jq'
+    );
+  });
+
+  it('passes --raw-output through alongside --jq', () => {
+    const context = createContext(
+      fakeProgram({ json: true, jq: '.x', rawOutput: true })
+    );
+    expect(context.validationError).toBeUndefined();
+    expect(context.globalOptions.rawOutput).toBe(true);
   });
 });
 
@@ -537,11 +567,13 @@ describe('CLI command registration', () => {
     ]);
   });
 
-  it('should register global --workspace, --repo, --json, --jq, --no-color, --no-unicode, --no-truncate, --no-input and --locale options on root', () => {
+  it('should register global --workspace, --repo, --json, --jq, --raw-output, --lean, --no-color, --no-unicode, --no-truncate, --no-input and --locale options on root', () => {
     expect(hasOption(cli, '--workspace')).toBe(true);
     expect(hasOption(cli, '--repo')).toBe(true);
     expect(hasOption(cli, '--json')).toBe(true);
     expect(hasOption(cli, '--jq')).toBe(true);
+    expect(hasOption(cli, '--raw-output')).toBe(true);
+    expect(hasOption(cli, '--lean')).toBe(true);
     expect(hasOption(cli, '--no-color')).toBe(true);
     expect(hasOption(cli, '--no-unicode')).toBe(true);
     expect(hasOption(cli, '--no-truncate')).toBe(true);
@@ -565,7 +597,7 @@ describe('CLI command registration', () => {
   it('should register all auth subcommands', () => {
     const authCmd = requireCommand('auth');
     const names = authCmd.commands.map((c) => c.name()).sort();
-    expect(names).toEqual(['login', 'logout', 'status', 'token']);
+    expect(names).toEqual(['login', 'logout', 'status', 'switch', 'token']);
   });
 
   it('should register all repo subcommands (including default-reviewers and downloads)', () => {
@@ -763,8 +795,12 @@ describe('CLI command registration', () => {
 
     const completionCmd = requireCommand('completion');
     expect(completionCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'bash',
+      'fish',
       'install',
+      'powershell',
       'uninstall',
+      'zsh',
     ]);
   });
 

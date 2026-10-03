@@ -15,7 +15,7 @@ import {
   rmSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import type { Command } from 'commander';
@@ -25,8 +25,7 @@ const USAGE =
   'Usage: bun run new:command <group> <verb> [--list --wrapper-key <key>] ' +
   '[--description <text>] [--dry-run] [--root <dir>]';
 
-const VERIFY =
-  'bun run lint && bun run lint:docs && bun test && bun run format:check';
+const VERIFY = 'bun run check';
 
 // Keys every scaffolded JSON envelope already uses.
 const ENVELOPE_KEYS = new Set(['workspace', 'repoSlug', 'count', 'values']);
@@ -117,7 +116,10 @@ const paths = {
   groupRegister: `src/commands/${group}/register.ts`,
   leafRegister: `src/commands/${group}.register.ts`,
   command: `src/commands/${group}/${verb}.command.ts`,
-  test: `tests/commands/${group}-${verb}.test.ts`,
+  // Groups with many subcommands keep one test file each in a folder.
+  test: existsSync(join(root, 'tests/commands', group))
+    ? `tests/commands/${group}/${verb}.test.ts`
+    : `tests/commands/${group}-${verb}.test.ts`,
   docs: `docs/src/content/docs/commands/${group}.mdx`,
   docsFolder: `docs/src/content/docs/commands/${group}/index.mdx`,
   outputService: 'src/services/output.service.ts',
@@ -313,15 +315,19 @@ ${constructorBlock}
 `;
 create(paths.command, commandSource);
 
+const fromTest = (path: string): string =>
+  relative(dirname(paths.test), path).replaceAll('\\', '/');
 const testSource = `/**
  * bb ${group} ${verb} command tests
  */
 
 import { describe, it, expect } from 'bun:test';
-import { ${className} } from '../../src/commands/${group}/${verb}.command.js';
-import { createMockContextService, createMockOutputService } from '../setup.js';
+import { ${className} } from '${fromTest(`src/commands/${group}/${verb}.command.js`)}';
+import { getJsonPayload } from '${fromTest('tests/helpers/output-logs.js')}';
+import { createMockContextService, createMockOutputService } from '${fromTest('tests/setup.js')}';
 
-// TODO(scaffold): replace with tests against a mocked API client.
+// TODO(scaffold): test against the mock Bitbucket server with
+// startCommandHarness() from tests/helpers/mock-bitbucket.ts (tests/AGENTS.md).
 describe('${className}', () => {
   it('emits the JSON envelope', async () => {
     const output = createMockOutputService();
@@ -332,8 +338,7 @@ describe('${className}', () => {
       { globalOptions: { workspace: 'acme', repo: 'demo', json: true } }
     );
 
-    expect(output.logs).toHaveLength(1);
-    expect(JSON.parse(output.logs[0]!.slice('json:'.length))).toEqual(${
+    expect(getJsonPayload(output.logs)).toEqual(${
       isList
         ? `{ workspace: 'acme', repoSlug: 'demo', count: 0, ${wrapperKey}: [] }`
         : `{ workspace: 'acme', repoSlug: 'demo' }`

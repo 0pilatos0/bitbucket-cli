@@ -186,6 +186,7 @@ describe('scripts/new-command.ts', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Add 'star' to the pinned pr subcommand");
     expect(result.stdout).toContain('docs/src/content/docs/commands/pr/');
+    expect(result.stdout).toContain('tests/commands/pr/star.test.ts');
     expect(result.stdout).not.toContain('commands/pr.mdx');
   });
 

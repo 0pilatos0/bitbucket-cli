@@ -43,7 +43,9 @@ hand.
    (`src/services/output.service.ts`, before `values`) and to both tables in
    `tests/cli-completion-drift.test.ts`. `runList()` throws on an
    unregistered key.
-6. **Tests** in `tests/commands/`, using the mocks in `tests/setup.ts`.
+6. **Tests** in `tests/commands/` (or `tests/commands/<group>/<verb>.test.ts`
+   when the group has a folder), against the mock Bitbucket server by
+   default; [tests/AGENTS.md](../../tests/AGENTS.md) has the conventions.
 7. **Pinned lists** the group's subcommand list in `tests/cli.test.ts`, if
    it has one, and the help snapshot:
    `bun test --update-snapshots tests/commands/register.test.ts`, then review
@@ -57,7 +59,7 @@ hand.
    `reference/environment-variables.mdx` (`bun run lint:docs` enforces the
    last two). New token scopes go in `reference/token-scopes.mdx`.
 10. **Changeset** `bun run changeset` (`minor` for a new command).
-11. **Verify** `bun run lint && bun run lint:docs && bun test && bun run format:check`.
+11. **Verify** `bun run check`.
 
 ## BaseCommand helpers
 

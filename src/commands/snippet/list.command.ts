@@ -79,7 +79,7 @@ export class ListSnippetsCommand extends BaseCommand<
           snippet.title ?? '',
           snippet.is_private ? 'private' : 'public',
           getUserDisplayName(snippet.creator) ?? '',
-          this.output.formatDate(snippet.updated_on ?? ''),
+          this.output.formatRelativeDate(snippet.updated_on ?? ''),
         ],
         noun: 'snippets',
       },

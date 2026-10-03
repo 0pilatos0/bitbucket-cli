@@ -5,6 +5,8 @@
 import { describe, it, expect, beforeEach, mock } from 'bun:test';
 import { InstallCompletionCommand } from '../../src/commands/completion/install.command.js';
 import { UninstallCompletionCommand } from '../../src/commands/completion/uninstall.command.js';
+import { PrintCompletionCommand } from '../../src/commands/completion/print.command.js';
+import { renderCompletionScript } from '../../src/completion-install.js';
 import { createMockOutputService } from '../setup.js';
 import type { CommandContext } from '../../src/core/interfaces/commands.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
@@ -165,6 +167,39 @@ describe('Completion Commands', () => {
           ErrorCode.COMPLETION_UNINSTALL_FAILED
         );
       }
+    });
+  });
+
+  describe('PrintCompletionCommand', () => {
+    const target = { name: 'bb', completer: 'bb' };
+
+    it.each(['bash', 'zsh', 'fish', 'powershell'] as const)(
+      'prints the %s script without a trailing blank line',
+      async (shell) => {
+        const command = new PrintCompletionCommand(output);
+
+        await command.execute({ shell }, { globalOptions: {} });
+
+        expect(output.logs).toEqual([
+          `text:${renderCompletionScript(shell, target).replace(/\n$/, '')}`,
+        ]);
+      }
+    );
+
+    it('wraps the script in JSON with --json', async () => {
+      const command = new PrintCompletionCommand(output);
+
+      await command.execute(
+        { shell: 'powershell' },
+        { globalOptions: { json: true } }
+      );
+
+      expect(output.logs).toEqual([
+        `json:${JSON.stringify({
+          shell: 'powershell',
+          script: renderCompletionScript('powershell', target),
+        })}`,
+      ]);
     });
   });
 });

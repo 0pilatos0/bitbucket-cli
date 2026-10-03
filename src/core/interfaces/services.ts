@@ -5,6 +5,8 @@
 import type {
   BBConfig,
   AuthCredentials,
+  CredentialStorage,
+  OAuthClient,
   OAuthCredentials,
   AuthMethod,
   RepoContext,
@@ -14,26 +16,48 @@ import type { CommandContext } from './commands.js';
 
 /**
  * Application config interface — reading and writing general settings
- * (default workspace, version-check preferences, OAuth client id/secret, etc.)
- * stored in the on-disk config file. Does NOT include any credential methods;
- * those live on `ICredentialStore`.
+ * (default workspace, version-check preferences, etc.) stored in the on-disk
+ * config file. Does NOT include any credential methods; those live on
+ * `ICredentialStore`.
  */
 export interface IConfigService {
   getConfig(): Promise<BBConfig>;
+  /** Re-read the config file, then write `update`'s result. */
+  updateConfig(update: (config: BBConfig) => BBConfig): Promise<void>;
   clearConfig(): Promise<void>;
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
   getConfigPath(): string;
 }
 
+export interface AccountSummary {
+  name: string;
+  /** The persisted active account. */
+  active: boolean;
+  /** The account this process uses (`--account`, `BB_ACCOUNT` or active). */
+  current: boolean;
+  authMethod?: AuthMethod;
+  username?: string;
+  storage: CredentialStorage;
+}
+
 /**
- * Credential storage interface — basic auth credentials and OAuth token state.
- * Backed by the same on-disk config today, but isolated behind this interface
- * so that an alternative store (e.g. OS keychain) can be introduced without
- * touching non-auth consumers.
+ * Credential storage interface — named accounts holding basic auth
+ * credentials or OAuth token state. Every credential method acts on the
+ * current account: the one picked with `useAccount()` (`--account`), else
+ * `BB_ACCOUNT`, else the persisted active account.
  */
 export interface ICredentialStore {
+  useAccount(name: string): void;
+  getAccountName(): Promise<string>;
+  listAccounts(): Promise<AccountSummary[]>;
+  /** Persist `name` as the active account. */
+  switchAccount(name: string): Promise<void>;
+  /** Move every account's secrets to `storage`; returns how many moved. */
+  setStorage(storage: CredentialStorage): Promise<number>;
+
   getAuthMethod(): Promise<AuthMethod>;
+  hasCredentials(): Promise<boolean>;
 
   // Basic auth
   getCredentials(): Promise<AuthCredentials>;
@@ -42,20 +66,43 @@ export interface ICredentialStore {
 
   // OAuth
   getOAuthCredentials(): Promise<OAuthCredentials>;
-  setOAuthCredentials(credentials: OAuthCredentials): Promise<void>;
+  /** Fields of `client` that are set replace the stored consumer. */
+  setOAuthCredentials(
+    credentials: OAuthCredentials,
+    client?: OAuthClient
+  ): Promise<void>;
+  getOAuthClient(): Promise<OAuthClient>;
   clearOAuthCredentials(): Promise<void>;
   isOAuthTokenExpired(): Promise<boolean>;
 }
 
 /**
+ * OS keychain access, one secret string per account name.
+ */
+export interface ISecretStorage {
+  get(account: string): Promise<string | null>;
+  set(account: string, value: string): Promise<void>;
+  delete(account: string): Promise<void>;
+}
+
+/**
  * Git service interface
  */
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 export interface IGitService {
   isRepository(): Promise<boolean>;
   clone(url: string, destination?: string): Promise<void>;
-  fetch(remote?: string): Promise<void>;
+  fetch(remote: string, refspecs?: string[]): Promise<void>;
   checkout(branch: string): Promise<void>;
   checkoutNewBranch(branch: string, startPoint?: string): Promise<void>;
+  fastForward(ref: string): Promise<void>;
+  branchExists(branch: string): Promise<boolean>;
+  isAncestor(ancestor: string, descendant: string): Promise<boolean>;
+  getRemotes(): Promise<GitRemote[]>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
   getRemoteUrl(remote?: string): Promise<string>;
@@ -134,6 +181,10 @@ export interface JsonFormatOptions {
   json?: boolean;
   fields?: string[];
   jq?: string;
+  /** Print `--jq` string results without JSON quotes (jq `-r`). */
+  rawOutput?: boolean;
+  /** Prune every `links` map down to its `html` entry. */
+  lean?: boolean;
 }
 
 /**
@@ -190,6 +241,15 @@ export interface IPromptService {
   ): Promise<T>;
 }
 
+export interface TableOptions {
+  /**
+   * Columns (0-based) that may be shortened to fit the terminal width, such
+   * as titles and descriptions. Ids, hashes and URLs should stay out so they
+   * remain copyable. Without any, the table keeps its natural width.
+   */
+  flexColumns?: number[];
+}
+
 /**
  * Output service interface for formatting and displaying output
  */
@@ -204,7 +264,18 @@ export interface IOutputService {
    * the animation in JSON mode, non-TTY streams, and tests.
    */
   spinner(text: string): ISpinner;
-  table(headers: string[], rows: string[][]): void;
+  /**
+   * Print rows as an aligned table on a terminal, fitted to its width unless
+   * `--no-truncate` is set. When stdout is not a terminal, print tab-separated
+   * rows without a header instead.
+   */
+  table(headers: string[], rows: string[][], options?: TableOptions): void;
+  /**
+   * Run `run` with its stdout sent through the user's pager (`BB_PAGER`,
+   * `PAGER`, default `less -FRX`). Paging only applies on a terminal and
+   * outside JSON mode; otherwise output is written directly.
+   */
+  withPager<T>(run: () => Promise<T>): Promise<T>;
   success(message: string): void;
   error(message: string): void;
   warning(message: string): void;
@@ -258,4 +329,9 @@ export interface IOutputService {
   blue(text: string): string;
   underline(text: string): string;
   formatDate(date: string | Date): string;
+  /**
+   * Relative time ("3 days ago") on a terminal and an ISO 8601 timestamp when
+   * piped; `-` for a missing or invalid date. Used for date columns in tables.
+   */
+  formatRelativeDate(date: string | Date): string;
 }

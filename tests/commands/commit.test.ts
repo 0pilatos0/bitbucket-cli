@@ -12,6 +12,8 @@ import {
 } from '../setup.js';
 import { APIError } from '../../src/types/errors.js';
 import type { Commit, CommitsApi } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 const mockCommit: Commit = {
   type: 'commit',
@@ -43,41 +45,6 @@ const mockRawAuthorCommit: Commit = {
   parents: [],
 };
 
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  const params = (
-    axiosOptions as {
-      params?: URLSearchParams | { page?: number; pagelen?: number };
-    }
-  )?.params;
-  if (params instanceof URLSearchParams) {
-    return {
-      page: Number(params.get('page') ?? 1),
-      pagelen: Number(params.get('pagelen') ?? 25),
-    };
-  }
-  return { page: params?.page ?? 1, pagelen: params?.pagelen ?? 25 };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
 function createMockCommitsApi(
   options: {
     commits?: Commit[];
@@ -104,7 +71,7 @@ function createMockCommitsApi(
     };
   };
 
-  return {
+  return fakeApi<CommitsApi>({
     repositoriesWorkspaceRepoSlugCommitsRevisionGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -136,7 +103,7 @@ function createMockCommitsApi(
         data: commits.find((c) => c.hash?.startsWith(commit)) ?? mockCommit,
       };
     },
-  } as unknown as CommitsApi;
+  });
 }
 
 function repoContextService() {
@@ -166,11 +133,11 @@ describe('ListCommitsCommand', () => {
           ]);
           return { data: { values: [mockRawAuthorCommit] } };
         });
-        const api = {
+        const api = fakeApi<CommitsApi>({
           [ref
             ? 'repositoriesWorkspaceRepoSlugCommitsRevisionGet'
             : 'repositoriesWorkspaceRepoSlugCommitsGet']: fetchPage,
-        } as unknown as CommitsApi;
+        });
         const output = createMockOutputService();
         const command = new ListCommitsCommand(
           api,
@@ -205,9 +172,9 @@ describe('ListCommitsCommand', () => {
     }));
     const output = createMockOutputService();
     const command = new ListCommitsCommand(
-      {
+      fakeApi<CommitsApi>({
         repositoriesWorkspaceRepoSlugCommitsGet: fetchPage,
-      } as unknown as CommitsApi,
+      }),
       repoContextService(),
       createMockGitService({ throwOnGetCurrentBranch: true }),
       output

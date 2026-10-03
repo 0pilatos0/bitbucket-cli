@@ -43,7 +43,10 @@ export function registerAuthCommands(
         'For headless/secret-safe: pipe the token in with --with-token.\n' +
         'OAuth needs a loopback browser (http://localhost:19872/callback); there\n' +
         'is no device-code flow, so use token auth on headless hosts.\n' +
-        'Note: Bitbucket app passwords are retired; use OAuth or an API token.\n'
+        'Note: Bitbucket app passwords are retired; use OAuth or an API token.\n' +
+        'Logs in to the current account (`default` unless switched); pass\n' +
+        '--account <name> to add or re-authenticate another account. The\n' +
+        'account you log in to becomes the active one.\n'
     )
     .addHelpText(
       'after',
@@ -54,6 +57,7 @@ export function registerAuthCommands(
           'printf \'%s\' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token',
           'bb auth login --client-id <id> --client-secret <secret>',
           'BB_USERNAME=you@example.com bb auth login --with-token < token.txt',
+          'bb auth login --account work',
         ],
         envVars: {
           BB_USERNAME:
@@ -104,6 +108,27 @@ export function registerAuthCommands(
     )
     .action(async () => {
       await registrar.run(ServiceTokens.TokenCommand);
+    });
+
+  authCmd
+    .command('switch [account]')
+    .description('Switch the active account')
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb auth switch work',
+          'bb auth switch',
+          'bb --account personal pr list',
+        ],
+        envVars: {
+          BB_ACCOUNT:
+            'Use this account for one invocation without switching (--account wins)',
+        },
+      })
+    )
+    .action(async (account: string | undefined) => {
+      await registrar.run(ServiceTokens.SwitchCommand, { account });
     });
 
   parent.addCommand(authCmd);
