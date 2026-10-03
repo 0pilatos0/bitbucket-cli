@@ -6,15 +6,17 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface DeclinePROptions extends GlobalOptions {}
 
 export class DeclinePRCommand extends BaseCommand<
-  { id: string } & DeclinePROptions,
+  { id?: string } & DeclinePROptions,
   void
 > {
   public readonly name = 'decline';
@@ -23,13 +25,14 @@ export class DeclinePRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & DeclinePROptions,
+    options: { id?: string } & DeclinePROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -37,7 +40,15 @@ export class DeclinePRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveIntArg(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveIntArg(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdDeclinePost(

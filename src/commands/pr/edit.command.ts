@@ -11,9 +11,9 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
-import { collectPages, MAX_PAGE_LENGTH } from '../../services/pagination.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface EditPROptions extends GlobalOptions {
   id?: string;
@@ -44,48 +44,15 @@ export class EditPRCommand extends BaseCommand<EditPROptions, void> {
       context
     );
 
-    let prId: number;
-    if (options.id) {
-      prId = this.parsePositiveIntArg(options.id, 'id');
-    } else {
-      const currentBranch = await this.gitService.getCurrentBranch();
-
-      const matches = await collectPages<Pullrequest>({
-        limit: 1,
-        pageSize: MAX_PAGE_LENGTH,
-        fetchPage: async (page, pagelen) => {
-          const response =
-            await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsGet(
-              {
-                workspace: repoContext.workspace,
-                repoSlug: repoContext.repoSlug,
-                state: 'OPEN',
-              },
-              {
-                params: { page, pagelen },
-              }
-            );
-
-          return response.data;
-        },
-        shouldInclude: (pullRequest) => {
-          const source = pullRequest.source as
-            { branch?: { name?: string } } | undefined;
-          return source?.branch?.name === currentBranch;
-        },
-      });
-      const matchingPR = matches[0];
-
-      if (!matchingPR) {
-        throw new BBError({
-          code: ErrorCode.API_NOT_FOUND,
-          message: `No open pull request found for current branch '${currentBranch}'. Specify a PR ID explicitly.`,
-          context: { branch: currentBranch },
-        });
-      }
-
-      prId = matchingPR.id!;
-    }
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveIntArg(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     let body = options.body;
     if (options.bodyFile) {

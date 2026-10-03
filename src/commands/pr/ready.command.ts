@@ -6,15 +6,17 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 export interface ReadyPROptions extends GlobalOptions {}
 
 export class ReadyPRCommand extends BaseCommand<
-  { id: string } & ReadyPROptions,
+  { id?: string } & ReadyPROptions,
   void
 > {
   public readonly name = 'ready';
@@ -23,13 +25,14 @@ export class ReadyPRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & ReadyPROptions,
+    options: { id?: string } & ReadyPROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -37,7 +40,15 @@ export class ReadyPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveIntArg(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveIntArg(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut(

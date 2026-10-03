@@ -6,6 +6,7 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
@@ -13,6 +14,7 @@ import {
   type PullrequestsApi,
 } from '../../generated/api.js';
 import type { GlobalOptions } from '../../types/config.js';
+import { findPullRequestIdForCurrentBranch } from './shared.js';
 
 const VALID_STRATEGIES = Object.values(
   PullrequestMergeParametersMergeStrategyEnum
@@ -25,7 +27,7 @@ export interface MergePROptions extends GlobalOptions {
 }
 
 export class MergePRCommand extends BaseCommand<
-  { id: string } & MergePROptions,
+  { id?: string } & MergePROptions,
   void
 > {
   public readonly name = 'merge';
@@ -34,13 +36,14 @@ export class MergePRCommand extends BaseCommand<
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
   }
 
   public async execute(
-    options: { id: string } & MergePROptions,
+    options: { id?: string } & MergePROptions,
     context: CommandContext
   ): Promise<void> {
     const repoContext = await this.contextService.requireRepoContextFor(
@@ -48,7 +51,15 @@ export class MergePRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveIntArg(options.id, 'id');
+    const prId =
+      options.id !== undefined
+        ? this.parsePositiveIntArg(options.id, 'id')
+        : await findPullRequestIdForCurrentBranch(
+            this.pullrequestsApi,
+            this.gitService,
+            this.contextService,
+            repoContext
+          );
 
     const request: {
       type: 'pullrequest_merge_parameters';

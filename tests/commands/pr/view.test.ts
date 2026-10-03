@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { ViewPRCommand } from '../../../src/commands/pr/view.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
   mockPullRequest,
   mockUser,
@@ -18,7 +19,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('#1'))).toBe(true);
@@ -33,7 +39,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '999' }, { globalOptions: {} })
@@ -49,7 +60,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('[DRAFT]'))).toBe(true);
@@ -63,7 +79,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: { json: true } });
 
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
@@ -77,7 +98,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
@@ -93,7 +119,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(output.logs).toContain('info:No reviewers assigned');
@@ -136,7 +167,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -180,7 +216,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService({ noUnicode: true });
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -213,7 +254,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -237,7 +283,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
@@ -260,7 +311,12 @@ describe('ViewPRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new ViewPRCommand(pullrequestsApi, contextService, output);
+    const command = new ViewPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     const joined = output.logs.join('\n');
