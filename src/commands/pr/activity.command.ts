@@ -123,13 +123,10 @@ export class ActivityPRCommand extends BaseCommand<
             activityType.toUpperCase(),
             this.getActorName(activity),
             this.formatActivityDate(activity),
-            this.buildActivityDetails(
-              activity,
-              activityType,
-              context.globalOptions
-            ),
+            this.buildActivityDetails(activity, activityType),
           ];
         },
+        flexColumns: [3],
         noun: 'activity entries',
       },
       context
@@ -234,28 +231,24 @@ export class ActivityPRCommand extends BaseCommand<
       return '-';
     }
 
-    return this.output.formatDate(date);
+    return this.output.formatRelativeDate(date);
   }
 
   private buildActivityDetails(
     activity: PullrequestActivity,
-    type: string,
-    globalOptions: GlobalOptions
+    type: string
   ): string {
     switch (type) {
       case 'comment': {
         const content = getRawContent(activity.comment?.content) ?? '';
         const id = activity.comment?.id ? `#${activity.comment.id}` : '';
-        const snippet = this.truncateText(content, 80, globalOptions);
-        return [id, snippet].filter(Boolean).join(' ');
+        return [id, content].filter(Boolean).join(' ');
       }
       case 'approval':
         return 'approved';
       case 'changes_requested': {
         const reason = activity.changes_requested?.reason;
-        return reason
-          ? this.truncateText(reason, 80, globalOptions)
-          : 'changes requested';
+        return reason || 'changes requested';
       }
       case 'merge':
         return this.formatCommitDetail(activity.merge?.commit?.hash, 'merged');
@@ -268,7 +261,7 @@ export class ActivityPRCommand extends BaseCommand<
           return `state: ${activity.update.state}`;
         }
         if (activity.update?.title) {
-          return `title: ${this.truncateText(activity.update.title, 60, globalOptions)}`;
+          return `title: ${activity.update.title}`;
         }
         if (activity.update?.description) {
           return 'description updated';

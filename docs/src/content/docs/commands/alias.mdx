@@ -44,15 +44,35 @@ bb alias set co 'pr checkout $1' --json
 
 ### Shell passthrough (`!` prefix)
 
-An expansion starting with `!` is run through `sh -c` instead of being parsed
-as a `bb` command. The arguments after the alias are available as shell
-positional parameters (`$1`, `$@`), so pipes, `xargs`, and other shell
-constructs work:
+An expansion starting with `!` is run through `sh -c` (PowerShell on Windows
+without `sh`, see below) instead of being parsed as a `bb` command. The
+arguments after the alias are available as shell positional parameters (`$1`,
+`$@`), so pipes, `xargs`, and other shell constructs work:
 
 ```bash
 bb alias set igrep '!bb pipeline list --all --json | grep "$1"'
 bb igrep deploy               # → sh -c 'bb pipeline list --all --json | grep "$1"' bb-alias deploy
 ```
+
+#### On Windows
+
+Windows usually has no `sh` on `PATH` (Git for Windows only adds it inside Git
+Bash). When `sh` isn't found, `bb` runs the body as a PowerShell script block
+instead, with `pwsh` if it's installed and Windows PowerShell otherwise. The
+arguments arrive in `$args` (`$args[0]` is the first), and the alias exits
+non-zero when its last command fails, with a native command's own exit code.
+Write the body in PowerShell syntax:
+
+```powershell
+bb alias set igrep '!bb pipeline list --all --json | Select-String $args[0]'
+bb igrep deploy
+```
+
+Where `sh` is on `PATH` (Git Bash, MSYS2, Cygwin, WSL) the alias still runs
+through `sh -c`, so existing POSIX aliases keep working there. The choice
+follows `PATH`, not the terminal you typed in, so the same alias can run in
+`sh` from Git Bash and in PowerShell from a PowerShell window. Write the body
+for the shell you run `bb` from.
 
 :::caution
 Shell aliases execute arbitrary shell commands you define. They run with your

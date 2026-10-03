@@ -22,6 +22,7 @@ export class ViewPRCommand extends BaseCommand<
 > {
   public readonly name = 'view';
   public readonly description = 'View pull request details';
+  protected override readonly usesPager = true;
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,

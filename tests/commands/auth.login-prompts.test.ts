@@ -9,8 +9,15 @@ import {
 } from '../setup.js';
 import type { UsersApi } from '../../src/generated/api.js';
 import type { OAuthService } from '../../src/services/oauth.service.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const ENV_KEYS = ['BB_USERNAME', 'BB_API_TOKEN'] as const;
+
+const MOCK_OAUTH_TOKENS = {
+  accessToken: 'access',
+  refreshToken: 'refresh',
+  expiresAt: 9999999999,
+};
 
 function buildLogin() {
   const configService = createMockConfigService();
@@ -18,6 +25,7 @@ function buildLogin() {
   const oauthService = {
     authorize: async () => {
       oauthCalls++;
+      await configService.setOAuthCredentials(MOCK_OAUTH_TOKENS);
       return {
         username: 'oauthuser',
         displayName: 'OAuth User',
@@ -25,9 +33,9 @@ function buildLogin() {
       };
     },
   } as unknown as OAuthService;
-  const usersApi = {
+  const usersApi = fakeApi<UsersApi>({
     userGet: async () => ({ data: mockUser }),
-  } as unknown as UsersApi;
+  });
   const command = new LoginCommand(
     configService,
     usersApi,
@@ -95,11 +103,11 @@ describe('LoginCommand interactive prompts', () => {
   for (const statusCode of [401, 403]) {
     it(`guides API token users to verify their email after HTTP ${statusCode}`, async () => {
       const configService = createMockConfigService();
-      const usersApi = {
+      const usersApi = fakeApi<UsersApi>({
         userGet: async () => {
           throw new APIError('Access denied', statusCode);
         },
-      } as unknown as UsersApi;
+      });
       const command = new LoginCommand(
         configService,
         usersApi,

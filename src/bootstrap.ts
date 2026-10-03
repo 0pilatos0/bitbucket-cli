@@ -5,6 +5,8 @@
 import { Container, ServiceTokens } from './core/container.js';
 import {
   ConfigService,
+  CredentialStore,
+  KeychainSecretStorage,
   GitService,
   ContextService,
   OutputService,
@@ -14,6 +16,7 @@ import {
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
+  UserResolverService,
   UrlBuilderService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
@@ -45,6 +48,7 @@ import { LoginCommand } from './commands/auth/login.command.js';
 import { LogoutCommand } from './commands/auth/logout.command.js';
 import { StatusCommand } from './commands/auth/status.command.js';
 import { TokenCommand } from './commands/auth/token.command.js';
+import { SwitchCommand } from './commands/auth/switch.command.js';
 
 // Repo commands
 import { CloneCommand } from './commands/repo/clone.command.js';
@@ -164,6 +168,7 @@ import { ListConfigCommand } from './commands/config/list.command.js';
 // Completion commands
 import { InstallCompletionCommand } from './commands/completion/install.command.js';
 import { UninstallCompletionCommand } from './commands/completion/uninstall.command.js';
+import { PrintCompletionCommand } from './commands/completion/print.command.js';
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
@@ -172,6 +177,7 @@ import { ApiCommand } from './commands/api.command.js';
 export interface BootstrapOptions {
   noColor?: boolean;
   noUnicode?: boolean;
+  noTruncate?: boolean;
   locale?: string;
 }
 
@@ -239,13 +245,16 @@ function registerCommand<T>(
 export function bootstrap(options: BootstrapOptions = {}): Container {
   const container = Container.getInstance();
 
-  // Core services. ConfigService backs both IConfigService (app config) and
-  // ICredentialStore (basic + OAuth credentials); the CredentialStore token
-  // resolves to the same singleton so storage stays in one JSON file while
-  // consumers depend on narrower interfaces.
+  // Core services. The credential store keeps named accounts in the same
+  // config file, moving secrets to the OS keychain when configured.
   container.register(ServiceTokens.ConfigService, () => new ConfigService());
-  container.register(ServiceTokens.CredentialStore, () =>
-    container.resolve<ConfigService>(ServiceTokens.ConfigService)
+  container.register(
+    ServiceTokens.CredentialStore,
+    () =>
+      new CredentialStore(
+        container.resolve<ConfigService>(ServiceTokens.ConfigService),
+        new KeychainSecretStorage()
+      )
   );
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
@@ -254,12 +263,12 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       new OutputService({
         noColor: options.noColor,
         noUnicode: options.noUnicode,
+        noTruncate: options.noTruncate,
         locale: options.locale,
       })
   );
   container.register(ServiceTokens.PromptService, () => new PromptService());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
-    ServiceTokens.ConfigService,
     ServiceTokens.CredentialStore,
   ]);
   registerCommand(container, ServiceTokens.ContextService, ContextService, [
@@ -274,7 +283,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // state (__retryCount / __tokenRefreshed) lives on each request's config
   // object, never on the instance itself.
   container.register(ServiceTokens.SharedApiAxios, () => {
-    const credentialStore = container.resolve<ConfigService>(
+    const credentialStore = container.resolve<CredentialStore>(
       ServiceTokens.CredentialStore
     );
     const oauthService = container.resolve<OAuthService>(
@@ -327,6 +336,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [ServiceTokens.PullrequestsApi]
   );
 
+  registerCommand(
+    container,
+    ServiceTokens.UserResolverService,
+    UserResolverService,
+    [ServiceTokens.UsersApi, ServiceTokens.WorkspacesApi]
+  );
+
   // URL builder is a pure helper with no dependencies; register a fresh
   // singleton so tests can swap the base via `registerInstance` if needed.
   container.register(
@@ -357,11 +373,16 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.OAuthService,
     ServiceTokens.OutputService,
   ]);
+  registerCommand(container, ServiceTokens.SwitchCommand, SwitchCommand, [
+    ServiceTokens.CredentialStore,
+    ServiceTokens.OutputService,
+  ]);
 
   // Repo commands
   registerCommand(container, ServiceTokens.CloneCommand, CloneCommand, [
     ServiceTokens.GitService,
     ServiceTokens.ContextService,
+    ServiceTokens.ConfigService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
@@ -482,7 +503,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // PR commands
   registerCommand(container, ServiceTokens.CreatePRCommand, CreatePRCommand, [
     ServiceTokens.PullrequestsApi,
-    ServiceTokens.UsersApi,
+    ServiceTokens.UserResolverService,
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.DefaultReviewerService,
@@ -539,6 +560,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       ServiceTokens.PullrequestsApi,
       ServiceTokens.ContextService,
       ServiceTokens.GitService,
+      ServiceTokens.ConfigService,
       ServiceTokens.OutputService,
     ]
   );
@@ -641,7 +663,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     AddReviewerPRCommand,
     [
       ServiceTokens.PullrequestsApi,
-      ServiceTokens.UsersApi,
+      ServiceTokens.UserResolverService,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
@@ -652,7 +674,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     RemoveReviewerPRCommand,
     [
       ServiceTokens.PullrequestsApi,
-      ServiceTokens.UsersApi,
+      ServiceTokens.UserResolverService,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
@@ -1107,17 +1129,23 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // Config commands
   registerCommand(container, ServiceTokens.GetConfigCommand, GetConfigCommand, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.SetConfigCommand, SetConfigCommand, [
     ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
     ServiceTokens.OutputService,
   ]);
   registerCommand(
     container,
     ServiceTokens.ListConfigCommand,
     ListConfigCommand,
-    [ServiceTokens.ConfigService, ServiceTokens.OutputService]
+    [
+      ServiceTokens.ConfigService,
+      ServiceTokens.CredentialStore,
+      ServiceTokens.OutputService,
+    ]
   );
 
   registerCommand(container, ServiceTokens.SetAliasCommand, SetAliasCommand, [
@@ -1164,6 +1192,12 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     container,
     ServiceTokens.UninstallCompletionCommand,
     UninstallCompletionCommand,
+    [ServiceTokens.OutputService]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.PrintCompletionCommand,
+    PrintCompletionCommand,
     [ServiceTokens.OutputService]
   );
 

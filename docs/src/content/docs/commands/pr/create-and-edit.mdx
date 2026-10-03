@@ -29,7 +29,7 @@ bb pr create [options]
 | `-d, --destination <branch>` | Destination branch (default: main)                                     |
 | `--close-source-branch`      | Close source branch after merge                                        |
 | `--draft`                    | Create the PR as draft                                                 |
-| `--reviewer <user>`          | Add a reviewer by account ID or `{uuid}` (repeatable)                  |
+| `--reviewer <user>`          | Add a reviewer by name, email, `@me`, account ID or `{uuid}` (repeatable) |
 | `--default-reviewers`        | Include the repository's default reviewers (opt-in)                    |
 | `--no-default-reviewers`     | Skip default reviewers even when the config key enables them           |
 
@@ -51,7 +51,10 @@ bb pr create -t "WIP: Add feature" --draft
 # Auto-add the repository's default reviewers (matches the Bitbucket web UI)
 bb pr create -t "Add new feature" --default-reviewers
 
-# Add specific reviewers (repeatable; accepts account ID or {uuid})
+# Add specific reviewers by nickname or display name (repeatable)
+bb pr create -t "Add new feature" --reviewer jdoe --reviewer "Jane Smith"
+
+# Or by account ID or {uuid}
 bb pr create -t "Add new feature" \
   --reviewer "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" \
   --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
@@ -81,7 +84,7 @@ still fails straight away with `Pull request title is required. Use --title opti
 By default `bb pr create` attaches no reviewers. Use `--default-reviewers` to include the defaults suggested by Bitbucket's web UI.
 
 - `--default-reviewers` opts in per-invocation. The command fetches the repository's _effective_ default reviewers (repo-level + project-inherited) and attaches them.
-- `--reviewer <user>` adds specific reviewers regardless of the defaults and can be passed multiple times. Accepts an **account ID** (e.g. `712020:3cfed7e0-...`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-...}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames are not accepted.
+- `--reviewer <user>` adds specific reviewers regardless of the defaults and can be passed multiple times. Accepts a **nickname** or **display name** (matched against the workspace members), an **email** (workspace admins only), `@me`, an **account ID** (e.g. `712020:3cfed7e0-...`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-...}`). An unknown or ambiguous name aborts the create and, when ambiguous, lists the candidates. See [Identifying users](/commands/pr/reviewers/#identifying-users) for the rules. You can't review your own PR, so the author (including `@me`) is dropped from the list.
 - The CLI excludes the author when the current-user lookup returns a UUID. If that lookup fails, Bitbucket may reject a self-review assignment.
 - To make `--default-reviewers` the default behavior, set the config key:
   ```bash
@@ -198,7 +201,8 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
-- The TITLE column is truncated to 50 characters, and the `[DRAFT] ` prefix counts against that budget. Pass `--no-truncate` for full titles; `--json` output is never truncated
+- Columns: ID, TITLE, AUTHOR, BRANCHES, UPDATED. UPDATED is relative on a terminal (`2 hours ago`) and ISO 8601 when piped
+- Long titles and branch names are shortened to fit the terminal width. Pass `--no-truncate` for full titles; `--json` output is never truncated
 
 :::caution[`--mine` does not mean "my PRs"]
 `--mine` filters PRs where you are assigned as a **reviewer**, not PRs you authored. It uses the Bitbucket API's `reviewers.uuid` filter. To find PRs you created, filter the JSON yourself:
@@ -242,3 +246,7 @@ bb pr view 42 --json --jq '{id, title, state, author: .author.display_name}'
 # Extract just the web URL
 bb pr view 42 --json --jq '.links.html.href'
 ```
+
+### Notes
+
+- On a terminal the output opens in your pager (`less -FRX` unless [`BB_PAGER` or `PAGER`](/reference/environment-variables/#pager) says otherwise). Short output prints and returns straight away

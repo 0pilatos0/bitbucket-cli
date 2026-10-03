@@ -91,7 +91,7 @@ export class ListDeploymentsCommand extends BaseCommand<
             colorPipelineStatus(this.output, getDeploymentStatus(deployment)),
             deployment.release?.name ?? '-',
             deployment.release?.commit?.hash?.slice(0, 12) ?? '-',
-            date ? this.output.formatDate(date) : '-',
+            date ? this.output.formatRelativeDate(date) : '-',
           ];
         },
         noun: 'deployments',

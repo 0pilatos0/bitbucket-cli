@@ -105,7 +105,7 @@ export function registerApiCommand(
       await registrar.runWithGlobalOptions(
         ServiceTokens.ApiCommand,
         { methodOrEndpoint, endpoint, ...options },
-        { allowJqWithoutJson: true }
+        { outputIsJson: true }
       );
     });
 }

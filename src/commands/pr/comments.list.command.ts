@@ -119,17 +119,16 @@ export class ListCommentsPRCommand extends BaseCommand<
           return [
             comment.id?.toString() ?? '',
             getUserDisplayName(comment.user) ?? 'Unknown',
-            comment.deleted
-              ? '[deleted]'
-              : this.truncateText(content, 60, context.globalOptions),
+            comment.deleted ? '[deleted]' : content,
             comment.resolution
               ? 'resolved'
               : comment.pending
                 ? 'pending'
                 : 'open',
-            this.output.formatDate(comment.created_on ?? ''),
+            this.output.formatRelativeDate(comment.created_on ?? ''),
           ];
         },
+        flexColumns: [2],
         noun: 'comments',
       },
       context
