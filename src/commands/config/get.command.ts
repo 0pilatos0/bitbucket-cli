@@ -7,6 +7,7 @@ import { didYouMeanSuffix } from '../../core/suggest.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
@@ -24,6 +25,7 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     output: IOutputService
   ) {
     super(output);
@@ -57,7 +59,10 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
       });
     }
 
-    const rawValue = await this.configService.getValue(key);
+    const rawValue =
+      key === 'username'
+        ? await this.currentUsername()
+        : await this.configService.getValue(key);
     const value = normalizeReadableConfigValue(key, rawValue as unknown);
 
     if (context.globalOptions.json) {
@@ -70,5 +75,10 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
 
     // Output the value (or empty string if undefined)
     this.output.text(String(value ?? ''));
+  }
+
+  private async currentUsername(): Promise<string | undefined> {
+    const accounts = await this.credentialStore.listAccounts();
+    return accounts.find((summary) => summary.current)?.username;
   }
 }

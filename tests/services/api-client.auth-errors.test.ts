@@ -11,11 +11,13 @@ import { join } from 'node:path';
 import { describe, it, expect } from 'bun:test';
 import { createApiClient } from '../../src/services/api-client.service.js';
 import { ConfigService } from '../../src/services/config.service.js';
+import { CredentialStore } from '../../src/services/credential-store.service.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import {
   createMockAdapter,
   createMockOAuthService,
   createMockOutputService,
+  createMockSecretStorage,
   mockOAuthConfigService,
 } from '../setup.js';
 
@@ -28,7 +30,11 @@ describe('createApiClient - BBError passthrough', () => {
       await prepare(dir);
       const mockAdapter = createMockAdapter([{ status: 200, data: {} }]);
       const client = createApiClient(
-        new ConfigService(dir),
+        new CredentialStore(
+          new ConfigService(dir),
+          createMockSecretStorage(),
+          {}
+        ),
         createMockOutputService()
       );
       client.defaults.adapter = mockAdapter.adapter;
