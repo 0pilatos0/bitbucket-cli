@@ -32,17 +32,18 @@ the commands that read and write it, see the [Config command reference](/command
 
 ## Configuration schema
 
-| Key                               | Type                     | Description                                                                    | Set by                            |
-| --------------------------------- | ------------------------ | ------------------------------------------------------------------------------ | --------------------------------- |
-| `accounts`                        | object                   | Saved accounts by name, see [Account fields](#account-fields)                  | `bb auth login`                   |
-| `activeAccount`                   | string                   | Account used when neither `--account` nor `BB_ACCOUNT` is given                | `bb auth login`, `bb auth switch` |
-| `credentialStorage`               | `"file"` \| `"keychain"` | Where account secrets live (default: `file`)                                   | `bb config set`                   |
-| `defaultWorkspace`                | string                   | Default workspace                                                              | `bb config set defaultWorkspace`  |
-| `skipVersionCheck`                | boolean                  | Disable update notifications                                                   | `bb config set`                   |
-| `versionCheckInterval`            | number                   | Days between update checks (default: 1)                                        | `bb config set`                   |
-| `prCreateIncludeDefaultReviewers` | boolean                  | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set`                   |
-| `aliases`                         | object                   | User-defined command aliases                                                   | `bb alias set`                    |
-| `lastVersionCheck`                | string                   | Timestamp of last update check                                                 | Automatic                         |
+| Key                               | Type                     | Description                                                                        | Set by                            |
+| --------------------------------- | ------------------------ | ---------------------------------------------------------------------------------- | --------------------------------- |
+| `accounts`                        | object                   | Saved accounts by name, see [Account fields](#account-fields)                      | `bb auth login`                   |
+| `activeAccount`                   | string                   | Account used when neither `--account` nor `BB_ACCOUNT` is given                    | `bb auth login`, `bb auth switch` |
+| `credentialStorage`               | `"file"` \| `"keychain"` | Where account secrets live (default: `file`)                                       | `bb config set`                   |
+| `defaultWorkspace`                | string                   | Default workspace                                                                  | `bb config set defaultWorkspace`  |
+| `skipVersionCheck`                | boolean                  | Disable update notifications                                                       | `bb config set`                   |
+| `versionCheckInterval`            | number                   | Days between update checks (default: 1)                                            | `bb config set`                   |
+| `prCreateIncludeDefaultReviewers` | boolean                  | Auto-add the repository's default reviewers on `bb pr create` (default: false)     | `bb config set`                   |
+| `gitProtocol`                     | `"ssh"` \| `"https"`     | Protocol for `bb repo clone` and fork fetches in `bb pr checkout` (default: `ssh`) | `bb config set`                   |
+| `aliases`                         | object                   | User-defined command aliases                                                       | `bb alias set`                    |
+| `lastVersionCheck`                | string                   | Timestamp of last update check                                                     | Automatic                         |
 
 ### Account fields
 
@@ -127,7 +128,7 @@ defaultWorkspace  myworkspace
 apiToken          ********
 skipVersionCheck  false
 
-Settable keys: defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
+Settable keys: defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol. Run 'bb config set --help' for details.
 ```
 
 The API token is masked. Use `bb auth token` to see the real value.
@@ -157,26 +158,28 @@ bb config set versionCheckInterval 7
 
 #### Settable keys
 
-`bb config set` accepts these four keys; `bb config list` prints the current
+`bb config set` accepts these six keys; `bb config list` prints the current
 list as a footer. Everything else is written by `bb auth login` or by the CLI
 itself.
 
-| Key                               | Type                | Example                                              |
-| --------------------------------- | ------------------- | ---------------------------------------------------- |
-| `defaultWorkspace`                | string              | `bb config set defaultWorkspace myworkspace`         |
-| `skipVersionCheck`                | boolean             | `bb config set skipVersionCheck true`                |
-| `versionCheckInterval`            | integer (days, ≥ 1) | `bb config set versionCheckInterval 7`               |
-| `prCreateIncludeDefaultReviewers` | boolean             | `bb config set prCreateIncludeDefaultReviewers true` |
+| Key                               | Type                 | Example                                              |
+| --------------------------------- | -------------------- | ---------------------------------------------------- |
+| `defaultWorkspace`                | string               | `bb config set defaultWorkspace myworkspace`         |
+| `credentialStorage`               | `file` or `keychain` | `bb config set credentialStorage keychain`           |
+| `skipVersionCheck`                | boolean              | `bb config set skipVersionCheck true`                |
+| `versionCheckInterval`            | integer (days, ≥ 1)  | `bb config set versionCheckInterval 7`               |
+| `prCreateIncludeDefaultReviewers` | boolean              | `bb config set prCreateIncludeDefaultReviewers true` |
+| `gitProtocol`                     | `ssh` or `https`     | `bb config set gitProtocol https`                    |
 
 `skipVersionCheck` and `prCreateIncludeDefaultReviewers` accept only `true` or
-`false` (case-insensitive, surrounding whitespace ignored). `versionCheckInterval` accepts only positive integers (`>= 1`).
+`false` (case-insensitive, surrounding whitespace ignored). `versionCheckInterval` accepts only positive integers (`>= 1`). `gitProtocol` accepts only `ssh` or `https` (case-insensitive).
 
 #### Readable keys
 
 `bb config get` has its own allowlist, and it is not the same one:
 
 ```text
-username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 ```
 
 `username` is readable but not settable; change it with `bb auth login -u`.

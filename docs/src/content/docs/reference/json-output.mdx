@@ -637,7 +637,7 @@ Example:
 ```bash
 bb config get invalidKey --json 2>error.json
 cat error.json
-# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}
+# {"name":"BBError","code":4003,"message":"Unknown config key 'invalidKey'. Valid keys: username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol","context":{"key":"invalidKey"}}
 ```
 
 Error JSON fields:
