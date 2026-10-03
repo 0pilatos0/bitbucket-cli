@@ -7,7 +7,8 @@ Tab completion for bash, zsh, and fish.
 
 Global options: every global flag is accepted here (see
 [Global Flags](/reference/global-flags/)). Only `--json`, `--no-color` and
-`--no-unicode` change anything; `--jq` needs `--json`, and
+`--no-unicode` change anything; `--jq`, `--raw-output` and `--lean` need
+`--json` (`--raw-output` also needs `--jq`), and
 `--no-truncate`/`--locale`/`-w`/`-r` have no output to affect.
 
 ## `bb completion install`
@@ -99,7 +100,8 @@ commands and flags the CLI actually ships.
 
 - **Commands and subcommands**; every command in the tree, at every depth.
 - **Options**; every flag on the command plus the inherited globals (`--json`,
-  `--jq`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale`,
+  `--jq`, `--raw-output`, `--lean`, `--no-color`, `--no-unicode`,
+  `--no-truncate`, `--locale`,
   `--workspace`, `--repo`, `--help`), plus `--version` on the bare `bb`. Only
   long forms are suggested; short aliases like `-w` still work but are never
   offered.
@@ -148,8 +150,9 @@ $ bb pr create --<Tab>
 --title                 --body          --source       --destination
 --close-source-branch   --draft         --reviewer     --default-reviewers
 --no-default-reviewers
---json                  --jq            --no-color     --no-unicode
---no-truncate           --locale        --workspace    --repo         --help
+--json                  --jq            --raw-output   --lean
+--no-color              --no-unicode    --no-truncate  --locale
+--workspace             --repo          --help
 ```
 
 ### Related

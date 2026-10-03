@@ -157,16 +157,23 @@ export function createContext(
 
   // `--jq` normally requires `--json` to flip list/table commands out of human
   // mode. Commands whose output is already JSON (e.g. `bb api`) opt out via
-  // `allowJqWithoutJson`, so `--jq` works standalone there.
-  if (
-    !validationError &&
-    jqOpt !== undefined &&
-    !json &&
-    !options.allowJqWithoutJson
-  ) {
+  // `outputIsJson`, so `--jq` works standalone there.
+  const jsonOnlyFlags: [string, boolean][] = [
+    ['--jq', jqOpt !== undefined],
+    ['--lean', opts.lean === true],
+  ];
+  const flagNeedingJson = jsonOnlyFlags.find(([, isSet]) => isSet)?.[0];
+  if (!validationError && !json && !options.outputIsJson && flagNeedingJson) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
-      message: '--jq requires --json',
+      message: `${flagNeedingJson} requires --json`,
+    });
+  }
+
+  if (!validationError && opts.rawOutput && jqOpt === undefined) {
+    validationError = new BBError({
+      code: ErrorCode.JSON_FORMAT_INVALID,
+      message: '--raw-output requires --jq',
     });
   }
 
@@ -175,6 +182,8 @@ export function createContext(
       json: json || undefined,
       jsonFields,
       jq: jqOpt,
+      rawOutput: opts.rawOutput === true || undefined,
+      lean: opts.lean === true || undefined,
       noColor: opts.color === false,
       noUnicode: opts.unicode === false || noUnicode,
       noTruncate: opts.truncate === false,
@@ -294,6 +303,14 @@ cli
   .option(
     '--jq <expression>',
     'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
+  )
+  .option(
+    '--raw-output',
+    'With --jq, print string results without JSON quotes (like jq -r)'
+  )
+  .option(
+    '--lean',
+    'Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json'
   )
   .option('--no-color', 'Disable color output')
   .option(
