@@ -26,28 +26,26 @@ export function isStandaloneBinary(mainPath: string): boolean {
   return EMBEDDED_ENTRY.test(mainPath);
 }
 
-export type InstallChannel = 'standalone' | 'npm' | 'pnpm' | 'bun' | 'unknown';
+export type InstallChannel = 'standalone' | 'npm' | 'pnpm' | 'bun';
 
 // Package managers leave a recognizable layout in the entrypoint's real path:
-// pnpm keeps packages in a `.pnpm` store, Bun's global installs live under
-// `<BUN_INSTALL>/install/global` and bunx runs from a `bunx-*` temp dir. Any
-// other `node_modules` is npm's. Outside node_modules (a source checkout or
-// `bun link`) the channel is unknown.
+// pnpm keeps packages in a `.pnpm` dir (pnpm 10) or its store's
+// `v<N>/links` global virtual store (pnpm 11), Bun's global installs live
+// under `<BUN_INSTALL>/install/global` and bunx runs from a `bunx-*` temp dir.
+// Any other `node_modules` is npm's. Outside node_modules (a source checkout
+// or `bun link`) Bun is the safest guess: bb needs it anyway.
 export function detectInstallChannel(mainPath: string): InstallChannel {
   if (isStandaloneBinary(mainPath)) {
     return 'standalone';
   }
   const path = mainPath.replaceAll('\\', '/');
-  if (path.includes('/.pnpm/')) {
+  if (/\/\.pnpm\/|\/v\d+\/links\//.test(path)) {
     return 'pnpm';
   }
   if (/\/install\/global\/node_modules\/|\/bunx-/.test(path)) {
     return 'bun';
   }
-  if (path.includes('/node_modules/')) {
-    return 'npm';
-  }
-  return 'unknown';
+  return path.includes('/node_modules/') ? 'npm' : 'bun';
 }
 
 interface NpmRegistryResponse {
@@ -264,7 +262,7 @@ export class VersionService {
   /**
    * How to update this installation: standalone binaries are replaced by a
    * new download, package installs through the package manager that made
-   * them. An unknown channel falls back to Bun, the runtime bb needs anyway.
+   * them.
    */
   public getUpdateHint(): string {
     switch (this.channel) {
@@ -275,7 +273,6 @@ export class VersionService {
       case 'pnpm':
         return `Run 'pnpm add -g ${PACKAGE_NAME}' to update`;
       case 'bun':
-      case 'unknown':
         return `Run 'bun install -g ${PACKAGE_NAME}' to update`;
     }
   }

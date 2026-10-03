@@ -18,7 +18,7 @@ bb pr create -t "My feature"
 
 ## Prerequisites
 
-- **[Bun](https://bun.sh) runtime 1.1.30+** for the npm package. Installing via npm or pnpm does not install Bun. Without it, `bb` fails to start with `env: bun: No such file or directory` (on Windows, an error that `bun` is not recognized). The [standalone binary](/getting-started/installation/#standalone-binary) needs no runtime.
+- **[Bun](https://bun.sh) runtime 1.1.30+** for the npm package. Installing via npm or pnpm does not install Bun. Without it, `bb` fails to start with an error that `bun` was not found, such as `env: bun: No such file or directory`. The [standalone binary](/getting-started/installation/#standalone-binary) needs no runtime.
 - A **Bitbucket Cloud** account.
 
 ## Step-by-step setup
@@ -163,7 +163,7 @@ A new version is available: 1.23.0 (you have 1.22.0)
 ──────────────────────────────────────────────────
 ```
 
-The update command matches how you installed `bb`: `npm install -g`, `pnpm add -g` or `bun install -g`, or a download link for the standalone binary. When the install method can't be told from the install path, it suggests `bun install -g`.
+The update line follows where `bb` is installed: `pnpm add -g` for a pnpm global install, `bun install -g` for a Bun global install, a download link for the standalone binary, and `npm install -g` for any other `node_modules` install. Outside `node_modules`, such as a source checkout, it suggests `bun install -g`.
 
 Under `--no-unicode` or `BB_NO_UNICODE`, the horizontal rules are drawn with `-` instead of `─`.
 

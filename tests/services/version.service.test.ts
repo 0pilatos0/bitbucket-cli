@@ -98,8 +98,16 @@ describe('detectInstallChannel', () => {
       '/tmp/bunx-501-@pilatos/bitbucket-cli@latest/node_modules/@pilatos/bitbucket-cli/dist/index.js',
       'bun',
     ],
-    ['/home/me/src/bitbucket-cli/dist/index.js', 'unknown'],
-    ['/home/me/src/bitbucket-cli/src/index.ts', 'unknown'],
+    [
+      '/home/me/Library/pnpm/store/v11/links/@pilatos/bitbucket-cli/2.2.2/6a1b/node_modules/@pilatos/bitbucket-cli/dist/index.js',
+      'pnpm',
+    ],
+    [
+      'C:\\Users\\me\\AppData\\Local\\pnpm\\store\\v11\\links\\@pilatos\\bitbucket-cli\\2.2.2\\6a1b\\node_modules\\@pilatos\\bitbucket-cli\\dist\\index.js',
+      'pnpm',
+    ],
+    ['/home/me/src/bitbucket-cli/dist/index.js', 'bun'],
+    ['/home/me/src/bitbucket-cli/src/index.ts', 'bun'],
   ])('%s -> %s', (mainPath, expected) => {
     expect(detectInstallChannel(mainPath)).toBe(expected);
   });
@@ -215,7 +223,6 @@ describe('VersionService', () => {
       ['npm', "Run 'npm install -g @pilatos/bitbucket-cli' to update"],
       ['pnpm', "Run 'pnpm add -g @pilatos/bitbucket-cli' to update"],
       ['bun', "Run 'bun install -g @pilatos/bitbucket-cli' to update"],
-      ['unknown', "Run 'bun install -g @pilatos/bitbucket-cli' to update"],
       [
         'standalone',
         'Download the new binary from https://github.com/0pilatos0/bitbucket-cli/releases/latest',

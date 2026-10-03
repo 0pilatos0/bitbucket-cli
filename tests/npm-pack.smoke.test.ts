@@ -1,13 +1,14 @@
 /**
  * Pins the contents of the published npm tarball. Builds the CLI with the
  * production build script into a temp copy of the package, then asks npm what
- * `npm pack` would ship. Catches a regrown sourcemap (5.7 MB of the old
- * 7.7 MB tarball) or anything else leaking past the `files` whitelist.
+ * `npm pack` would ship. Catches a sourcemap (5.7 MB of the old 7.7 MB
+ * tarball, possibly left over from an older build) or anything else leaking
+ * past the `files` whitelist.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -27,14 +28,19 @@ beforeAll(async () => {
   for (const file of ['package.json', 'README.md', 'LICENSE', '.npmignore']) {
     await cp(join(REPO_ROOT, file), join(pkgDir, file));
   }
+  // A map left behind by an older build must not ship either.
+  await mkdir(join(pkgDir, 'dist'));
+  await writeFile(join(pkgDir, 'dist', 'index.js.map'), '{}');
 
   const build = spawnSync(
     process.execPath,
     ['scripts/build.ts', '--outdir', join(pkgDir, 'dist')],
     { cwd: REPO_ROOT, stdio: 'inherit', timeout: BUILD_TIMEOUT_MS }
   );
-  if (build.status !== 0) {
-    throw new Error(`scripts/build.ts failed with exit code ${build.status}`);
+  if (build.error || build.status !== 0) {
+    throw new Error(
+      `scripts/build.ts failed: ${build.error?.message ?? `exit code ${build.status}`}`
+    );
   }
 
   // npm is a .cmd shim on Windows, which only runs through a shell.
@@ -48,6 +54,11 @@ beforeAll(async () => {
       timeout: PACK_TIMEOUT_MS,
     }
   );
+  if (pack.error) {
+    throw new Error(
+      `npm pack could not run (this test needs npm): ${pack.error.message}`
+    );
+  }
   if (pack.status !== 0) {
     throw new Error(`npm pack failed (${pack.status}): ${pack.stderr}`);
   }
