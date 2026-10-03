@@ -120,6 +120,7 @@ totals, use the [paginated reporting recipe](/recipes/reporting-analytics/).
 
 - When no ID is provided, the command searches for an open pull request whose source branch matches your current git branch
 - `--color auto` colors the diff only when stdout is a terminal: green for additions, red for deletions, cyan for hunk headers. Whole lines are colored by their leading marker, there is no language-aware highlighting
+- On a terminal the diff opens in your pager (`less -FRX` unless [`BB_PAGER` or `PAGER`](/reference/environment-variables/#pager) says otherwise). Piped output and `--json` are never paged
 - `--color never` forces plain text, which is what you want when redirecting to a file or piping into another command. The global `--no-color` flag does the same for every command
 - The value is validated before the request. A typo fails with `--color must be one of: auto, always, never` plus a `(Did you mean never?)` suggestion, rather than silently falling back
 - Passing `--color <when>` at all turns the _global_ color setting on, because the CLI resolves color by scanning raw argv for a `--color` token. `bb pr diff 42 --color never` still leaves the diff body uncolored, but it overrides `--no-color` and `NO_COLOR` for everything else that invocation prints. See [Global Flags → Precedence summary](/reference/global-flags/#precedence-summary)

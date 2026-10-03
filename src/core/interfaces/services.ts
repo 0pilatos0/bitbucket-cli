@@ -190,6 +190,15 @@ export interface IPromptService {
   ): Promise<T>;
 }
 
+export interface TableOptions {
+  /**
+   * Columns (0-based) that may be shortened to fit the terminal width, such
+   * as titles and descriptions. Defaults to every column. Ids, hashes and
+   * URLs should stay out so they remain copyable.
+   */
+  flexColumns?: number[];
+}
+
 /**
  * Output service interface for formatting and displaying output
  */
@@ -204,7 +213,18 @@ export interface IOutputService {
    * the animation in JSON mode, non-TTY streams, and tests.
    */
   spinner(text: string): ISpinner;
-  table(headers: string[], rows: string[][]): void;
+  /**
+   * Print rows as an aligned table on a terminal, fitted to its width unless
+   * `--no-truncate` is set. When stdout is not a terminal, print tab-separated
+   * rows without a header instead.
+   */
+  table(headers: string[], rows: string[][], options?: TableOptions): void;
+  /**
+   * Run `run` with its stdout sent through the user's pager (`BB_PAGER`,
+   * `PAGER`, default `less -FRX`). Paging only applies on a terminal and
+   * outside JSON mode; otherwise output is written directly.
+   */
+  withPager<T>(run: () => Promise<T>): Promise<T>;
   success(message: string): void;
   error(message: string): void;
   warning(message: string): void;
@@ -258,4 +278,9 @@ export interface IOutputService {
   blue(text: string): string;
   underline(text: string): string;
   formatDate(date: string | Date): string;
+  /**
+   * Relative time ("3 days ago") on a terminal, `formatDate()` otherwise, so
+   * piped output keeps absolute dates. Used for date columns in tables.
+   */
+  formatRelativeDate(date: string | Date): string;
 }
