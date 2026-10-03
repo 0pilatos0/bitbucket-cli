@@ -198,7 +198,7 @@ bb pr list --mine
 
 - Draft PRs are shown with a `[DRAFT]` prefix in the title
 - `--limit` is enforced across paginated API responses
-- Columns: ID, TITLE, AUTHOR, BRANCHES, UPDATED. UPDATED is relative on a terminal (`2 hours ago`) and absolute when piped
+- Columns: ID, TITLE, AUTHOR, BRANCHES, UPDATED. UPDATED is relative on a terminal (`2 hours ago`) and ISO 8601 when piped
 - Long titles and branch names are shortened to fit the terminal width. Pass `--no-truncate` for full titles; `--json` output is never truncated
 
 :::caution[`--mine` does not mean "my PRs"]

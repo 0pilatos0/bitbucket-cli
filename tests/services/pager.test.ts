@@ -19,4 +19,18 @@ describe('runPager', () => {
   it('reports when the pager cannot be started', async () => {
     expect(await runPager(['bb-no-such-pager-binary'], 'text')).toBe(false);
   });
+
+  it.skipIf(process.platform === 'win32')(
+    'reports a pager that exits with an error',
+    async () => {
+      expect(await runPager(['sh', '-c', 'exit 3'], 'text')).toBe(false);
+    }
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    'accepts a pager that quits without reading everything',
+    async () => {
+      expect(await runPager(['true'], 'x'.repeat(1 << 20))).toBe(true);
+    }
+  );
 });

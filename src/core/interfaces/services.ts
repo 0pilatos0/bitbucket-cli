@@ -193,8 +193,8 @@ export interface IPromptService {
 export interface TableOptions {
   /**
    * Columns (0-based) that may be shortened to fit the terminal width, such
-   * as titles and descriptions. Defaults to every column. Ids, hashes and
-   * URLs should stay out so they remain copyable.
+   * as titles and descriptions. Ids, hashes and URLs should stay out so they
+   * remain copyable. Without any, the table keeps its natural width.
    */
   flexColumns?: number[];
 }
@@ -279,8 +279,8 @@ export interface IOutputService {
   underline(text: string): string;
   formatDate(date: string | Date): string;
   /**
-   * Relative time ("3 days ago") on a terminal, `formatDate()` otherwise, so
-   * piped output keeps absolute dates. Used for date columns in tables.
+   * Relative time ("3 days ago") on a terminal and an ISO 8601 timestamp when
+   * piped; `-` for a missing or invalid date. Used for date columns in tables.
    */
   formatRelativeDate(date: string | Date): string;
 }

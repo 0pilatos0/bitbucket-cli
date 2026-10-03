@@ -47,12 +47,14 @@ const MIN_FLEX_WIDTH = 10;
 
 const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ['year', 365 * 24 * 60 * 60],
-  ['month', 30 * 24 * 60 * 60],
+  ['month', (365 / 12) * 24 * 60 * 60],
   ['day', 24 * 60 * 60],
   ['hour', 60 * 60],
   ['minute', 60],
   ['second', 1],
 ];
+
+type TerminalState = Pick<NodeJS.WriteStream, 'isTTY' | 'columns'>;
 
 function stripControl(value: string): string {
   return value.replace(
@@ -115,6 +117,7 @@ export class OutputService implements IOutputService {
   private readonly noUnicode: boolean;
   private readonly noTruncate: boolean;
   private readonly locale: string;
+  private readonly terminal: TerminalState;
   private jsonFormatOptions: JsonFormatOptions = {};
   private activeSpinner: ISpinner | null = null;
   // Collects stdout while a `withPager()` run is active, so the whole page
@@ -126,11 +129,14 @@ export class OutputService implements IOutputService {
     noUnicode?: boolean;
     noTruncate?: boolean;
     locale?: string;
+    /** Where stdout goes; defaults to the live `process.stdout`. */
+    terminal?: TerminalState;
   }) {
     this.noColor = options?.noColor ?? false;
     this.noUnicode = options?.noUnicode ?? false;
     this.noTruncate = options?.noTruncate ?? false;
     this.locale = options?.locale ?? DEFAULT_LOCALE;
+    this.terminal = options?.terminal ?? process.stdout;
   }
 
   public setJsonFormatOptions(options: JsonFormatOptions): void {
@@ -148,7 +154,7 @@ export class OutputService implements IOutputService {
     // spinner so callers see a uniform handle.
     const enabled =
       !this.isJsonMode() &&
-      !!process.stdout.isTTY &&
+      !!this.terminal.isTTY &&
       process.env.NODE_ENV !== 'test';
 
     if (!enabled) {
@@ -229,9 +235,9 @@ export class OutputService implements IOutputService {
 
     // Piped output is tab-separated with no header, like `gh`, so `cut -f`
     // and friends see whole values instead of padded, truncated columns.
-    if (!process.stdout.isTTY) {
+    if (!this.terminal.isTTY) {
       for (const row of sanitizedRows) {
-        this.writeLine(row.join('\t'));
+        this.writeLine(row.map((cell) => cell.replace(SGR, '')).join('\t'));
       }
       return;
     }
@@ -246,8 +252,8 @@ export class OutputService implements IOutputService {
       ? naturalWidths
       : fitColumnWidths(
           naturalWidths,
-          options.flexColumns ?? naturalWidths.map((_, index) => index),
-          process.stdout.columns
+          options.flexColumns ?? [],
+          this.terminal.columns
         );
 
     const lastIndex = widths.length - 1;
@@ -309,7 +315,7 @@ export class OutputService implements IOutputService {
   public raw(data: Uint8Array): void {
     this.stopActiveSpinner();
     ignoreClosedStdoutPipe();
-    if (process.stdout.isTTY) {
+    if (this.terminal.isTTY) {
       const text = stripControl(new TextDecoder().decode(data));
       if (this.pageBuffer) {
         this.pageBuffer.push(text);
@@ -334,7 +340,7 @@ export class OutputService implements IOutputService {
 
   public async withPager<T>(run: () => Promise<T>): Promise<T> {
     const pager =
-      this.isJsonMode() || !process.stdout.isTTY || this.pageBuffer
+      this.isJsonMode() || !this.terminal.isTTY || this.pageBuffer
         ? undefined
         : resolvePagerCommand(process.env.BB_PAGER ?? process.env.PAGER);
     if (!pager) {
@@ -343,15 +349,22 @@ export class OutputService implements IOutputService {
 
     const buffer: string[] = [];
     this.pageBuffer = buffer;
+    let result: T;
     try {
-      return await run();
-    } finally {
+      result = await run();
+    } catch (error) {
+      // Show partial output right away so the error printed next isn't
+      // hidden behind a pager waiting for input.
       this.pageBuffer = null;
-      const text = buffer.join('');
-      if (text.length > 0 && !(await runPager(pager, text))) {
-        process.stdout.write(text);
-      }
+      process.stdout.write(buffer.join(''));
+      throw error;
     }
+    this.pageBuffer = null;
+    const text = buffer.join('');
+    if (text.length > 0 && !(await runPager(pager, text))) {
+      process.stdout.write(text);
+    }
+    return result;
   }
 
   private writeLine(line: string): void {
@@ -398,8 +411,12 @@ export class OutputService implements IOutputService {
 
   public formatRelativeDate(date: string | Date, now = new Date()): string {
     const d = typeof date === 'string' ? new Date(date) : date;
-    if (!process.stdout.isTTY || Number.isNaN(d.getTime())) {
-      return this.formatDate(d);
+    if (Number.isNaN(d.getTime())) {
+      return '-';
+    }
+    // Piped output feeds other tools, which want a sortable, locale-free date.
+    if (!this.terminal.isTTY) {
+      return d.toISOString();
     }
 
     const seconds = (d.getTime() - now.getTime()) / 1000;

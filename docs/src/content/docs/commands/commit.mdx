@@ -59,7 +59,7 @@ bb commit list --json --jq '.commits[].hash'
 - Columns: short hash (7 characters), first line of the commit message
   (shortened to fit the terminal; disable with `--no-truncate`), author
   (Bitbucket display name, or the name parsed from the raw git author), and
-  commit date (relative on a terminal, absolute when piped).
+  commit date (relative on a terminal, ISO 8601 when piped).
 - `--limit` is enforced across paginated responses. When results are capped the
   CLI prints `Showing 25 commits. Use --limit <n> or --all to see more.`
   (suppressed with `--json`).

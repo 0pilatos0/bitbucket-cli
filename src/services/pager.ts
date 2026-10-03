@@ -24,8 +24,8 @@ export function resolvePagerCommand(
 
 /**
  * Pipe `text` through the pager and wait for the user to close it. Returns
- * false when the pager could not be started (e.g. no `less` on Windows) so the
- * caller can print the text directly instead.
+ * false when the pager could not be started (e.g. no `less` on Windows) or
+ * failed (e.g. a bad option), so the caller can print the text directly.
  */
 export async function runPager(
   command: string[],
@@ -56,9 +56,8 @@ export async function runPager(
     } catch {
       // The user quit the pager before reading everything.
     }
-    await pager.exited;
+    return (await pager.exited) === 0;
   } finally {
     process.off('SIGINT', ignoreInterrupt);
   }
-  return true;
 }

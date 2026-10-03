@@ -43,7 +43,8 @@ output in a pager. The default `less -FRX` quits right away when the output
 fits on one screen (`-F`), keeps colors (`-R`) and leaves the text on screen
 after you quit (`-X`). Ctrl+C goes to the pager while it is open. There is no
 pager with `--json` or when stdout is piped. If the pager can't be started (for
-example no `less` on Windows), the output is printed directly.
+example no `less` on Windows) or exits with an error, the output is printed
+directly. A command that fails prints what it has so far without the pager.
 
 ```bash
 BB_PAGER= bb pr diff 42        # no pager for this run

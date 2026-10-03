@@ -90,7 +90,7 @@ bb pr list --json id,title --jq '.[] | .title'
 ### `--no-truncate`
 
 On a terminal, tables are fitted to the window width. Long titles,
-descriptions, messages and comment bodies shrink first and end in `...`; ids,
+descriptions, messages and comment bodies shrink and end in `...`; ids,
 hashes, UUIDs and URLs keep their full width. A column never shrinks below 10
 characters, so on a very narrow terminal rows wrap instead. `--no-truncate`
 turns the fitting off and prints every cell in full:
@@ -102,7 +102,7 @@ bb pr comments list 42 --no-truncate
 When stdout is not a terminal (piped or redirected), tables are printed as
 tab-separated values: one line per row, no header, no padding and nothing cut
 off, so `bb pr list | cut -f2` gives the full titles. Date columns are relative
-on a terminal (`3 hours ago`) and absolute when piped. The "Showing N results"
+on a terminal (`3 hours ago`) and ISO 8601 when piped. The "Showing N results"
 hint goes to stderr. JSON is never truncated, so `--no-truncate` does nothing
 with `--json`.
 

@@ -14,16 +14,7 @@ import {
   truncateToWidth,
 } from '../../src/services/output.service.js';
 
-const originalStdout = {
-  isTTY: process.stdout.isTTY,
-  columns: process.stdout.columns,
-};
-
-function setStdout(state: { isTTY?: boolean; columns?: number }): void {
-  for (const [key, value] of Object.entries(state)) {
-    Object.defineProperty(process.stdout, key, { value, configurable: true });
-  }
-}
+type Terminal = { isTTY: boolean; columns?: number };
 
 describe('truncateToWidth', () => {
   it('returns text that already fits unchanged', () => {
@@ -94,6 +85,7 @@ describe('Windows jq runtime requirement', () => {
 
 describe('OutputService', () => {
   let output: OutputService;
+  let terminal: Terminal;
   let consoleLogs: string[];
   let consoleErrors: string[];
   let consoleWarns: string[];
@@ -115,15 +107,14 @@ describe('OutputService', () => {
     console.warn = (...args: unknown[]) => consoleWarns.push(args.join(' '));
 
     // Table tests describe the terminal layout unless they opt out.
-    setStdout({ isTTY: true, columns: undefined });
-    output = new OutputService();
+    terminal = { isTTY: true };
+    output = new OutputService({ terminal });
   });
 
   afterEach(() => {
     console.log = originalLog;
     console.error = originalError;
     console.warn = originalWarn;
-    setStdout(originalStdout);
   });
 
   describe('json', () => {
@@ -466,13 +457,6 @@ describe('OutputService', () => {
   describe('raw', () => {
     let writes: unknown[];
     let writeSpy: ReturnType<typeof spyOn>;
-    const originalIsTTY = process.stdout.isTTY;
-    const setStdoutTTY = (value: boolean | undefined): void => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value,
-        configurable: true,
-      });
-    };
 
     beforeEach(() => {
       writes = [];
@@ -486,11 +470,10 @@ describe('OutputService', () => {
 
     afterEach(() => {
       writeSpy.mockRestore();
-      setStdoutTTY(originalIsTTY);
     });
 
     it('writes the exact bytes with no trailing newline when piped', () => {
-      setStdoutTTY(false);
+      terminal.isTTY = false;
       const bytes = new Uint8Array([0x89, 0x50, 0x1b, 0x5d, 0x00, 0x0a]);
 
       output.raw(bytes);
@@ -500,7 +483,7 @@ describe('OutputService', () => {
     });
 
     it('strips terminal control sequences when stdout is a TTY', () => {
-      setStdoutTTY(true);
+      terminal.isTTY = true;
 
       output.raw(new TextEncoder().encode('ok\x1b]0;pwned\x07after\n'));
 
@@ -1034,7 +1017,7 @@ describe('OutputService', () => {
 
   describe('table layout', () => {
     it('prints tab-separated rows without a header when piped', () => {
-      setStdout({ isTTY: false });
+      terminal.isTTY = false;
 
       output.table(
         ['ID', 'TITLE'],
@@ -1051,7 +1034,7 @@ describe('OutputService', () => {
     });
 
     it('keeps an empty field for missing cells when piped', () => {
-      setStdout({ isTTY: false });
+      terminal.isTTY = false;
 
       output.table(['A', 'B', 'C'], [['only']]);
 
@@ -1097,7 +1080,7 @@ describe('OutputService', () => {
     });
 
     it('fits rows to the terminal width by cutting flexible columns', () => {
-      setStdout({ columns: 30 });
+      terminal.columns = 30;
       const title = 'A pull request title that is far too long';
 
       output.table(['ID', 'TITLE', 'BY'], [['#1', title, 'paul']], {
@@ -1113,10 +1096,10 @@ describe('OutputService', () => {
     });
 
     it('prints full values with --no-truncate', () => {
-      setStdout({ columns: 30 });
+      terminal.columns = 30;
       const title = 'A pull request title that is far too long';
 
-      new OutputService({ noTruncate: true }).table(
+      new OutputService({ noTruncate: true, terminal }).table(
         ['ID', 'TITLE'],
         [['#1', title]]
       );
@@ -1147,21 +1130,27 @@ describe('OutputService', () => {
     });
 
     it('uses the configured locale', () => {
-      const localized = new OutputService({ locale: 'de-DE' });
+      const localized = new OutputService({ locale: 'de-DE', terminal });
       expect(localized.formatRelativeDate('2026-10-03T09:00:00Z', now)).toBe(
         'vor 3 Stunden'
       );
     });
 
-    it('falls back to absolute dates when piped', () => {
-      setStdout({ isTTY: false });
+    it('prints ISO 8601 timestamps when piped', () => {
+      terminal.isTTY = false;
       expect(output.formatRelativeDate('2026-10-03T09:00:00Z', now)).toBe(
-        output.formatDate('2026-10-03T09:00:00Z')
+        '2026-10-03T09:00:00.000Z'
       );
     });
 
-    it('leaves invalid dates to formatDate', () => {
-      expect(output.formatRelativeDate('', now)).toBe(output.formatDate(''));
+    it('prints a dash for missing or invalid dates', () => {
+      expect(output.formatRelativeDate('', now)).toBe('-');
+    });
+
+    it('does not round eleven and a half months up to a year', () => {
+      expect(output.formatRelativeDate('2025-10-05T12:00:00Z', now)).toBe(
+        '11 months ago'
+      );
     });
   });
 
@@ -1192,7 +1181,7 @@ describe('OutputService', () => {
     it.skipIf(process.platform === 'win32')(
       'sends everything written during the run through the pager',
       async () => {
-        const plain = new OutputService({ noColor: true });
+        const plain = new OutputService({ noColor: true, terminal });
         const result = await plain.withPager(async () => {
           plain.text('line one');
           plain.table(['A'], [['cell']]);
@@ -1208,7 +1197,7 @@ describe('OutputService', () => {
     );
 
     it('writes directly when stdout is not a terminal', async () => {
-      setStdout({ isTTY: false });
+      terminal.isTTY = false;
 
       await output.withPager(async () => output.text('piped'));
 
@@ -1251,19 +1240,28 @@ describe('OutputService', () => {
       expect(writes).toEqual(['fallback\n']);
     });
 
-    it.skipIf(process.platform === 'win32')(
-      'still pages output written before an error',
-      async () => {
+    it('prints partial output directly when the command fails', async () => {
+      const writes: unknown[] = [];
+      const writeSpy = spyOn(process.stdout, 'write').mockImplementation(
+        (chunk: unknown) => {
+          writes.push(chunk);
+          return true;
+        }
+      );
+      try {
         await expect(
           output.withPager(async () => {
             output.text('partial');
             throw new Error('boom');
           })
         ).rejects.toThrow('boom');
-
-        expect(await Bun.file(pagedFile).text()).toBe('partial\n');
+      } finally {
+        writeSpy.mockRestore();
       }
-    );
+
+      expect(writes).toEqual(['partial\n']);
+      expect(await Bun.file(pagedFile).exists()).toBe(false);
+    });
   });
 
   describe('formatDate edge cases', () => {
