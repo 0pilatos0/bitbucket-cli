@@ -6,7 +6,11 @@ import {
   mockPullRequest,
 } from '../../setup.js';
 import type { Pullrequest } from '../../../src/generated/api.js';
-import { createMockPullrequestsApi, createMockUsersApi } from './fakes.js';
+import {
+  createMockPullrequestsApi,
+  createMockUsersApi,
+  createUserResolverStub,
+} from './fakes.js';
 
 describe('RemoveReviewerPRCommand', () => {
   it('should remove reviewer from list and show success', async () => {
@@ -30,7 +34,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -41,7 +45,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed removeuser as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -66,7 +70,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -77,7 +81,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed onlyuser as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -102,7 +106,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -113,7 +117,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Removed ghost as reviewer from pull request #42')
+        log.includes('Removed Test User as reviewer from pull request #42')
       )
     ).toBe(true);
   });
@@ -138,7 +142,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -168,7 +172,7 @@ describe('RemoveReviewerPRCommand', () => {
 
     const command = new RemoveReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );

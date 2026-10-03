@@ -157,7 +157,25 @@ describe('ListPRsCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should truncate long titles by default', async () => {
+  it('should show when each pull request was last updated', async () => {
+    const pullrequestsApi = createMockPullrequestsApi({
+      pullRequests: [{ ...mockPullRequest, id: 1 }],
+    });
+    const output = createMockOutputService();
+    const command = new ListPRsCommand(
+      pullrequestsApi,
+      createMockUsersApi({ uuid: '{user-uuid}' }),
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      output
+    );
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(output.logs).toContain('table:ID,TITLE,AUTHOR,BRANCHES,UPDATED');
+    expect(getTableRows(output.logs)[0]?.[4]).toBe(mockPullRequest.updated_on);
+  });
+
+  it('should pass long titles whole so the table can fit them', async () => {
     const longTitle = 'A'.repeat(80);
     const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -175,29 +193,6 @@ describe('ListPRsCommand', () => {
       output
     );
     await command.execute({}, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[1]).toBe('A'.repeat(47) + '...');
-  });
-
-  it('should show full titles when noTruncate is set', async () => {
-    const longTitle = 'A'.repeat(80);
-    const prs = [{ ...mockPullRequest, id: 1, title: longTitle }];
-    const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-    const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
-
-    const command = new ListPRsCommand(
-      pullrequestsApi,
-      usersApi,
-      contextService,
-      output
-    );
-    await command.execute({}, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[1]).toBe(longTitle);

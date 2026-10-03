@@ -55,7 +55,7 @@ describe('ListCommentsPRCommand', () => {
     expect(rows).toHaveLength(2);
   });
 
-  it('should truncate long comment content by default', async () => {
+  it('should pass long comment content whole so the table can fit it', async () => {
     const longContent = 'B'.repeat(120);
     const comments: PullrequestComment[] = [
       {
@@ -80,36 +80,6 @@ describe('ListCommentsPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('B'.repeat(57) + '...');
-  });
-
-  it('should show full comment content when noTruncate is set', async () => {
-    const longContent = 'B'.repeat(120);
-    const comments: PullrequestComment[] = [
-      {
-        id: 1,
-        type: 'pullrequest_comment',
-        content: { raw: longContent },
-        user: mockUser,
-        created_on: '2024-01-01T00:00:00.000Z',
-        deleted: false,
-      } as PullrequestComment,
-    ];
-    const pullrequestsApi = createMockPullrequestsApi({ comments });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ListCommentsPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longContent);

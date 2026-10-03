@@ -16,6 +16,7 @@ import {
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
+  UserResolverService,
   UrlBuilderService,
 } from './services/index.js';
 import type { AxiosInstance } from 'axios';
@@ -175,6 +176,7 @@ import { ApiCommand } from './commands/api.command.js';
 export interface BootstrapOptions {
   noColor?: boolean;
   noUnicode?: boolean;
+  noTruncate?: boolean;
   locale?: string;
 }
 
@@ -260,6 +262,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       new OutputService({
         noColor: options.noColor,
         noUnicode: options.noUnicode,
+        noTruncate: options.noTruncate,
         locale: options.locale,
       })
   );
@@ -330,6 +333,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.DefaultReviewerService,
     DefaultReviewerService,
     [ServiceTokens.PullrequestsApi]
+  );
+
+  registerCommand(
+    container,
+    ServiceTokens.UserResolverService,
+    UserResolverService,
+    [ServiceTokens.UsersApi, ServiceTokens.WorkspacesApi]
   );
 
   // URL builder is a pure helper with no dependencies; register a fresh
@@ -491,7 +501,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // PR commands
   registerCommand(container, ServiceTokens.CreatePRCommand, CreatePRCommand, [
     ServiceTokens.PullrequestsApi,
-    ServiceTokens.UsersApi,
+    ServiceTokens.UserResolverService,
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.DefaultReviewerService,
@@ -643,7 +653,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     AddReviewerPRCommand,
     [
       ServiceTokens.PullrequestsApi,
-      ServiceTokens.UsersApi,
+      ServiceTokens.UserResolverService,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]
@@ -654,7 +664,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     RemoveReviewerPRCommand,
     [
       ServiceTokens.PullrequestsApi,
-      ServiceTokens.UsersApi,
+      ServiceTokens.UserResolverService,
       ServiceTokens.ContextService,
       ServiceTokens.OutputService,
     ]

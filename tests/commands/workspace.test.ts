@@ -120,8 +120,10 @@ describe('ListWorkspacesCommand', () => {
     await command.execute({}, { globalOptions: {} });
 
     expect(
-      output.logs.some((log) =>
-        log.includes('bb config set defaultWorkspace <slug>')
+      output.logs.some(
+        (log) =>
+          log.startsWith('stderr:') &&
+          log.includes('bb config set defaultWorkspace <slug>')
       )
     ).toBe(true);
   });

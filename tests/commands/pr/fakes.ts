@@ -1,5 +1,6 @@
 import type { RawAxiosRequestConfig } from 'axios';
 import type {
+  Account,
   CommitStatusesApi,
   Commitstatus,
   PaginatedCommitstatuses,
@@ -9,7 +10,9 @@ import type {
   PullrequestComment,
   PullrequestsApi,
   UsersApi,
+  WorkspacesApi,
 } from '../../../src/generated/api.js';
+import { UserResolverService } from '../../../src/services/user-resolver.service.js';
 import {
   axiosResponse,
   extractPaginationParams,
@@ -513,6 +516,60 @@ export function createMockCommitStatusesApi(
     },
   });
 }
+
+/**
+ * Resolves `@me` through the mocked `GET /user` and everything else through
+ * `GET /users/{id}`; the name/email rules are covered in
+ * user-resolver.service.test.ts and by createMembersResolver below.
+ */
+export function createUserResolverStub(
+  usersApi: UsersApi
+): UserResolverService {
+  return fakeApi<UserResolverService>({
+    async resolve(_workspace, user) {
+      const { data } =
+        user === '@me'
+          ? await usersApi.userGet()
+          : await usersApi.usersSelectedUserGet({ selectedUser: user });
+      return { uuid: data.uuid!, displayName: data.display_name };
+    },
+  });
+}
+
+/** A real resolver whose workspace member list is `members`. */
+export function createMembersResolver(
+  usersApi: UsersApi,
+  members: Account[]
+): { resolver: UserResolverService; workspaces: string[] } {
+  const workspaces: string[] = [];
+  const workspacesApi = fakeApi<WorkspacesApi>({
+    async workspacesWorkspaceMembersGet(request) {
+      workspaces.push(request.workspace);
+      return axiosResponse({
+        values: members.map((user) => ({ type: 'workspace_membership', user })),
+      });
+    },
+  });
+  return {
+    resolver: new UserResolverService(usersApi, workspacesApi),
+    workspaces,
+  };
+}
+
+export const JOHN_PARK_A = {
+  type: 'user',
+  uuid: '{john-a}',
+  account_id: '712020:john-a',
+  display_name: 'John Park',
+  nickname: 'jpark',
+} as Account;
+export const JOHN_PARK_B = {
+  type: 'user',
+  uuid: '{john-b}',
+  account_id: '712020:john-b',
+  display_name: 'John Park',
+  nickname: 'johnp',
+} as Account;
 
 /** `userGet` and `usersSelectedUserGet` both answer with `uuid`. */
 export function createMockUsersApi(

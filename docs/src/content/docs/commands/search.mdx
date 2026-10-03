@@ -86,8 +86,9 @@ with the repository under `file.commit.repository`.
 
 ### Notes
 
-- The `MATCH` column is truncated to 60 characters. Pass the global
-  `--no-truncate` for the full line; `--json` always carries everything.
+- Long `PATH` and `MATCH` values are shortened to fit the terminal width.
+  Pass the global `--no-truncate` for the full line; `--json` always carries
+  everything.
 - A malformed query fails with Bitbucket's `400` error message.
 
 ### Related

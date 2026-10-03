@@ -727,8 +727,9 @@ Options:
   -d, --destination <branch>  Destination branch (default: main)
   --close-source-branch       Close source branch after merge
   --draft                     Create the pull request as draft
-  --reviewer <user>           Add a reviewer by account ID or {uuid}
-                              (repeatable) (default: [])
+  --reviewer <user>           Add a reviewer by nickname, display name, email,
+                              @me, account ID or {uuid} (repeatable) (default:
+                              [])
   --default-reviewers         Include the repository's default reviewers
   --no-default-reviewers      Skip the repository's default reviewers even when
                               prCreateIncludeDefaultReviewers is true
@@ -740,6 +741,7 @@ Examples:
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
   $ bb pr create -t "My PR" --default-reviewers
+  $ bb pr create -t "My PR" --reviewer jdoe --reviewer "Jane Smith"
   $ bb pr create -t "My PR" --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
 Defaults:
@@ -1419,10 +1421,10 @@ Options:
 
 Commands:
   list <id>           List reviewers on a pull request
-  add <id> <user>     Add a reviewer to a pull request (user is an account ID or
-                      {uuid})
-  remove <id> <user>  Remove a reviewer from a pull request (user is an account
-                      ID or {uuid})
+  add <id> <user>     Add a reviewer to a pull request (user is a nickname,
+                      display name, email, @me, account ID or {uuid})
+  remove <id> <user>  Remove a reviewer from a pull request (user is a nickname,
+                      display name, email, @me, account ID or {uuid})
   help [command]      display help for command
 "
 ,
@@ -1470,12 +1472,16 @@ exports[`command tree snapshot bb pr reviewers add 1`] = `
   "help": 
 "Usage: bb pr reviewers add [options] <id> <user>
 
-Add a reviewer to a pull request (user is an account ID or {uuid})
+Add a reviewer to a pull request (user is a nickname, display name, email, @me,
+account ID or {uuid})
 
 Options:
   -h, --help  display help for command
 
 Examples:
+  $ bb pr reviewers add 42 jdoe
+  $ bb pr reviewers add 42 "Jane Doe"
+  $ bb pr reviewers add 42 @me
   $ bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
   $ bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 
@@ -1498,12 +1504,14 @@ exports[`command tree snapshot bb pr reviewers remove 1`] = `
   "help": 
 "Usage: bb pr reviewers remove [options] <id> <user>
 
-Remove a reviewer from a pull request (user is an account ID or {uuid})
+Remove a reviewer from a pull request (user is a nickname, display name, email,
+@me, account ID or {uuid})
 
 Options:
   -h, --help  display help for command
 
 Examples:
+  $ bb pr reviewers remove 42 jdoe
   $ bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
   $ bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
 

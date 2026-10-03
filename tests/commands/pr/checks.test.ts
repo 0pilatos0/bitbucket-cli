@@ -87,7 +87,7 @@ describe('ChecksPRCommand', () => {
     ).toBe(true);
   });
 
-  it('should truncate long check descriptions by default', async () => {
+  it('should pass long check descriptions whole so the table can fit them', async () => {
     const longDescription = 'C'.repeat(80);
     const commitStatusesApi = createMockCommitStatusesApi({
       statuses: [
@@ -113,37 +113,6 @@ describe('ChecksPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('C'.repeat(37) + '...');
-  });
-
-  it('should show full check descriptions when noTruncate is set', async () => {
-    const longDescription = 'C'.repeat(80);
-    const commitStatusesApi = createMockCommitStatusesApi({
-      statuses: [
-        {
-          type: 'commit_status',
-          key: 'build',
-          name: 'Build',
-          state: 'SUCCESSFUL',
-          description: longDescription,
-          updated_on: '2024-01-01T00:00:00.000Z',
-        },
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ChecksPRCommand(
-      commitStatusesApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longDescription);

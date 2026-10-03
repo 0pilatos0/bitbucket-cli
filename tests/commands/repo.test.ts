@@ -201,7 +201,8 @@ describe('ListReposCommand', () => {
     expect(
       output.logs.some(
         (log) =>
-          log.startsWith('text:Showing 2 repositories') && log.includes('--all')
+          log.startsWith('stderr:Showing 2 repositories') &&
+          log.includes('--all')
       )
     ).toBe(true);
   });
@@ -225,7 +226,7 @@ describe('ListReposCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+    expect(output.logs.some((log) => log.startsWith('stderr:Showing'))).toBe(
       false
     );
   });
@@ -259,7 +260,7 @@ describe('ListReposCommand', () => {
     expect(rows).toHaveLength(120);
     // 120 repos at the 50-item max page size => 3 pages.
     expect(requestedPages).toEqual([1, 2, 3]);
-    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+    expect(output.logs.some((log) => log.startsWith('stderr:Showing'))).toBe(
       false
     );
   });
@@ -284,7 +285,7 @@ describe('ListReposCommand', () => {
       { globalOptions: { json: true } }
     );
 
-    expect(output.logs.some((log) => log.startsWith('text:Showing'))).toBe(
+    expect(output.logs.some((log) => log.startsWith('stderr:Showing'))).toBe(
       false
     );
   });
@@ -322,7 +323,7 @@ describe('ListReposCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should truncate long descriptions by default', async () => {
+  it('should pass long descriptions whole so the table can fit them', async () => {
     const longDescription = 'E'.repeat(80);
     const repositoriesApi = createMockRepositoriesApi([
       { ...mockRepository, description: longDescription },
@@ -336,28 +337,6 @@ describe('ListReposCommand', () => {
       output
     );
     await command.execute({ workspace: 'workspace' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[2]).toBe('E'.repeat(47) + '...');
-  });
-
-  it('should show full descriptions when noTruncate is set', async () => {
-    const longDescription = 'E'.repeat(80);
-    const repositoriesApi = createMockRepositoriesApi([
-      { ...mockRepository, description: longDescription },
-    ]);
-    const contextService = createMockContextService();
-    const output = createMockOutputService();
-
-    const command = new ListReposCommand(
-      repositoriesApi,
-      contextService,
-      output
-    );
-    await command.execute(
-      { workspace: 'workspace' },
-      { globalOptions: { noTruncate: true } }
-    );
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longDescription);

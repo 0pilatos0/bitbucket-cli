@@ -6,7 +6,15 @@ import {
   mockPullRequest,
 } from '../../setup.js';
 import type { Pullrequest } from '../../../src/generated/api.js';
-import { createMockPullrequestsApi, createMockUsersApi } from './fakes.js';
+import { BBError, ErrorCode } from '../../../src/types/errors.js';
+import {
+  JOHN_PARK_A,
+  JOHN_PARK_B,
+  createMembersResolver,
+  createMockPullrequestsApi,
+  createMockUsersApi,
+  createUserResolverStub,
+} from './fakes.js';
 
 describe('AddReviewerPRCommand', () => {
   it('should add reviewer to empty list and show success', async () => {
@@ -27,7 +35,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -38,7 +46,7 @@ describe('AddReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Added newuser as reviewer to pull request #42')
+        log.includes('Added Test User as reviewer to pull request #42')
       )
     ).toBe(true);
   });
@@ -63,7 +71,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -74,7 +82,7 @@ describe('AddReviewerPRCommand', () => {
 
     expect(
       output.logs.some((log) =>
-        log.includes('Added newuser as reviewer to pull request #42')
+        log.includes('Added Test User as reviewer to pull request #42')
       )
     ).toBe(true);
   });
@@ -99,7 +107,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -109,7 +117,7 @@ describe('AddReviewerPRCommand', () => {
     );
 
     expect(
-      output.logs.some((log) => log.includes('Added sameuser as reviewer'))
+      output.logs.some((log) => log.includes('Added Test User as reviewer'))
     ).toBe(true);
   });
 
@@ -131,7 +139,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -161,7 +169,7 @@ describe('AddReviewerPRCommand', () => {
 
     const command = new AddReviewerPRCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -169,5 +177,37 @@ describe('AddReviewerPRCommand', () => {
     await expect(
       command.execute({ id: '42', username: 'unknown' }, { globalOptions: {} })
     ).rejects.toThrow('User not found');
+  });
+});
+
+describe('AddReviewerPRCommand name resolution', () => {
+  it('should leave the PR untouched when the name is ambiguous', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    let putCalled = false;
+    pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdPut =
+      async () => {
+        putCalled = true;
+        throw new Error('unexpected PUT');
+      };
+    const { resolver, workspaces } = createMembersResolver(
+      createMockUsersApi(),
+      [JOHN_PARK_A, JOHN_PARK_B]
+    );
+    const command = new AddReviewerPRCommand(
+      pullrequestsApi,
+      resolver,
+      createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockOutputService()
+    );
+
+    const error = await command
+      .execute({ id: '42', username: 'John Park' }, { globalOptions: {} })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect((error as BBError).message).toContain('712020:john-a');
+    expect(workspaces).toEqual(['workspace']);
+    expect(putCalled).toBe(false);
   });
 });

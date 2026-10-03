@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import type { AxiosResponse } from 'axios';
 import { CreatePRCommand } from '../../../src/commands/pr/create.command.js';
 import type { IConfigService } from '../../../src/core/interfaces/services.js';
-import type { Pullrequest } from '../../../src/generated/api.js';
+import type { Account, Pullrequest } from '../../../src/generated/api.js';
 import type {
   DefaultReviewerEntry,
   DefaultReviewerService,
@@ -16,7 +16,13 @@ import {
   createMockPromptService,
   mockUser,
 } from '../../setup.js';
-import { createMockPullrequestsApi } from './fakes.js';
+import {
+  JOHN_PARK_A,
+  JOHN_PARK_B,
+  createMembersResolver,
+  createMockPullrequestsApi,
+  createUserResolverStub,
+} from './fakes.js';
 
 function createMockDefaultReviewerService(
   entries: DefaultReviewerEntry[] = [],
@@ -47,12 +53,15 @@ interface CreatePRHarnessOptions {
   config?: Parameters<typeof createMockConfigService>[0];
   capturedBodyRef?: { body?: Pullrequest };
   createPRThrows?: boolean;
+  /** Resolve `--reviewer` names against these workspace members. */
+  members?: Account[];
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
   command: CreatePRCommand;
   output: ReturnType<typeof createMockOutputService>;
   captured: { body?: Pullrequest };
+  memberWorkspaces: string[];
 } {
   const captured: {
     body?: Pullrequest;
@@ -106,9 +115,13 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
 
   const output = createMockOutputService();
 
+  const membersResolver = options.members
+    ? createMembersResolver(usersApi, options.members)
+    : undefined;
+
   const command = new CreatePRCommand(
     pullrequestsApi,
-    usersApi,
+    membersResolver?.resolver ?? createUserResolverStub(usersApi),
     contextService,
     gitService,
     defaultReviewerService,
@@ -116,7 +129,12 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     output
   );
 
-  return { command, output, captured };
+  return {
+    command,
+    output,
+    captured,
+    memberWorkspaces: membersResolver?.workspaces ?? [],
+  };
 }
 
 describe('CreatePRCommand', () => {
@@ -350,6 +368,33 @@ describe('CreatePRCommand', () => {
       )
     ).toBe(true);
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+  });
+
+  it('should resolve --reviewer names in the repo workspace and drop @me as the author', async () => {
+    const { command, captured, memberWorkspaces } = buildCreatePRCommand({
+      members: [JOHN_PARK_A, JOHN_PARK_B],
+      authorUuid: '{author-uuid}',
+    });
+    await command.execute(
+      { title: 'My PR', reviewer: ['jpark', '@me'] },
+      { globalOptions: {} }
+    );
+    const uuids = Array.from(captured.body?.reviewers ?? []).map((r) => r.uuid);
+    expect(uuids).toEqual(['{john-a}']);
+    expect(memberWorkspaces).toEqual(['workspace']);
+  });
+
+  it('should not create the PR when a --reviewer name is ambiguous', async () => {
+    const { command, captured } = buildCreatePRCommand({
+      members: [JOHN_PARK_A, JOHN_PARK_B],
+    });
+    await expect(
+      command.execute(
+        { title: 'My PR', reviewer: ['John Park'] },
+        { globalOptions: {} }
+      )
+    ).rejects.toThrow("'John Park' matches 2 members");
+    expect(captured.body).toBeUndefined();
   });
 
   it('should run a spinner for the duration of the API call', async () => {

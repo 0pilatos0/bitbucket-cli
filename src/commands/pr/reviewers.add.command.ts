@@ -8,8 +8,9 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type { PullrequestsApi, UsersApi } from '../../generated/api.js';
+import type { PullrequestsApi } from '../../generated/api.js';
 import { updatePullRequestReviewers } from '../../services/reviewer.service.js';
+import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 
 export interface AddReviewerPROptions extends GlobalOptions {
@@ -26,7 +27,7 @@ export class AddReviewerPRCommand extends BaseCommand<
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
-    private readonly usersApi: UsersApi,
+    private readonly userResolver: UserResolverService,
     private readonly contextService: IContextService,
     output: IOutputService
   ) {
@@ -44,19 +45,18 @@ export class AddReviewerPRCommand extends BaseCommand<
 
     const prId = this.parsePositiveInt(options.id, 'id');
 
-    // Look up the user to get their UUID
-    const userResponse = await this.usersApi.usersSelectedUserGet({
-      selectedUser: options.username,
-    });
-    const user = userResponse.data;
+    const user = await this.userResolver.resolve(
+      repoContext.workspace,
+      options.username
+    );
 
     const updatedPr = await updatePullRequestReviewers(
       this.pullrequestsApi,
       repoContext,
       prId,
       (uuids) => {
-        if (!uuids.includes(user.uuid!)) {
-          return [...uuids, user.uuid!];
+        if (!uuids.includes(user.uuid)) {
+          return [...uuids, user.uuid];
         }
         return uuids;
       }
@@ -76,7 +76,7 @@ export class AddReviewerPRCommand extends BaseCommand<
     }
 
     this.output.success(
-      `Added ${options.username} as reviewer to pull request #${prId}`
+      `Added ${user.displayName ?? options.username} as reviewer to pull request #${prId}`
     );
   }
 }

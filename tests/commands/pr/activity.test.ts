@@ -164,7 +164,7 @@ describe('ActivityPRCommand', () => {
     ).rejects.toThrow(/--id must be a positive integer/);
   });
 
-  it('should truncate long comment activity by default', async () => {
+  it('should pass long comment activity whole so the table can fit it', async () => {
     const longContent = 'D'.repeat(120);
     const pullrequestsApi = createMockPullrequestsApi({
       activityPages: [
@@ -192,39 +192,6 @@ describe('ActivityPRCommand', () => {
       output
     );
     await command.execute({ id: '1' }, { globalOptions: {} });
-
-    const rows = getTableRows(output.logs);
-    expect(rows[0]?.[3]).toBe('#99 ' + 'D'.repeat(77) + '...');
-  });
-
-  it('should show full comment activity when noTruncate is set', async () => {
-    const longContent = 'D'.repeat(120);
-    const pullrequestsApi = createMockPullrequestsApi({
-      activityPages: [
-        [
-          {
-            comment: {
-              id: 99,
-              content: { raw: longContent },
-              user: mockUser,
-              created_on: '2024-01-01T00:00:00.000Z',
-            },
-          },
-        ],
-      ],
-    });
-    const contextService = createMockContextService({
-      workspace: 'workspace',
-      repoSlug: 'repo',
-    });
-    const output = createMockOutputService();
-
-    const command = new ActivityPRCommand(
-      pullrequestsApi,
-      contextService,
-      output
-    );
-    await command.execute({ id: '1' }, { globalOptions: { noTruncate: true } });
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[3]).toBe('#99 ' + longContent);

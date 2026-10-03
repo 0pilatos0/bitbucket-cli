@@ -37,10 +37,10 @@ bb snippet comments list kypj --limit 50 --json
 ### Notes
 
 - Table columns: ID, AUTHOR, DATE, CONTENT.
-- CONTENT is truncated to 60 characters; pass the global `--no-truncate` for
-  full comment bodies (`--json` always carries the full value). DATE is
-  formatted with `--locale`/`BB_LOCALE`, falling back to the system locale and
-  then `en-US`.
+- CONTENT is shortened to fit the terminal width; pass the global
+  `--no-truncate` for full comment bodies (`--json` always carries the full
+  value). DATE is relative on a terminal (`2 days ago`, worded per
+  `--locale`/`BB_LOCALE`) and an ISO 8601 timestamp when piped.
 - **JSON envelope:** `{ workspace, snippetId, count, comments }`.
 
 ---

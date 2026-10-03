@@ -20,10 +20,8 @@ bun run dev          # run the CLI locally
 Common scripts (full list in [AGENTS.md](AGENTS.md#commands)):
 
 ```bash
-bun test              # run all tests
+bun run check         # lint, lint:docs, format:check and all tests
 bun run test:coverage # run tests with coverage (gated in CI on Linux)
-bun run lint          # type-check
-bun run format:check  # required by the pre-commit hook
 ```
 
 ## Documentation site
@@ -57,31 +55,19 @@ and configuration rules in their reference pages; link to them from guides.
 git checkout -b feat/your-feature   # or fix/your-fix
 ```
 
-Use `feat/` for new features and `fix/` for bug fixes. Other prefixes
-(`docs/`, `chore/`, `refactor/`) are fine when they fit.
+Prefixes are listed in
+[AGENTS.md → Changesets and Branches](AGENTS.md#changesets-and-branches).
 
 ### 2. Code
 
-- Follow the patterns in `src/commands/`; extend `BaseCommand`, inject
-  dependencies via the container. See
-  [AGENTS.md → Command Pattern](AGENTS.md#command-pattern).
-- Use `IOutputService` for all output, never `console.*`. See
-  [AGENTS.md → Output and JSON](AGENTS.md#output-and-json).
-- Use `BBError` / `ErrorCode` for expected failures. See
-  [AGENTS.md → Error Handling](AGENTS.md#error-handling).
-- Add tests next to existing ones in `tests/`. For new commands, drive the
-  real API client against the local mock server
-  (`startCommandHarness` in `tests/helpers/mock-bitbucket.ts`). See
-  [AGENTS.md → Testing](AGENTS.md#testing).
-- Never edit `src/generated/`; regenerate with `bun run generate:api`.
+Follow [AGENTS.md](AGENTS.md) for code and
+[tests/AGENTS.md](tests/AGENTS.md) for tests.
 
 Before pushing:
 
 ```bash
-bun test
-bun run lint
-bun run format:check
-bun run check:api-contract   # regenerates src/generated/ and fails on drift
+bun run check
+bun run check:api-contract   # only if you touched the spec or generator; needs Java 21
 ```
 
 ### 3. Add a Changeset
@@ -102,7 +88,10 @@ Pick the bump type:
 | `minor` | New features, new commands, non-breaking enhancements |
 | `major` | Breaking changes                                      |
 
-Commit the generated file in `.changeset/` alongside your code changes.
+Commit the generated file in `.changeset/` alongside your code changes. If
+you write it by hand, the package name must be exactly
+`'@pilatos/bitbucket-cli'` (see
+[AGENTS.md → Changesets and Branches](AGENTS.md#changesets-and-branches)).
 
 ### 4. Open a Pull Request
 
