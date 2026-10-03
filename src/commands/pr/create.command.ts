@@ -83,8 +83,6 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       sourceBranch = await this.gitService.getCurrentBranch();
     }
 
-    const destinationBranch = options.destination || 'main';
-
     const { title, body } = await this.resolveTitleAndBody(
       options.title,
       bodyInput,
@@ -105,10 +103,14 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       source: {
         branch: { name: sourceBranch },
       } as Pullrequest['source'],
-      destination: {
-        branch: { name: destinationBranch },
-      } as Pullrequest['destination'],
     };
+
+    // Without a destination Bitbucket targets the repository's main branch.
+    if (options.destination) {
+      request.destination = {
+        branch: { name: options.destination },
+      } as Pullrequest['destination'];
+    }
 
     if (body) {
       request.description = body;
@@ -144,6 +146,8 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
       spinner.stop();
     }
     const links = pr.links as { html?: { href?: string } } | undefined;
+    const destination = pr.destination as
+      { branch?: { name?: string } } | undefined;
 
     if (context.globalOptions.json) {
       await this.output.json(pr);
@@ -153,6 +157,11 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     this.output.success(`Created pull request #${pr.id}`);
     this.output.text(`  ${this.output.dim('Title:')} ${pr.title}`);
     this.output.text(`  ${this.output.dim('URL:')} ${links?.html?.href}`);
+    if (destination?.branch?.name) {
+      this.output.text(
+        `  ${this.output.dim('Destination:')} ${destination.branch.name}`
+      );
+    }
     if (reviewers.length > 0) {
       const labels = reviewers.map((r) => r.label).join(', ');
       this.output.text(`  ${this.output.dim('Reviewers:')} ${labels}`);

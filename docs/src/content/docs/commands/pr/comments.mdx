@@ -47,13 +47,13 @@ Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option             | Description                                               | Default |
-| ------------------ | --------------------------------------------------------- | ------- |
-| `--limit <number>` | Maximum number of comments                                | `25`    |
-| `--all`            | List all comments (overrides `--limit`)                   |         |
-| `--resolved`       | Only show resolved comments                               |         |
-| `--unresolved`     | Only show unresolved comments                             |         |
-| `--no-truncate`    | Global flag. Show full comment content, never shortened   |         |
+| Option             | Description                                             | Default |
+| ------------------ | ------------------------------------------------------- | ------- |
+| `--limit <number>` | Maximum number of comments                              | `25`    |
+| `--all`            | List all comments (overrides `--limit`)                 |         |
+| `--resolved`       | Only show resolved comments                             |         |
+| `--unresolved`     | Only show unresolved comments                           |         |
+| `--no-truncate`    | Global flag. Show full comment content, never shortened |         |
 
 ### Examples
 
@@ -108,12 +108,13 @@ Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option                   | Description                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| `-F, --body-file <file>` | Read the comment text from a file, or `-` for stdin (instead of `<message>`) |
-| `--file <path>`          | File path for an inline comment (requires `--line-to` and/or `--line-from`)  |
-| `--line-to <number>`     | Line number in the new version of the file (requires `--file`)               |
-| `--line-from <number>`   | Line number in the old version of the file (requires `--file`)               |
+| Option                   | Description                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `-F, --body-file <file>` | Read the comment text from a file, or `-` for stdin (instead of `<message>`)                  |
+| `--file <path>`          | File path for an inline comment (requires `--line-to` and/or `--line-from`)                   |
+| `--line-to <number>`     | Line number in the new version of the file (requires `--file`)                                |
+| `--line-from <number>`   | Line number in the old version of the file (requires `--file`)                                |
+| `--dry-run`              | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -187,6 +188,12 @@ bb pr comments edit <pr-id> <comment-id> <message>
 
 Use the identifiers described [above](#bb-pr-comments).
 
+### Options
+
+| Option      | Description                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ### Examples
 
 ```bash
@@ -210,9 +217,10 @@ Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option                   | Description                                                                |
-| ------------------------ | -------------------------------------------------------------------------- |
-| `-F, --body-file <file>` | Read the reply text from a file, or `-` for stdin (instead of `<message>`) |
+| Option                   | Description                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `-F, --body-file <file>` | Read the reply text from a file, or `-` for stdin (instead of `<message>`)                    |
+| `--dry-run`              | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -246,6 +254,12 @@ bb pr comments resolve <pr-id> <comment-id>
 
 Use the identifiers described [above](#bb-pr-comments).
 
+### Options
+
+| Option      | Description                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ### Examples
 
 ```bash
@@ -271,6 +285,12 @@ bb pr comments unresolve <pr-id> <comment-id>
 ### Arguments
 
 Use the identifiers described [above](#bb-pr-comments).
+
+### Options
+
+| Option      | Description                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -299,9 +319,10 @@ Use the identifiers described [above](#bb-pr-comments).
 
 ### Options
 
-| Option      | Description                                                                 |
-| ----------- | --------------------------------------------------------------------------- |
-| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+| Option      | Description                                                                                   |
+| ----------- | --------------------------------------------------------------------------------------------- |
+| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal)                   |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
