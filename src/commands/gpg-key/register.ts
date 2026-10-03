@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerGpgKeyCommands(
   parent: Command,
@@ -36,6 +37,7 @@ export function registerGpgKeyCommands(
     .description(
       'Add an ASCII-armored GPG public key to your account (- reads stdin)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -53,6 +55,7 @@ export function registerGpgKeyCommands(
     .command('delete <fingerprint>')
     .description('Delete a GPG key from your account')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

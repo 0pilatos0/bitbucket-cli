@@ -13,6 +13,7 @@ import {
   PromptService,
   VersionService,
   OAuthService,
+  DryRunMode,
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
@@ -172,6 +173,7 @@ import { PrintCompletionCommand } from './commands/completion/print.command.js';
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { DoctorCommand } from './commands/doctor.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
 export interface BootstrapOptions {
@@ -268,6 +270,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       })
   );
   container.register(ServiceTokens.PromptService, () => new PromptService());
+  container.register(ServiceTokens.DryRunMode, () => new DryRunMode());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.CredentialStore,
   ]);
@@ -292,7 +295,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const outputService = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return createApiClient(credentialStore, outputService, oauthService);
+    return createApiClient(
+      credentialStore,
+      outputService,
+      oauthService,
+      undefined,
+      container.resolve<DryRunMode>(ServiceTokens.DryRunMode)
+    );
   });
 
   // Generated API clients, all constructed on the shared axios instance
@@ -1170,6 +1179,14 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.UrlBuilderService,
+    ServiceTokens.OutputService,
+  ]);
+
+  registerCommand(container, ServiceTokens.DoctorCommand, DoctorCommand, [
+    ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
+    ServiceTokens.ContextService,
+    ServiceTokens.UsersApi,
     ServiceTokens.OutputService,
   ]);
 

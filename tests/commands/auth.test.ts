@@ -204,7 +204,7 @@ describe('LoginCommand', () => {
       oauthService,
       output
     );
-    await command.execute({}, { globalOptions: {} });
+    await command.execute({}, { globalOptions: {}, interactive: true });
 
     expect(output.logs).toContain(
       'success:Logged in as OAuth User (oauthuser)'
@@ -330,9 +330,9 @@ describe('LoginCommand', () => {
       output
     );
 
-    await expect(command.execute({}, { globalOptions: {} })).rejects.toThrow(
-      'OAuth failed'
-    );
+    await expect(
+      command.execute({}, { globalOptions: {}, interactive: true })
+    ).rejects.toThrow('OAuth failed');
   });
 
   it('should output JSON with method field for OAuth login', async () => {
@@ -347,7 +347,10 @@ describe('LoginCommand', () => {
       oauthService,
       output
     );
-    await command.execute({}, { globalOptions: { json: true } });
+    await command.execute(
+      {},
+      { globalOptions: { json: true }, interactive: true }
+    );
 
     const jsonLog = output.logs.find((l) => l.startsWith('json:'));
     expect(jsonLog).toBeDefined();
@@ -525,7 +528,7 @@ describe('LoginCommand', () => {
     );
     await command.execute(
       { clientId: 'my-id', clientSecret: 'my-secret' },
-      { globalOptions: {} }
+      { globalOptions: {}, interactive: true }
     );
 
     expect(receivedClientId).toBe('my-id');
@@ -655,6 +658,25 @@ describe('StatusCommand', () => {
     await command.execute(undefined, { globalOptions: {} });
 
     expect(output.logs.some((log) => log.includes('Not logged in'))).toBe(true);
+    expect(process.exitCode).toBe(1);
+  });
+
+  it('should report authenticated false and exit 1 in json mode when logged out', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      fakeUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    expect(output.logs).toEqual([
+      'json:{"authenticated":false,"account":"default","accounts":[]}',
+    ]);
+    expect(process.exitCode).toBe(1);
   });
 
   it('should show logged in when credentials valid', async () => {
@@ -675,6 +697,7 @@ describe('StatusCommand', () => {
 
     expect(output.logs).toContain('success:Logged in to Bitbucket');
     expect(output.logs.some((log) => log.includes('testuser'))).toBe(true);
+    expect(process.exitCode ?? 0).toBe(0);
   });
 
   it('should show auth method in status', async () => {
