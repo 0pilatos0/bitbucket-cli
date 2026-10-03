@@ -648,6 +648,9 @@ account. When the current account has no credentials the payload is:
 { "authenticated": false, "account": "default", "accounts": [] }
 ```
 
+The command also exits 1 in that case. Under `set -e`, append `|| true` when
+you want to read the payload instead of stopping.
+
 `method` is `"api_token"` or `"oauth"`, the same values `auth login --json`
 reports. The config file stores API-token auth as `authMethod: "basic"`, which
 is what `auth status --json` reported in earlier releases. Check

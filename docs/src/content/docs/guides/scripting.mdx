@@ -154,6 +154,9 @@ checkout. See the [API command reference](/commands/api/) for every flag.
 | 1    | Command failure, such as authentication, API, validation, network, or jq errors |
 | 130  | An interactive prompt interrupted with Ctrl+C                                   |
 
+`bb auth status` exits 1 when you are not logged in, and
+[`bb doctor`](/commands/doctor/) exits 1 when any of its checks fails.
+
 Set `BB_DETAILED_EXIT_CODES=1` to split failures into `2` usage, `3` not found,
 `4` authentication and `5` confirmation required; see the
 [full map](/reference/error-codes/#exit-codes-and-error-codes). For anything

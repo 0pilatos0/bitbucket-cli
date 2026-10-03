@@ -14,7 +14,11 @@ Install `bb` and authenticate yourself first. A [standalone binary](/getting-sta
 ```bash
 bb auth login
 bb auth status
+bb doctor
 ```
+
+`bb doctor --json` gives an agent a pass/warn/fail row per check and exits 1
+when something is broken.
 
 Ask your assistant to run `bb --help`, then `bb pr list --all --json`.
 For repeated use, put these instructions in its project rules or skill file:
