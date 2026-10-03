@@ -1,5 +1,59 @@
 # Changelog
 
+## 2.3.0
+
+### Minor Changes
+
+- [#413](https://github.com/0pilatos0/bitbucket-cli/pull/413) [`9e8b65a`](https://github.com/0pilatos0/bitbucket-cli/commit/9e8b65a4002224261d2f1d675a0972588c22d827) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb repo clone` takes `--protocol ssh|https` and a `gitProtocol` config key, so you can clone without SSH keys. Clone and fetch now show git's progress (on stderr) and are no longer killed after 60 seconds. `bb pr checkout` fetches from whichever remote points at the repository, checks out fork pull requests as `pr-<id>`, fast-forwards an existing local branch instead of leaving it stale, and reports git errors such as a dirty working tree instead of hiding them.
+
+- [#430](https://github.com/0pilatos0/bitbucket-cli/pull/430) [`4f6d044`](https://github.com/0pilatos0/bitbucket-cli/commit/4f6d044b082a53672b9ceea2a3e81458c74d70ce) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `install.sh` and `install.ps1` install scripts that pick the right standalone binary for your platform and verify it against `SHA256SUMS`. Releases now also ship compressed archives (`.tar.gz`, `.zip` on Windows) next to the raw binaries, plus a generated Homebrew formula and Scoop manifest.
+
+- [#415](https://github.com/0pilatos0/bitbucket-cli/pull/415) [`8150dee`](https://github.com/0pilatos0/bitbucket-cli/commit/8150dee4359f12dc53b22052d0c07c8acde0daa2) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Leaner JSON for scripts and agents. `--json` output is now compact (one line) when stdout is piped or redirected, and stays pretty-printed in a terminal. New `--raw-output` prints `--jq` string results without quotes, like `jq -r`. New opt-in `--lean` trims every Bitbucket `links` map down to the web URL (`links.html`), which removes most of the bytes from list output. `bb auth status --json` now reports `method: "api_token"` for API-token credentials, matching `bb auth login --json` (it previously reported the internal config value `"basic"`).
+
+- [#429](https://github.com/0pilatos0/bitbucket-cli/pull/429) [`5c463f2`](https://github.com/0pilatos0/bitbucket-cli/commit/5c463f22be956ae2f4917e0f2699dff03421cb6c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add named accounts and optional OS keychain storage. `bb auth login --account <name>` saves another account, `bb auth switch` changes the active one, and `--account` or `BB_ACCOUNT` picks one for a single command. `bb config set credentialStorage keychain` moves tokens into the macOS Keychain, Windows Credential Manager or libsecret. Existing configs keep working as the `default` account and move to the new layout on the next credential write.
+
+- [#431](https://github.com/0pilatos0/bitbucket-cli/pull/431) [`a32fcb0`](https://github.com/0pilatos0/bitbucket-cli/commit/a32fcb0f335fc14d612feacfde5d4618d9dc8d92) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr create --reviewer` and `bb pr reviewers add/remove` now accept a nickname, display name, email (workspace admins) or `@me` besides an account ID or `{uuid}`. Names are matched against the workspace members; an ambiguous name fails and lists the candidates' account IDs.
+
+- [#428](https://github.com/0pilatos0/bitbucket-cli/pull/428) [`4cd6b41`](https://github.com/0pilatos0/bitbucket-cli/commit/4cd6b4133a9dc8101e068d9d5733e32981993c96) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Tables now fit the terminal: widths are measured on screen (colors and wide characters align), long titles and descriptions shrink to the window instead of being cut at a fixed length, and `--no-truncate` still prints everything. Piped tables print tab-separated rows without a header and with ISO 8601 dates, like `gh`, and list hints such as "Showing N results" move to stderr. List date columns show relative times on a terminal, and `bb pr list` gains an UPDATED column. `bb pr diff`, `bb pr view` and `bb pipeline logs` open in a pager on a terminal (`BB_PAGER`, then `PAGER`, default `less -FRX`; set `BB_PAGER=` to turn it off).
+
+- [#420](https://github.com/0pilatos0/bitbucket-cli/pull/420) [`e6eefb1`](https://github.com/0pilatos0/bitbucket-cli/commit/e6eefb13cec99716bf1779c55fdd4fbb0e83deb6) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb completion <bash|zsh|fish|powershell>`, which prints the completion script to stdout, including new PowerShell completion with help-text tooltips. `!` shell aliases now run in PowerShell on Windows when `sh` isn't on PATH, with the arguments in `$args`.
+
+### Patch Changes
+
+- [#411](https://github.com/0pilatos0/bitbucket-cli/pull/411) [`1df3a1a`](https://github.com/0pilatos0/bitbucket-cli/commit/1df3a1a961e58229b82cfe7d1806453a49390a5a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Docs site: `llms.txt` now indexes every page, each page is also served as Markdown (add `.md` to its path), and topic sets cover pull requests, pipelines and scripting. The installation page gains update and uninstall steps, and the JSON, scripting, CI/CD and troubleshooting pages now say HTTP debug traces go to stderr.
+
+- [#427](https://github.com/0pilatos0/bitbucket-cli/pull/427) [`dafe7b5`](https://github.com/0pilatos0/bitbucket-cli/commit/dafe7b530cf47beb3ac6f0ab22525a27703f4151) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add a `bun run check` contributor command and consolidate contributor and coding-agent guidance in AGENTS.md.
+
+- [#362](https://github.com/0pilatos0/bitbucket-cli/pull/362) [`dce4d8c`](https://github.com/0pilatos0/bitbucket-cli/commit/dce4d8cb2895229cff98e684003c6e4e2aa58947) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Correct API token login prompts, help, errors, and examples to use the Atlassian account email while retaining existing credential option and config names.
+
+- [#401](https://github.com/0pilatos0/bitbucket-cli/pull/401) [`d09a79a`](https://github.com/0pilatos0/bitbucket-cli/commit/d09a79add997edf40eb1e2c8a765e651a6bc7f7c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Report auth and config failures with their real error code instead of `9999` (UNKNOWN). A missing login now fails with `1001`, insecure config permissions with `4001`, and an OAuth token refresh that Bitbucket rejects with `1003` plus Bitbucket's reason.
+
+- [#366](https://github.com/0pilatos0/bitbucket-cli/pull/366) [`53fba6d`](https://github.com/0pilatos0/bitbucket-cli/commit/53fba6dabf1ae03d199ee8cc277fc6380e76cb9e) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Clarify API-token login email requirements, authentication remediation and permissions, and correct command help examples and update-check units. Refresh documentation and automation recipes to match current behavior.
+
+- [#359](https://github.com/0pilatos0/bitbucket-cli/pull/359) [`affef42`](https://github.com/0pilatos0/bitbucket-cli/commit/affef42db5ff1dd0cbe26357deaa582ab47355ca) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Follow opaque pagination cursors when listing commit history, including with --all.
+
+- [#360](https://github.com/0pilatos0/bitbucket-cli/pull/360) [`ebad836`](https://github.com/0pilatos0/bitbucket-cli/commit/ebad836879060c95501c19caea50f9932484b8bd) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Send HTTP debug traces to stderr so JSON stdout stays parseable. Bound npm update checks to 1.5 seconds and abort stalled requests or response bodies without failing the command.
+
+- [#404](https://github.com/0pilatos0/bitbucket-cli/pull/404) [`0634008`](https://github.com/0pilatos0/bitbucket-cli/commit/063400835e5dae1f3eb3e06fbcbad1509ee415eb) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Releases now publish only after the full CI matrix (Linux, macOS and Windows tests, API contract, compile smoke) passes on the released commit.
+
+- [#402](https://github.com/0pilatos0/bitbucket-cli/pull/402) [`436fb9a`](https://github.com/0pilatos0/bitbucket-cli/commit/436fb9a617e02985186200d776a004dc679a7c9a) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Stop generating and committing the OpenAPI client's markdown docs and `git_push.sh`, which the CLI never used. The published package is unchanged.
+
+- [#421](https://github.com/0pilatos0/bitbucket-cli/pull/421) [`9af813d`](https://github.com/0pilatos0/bitbucket-cli/commit/9af813d923267be078391998fa4a4c41f033c839) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Match the update notice to how `bb` was installed: npm installs now see `npm install -g`, pnpm installs `pnpm add -g`, and Bun installs keep `bun install -g`. Stop shipping the 5.7 MB sourcemap in the npm package, which shrinks the unpacked install from 7.7 MB to 1.9 MB. The docs now show the real error when Bun is missing and how to fix it.
+
+- [#400](https://github.com/0pilatos0/bitbucket-cli/pull/400) [`99f7539`](https://github.com/0pilatos0/bitbucket-cli/commit/99f75392ca4cbc17b6aa30a04a8518f748c46b87) Thanks [@0pilatos0](https://github.com/0pilatos0)! - The OAuth callback server now builds its `redirect_uri` from the port it actually bound, and the port can be injected. `bb auth login` still uses `http://localhost:19872/callback`. The OAuth tests now bind an ephemeral port, so parallel test runs and a running `bb auth login` no longer break them. The troubleshooting docs explain why there is no fallback port.
+
+- [#364](https://github.com/0pilatos0/bitbucket-cli/pull/364) [`ec2307d`](https://github.com/0pilatos0/bitbucket-cli/commit/ec2307d1f5ed9ac8dee29de16f88387f66fd08e2) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the Bitbucket Cloud webhook API spec and generated client, preserving repository and workspace webhook requests and following cursor pagination when listing webhooks.
+
+- [#361](https://github.com/0pilatos0/bitbucket-cli/pull/361) [`07c9e70`](https://github.com/0pilatos0/bitbucket-cli/commit/07c9e707662d15ac171edf4ac150776a7c96018c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Prevent mutation replay after HTTP 502, 503 and 504 responses by retrying only
+  GET, HEAD and OPTIONS. Keep the existing HTTP 429 retry policy for all methods.
+
+- [#365](https://github.com/0pilatos0/bitbucket-cli/pull/365) [`8e1ad83`](https://github.com/0pilatos0/bitbucket-cli/commit/8e1ad83005f0ccdb57535300c567b22bf0068835) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Require HTTPS on the Bitbucket API host for absolute `bb api` endpoints and
+  pagination links. Reject malformed URLs, protocol-relative paths, embedded URL
+  credentials, backslashes and raw control characters before sending a request.
+  Update audited transitive dependencies used by completion and API generation.
+
+- [#417](https://github.com/0pilatos0/bitbucket-cli/pull/417) [`a40ac94`](https://github.com/0pilatos0/bitbucket-cli/commit/a40ac947d2e31a78ea4f89474620b158c4ac4403) Thanks [@0pilatos0](https://github.com/0pilatos0)! - CI now runs the built CLI on the minimum supported Bun (1.1.30, from `engines.bun`), so that floor is tested instead of assumed.
+
 ## 2.2.2
 
 ### Patch Changes
