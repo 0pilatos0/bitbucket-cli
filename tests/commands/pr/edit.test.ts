@@ -4,9 +4,7 @@ import {
   createMockContextService,
   createMockOutputService,
   createMockGitService,
-  mockPullRequest,
 } from '../../setup.js';
-import type { Pullrequest } from '../../../src/generated/api.js';
 import { createMockPullrequestsApi } from './fakes.js';
 
 describe('EditPRCommand', () => {
