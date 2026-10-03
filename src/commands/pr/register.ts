@@ -33,7 +33,10 @@ export function registerPrCommands(
     .option('-t, --title <title>', 'Pull request title')
     .option('-b, --body <body>', 'Pull request description')
     .option('-s, --source <branch>', 'Source branch (default: current branch)')
-    .option('-d, --destination <branch>', 'Destination branch (default: main)')
+    .option(
+      '-d, --destination <branch>',
+      "Destination branch (default: repo's main branch)"
+    )
     .option('--close-source-branch', 'Close source branch after merge')
     .option('--draft', 'Create the pull request as draft')
     .option(
@@ -62,7 +65,7 @@ export function registerPrCommands(
         ],
         defaults: {
           source: 'current git branch',
-          destination: 'main',
+          destination: "repository's main branch",
           'default-reviewers':
             'false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)',
         },

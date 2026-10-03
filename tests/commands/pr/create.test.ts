@@ -8,6 +8,7 @@ import type {
   DefaultReviewerService,
 } from '../../../src/services/default-reviewer.service.js';
 import { fakeApi, fakeUsersApi } from '../../helpers/fake-api.js';
+import { getJsonPayload } from '../../helpers/output-logs.js';
 import {
   createMockConfigService,
   createMockContextService,
@@ -55,6 +56,8 @@ interface CreatePRHarnessOptions {
   createPRThrows?: boolean;
   /** Resolve `--reviewer` names against these workspace members. */
   members?: Account[];
+  /** The branch the mock API targets when the request has no destination. */
+  mainBranch?: string;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -67,7 +70,9 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     body?: Pullrequest;
   } = options.capturedBodyRef ?? {};
 
-  const basePullrequestsApi = createMockPullrequestsApi();
+  const basePullrequestsApi = createMockPullrequestsApi({
+    mainBranch: options.mainBranch,
+  });
   // Wrap POST so we can inspect the body on assertions.
   const originalPost =
     basePullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost.bind(
@@ -227,23 +232,43 @@ describe('CreatePRCommand', () => {
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
-  it('should use main as default destination', async () => {
-    const { command, output } = buildCreatePRCommand({
+  it("leaves the destination to Bitbucket so it targets the repository's main branch", async () => {
+    const { command, captured, output } = buildCreatePRCommand({
       currentBranch: 'feature',
+      mainBranch: 'master',
     });
     await command.execute({ title: 'My PR' }, { globalOptions: {} });
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+
+    expect(captured.body?.destination).toBeUndefined();
+    expect(output.logs).toContain('text:  Destination: master');
   });
 
-  it('should use explicit destination branch', async () => {
-    const { command, output } = buildCreatePRCommand({
-      currentBranch: 'feature',
+  it('shows the resolved destination in JSON output', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      mainBranch: 'develop',
     });
     await command.execute(
-      { title: 'My PR', destination: 'develop' },
+      { title: 'My PR' },
+      { globalOptions: { json: true } }
+    );
+
+    expect(captured.body?.destination).toBeUndefined();
+    const pr = getJsonPayload(output.logs) as Pullrequest;
+    expect(pr.destination?.branch?.name).toBe('develop');
+  });
+
+  it('sends an explicit --destination', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      currentBranch: 'feature',
+      mainBranch: 'master',
+    });
+    await command.execute(
+      { title: 'My PR', destination: 'release' },
       { globalOptions: {} }
     );
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+
+    expect(captured.body?.destination?.branch?.name).toBe('release');
+    expect(output.logs).toContain('text:  Destination: release');
   });
 
   it('should create draft pull request when flag is set', async () => {
