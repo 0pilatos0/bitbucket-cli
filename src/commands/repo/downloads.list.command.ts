@@ -83,7 +83,7 @@ export class ListDownloadsCommand extends BaseCommand<
             : '-',
           download.user?.display_name ?? '-',
           download.created_on
-            ? this.output.formatDate(download.created_on)
+            ? this.output.formatRelativeDate(download.created_on)
             : '-',
         ],
         noun: 'downloads',

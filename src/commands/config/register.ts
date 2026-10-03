@@ -25,6 +25,7 @@ export function registerConfigCommands(
             'skipVersionCheck',
             'versionCheckInterval',
             'prCreateIncludeDefaultReviewers',
+            'gitProtocol',
           ],
         },
       })
@@ -44,6 +45,7 @@ export function registerConfigCommands(
           'bb config set skipVersionCheck true',
           'bb config set versionCheckInterval 7',
           'bb config set credentialStorage keychain',
+          'bb config set gitProtocol https',
         ],
         validValues: {
           'Settable config keys': [
@@ -52,6 +54,7 @@ export function registerConfigCommands(
             'skipVersionCheck (true/false)',
             'versionCheckInterval (positive integer, days)',
             'prCreateIncludeDefaultReviewers (true/false)',
+            'gitProtocol (ssh/https)',
           ],
         },
         seeAlso: [

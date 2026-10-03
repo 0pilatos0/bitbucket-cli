@@ -19,6 +19,7 @@ import type { ConfigService } from '../services/config.service.js';
 import type { OAuthService } from '../services/oauth.service.js';
 import type { VersionService } from '../services/version.service.js';
 import type { DefaultReviewerService } from '../services/default-reviewer.service.js';
+import type { UserResolverService } from '../services/user-resolver.service.js';
 import type {
   PullrequestsApi,
   RepositoriesApi,
@@ -131,6 +132,7 @@ import type { SetConfigCommand } from '../commands/config/set.command.js';
 import type { ListConfigCommand } from '../commands/config/list.command.js';
 import type { InstallCompletionCommand } from '../commands/completion/install.command.js';
 import type { UninstallCompletionCommand } from '../commands/completion/uninstall.command.js';
+import type { PrintCompletionCommand } from '../commands/completion/print.command.js';
 import type { BrowseCommand } from '../commands/browse.command.js';
 import type { ApiCommand } from '../commands/api.command.js';
 
@@ -199,6 +201,9 @@ export const ServiceTokens = {
   DefaultReviewerService: token<DefaultReviewerService>(
     'DefaultReviewerService'
   ),
+
+  // Services - User reference resolution (@me, IDs, names, emails)
+  UserResolverService: token<UserResolverService>('UserResolverService'),
 
   // Services - URL builder (Bitbucket web URL construction)
   UrlBuilderService: token<IUrlBuilderService>('UrlBuilderService'),
@@ -353,6 +358,9 @@ export const ServiceTokens = {
   ),
   UninstallCompletionCommand: token<UninstallCompletionCommand>(
     'UninstallCompletionCommand'
+  ),
+  PrintCompletionCommand: token<PrintCompletionCommand>(
+    'PrintCompletionCommand'
   ),
 };
 

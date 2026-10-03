@@ -19,10 +19,10 @@ export type RepoOptions = Pick<GlobalOptions, 'workspace' | 'repo'>;
 
 export interface ContextOptions {
   /**
-   * Let `--jq` apply without `--json`, for commands whose output is already
-   * JSON (e.g. `bb api`).
+   * Let `--jq` and `--lean` apply without `--json`, for commands whose
+   * output is already JSON (e.g. `bb api`).
    */
-  allowJqWithoutJson?: boolean;
+  outputIsJson?: boolean;
 }
 
 /** Commands whose options type is `void` are run without an options object. */

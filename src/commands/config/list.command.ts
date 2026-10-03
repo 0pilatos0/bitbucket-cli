@@ -13,8 +13,10 @@ import {
   type CredentialStorage,
   SETTABLE_CONFIG_KEYS,
   coerceBooleanConfigValue,
+  coerceGitProtocolValue,
   coerceVersionCheckIntervalValue,
 } from '../../types/config.js';
+import type { GitProtocol } from '../../types/config.js';
 
 export interface ConfigDisplay {
   username?: string;
@@ -24,6 +26,7 @@ export interface ConfigDisplay {
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
   prCreateIncludeDefaultReviewers?: boolean;
+  gitProtocol?: GitProtocol;
 }
 
 export class ListConfigCommand extends BaseCommand<void, void> {
@@ -82,6 +85,11 @@ export class ListConfigCommand extends BaseCommand<void, void> {
     if (prCreateIncludeDefaultReviewers !== undefined) {
       displayConfig.prCreateIncludeDefaultReviewers =
         prCreateIncludeDefaultReviewers;
+    }
+
+    const gitProtocol = coerceGitProtocolValue(config.gitProtocol);
+    if (gitProtocol !== undefined) {
+      displayConfig.gitProtocol = gitProtocol;
     }
 
     if (context.globalOptions.json) {

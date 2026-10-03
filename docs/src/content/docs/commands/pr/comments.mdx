@@ -53,7 +53,7 @@ Use the identifiers described [above](#bb-pr-comments).
 | `--all`            | List all comments (overrides `--limit`)                   |         |
 | `--resolved`       | Only show resolved comments                               |         |
 | `--unresolved`     | Only show unresolved comments                             |         |
-| `--no-truncate`    | Global flag. Show full comment content without truncation |         |
+| `--no-truncate`    | Global flag. Show full comment content, never shortened   |         |
 
 ### Examples
 
@@ -70,7 +70,7 @@ bb pr comments list 42 --limit 50
 # List every comment
 bb pr comments list 42 --all
 
-# Show full comment content (not truncated)
+# Show full comment content (not shortened)
 bb pr comments list 42 --no-truncate
 ```
 
@@ -78,15 +78,15 @@ Output:
 
 ```text
 ID         Author    Content                          Status    Date
----------  --------  -------------------------------  --------  ------------------------
-486512301  Jane Doe  Consider renaming this variable  resolved  Jul 28, 2026 at 11:14 AM
-486512477  Sam Ali   Good catch, fixed.               open      Jul 28, 2026 at 12:02 PM
-486513002  Jane Doe  Why was this removed?            open      Jul 29, 2026 at 10:41 AM
+---------  --------  -------------------------------  --------  -----------
+486512301  Jane Doe  Consider renaming this variable  resolved  2 days ago
+486512477  Sam Ali   Good catch, fixed.               open      2 days ago
+486513002  Jane Doe  Why was this removed?            open      5 hours ago
 ```
 
 ### Notes
 
-- Comment content is truncated to 60 characters in the table view. Use `--no-truncate` for the full text
+- Long comment content is shortened to fit the terminal width. Use `--no-truncate` for the full text
 - The `Status` column shows `resolved`, `pending`, or `open`. Bitbucket records resolution on the comment that was resolved, so a reply inside a resolved thread shows `open` (or `pending` if it is an unpublished draft)
 - `--resolved` and `--unresolved` filter on the same resolution state and cannot be combined
 - With `--resolved`/`--unresolved` the filter is applied client-side after each page is fetched, so `--limit` counts comments that survive the filter, `--unresolved --limit 25` keeps fetching pages until 25 unresolved comments are found or the list is exhausted

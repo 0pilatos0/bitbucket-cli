@@ -21,6 +21,9 @@ its footer.
 | `BB_PROMPT_DISABLED` | When set to any non-empty value, never prompt, even in an interactive terminal (`bb completion install` still asks for your shell). Same effect as the global `--no-input` flag. See [`--no-input`](/reference/global-flags/#--no-input).                                                                                                                                                                                                                           | `1`                         |
 | `NO_COLOR`           | Disable color output globally. Triggers on any value, including the empty string.                                                                                                                                                                                                                                                                                                                                                                                   | `1`                         |
 | `FORCE_COLOR`        | Force-enable color output globally (any value except `0`)                                                                                                                                                                                                                                                                                                                                                                                                           | `1`                         |
+| `BB_PAGER`           | Pager for `bb pr diff`, `bb pr view` and `bb pipeline logs` on a terminal. Overrides `PAGER`; defaults to `less -FRX`. Empty or `cat` turns paging off. Split on whitespace, no shell quoting. See [Pager](#pager).                                                                                                                                                                                                                                                 | `less -R`                   |
+| `PAGER`              | Fallback pager when `BB_PAGER` is unset.                                                                                                                                                                                                                                                                                                                                                                                                                            | `less`                      |
+| `LESS`               | Options for `less`. Set to `FRX` for the pager when you have not set it, so `PAGER=less` still shows colors.                                                                                                                                                                                                                                                                                                                                                        | `-FRX`                      |
 | `BB_DEBUG`           | HTTP debug tracing on stderr. `http` logs method, URL, status (or network error code) and elapsed time for every API call; `verbose` also logs the request and response bodies, secrets redacted. `0`, `false`, `off`, `no` or `none` disables it, even when `DEBUG=true` is set; any other non-empty value (e.g. `1`) means `http`. Any level also prints the browser-open and version-check diagnostics on stderr. See [HTTP debug tracing](#http-debug-tracing). | `http`                      |
 | `DEBUG`              | Alias for `BB_DEBUG=verbose`. Must equal the literal string `true`, and is ignored when `BB_DEBUG` is set.                                                                                                                                                                                                                                                                                                                                                          | `true`                      |
 | `BB_HTTP_TIMEOUT`    | Per-request HTTP timeout in **milliseconds** for Bitbucket API calls. Prevents the CLI from hanging forever when a server accepts a connection but never responds. Defaults to `30000` (30s). Set to `0` to disable the timeout entirely. Invalid or negative values fall back to the default. A timed-out request is reported as a network error. `bb repo downloads upload` adds transfer time for the upload size on top.                                        | `60000`                     |
@@ -33,6 +36,21 @@ its footer.
   the pipeline. `BB_HTTP_TIMEOUT=0` disables the timeout; it affects API
   requests, not `git clone`. A stalled request can then wait indefinitely.
 </Aside>
+
+### Pager
+
+On a terminal, `bb pr diff`, `bb pr view` and `bb pipeline logs` open their
+output in a pager. The default `less -FRX` quits right away when the output
+fits on one screen (`-F`), keeps colors (`-R`) and leaves the text on screen
+after you quit (`-X`). Ctrl+C goes to the pager while it is open. There is no
+pager with `--json` or when stdout is piped. If the pager can't be started (for
+example no `less` on Windows) or exits with an error, the output is printed
+directly. A command that fails prints what it has so far without the pager.
+
+```bash
+BB_PAGER= bb pr diff 42        # no pager for this run
+export BB_PAGER="less -RS"     # don't wrap long diff lines
+```
 
 ### HTTP debug tracing
 
@@ -104,6 +122,7 @@ Documented so they aren't surprising during troubleshooting.
 | ----------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`  | Test runners        | When set to `test`, the CLI suppresses `process.exitCode = 1` on errors so a single failing test cannot cascade into later tests. Don't set this in production. |
 | `COMP_LINE` | tabtab / your shell | Set automatically while shell completion is being computed (`bb completion`). Its presence triggers the completion path; you should not set it manually.        |
+| `BB_COMPLETION_SHELL` | The completion scripts | Set by the scripts from `bb completion <shell>` to `bash`, `zsh`, `fish` or `powershell`, so candidates come back in that shell's format. Scripts written by older versions don't set it, and `$SHELL` decides instead. Don't set it manually. |
 | `APPDATA`   | Windows             | Used to locate the config file at `%APPDATA%\bb\config.json` on Windows. The CLI falls back to `%USERPROFILE%\AppData\Roaming\bb\config.json` if it isn't set.  |
 
 ## Resolution order

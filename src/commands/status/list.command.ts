@@ -81,13 +81,10 @@ export class ListCommitStatusesCommand extends BaseCommand<
           status.key ?? '-',
           colorStatusState(this.output, status.state),
           status.name ?? '-',
-          this.truncateText(
-            status.description ?? '-',
-            40,
-            context.globalOptions
-          ),
+          status.description ?? '-',
           status.url ?? '-',
         ],
+        flexColumns: [2, 3],
         noun: 'statuses',
       },
       context

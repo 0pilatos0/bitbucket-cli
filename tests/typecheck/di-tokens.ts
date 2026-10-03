@@ -14,6 +14,7 @@ type CloneDeps = DependencyTokens<ConstructorParameters<typeof CloneCommand>>;
 export const wired: CloneDeps = [
   ServiceTokens.GitService,
   ServiceTokens.ContextService,
+  ServiceTokens.ConfigService,
   ServiceTokens.OutputService,
 ];
 
@@ -22,6 +23,7 @@ export const swapped: CloneDeps = [
   ServiceTokens.ContextService,
   // @ts-expect-error swapped dependencies
   ServiceTokens.GitService,
+  ServiceTokens.ConfigService,
   ServiceTokens.OutputService,
 ];
 
