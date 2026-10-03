@@ -8,6 +8,63 @@ import { BBError, ErrorCode } from '../../../src/types/errors.js';
 import { createMockPullrequestsApi } from './fakes.js';
 
 describe('CommentPRCommand', () => {
+  describe('--body-file', () => {
+    const markdown = 'Nit: prefer `const` here.\n\n```ts\nconst x = 1;\n```\n';
+
+    class StdinCommentPRCommand extends CommentPRCommand {
+      protected override async readStdin(): Promise<string> {
+        return markdown;
+      }
+    }
+
+    const buildCommand = () => {
+      const pullrequestsApi = createMockPullrequestsApi();
+      return {
+        pullrequestsApi,
+        command: new StdinCommentPRCommand(
+          pullrequestsApi,
+          createMockContextService({
+            workspace: 'workspace',
+            repoSlug: 'repo',
+          }),
+          createMockOutputService()
+        ),
+      };
+    };
+
+    it('posts the stdin text for -', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      await command.execute({ id: '42', bodyFile: '-' }, { globalOptions: {} });
+
+      expect(pullrequestsApi.lastCommentBody?.content).toEqual({
+        raw: markdown,
+      });
+    });
+
+    it('rejects a message together with --body-file', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      const error = await command
+        .execute(
+          { id: '42', message: 'inline', bodyFile: '-' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect(pullrequestsApi.lastCommentBody).toBeUndefined();
+    });
+
+    it('requires a message or --body-file', async () => {
+      const { command, pullrequestsApi } = buildCommand();
+      const error = await command
+        .execute({ id: '42' }, { globalOptions: {} })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect(pullrequestsApi.lastCommentBody).toBeUndefined();
+    });
+  });
+
   // US4: Backward compatibility — general comments work unchanged
   it('should post general comment successfully without inline flags', async () => {
     const pullrequestsApi = createMockPullrequestsApi();

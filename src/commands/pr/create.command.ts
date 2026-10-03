@@ -16,6 +16,7 @@ import type {
   PullrequestsApi,
   Pullrequest,
 } from '../../generated/api.js';
+import { resolveBodyInput } from '../../services/body-input.js';
 import type { DefaultReviewerService } from '../../services/default-reviewer.service.js';
 import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
@@ -24,6 +25,7 @@ import { BBError, ErrorCode } from '../../types/errors.js';
 export interface CreatePROptions extends GlobalOptions {
   title?: string;
   body?: string;
+  bodyFile?: string;
   source?: string;
   destination?: string;
   closeSourceBranch?: boolean;
@@ -57,10 +59,19 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     options: CreatePROptions,
     context: CommandContext
   ): Promise<void> {
-    // Fail before any git or API call when the title can't be asked for.
-    if (!options.title && !context.prompt) {
+    // Fail before any git or API call when the title can't be asked for or
+    // the body input is unusable. `-F -` consumes stdin, so it can't also
+    // answer a title prompt.
+    if (!options.title && (!context.prompt || options.bodyFile === '-')) {
       throw this.titleRequiredError();
     }
+
+    const bodyInput = await resolveBodyInput({
+      inline: options.body,
+      inlineLabel: '--body',
+      bodyFile: options.bodyFile,
+      readStdin: () => this.readStdin(),
+    });
 
     const repoContext = await this.contextService.requireRepoContextFor(
       options,
@@ -73,7 +84,8 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
 
     const { title, body } = await this.resolveTitleAndBody(
-      options,
+      options.title,
+      bodyInput,
       context.prompt
     );
 
@@ -156,20 +168,21 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
   }
 
-  /** `--title`/`--body` win; a missing title, then body, is asked for. */
+  /** Flag values win; a missing title, then body, is asked for. */
   private async resolveTitleAndBody(
-    options: CreatePROptions,
+    title: string | undefined,
+    body: string | undefined,
     prompt: IPromptService | undefined
   ): Promise<{ title: string; body?: string }> {
-    if (options.title) {
-      return { title: options.title, body: options.body };
+    if (title) {
+      return { title, body };
     }
     if (!prompt) {
       throw this.titleRequiredError();
     }
     return {
       title: await prompt.text('Title', { required: true }),
-      body: options.body ?? (await prompt.text('Description (optional)')),
+      body: body ?? (await prompt.text('Description (optional)')),
     };
   }
 
@@ -244,6 +257,10 @@ export class CreatePRCommand extends BaseCommand<CreatePROptions, void> {
     }
 
     return Array.from(byUuid.values());
+  }
+
+  protected async readStdin(): Promise<string> {
+    return Bun.stdin.text();
   }
 
   private async getAuthorUuid(workspace: string): Promise<string | undefined> {

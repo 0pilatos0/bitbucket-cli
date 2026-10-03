@@ -1,10 +1,13 @@
-import { describe, it, expect } from 'bun:test';
+import { describe, it, expect, spyOn } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { ReplyCommentPRCommand } from '../../../src/commands/pr/comments.reply.command.js';
 import {
   createMockContextService,
   createMockOutputService,
 } from '../../setup.js';
-import { APIError } from '../../../src/types/errors.js';
+import { APIError, BBError, ErrorCode } from '../../../src/types/errors.js';
 import { createMockPullrequestsApi } from './fakes.js';
 
 describe('ReplyCommentPRCommand', () => {
@@ -21,6 +24,64 @@ describe('ReplyCommentPRCommand', () => {
       output,
     };
   };
+
+  it('should post the stdin text for --body-file -', async () => {
+    const stdin = spyOn(Bun.stdin, 'text').mockResolvedValue(
+      'Fixed in `abc123`.\n'
+    );
+    try {
+      const pullrequestsApi = createMockPullrequestsApi();
+      const { command } = makeCommand(pullrequestsApi);
+
+      await command.execute(
+        { prId: '42', commentId: '7', bodyFile: '-' },
+        { globalOptions: {} }
+      );
+
+      expect(pullrequestsApi.lastCommentBody).toEqual({
+        content: { raw: 'Fixed in `abc123`.\n' },
+        parent: { id: 7 },
+      });
+    } finally {
+      stdin.mockRestore();
+    }
+  });
+
+  it('should post the file content for --body-file <path>', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bb-pr-reply-'));
+    const path = join(dir, 'reply.md');
+    writeFileSync(path, 'Done.\n\n- [x] `retry` capped\n');
+    try {
+      const pullrequestsApi = createMockPullrequestsApi();
+      const { command } = makeCommand(pullrequestsApi);
+
+      await command.execute(
+        { prId: '42', commentId: '7', bodyFile: path },
+        { globalOptions: {} }
+      );
+
+      expect(pullrequestsApi.lastCommentBody?.content).toEqual({
+        raw: 'Done.\n\n- [x] `retry` capped\n',
+      });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('should reject a message together with --body-file', async () => {
+    const pullrequestsApi = createMockPullrequestsApi();
+    const { command } = makeCommand(pullrequestsApi);
+
+    const error = await command
+      .execute(
+        { prId: '42', commentId: '7', message: 'inline', bodyFile: 'x.md' },
+        { globalOptions: {} }
+      )
+      .catch((e: unknown) => e);
+
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(pullrequestsApi.lastCommentBody).toBeUndefined();
+  });
 
   it('should post a reply carrying the parent id and show success', async () => {
     const pullrequestsApi = createMockPullrequestsApi();

@@ -132,6 +132,16 @@ bb pr comments reply 45 109820 "Capped retries at 3 attempts in a1b2c3d."
 bb pr comments resolve 45 109820
 ```
 
+For multi-line markdown, pass the text on stdin with `-F -` and a quoted
+heredoc, so backticks and `$` reach Bitbucket as written. The same flag works on
+`bb pr create`, `bb pr edit` and `bb pr comments add`:
+
+```bash
+bb pr comments reply 45 109820 -F - <<'EOF'
+Capped retries at 3 attempts in `a1b2c3d`.
+EOF
+```
+
 ### Draft PR workflow
 
 ```bash

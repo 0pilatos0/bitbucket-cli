@@ -958,10 +958,8 @@ describe('CLI leaf command options', () => {
     expect(required(requireCommand('pr', 'checkout'))).toEqual(['id']);
     expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
     expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
-    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
-      'id',
-      'message',
-    ]);
+    // <message> is optional so -F/--body-file can supply the text instead.
+    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual(['id']);
     expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
       'id',
       'user',
