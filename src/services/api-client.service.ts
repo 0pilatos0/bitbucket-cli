@@ -14,6 +14,12 @@ import type {
 import type { OAuthService } from './oauth.service.js';
 import { RateLimiter } from './rate-limiter.js';
 import { createHttpDebugLogger } from './http-debug.js';
+import {
+  DryRunMode,
+  DryRunStop,
+  describeRequestBody,
+  describeRequestUrl,
+} from './dry-run.js';
 import { BBError, ErrorCode, APIError } from '../types/errors.js';
 
 const DEFAULT_BASE_URL = 'https://api.bitbucket.org/2.0';
@@ -156,7 +162,8 @@ export function createApiClient(
   credentialStore: ICredentialStore,
   output: IOutputService,
   oauthService?: OAuthService,
-  rateLimiter: RateLimiter = new RateLimiter()
+  rateLimiter: RateLimiter = new RateLimiter(),
+  dryRun: DryRunMode = new DryRunMode()
 ): AxiosInstance {
   const httpDebug = createHttpDebugLogger();
   const instance = axios.create({
@@ -189,6 +196,15 @@ export function createApiClient(
   // Request interceptor to add auth header (Basic or Bearer)
   instance.interceptors.request.use(
     async (config) => {
+      const method = config.method?.toUpperCase() ?? 'GET';
+      if (dryRun.isEnabled() && !IDEMPOTENT_METHODS.has(method)) {
+        throw new DryRunStop({
+          method,
+          url: describeRequestUrl(instance.getUri(config)),
+          body: describeRequestBody(config.data),
+        });
+      }
+
       // Proactive pacing before anything else (issue #277): bulk runs stay
       // under the rate-limit ceiling instead of reacting to 429s afterwards.
       const queuedMs = await rateLimiter.acquire();
@@ -221,7 +237,13 @@ export function createApiClient(
       httpDebug.response(response);
       return response;
     },
-    async (error: AxiosError | BBError) => {
+    async (error: AxiosError | BBError | DryRunStop) => {
+      // A throwing request interceptor lands here too; dry-run stops are not
+      // HTTP failures and must reach BaseCommand.run() untouched.
+      if (error instanceof DryRunStop) {
+        throw error;
+      }
+
       httpDebug.error(error);
 
       // Request interceptor failures (missing credentials, insecure config,

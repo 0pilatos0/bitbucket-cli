@@ -122,6 +122,299 @@ describe('ContextService', () => {
     });
   });
 
+  describe('remote URL shapes', () => {
+    const ws = { workspace: 'ws', repoSlug: 'repo' };
+    const dotted = { workspace: 'ws', repoSlug: 'my.repo' };
+
+    it.each([
+      ['git@bitbucket.org:ws/repo.git', ws],
+      ['git@bitbucket.org:ws/my.repo.git', dotted],
+      ['git@bitbucket.org:ws/my.repo', dotted],
+      ['bitbucket.org:ws/repo.git', ws],
+      ['ssh://git@bitbucket.org/ws/repo.git', ws],
+      ['ssh://git@bitbucket.org/ws/repo', ws],
+      ['ssh://git@altssh.bitbucket.org:443/ws/repo.git', ws],
+      ['git+ssh://git@bitbucket.org/ws/repo.git', ws],
+      ['https://bitbucket.org/ws/repo/', ws],
+      ['https://bitbucket.org/ws/repo.git/', ws],
+      ['https://bitbucket.org/ws/my.repo.git', dotted],
+      ['https://user@bitbucket.org/ws/repo.git', ws],
+      ['https://user:secret@bitbucket.org/ws/repo.git', ws],
+      ['https://BitBucket.org/ws/repo', ws],
+      ['http://bitbucket.org/ws/repo', ws],
+      [
+        'https://bitbucket.org/{ws-uuid}/{repo-uuid}',
+        { workspace: '{ws-uuid}', repoSlug: '{repo-uuid}' },
+      ],
+    ])('parses %s', (url, expected) => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService()
+      );
+
+      expect(service.parseRemoteUrl(url)).toEqual(expected);
+    });
+
+    it.each([
+      'git@github.com:ws/repo.git',
+      'https://bitbucket.org.attacker.com/ws/repo.git',
+      'https://bitbucket.org/ws',
+      'https://bitbucket.org/ws/repo/src/main',
+      'git@bitbucket.org:/ws/repo.git',
+      'git@bitbucket.org:ws/..',
+      'git@bitbucket.org:ws/...',
+      'file:///srv/bitbucket.org/ws/repo.git',
+      '/srv/git/ws/repo.git',
+    ])('rejects %s', (url) => {
+      const service = new ContextService(
+        createMockGitService(),
+        createMockConfigService()
+      );
+
+      expect(service.parseRemoteUrl(url)).toBeNull();
+    });
+
+    it('does not resolve SSH host aliases without git', () => {
+      const service = new ContextService(
+        createMockGitService({
+          sshHostnames: { 'bitbucket-work': 'bitbucket.org' },
+        }),
+        createMockConfigService()
+      );
+
+      expect(service.parseRemoteUrl('git@bitbucket-work:ws/repo.git')).toBe(
+        null
+      );
+    });
+  });
+
+  describe('SSH host aliases', () => {
+    it.each([
+      'git@bitbucket-work:ws/repo.git',
+      'ssh://git@bitbucket-work/ws/repo.git',
+    ])('resolves %s through ssh config', async (url) => {
+      const service = new ContextService(
+        createMockGitService({
+          isRepo: true,
+          remoteUrl: url,
+          sshHostnames: { 'bitbucket-work': 'bitbucket.org' },
+        }),
+        createMockConfigService()
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'ws',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('ignores aliases that resolve to another host', async () => {
+      const service = new ContextService(
+        createMockGitService({
+          isRepo: true,
+          remoteUrl: 'git@work:ws/repo.git',
+          sshHostnames: { work: 'github.com' },
+        }),
+        createMockConfigService()
+      );
+
+      expect(await service.getRepoContextFromGit()).toBeNull();
+    });
+
+    it('treats a one-letter scp host as a Windows drive', async () => {
+      const service = new ContextService(
+        createMockGitService({
+          isRepo: true,
+          remoteUrl: 'C:ws/repo',
+          sshHostnames: { c: 'bitbucket.org' },
+        }),
+        createMockConfigService()
+      );
+
+      expect(await service.getRepoContextFromGit()).toBeNull();
+    });
+
+    it('never treats HTTPS hosts as SSH aliases', async () => {
+      const service = new ContextService(
+        createMockGitService({
+          isRepo: true,
+          remoteUrl: 'https://bitbucket-work/ws/repo.git',
+          sshHostnames: { 'bitbucket-work': 'bitbucket.org' },
+        }),
+        createMockConfigService()
+      );
+
+      expect(await service.getRepoContextFromGit()).toBeNull();
+    });
+  });
+
+  describe('remote selection', () => {
+    const remotes = (...entries: Array<[string, string]>) =>
+      entries.map(([name, url]) => ({ name, url }));
+
+    const resolve = (gitRemotes: ReturnType<typeof remotes>) =>
+      new ContextService(
+        createMockGitService({ isRepo: true, remotes: gitRemotes }),
+        createMockConfigService()
+      );
+
+    it('prefers origin over other Bitbucket remotes', async () => {
+      const service = resolve(
+        remotes(
+          ['upstream', 'git@bitbucket.org:parent/repo.git'],
+          ['origin', 'git@bitbucket.org:fork/repo.git']
+        )
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'fork',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('uses the only Bitbucket remote when origin is elsewhere', async () => {
+      const service = resolve(
+        remotes(
+          ['origin', 'git@github.com:mirror/repo.git'],
+          ['bb', 'git@bitbucket.org:ws/repo.git']
+        )
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'ws',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('uses a Bitbucket remote when there is no origin', async () => {
+      const service = resolve(
+        remotes(['bitbucket', 'https://bitbucket.org/ws/repo.git'])
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'ws',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('treats remotes pointing at the same repository as one', async () => {
+      const service = resolve(
+        remotes(
+          ['ssh', 'git@bitbucket.org:ws/repo.git'],
+          ['https', 'https://bitbucket.org/WS/Repo.git']
+        )
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'ws',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('prefers upstream when Bitbucket remotes disagree', async () => {
+      const service = resolve(
+        remotes(
+          ['origin', 'git@github.com:me/repo.git'],
+          ['fork', 'git@bitbucket.org:me/repo.git'],
+          ['upstream', 'git@bitbucket.org:parent/repo.git']
+        )
+      );
+
+      expect(await service.getRepoContextFromGit()).toEqual({
+        workspace: 'parent',
+        repoSlug: 'repo',
+      });
+    });
+
+    it('fails with ambiguous_remote and lists remote names only', async () => {
+      const service = resolve(
+        remotes(
+          ['one', 'https://user:secret@bitbucket.org/a/repo.git'],
+          ['two', 'git@bitbucket.org:b/repo.git']
+        )
+      );
+
+      const error = await service.requireRepoContext({}).catch((e) => e);
+      expect(error).toMatchObject({
+        code: ErrorCode.CONTEXT_REPO_NOT_FOUND,
+        message:
+          'Git remotes one, two point to different Bitbucket repositories and neither origin nor upstream is one of them. Use --workspace and --repo options to pick one.',
+        context: { reason: 'ambiguous_remote', remotes: ['one', 'two'] },
+      });
+      expect(JSON.stringify(error)).not.toContain('secret');
+    });
+
+    it('names every remote when none is Bitbucket', async () => {
+      const service = resolve(
+        remotes(
+          ['origin', 'git@github.com:me/repo.git'],
+          ['gitlab', 'git@gitlab.com:me/repo.git']
+        )
+      );
+
+      await expect(service.requireRepoContext({})).rejects.toMatchObject({
+        message:
+          'None of the git remotes (origin, gitlab) is a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.',
+        context: {
+          reason: 'remote_not_bitbucket',
+          remotes: ['origin', 'gitlab'],
+        },
+      });
+    });
+
+    it('keeps the URL in the message for a single non-Bitbucket remote', async () => {
+      const service = resolve(
+        remotes(['origin', 'git@github.com:me/repo.git'])
+      );
+
+      await expect(service.requireRepoContext({})).rejects.toMatchObject({
+        message:
+          "Remote 'git@github.com:me/repo.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.",
+        context: {
+          reason: 'remote_not_bitbucket',
+          remoteUrl: 'git@github.com:me/repo.git',
+        },
+      });
+    });
+
+    it('does not fall back when origin is Bitbucket with an unusable path', async () => {
+      const service = resolve(
+        remotes(
+          ['origin', 'git@bitbucket.org:just-workspace'],
+          ['backup', 'git@bitbucket.org:other/repo.git']
+        )
+      );
+
+      await expect(service.requireRepoContext({})).rejects.toMatchObject({
+        context: {
+          reason: 'remote_not_bitbucket',
+          remoteUrl: 'git@bitbucket.org:just-workspace',
+        },
+      });
+    });
+
+    it('masks the password of a reported remote URL', async () => {
+      const service = resolve(
+        remotes(['origin', 'https://me:s3cret@github.com/me/repo.git'])
+      );
+
+      const error = await service.requireRepoContext({}).catch((e) => e);
+      expect(error.context.remoteUrl).toBe(
+        'https://me:***@github.com/me/repo.git'
+      );
+      expect(JSON.stringify(error)).not.toContain('s3cret');
+      expect(error.message).not.toContain('s3cret');
+    });
+
+    it('reports no_remote when the repository has none', async () => {
+      const service = resolve([]);
+
+      await expect(service.requireRepoContext({})).rejects.toMatchObject({
+        context: { reason: 'no_remote' },
+      });
+    });
+  });
+
   describe('getRepoContextFromGit', () => {
     it('should return null when not in a git repo', async () => {
       const gitService = createMockGitService({ isRepo: false });

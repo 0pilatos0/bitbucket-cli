@@ -26,3 +26,7 @@ export function withCompletionChoices(
 export function collectRepeated(value: string, previous: string[]): string[] {
   return previous.concat([value]);
 }
+
+/** Help text for the `--dry-run` flag on commands that change server state. */
+export const DRY_RUN_DESCRIPTION =
+  'Print the write request instead of sending it';

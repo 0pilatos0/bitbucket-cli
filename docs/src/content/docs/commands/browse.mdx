@@ -48,7 +48,7 @@ that pairs with a path target).
 
 | Option             | Description                                         |
 | ------------------ | --------------------------------------------------- |
-| `-n, --no-browser` | Print the URL to stdout instead of opening it       |
+| `-n, --no-browser` | Print the URL to stdout instead of opening it (the default when stdout is not a terminal) |
 | `--json [fields]`  | Emit `{ "url": "..." }` without opening the browser |
 
 ### Examples
@@ -119,6 +119,9 @@ bb browse --pr 217 --json url
 - **`--json` does not open the browser.** Either output mode (JSON or
   `--no-browser`) suppresses the open action, so scripts can capture the
   URL deterministically.
+- **No terminal, no browser.** When stdout is not a terminal (a pipe, a
+  redirect, CI, an agent), `bb browse` prints the URL as if `--no-browser`
+  were passed.
 
 ### Output
 

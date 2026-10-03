@@ -32,7 +32,9 @@ see [Precedence summary](#precedence-summary).
 
 `bb help <command>` is equivalent to `bb <command> --help` and works at every
 depth (`bb help pr`, `bb help pr comments`). The root `Commands:` list does not
-show `help`, but it is there.
+show `help`, but it is there. Every subcommand's help lists these flags under
+`Global Options:`. A group run without a subcommand (`bb pr`) prints its help
+and exits 0.
 
 ## Output flags
 
@@ -155,6 +157,43 @@ The two environment variables are not symmetric:
   command. `--unicode` is accepted but has no effect while `BB_NO_UNICODE` is
   set; unset the variable instead.
 
+## Write-command flag
+
+### `--dry-run`
+
+Commands that change something on Bitbucket accept `--dry-run`. The command
+runs as usual up to its first write request (`POST`, `PUT`, `PATCH` or
+`DELETE`), prints that request instead of sending it, and exits 0. Read
+requests it needs along the way, such as looking up a user or the current
+pull request, still go out. Confirmation prompts and the `--yes` gate are
+skipped, because nothing is changed.
+
+```bash
+$ bb pr decline 42 --dry-run
+ℹ Dry run: this request was not sent.
+POST https://api.bitbucket.org/2.0/repositories/myworkspace/myrepo/pullrequests/42/decline
+```
+
+The body follows the URL when the request has one, pretty-printed as JSON.
+Multipart uploads list their fields, with files shown by name and size.
+Credential-like keys (`password`, `secret`, `token`, ...) are redacted in the
+body and the URL query. When a command
+would send several writes, only the first is shown. With `--json` the output is
+`{ "dryRun": true, "request": { "method", "url", "body" } }`; see
+[JSON output](/reference/json-output/#dry-run).
+
+`--dry-run` is available on `bb api` and on every command that writes:
+`repo create`, `repo delete`, `repo default-reviewers add|remove`,
+`repo downloads upload|delete`, `pr create`, `pr edit`, `pr merge`,
+`pr approve`, `pr unapprove`, `pr request-changes`, `pr decline`, `pr ready`,
+`pr comments add|edit|delete|reply|resolve|unresolve`,
+`pr reviewers add|remove`, `snippet create|edit|delete|watch|unwatch`,
+`snippet comments add|edit|delete`, `pipeline run|stop`, `status set`,
+`project create`, `webhook create|delete`, `branch-restriction create|delete`,
+`ssh-key add|delete` and `gpg-key add|delete`. Commands that only change local
+files (`auth`, `config`, `alias`, `completion`, `repo clone`, `pr checkout`)
+do not accept it.
+
 ## Prompt flag
 
 ### `--no-input`
@@ -177,7 +216,9 @@ Prompts only appear when stdin **and** stdout are both terminals. Piped input,
 redirected output, `--json`, `--no-input` and a non-empty `BB_PROMPT_DISABLED`
 each switch them off, and the command then behaves exactly as it does in a
 script: a missing `--yes` or `--title` is an error, and `bb auth login` with no
-flags goes straight to OAuth.
+token fails with [1001 AUTH_REQUIRED](/reference/error-codes/#1001---auth_required)
+instead of opening a browser. `--json` alone still lets a person in a terminal
+finish a browser login.
 
 `bb completion install` is the exception. Its shell question comes from the
 completion installer and ignores all of these switches; see
@@ -197,7 +238,7 @@ nothing is changed. Ctrl+C exits with status 130, the rest with 1.
 ## List-command flags
 
 `--limit` and `--all` are options on list commands, not global flags.
-`bb pr view --limit 5` fails with `error: unknown option '--limit'`.
+`bb pr view --limit 5` fails with `✗ unknown option '--limit'`.
 
 ### `--limit <n>`
 

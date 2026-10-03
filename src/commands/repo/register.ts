@@ -1,7 +1,10 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
-import { withCompletionChoices } from '../../core/command-options.js';
+import {
+  DRY_RUN_DESCRIPTION,
+  withCompletionChoices,
+} from '../../core/command-options.js';
 import { GIT_PROTOCOLS } from '../../types/config.js';
 import { registerRepoDefaultReviewersCommands } from './default-reviewers.register.js';
 import { registerRepoDownloadsCommands } from './downloads.register.js';
@@ -54,6 +57,7 @@ export function registerRepoCommands(
     .option('--private', 'Create a private repository (default)')
     .option('--public', 'Create a public repository')
     .option('-p, --project <project>', 'Project key')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -120,6 +124,7 @@ export function registerRepoCommands(
     .command('delete <repository>')
     .description('Delete a repository')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

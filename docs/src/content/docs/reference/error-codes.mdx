@@ -4,8 +4,10 @@ description: Complete reference of error codes and their meanings
 ---
 
 Every failure carries a numeric `code` in the `--json` error payload
-(`{"code": 2002, …}`). The process exit status is normally `1` (Ctrl+C at a prompt uses `130`), so branch on
-`code`, not on the exit status. Ctrl-F the number below.
+(`{"code": 2002, …}`). The process exit status is normally `1` (Ctrl+C at a
+prompt uses `130`); set `BB_DETAILED_EXIT_CODES=1` for a coarse status per
+failure class (see [Exit codes](#exit-codes-and-error-codes)). Branch on `code`
+for anything finer. Ctrl-F the number below.
 
 ## Error code ranges
 
@@ -30,11 +32,15 @@ Every failure carries a numeric `code` in the `--json` error payload
 **Message:** Authentication required
 
 **Cause:** You haven't logged in yet, or your credentials have been cleared.
+`bb auth login` also returns it outside an interactive terminal when no API
+token is given, because browser login needs a person to finish it.
 
 **Solution:**
 
 ```bash
 bb auth login
+# Scripts, CI and agents:
+BB_USERNAME=you@example.com BB_API_TOKEN=... bb auth login
 ```
 
 ### 1002 - AUTH_INVALID
@@ -317,6 +323,18 @@ top-level command was given.
   - `--json` placed before the subcommand, so it ate the subcommand as its
     field list; see [Troubleshooting](/help/troubleshooting/)
 
+Argument-parsing errors (an unknown option or subcommand, too many arguments)
+are `5002` too, and a missing argument or option value is `5001`. With `--json`
+or `--jq` before any `--` they come back as an envelope with
+`context.parseError` (`unknownOption`, `unknownCommand`, `excessArguments`,
+`missingArgument`, `missingSubcommand`, ...), `context.commandPath`, and a `hint` naming the help
+page:
+
+```bash
+bb pr list --stat --json
+# {"name":"BBError","code":5002,"message":"unknown option '--stat'","context":{"parseError":"unknownOption","commandPath":"pr list"},"hint":"Run `bb pr list --help` for usage."}
+```
+
 The misplaced-`--json` case names the token it swallowed. Because `--json` did
 take effect, it comes back as an error envelope on stderr:
 
@@ -351,21 +369,14 @@ bb config set defaultWorkspce foo
 # (Did you mean defaultWorkspace?)
 ```
 
-Enum values are matched **case-sensitively**, so a value that is right apart
-from its case gets a distinct message rather than a suggestion:
-
-```bash
-bb pr list --state open
-# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
-# (Values are case-sensitive — use OPEN.)
-```
+Enum values ignore case, so `--state open` is accepted as `OPEN`.
 
 ### 5003 - FILE_NOT_FOUND
 
 **Message:** File not found: `<path>`
 
 **Cause:** A file referenced by an option (`--file` on `bb snippet create`/`edit`,
-`--body-file` on `bb pr edit`, `-F key=@file` or `--input` on
+`--body-file` on `bb pr create`/`edit` or `bb pr comments add`/`reply`, `-F key=@file` or `--input` on
 `bb api`) doesn't exist on disk, or a named file isn't present inside a snippet.
 
 **Solution:**
@@ -376,16 +387,16 @@ bb pr list --state open
 The `context` field carries the offending path, so scripts can tell this apart
 from a generic `VALIDATION_INVALID`. The key depends on the command:
 
-| Key        | Set by                                         |
-| ---------- | ---------------------------------------------- |
-| `file`     | `bb snippet create/edit/view`                  |
-| `bodyFile` | `bb pr edit --body-file` only                  |
-| `path`     | `bb api -F key=@file`, `bb api --input <file>` |
+| Key        | Set by                                                              |
+| ---------- | ------------------------------------------------------------------- |
+| `file`     | `bb snippet create/edit/view`                                       |
+| `bodyFile` | `--body-file` on `bb pr create/edit` and `bb pr comments add/reply` |
+| `path`     | `bb api -F key=@file`, `bb api --input <file>`                      |
 
 `bb snippet view --file` also attaches `available`, the list of filenames the
 snippet actually contains.
 
-`bb pr edit --body-file` only reports `5003` when the read failed with `ENOENT`.
+`--body-file` only reports `5003` when the read failed with `ENOENT`.
 Any other read failure (a permission error, or pointing at a directory) is
 reported as [9999 UNKNOWN](#9999---unknown).
 
@@ -405,6 +416,34 @@ like any other interrupted command.
 **Solution:**
 
 - Run the command again and answer `y`, or pass `--yes` to skip the question
+
+
+### 5005 - CONFIRMATION_REQUIRED
+
+**Message:** `<warning>` followed by `Use --yes to confirm.`
+
+**Cause:** A destructive command (`repo delete`, `pr comments delete`,
+`webhook delete`, ...) ran without `--yes` where it could not ask: a pipe, CI,
+`--json`, or [`--no-input`](/reference/global-flags/#--no-input).
+
+**Solution:** Rerun with `--yes`. `context.retry` holds the command with
+`--yes` added, quoted for POSIX shells on macOS and Linux and for PowerShell on
+Windows (`cmd.exe` is not supported):
+
+```bash
+bb repo delete acme/old-site --json
+```
+
+```json
+{
+  "name": "BBError",
+  "code": 5005,
+  "message": "This will permanently delete acme/old-site.\nUse --yes to confirm.",
+  "context": { "retry": "bb repo delete acme/old-site --json --yes" }
+}
+```
+
+Before this code existed the same failure used `5001`.
 
 ---
 
@@ -506,9 +545,10 @@ bb pr list --json | jq '<expression>'
 
 ### 8002 - JSON_FORMAT_INVALID
 
-`8002` has exactly two messages.
+`8002` covers flag combinations that can't work and an empty field list.
 
-**`--jq requires --json`**; add `--json`, with or without a field list:
+**`--jq requires --json`** (or **`--lean requires --json`**); add `--json`,
+with or without a field list:
 
 ```bash
 bb pr list --json --jq '.count'
@@ -516,9 +556,11 @@ bb pr list --json --jq '.count'
 
 `bb api` is exempt, because its output is already JSON: `bb api /repositories/my-ws --jq '.values[].name'` needs no `--json`.
 
-This one prints as plain text on stderr (`✗ --jq requires --json`) rather than
-as a JSON envelope, because JSON mode was never enabled; scripts cannot parse
-`.code` for it.
+`--jq` and `--lean` signal that you want machine-readable output, so this
+error is a JSON envelope on stderr even though `--json` is missing.
+
+**`--raw-output requires --jq`**; `--raw-output` only changes how `--jq`
+prints strings, so pass a `--jq` expression with it.
 
 **`--json field list cannot be empty`**; triggered by `--json ""` or `--json ,,,`.
 Drop the argument to get the full output, or name at least one field:
@@ -578,8 +620,38 @@ BB_DEBUG=verbose bb <your-command> 2>&1
 
 ## Exit codes and error codes
 
-`0` on success, normally `1` on failure, and `130` for Ctrl+C at a prompt. The exit status never carries the error
-code; read it from the stderr payload instead:
+`0` on success, normally `1` on failure, and `130` for Ctrl+C at a prompt.
+
+Set `BB_DETAILED_EXIT_CODES` to any non-empty value to get a status per failure
+class instead. It is opt-in so scripts that compare `$?` against `1` keep
+working:
+
+| Status | Meaning               | Error codes                                      |
+| ------ | --------------------- | ------------------------------------------------ |
+| `0`    | Success               |                                                  |
+| `1`    | Any other failure     | everything not listed below                      |
+| `2`    | Usage error           | `4003`, `5001`, `5002`, `5003`, `6001`, `6002`, `8002`, argument-parsing errors |
+| `3`    | Not found             | `2002` (any 404, including a missing diff or log) |
+| `4`    | Authentication needed | `1001`, `1002`, `1003`                           |
+| `5`    | Confirmation required | `5005`                                           |
+| `130`  | Ctrl+C at a prompt    | `5004` after an interrupt                        |
+
+```bash
+export BB_DETAILED_EXIT_CODES=1
+bb pr view 999 --json 2> err.json
+case $? in
+  0) ;;
+  3) echo "no such PR" ;;
+  4) echo "run bb auth login" ;;
+  *) jq -r '.message' err.json ;;
+esac
+```
+
+A `403` (`2003`) stays `1`: it can mean a missing scope or a repository
+permission, so read `code` and `hint` for it.
+
+The exit status never carries the full error code; read it from the stderr
+payload instead:
 
 ```bash
 bb pr view 999 --json 2> err.json || jq -r '.code' err.json

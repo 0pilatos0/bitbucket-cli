@@ -3,6 +3,7 @@ import { ServiceTokens } from '../../core/container.js';
 import {
   collectRepeated,
   withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
 } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
@@ -31,8 +32,15 @@ export function registerPrCommands(
     .description('Create a pull request')
     .option('-t, --title <title>', 'Pull request title')
     .option('-b, --body <body>', 'Pull request description')
+    .option(
+      '-F, --body-file <file>',
+      'Read description from file (- for stdin)'
+    )
     .option('-s, --source <branch>', 'Source branch (default: current branch)')
-    .option('-d, --destination <branch>', 'Destination branch (default: main)')
+    .option(
+      '-d, --destination <branch>',
+      "Destination branch (default: repo's main branch)"
+    )
     .option('--close-source-branch', 'Close source branch after merge')
     .option('--draft', 'Create the pull request as draft')
     .option(
@@ -46,11 +54,14 @@ export function registerPrCommands(
       '--no-default-reviewers',
       "Skip the repository's default reviewers even when prCreateIncludeDefaultReviewers is true"
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
           'bb pr create -t "My PR" -b "Description"',
+          'bb pr create -t "My PR" -F description.md',
+          'git log -1 --format=%b | bb pr create -t "My PR" -F -',
           'bb pr create -t "My PR" --draft',
           'bb pr create -t "My PR" -s feature -d develop',
           'bb pr create -t "My PR" --close-source-branch',
@@ -60,7 +71,7 @@ export function registerPrCommands(
         ],
         defaults: {
           source: 'current git branch',
-          destination: 'main',
+          destination: "repository's main branch",
           'default-reviewers':
             'false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)',
         },
@@ -253,7 +264,11 @@ export function registerPrCommands(
     .description('Edit a pull request')
     .option('-t, --title <title>', 'New pull request title')
     .option('-b, --body <body>', 'New pull request description')
-    .option('-F, --body-file <file>', 'Read description from file')
+    .option(
+      '-F, --body-file <file>',
+      'Read description from file (- for stdin; overrides --body)'
+    )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -284,6 +299,7 @@ export function registerPrCommands(
         MERGE_STRATEGIES
       )
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -313,6 +329,7 @@ export function registerPrCommands(
     .command('approve')
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Approve a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -335,6 +352,7 @@ export function registerPrCommands(
     .command('unapprove')
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Withdraw your approval of a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -357,6 +375,7 @@ export function registerPrCommands(
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Request changes on a pull request')
     .option('--undo', 'Remove your change request instead')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -379,6 +398,7 @@ export function registerPrCommands(
     .command('decline')
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Decline a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -401,6 +421,7 @@ export function registerPrCommands(
     .command('ready')
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Mark a draft pull request as ready for review')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

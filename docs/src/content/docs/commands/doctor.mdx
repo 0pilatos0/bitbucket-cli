@@ -1,0 +1,88 @@
+---
+title: Doctor command - Check your setup
+description: Run bb doctor to check Bun, the config file, network access, authentication, token scopes, and git remote detection in one go.
+---
+
+`bb doctor` checks the things `bb` needs to work and prints one row per check.
+Run it first when a command fails and you are not sure why, or ask an AI agent
+to run it before it starts working.
+
+It accepts the [global flags](/reference/global-flags/), including
+`--json [fields]` and `--jq <expression>`.
+
+## `bb doctor`
+
+```bash
+bb doctor [options]
+```
+
+### Examples
+
+```bash
+bb doctor
+bb doctor --json
+bb doctor --json --jq '.checks[] | select(.status != "pass")'
+```
+
+### Output
+
+```text
+✓ Bun           1.2.21 (requires >=1.1.30)
+✓ Config        /home/me/.config/bb/config.json
+✓ Network       https://api.bitbucket.org/2.0 reachable (HTTP 200)
+✓ Auth          Logged in as myuser (OAuth)
+✓ Token scopes  account, repository, pullrequest, pullrequest:write
+! Git remote    Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+
+All checks passed with 1 warning
+```
+
+Each row is `pass` (`✓`), `warn` (`!`) or `fail` (`✗`). Under `--no-unicode`
+the symbols are `OK`, `!!` and `ERR`. Rows that do not pass may carry a hint on
+the next line.
+
+### Checks
+
+| Check          | Fails or warns when                                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun`          | Fails when the Bun runtime is older than the version the CLI supports.                                                                                               |
+| `config`       | Fails when the [config file](/reference/configuration/) is not valid JSON or has insecure permissions. A missing file passes with `(not created yet)`.               |
+| `network`      | Fails when the API base URL (`BB_API_BASE_URL` or `https://api.bitbucket.org/2.0`) does not answer within 5 seconds. Any HTTP response counts as reachable.         |
+| `auth`         | Fails when no credentials are stored, Bitbucket rejects them, or they cannot be verified. Credentials are not verified when the network check fails.                |
+| `scopes`       | Shown only after a successful auth check. Lists the scopes Bitbucket reports in the `X-OAuth-Scopes` response header; it does not judge them. Warns when no scopes are reported, so compare the token with [Token scopes](/reference/token-scopes/).      |
+| `git`          | Warns when the current directory is not a git repository or its remote is not a Bitbucket URL. Other commands then need `--workspace` and `--repo`.                 |
+
+The network check sends an unauthenticated request; your credentials are only
+sent to `GET /user` for the auth check.
+
+### Exit code
+
+`bb doctor` exits 1 when any check fails and 0 otherwise. Warnings never fail
+the run, so `bb doctor && ...` works outside a repository.
+
+### JSON output
+
+```json
+{
+  "ok": false,
+  "checks": [
+    {
+      "id": "bun",
+      "label": "Bun",
+      "status": "pass",
+      "message": "1.2.21 (requires >=1.1.30)"
+    },
+    {
+      "id": "auth",
+      "label": "Auth",
+      "status": "fail",
+      "message": "Not logged in",
+      "hint": "Run `bb auth login`"
+    }
+  ]
+}
+```
+
+`ok` is `false` exactly when the command exits 1. `hint` is present only on
+rows that have one. `--json id,status` projects each check, like a list
+command.

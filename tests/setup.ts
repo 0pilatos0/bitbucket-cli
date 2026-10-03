@@ -14,6 +14,7 @@ import type { OAuthService } from '../src/services/oauth.service.js';
 import type {
   IConfigService,
   ICredentialStore,
+  GitRemote,
   ISecretStorage,
   IGitService,
   IContextService,
@@ -42,7 +43,6 @@ beforeEach(() => {
 
 afterEach(() => {
   Container.reset();
-  process.exitCode = 0;
   if (originalNodeEnv !== undefined) {
     process.env.NODE_ENV = originalNodeEnv;
   } else {
@@ -188,6 +188,8 @@ export function createMockGitService(
     currentBranch?: string;
     currentCommit?: string;
     remoteUrl?: string;
+    remotes?: GitRemote[];
+    sshHostnames?: Record<string, string>;
     throwOnGetCurrentBranch?: boolean;
   } = {}
 ): IGitService {
@@ -216,11 +218,6 @@ export function createMockGitService(
     async isAncestor() {
       return true;
     },
-    async getRemotes() {
-      return options.remoteUrl
-        ? [{ name: 'origin', url: options.remoteUrl }]
-        : [];
-    },
     async getCurrentBranch() {
       if (options.throwOnGetCurrentBranch) {
         throw { code: 3002, message: 'Not a git repo' } as BBError;
@@ -232,11 +229,16 @@ export function createMockGitService(
         options.currentCommit ?? 'abcdef0123456789abcdef0123456789abcdef01'
       );
     },
-    async getRemoteUrl() {
-      if (options.remoteUrl) {
-        return options.remoteUrl;
+    async getRemotes() {
+      if (options.remotes) {
+        return options.remotes;
       }
-      throw { code: 3003, message: 'No remote' } as BBError;
+      return options.remoteUrl
+        ? [{ name: 'origin', url: options.remoteUrl }]
+        : [];
+    },
+    async resolveSshHostname(host: string) {
+      return options.sshHostnames?.[host] ?? null;
     },
   };
 }

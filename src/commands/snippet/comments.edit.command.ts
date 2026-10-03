@@ -46,7 +46,7 @@ export class EditSnippetCommentCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
+    const commentId = this.parsePositiveIntArg(options.commentId, 'comment-id');
 
     const response =
       await this.snippetsApi.snippetsWorkspaceEncodedIdCommentsCommentIdPut({

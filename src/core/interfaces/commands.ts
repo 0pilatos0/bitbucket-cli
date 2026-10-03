@@ -33,6 +33,25 @@ export interface CommandContext {
    * behavior.
    */
   prompt?: IPromptService;
+  /**
+   * The user's arguments (after alias expansion, without `bb` itself), used
+   * to build the `--yes` retry command for `CONFIRMATION_REQUIRED`. Optional
+   * so unit tests may omit it.
+   */
+  argv?: readonly string[];
+  /**
+   * Set when a human is at an interactive terminal: stdin and stdout are
+   * TTYs, `BB_PROMPT_DISABLED` is unset and `--no-input` was not passed.
+   * Unlike `prompt`, `--json` leaves it set. Gates flows that need a person,
+   * such as completing a browser login.
+   */
+  interactive?: boolean;
+  /**
+   * Set when the command was invoked with `--dry-run`: confirmations are
+   * skipped and the API client stops at the first write request instead of
+   * sending it.
+   */
+  dryRun?: boolean;
 }
 
 /**

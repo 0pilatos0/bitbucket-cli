@@ -8,6 +8,7 @@ import type {
   ContextOptions,
 } from '../../src/core/command-registrar.js';
 import { createHelpTextBuilder } from '../../src/help-text.js';
+import { addGlobalOptions } from '../../src/global-options.js';
 
 interface Dispatch {
   via: 'run' | 'runWithGlobalOptions';
@@ -32,7 +33,7 @@ function buildProgram(): { program: Command; dispatches: Dispatch[] } {
       });
     },
   };
-  const program = new Command('bb').exitOverride();
+  const program = addGlobalOptions(new Command('bb')).exitOverride();
   registerCommands(program, registrar);
   return { program, dispatches };
 }
@@ -84,6 +85,7 @@ describe('registerCommands', () => {
       'api',
       'alias',
       'config',
+      'doctor',
       'completion',
     ]);
   });

@@ -10,9 +10,12 @@ import {
   resolveLimit,
   type PaginatedCollection,
 } from '../services/pagination.js';
+import { DryRunStop, type DryRunRequest } from '../services/dry-run.js';
+import { quotePowerShell } from '../alias.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { didYouMeanSuffix } from './suggest.js';
 import { remediationHintLines } from './error-hints.js';
+import { exitCodeForError } from './exit-codes.js';
 
 /**
  * Declarative spec for {@link BaseCommand.runList}. Captures everything that
@@ -72,13 +75,34 @@ export interface RunListSpec<TItem> {
   noun: string;
 }
 
-/** Ctrl+C at a prompt; exits 130 like a SIGINT-terminated process. */
-function isInterrupt(error: unknown): boolean {
-  return (
-    error instanceof BBError &&
-    error.code === ErrorCode.PROMPT_CANCELLED &&
-    error.context?.interrupted === true
-  );
+/**
+ * Quote for the shell the retry will most likely be pasted into: POSIX `sh`
+ * off Windows, PowerShell on Windows (the shell `!` aliases run under there).
+ * PowerShell needs the narrower bare set: `,` and a leading `@` are syntax.
+ */
+function shellQuote(arg: string, platform: NodeJS.Platform): string {
+  if (platform === 'win32') {
+    return /^[\w./-]+$/.test(arg) ? arg : quotePowerShell(arg);
+  }
+  return /^[\w@%+=:,./-]+$/.test(arg)
+    ? arg
+    : `'${arg.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * The invocation rerun with `--yes`, placed before any `--` so it stays an
+ * option rather than becoming a positional argument.
+ */
+export function retryWithYes(
+  argv: readonly string[],
+  platform: NodeJS.Platform = process.platform
+): string {
+  const separator = argv.indexOf('--');
+  const args =
+    separator === -1
+      ? [...argv, '--yes']
+      : [...argv.slice(0, separator), '--yes', ...argv.slice(separator)];
+  return ['bb', ...args.map((arg) => shellQuote(arg, platform))].join(' ');
 }
 
 export abstract class BaseCommand<
@@ -136,13 +160,51 @@ export abstract class BaseCommand<
         throw context.validationError;
       }
       return this.usesPager
-        ? await this.output.withPager(() => this.execute(options, context))
-        : await this.execute(options, context);
+        ? await this.output.withPager(() =>
+            this.executeOrReportDryRun(options, context)
+          )
+        : await this.executeOrReportDryRun(options, context);
     } catch (error) {
       this.handleError(error, context);
       throw error;
     } finally {
       this.output.setJsonFormatOptions({});
+    }
+  }
+
+  private async executeOrReportDryRun(
+    options: TOptions,
+    context: CommandContext
+  ): Promise<TResult> {
+    try {
+      return await this.execute(options, context);
+    } catch (error) {
+      if (!(error instanceof DryRunStop)) {
+        throw error;
+      }
+      await this.reportDryRun(error.request, context);
+      return undefined as TResult;
+    }
+  }
+
+  private async reportDryRun(
+    request: DryRunRequest,
+    context: CommandContext
+  ): Promise<void> {
+    // `bb api` accepts `--jq` without `--json`.
+    if (context.globalOptions.json || context.globalOptions.jq) {
+      await this.output.json({ dryRun: true, request });
+      return;
+    }
+
+    this.output.info('Dry run: this request was not sent.');
+    this.output.text(`${request.method} ${request.url}`);
+    if (request.body !== undefined) {
+      this.output.text(
+        typeof request.body === 'string'
+          ? request.body
+          : JSON.stringify(request.body, null, 2)
+      );
     }
   }
 
@@ -177,7 +239,7 @@ export abstract class BaseCommand<
     // Only set exit code in production - during tests this causes false failures
     // because the exit code persists across test files
     if (process.env.NODE_ENV !== 'test') {
-      process.exitCode = isInterrupt(error) ? 130 : 1;
+      process.exitCode = exitCodeForError(error);
     }
   }
 
@@ -280,12 +342,28 @@ export abstract class BaseCommand<
    * surface immediately rather than silently truncating.
    */
   protected parsePositiveInt(value: string, name: string): number {
+    return this.positiveIntOrThrow(value, name, `--${name}`);
+  }
+
+  /**
+   * {@link parsePositiveInt} for a positional argument: the error names it
+   * as the usage line does (`<id>`), not as a flag the command doesn't have.
+   */
+  protected parsePositiveIntArg(value: string, name: string): number {
+    return this.positiveIntOrThrow(value, name, `<${name}>`);
+  }
+
+  private positiveIntOrThrow(
+    value: string,
+    name: string,
+    label: string
+  ): number {
     const trimmed = value.trim();
     const parsed = Number.parseInt(trimmed, 10);
     if (!Number.isFinite(parsed) || parsed < 1 || String(parsed) !== trimmed) {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: this.appendHelpHint(`--${name} must be a positive integer.`),
+        message: this.appendHelpHint(`${label} must be a positive integer.`),
         context: { [name]: value },
       });
     }
@@ -334,18 +412,22 @@ export abstract class BaseCommand<
    * `--yes`). In an interactive terminal the user is asked instead; anywhere
    * else this throws a standard `BBError` so the warning and the
    * "Use --yes to confirm." instruction stay consistent across commands.
+   * `--dry-run` skips the gate because nothing will be changed.
+   * Its `context.retry` is the exact command to rerun, when the raw argv is
+   * known.
    */
   protected async requireConfirmation(
     confirmed: boolean | undefined,
     warning: string,
     context: CommandContext
   ): Promise<void> {
-    if (confirmed) return;
+    if (confirmed || context.dryRun) return;
 
     if (!context.prompt) {
       throw new BBError({
-        code: ErrorCode.VALIDATION_REQUIRED,
+        code: ErrorCode.CONFIRMATION_REQUIRED,
         message: `${warning}\nUse --yes to confirm.`,
+        context: context.argv ? { retry: retryWithYes(context.argv) } : {},
       });
     }
 
@@ -361,7 +443,8 @@ export abstract class BaseCommand<
    * Shared driver for paginated list commands. Runs the common tail of every
    * `bb ... list`-style command: resolve `--limit`/`--all`, collect pages via
    * `collectPagesWithMeta`, then either emit the JSON envelope
-   * (`{ ...jsonMetadata, count, [wrapperKey]: items }`), print the
+   * (`{ ...jsonMetadata, count, hasMore, limit, [wrapperKey]: items }`,
+   * `limit` being `null` for `--all`), print the
    * empty-state message, or render the table followed by the more-results
    * hint. Context resolution and filter construction remain the caller's
    * responsibility — build those first, then delegate here.
@@ -390,6 +473,8 @@ export abstract class BaseCommand<
       await this.output.json({
         ...(spec.jsonMetadata ?? {}),
         count: items.length,
+        hasMore,
+        limit: Number.isFinite(limit) ? limit : null,
         [spec.wrapperKey]: items,
       });
       return;
@@ -413,31 +498,25 @@ export abstract class BaseCommand<
   }
 
   /**
-   * Validate a string option against a set of allowed values.
-   *
-   * Matching stays case-SENSITIVE (some callers upper-case ahead of this,
-   * others don't), so a value that differs only in case gets its own
-   * message rather than a "did you mean" line — echoing the user's own word
-   * back at them reads as a bug.
+   * Validate a string option against a set of allowed values, ignoring case
+   * and returning the canonical spelling (`open` -> `OPEN`).
    */
   protected parseEnumOption<T extends string>(
     value: string,
     name: string,
     allowed: readonly T[]
   ): T {
-    if (!allowed.includes(value as T)) {
-      const caseOnlyMatch = allowed.find(
-        (candidate) => candidate.toLowerCase() === value.toLowerCase()
-      );
-      const suffix = caseOnlyMatch
-        ? `\n(Values are case-sensitive — use ${caseOnlyMatch}.)`
-        : didYouMeanSuffix(value, allowed);
+    const folded = value.toLowerCase();
+    const match = allowed.find(
+      (candidate) => candidate.toLowerCase() === folded
+    );
+    if (match === undefined) {
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
-        message: `--${name} must be one of: ${allowed.join(', ')}${suffix}`,
+        message: `--${name} must be one of: ${allowed.join(', ')}${didYouMeanSuffix(value, allowed)}`,
         context: { [name]: value },
       });
     }
-    return value as T;
+    return match;
   }
 }

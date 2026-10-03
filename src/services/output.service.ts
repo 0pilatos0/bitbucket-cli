@@ -89,10 +89,11 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'gpgKeys', // gpg-key list
   'deployments', // deployment list
   'environments', // deployment environments
+  'checks', // doctor
   'values', // generic fallback for paginated payloads
 ];
 
-let closedPipeGuardInstalled = false;
+const closedPipeGuarded = new WeakSet<NodeJS.WriteStream>();
 
 // A reader that exits early (`bb repo cat big.bin | head`) closes the pipe
 // mid-write. That is a normal end of output, like `cat` under SIGPIPE, not
@@ -100,16 +101,26 @@ let closedPipeGuardInstalled = false;
 // when stdout is a socketpair, which is what Node/Bun spawn hands a child.
 const CLOSED_READER_CODES = new Set(['EPIPE', 'ENOTCONN']);
 
-function ignoreClosedStdoutPipe(): void {
-  if (closedPipeGuardInstalled) {
+function ignoreClosedPipe(stream: NodeJS.WriteStream): void {
+  if (closedPipeGuarded.has(stream)) {
     return;
   }
-  closedPipeGuardInstalled = true;
-  process.stdout.on('error', (error: NodeJS.ErrnoException) => {
+  closedPipeGuarded.add(stream);
+  stream.on('error', (error: NodeJS.ErrnoException) => {
     if (!CLOSED_READER_CODES.has(error.code ?? '')) {
       throw error;
     }
   });
+}
+
+// All output goes through the stream, never console.*: once anything touches
+// `process.stdout` (a spinner or dependency reading `isTTY` is enough), Bun's
+// console.log writes only what fits in a pipe's 64 KB buffer and silently
+// drops the rest. stream.write() queues the remainder and drains it before
+// the process exits.
+function writeToStream(stream: NodeJS.WriteStream, line: string): void {
+  ignoreClosedPipe(stream);
+  stream.write(`${line}\n`);
 }
 
 export class OutputService implements IOutputService {
@@ -202,23 +213,26 @@ export class OutputService implements IOutputService {
       ];
       const jqOutput = await runJq(result, jq, flags);
       // jq terminates each value with a newline; strip the trailing one so
-      // console.log doesn't double it. Preserve internal newlines between
+      // writeToStream doesn't double it. Preserve internal newlines between
       // emitted values.
       const trimmed = jqOutput.endsWith('\n')
         ? jqOutput.slice(0, -1)
         : jqOutput;
       if (trimmed.length > 0) {
-        console.log(trimmed);
+        writeToStream(process.stdout, trimmed);
       }
       return;
     }
 
-    console.log(JSON.stringify(result, null, pretty ? 2 : undefined));
+    writeToStream(
+      process.stdout,
+      JSON.stringify(result, null, pretty ? 2 : undefined)
+    );
   }
 
   public jsonError(data: unknown): void {
     this.stopActiveSpinner();
-    console.error(JSON.stringify(data));
+    writeToStream(process.stderr, JSON.stringify(data));
   }
 
   public table(
@@ -293,19 +307,25 @@ export class OutputService implements IOutputService {
   public error(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✗', 'ERR'), chalk.red);
-    console.error(`${symbol} ${stripControl(message)}`);
+    writeToStream(process.stderr, `${symbol} ${stripControl(message)}`);
   }
 
   public warning(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('⚠', '!!'), chalk.yellow);
-    console.warn(`${symbol} ${stripControl(message)}`);
+    writeToStream(process.stderr, `${symbol} ${stripControl(message)}`);
   }
 
   public info(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('ℹ', 'i'), chalk.blue);
-    this.writeLine(`${symbol} ${stripControl(message)}`);
+    const line = `${symbol} ${stripControl(message)}`;
+    // In JSON mode stdout carries only the JSON document.
+    if (this.isJsonMode()) {
+      writeToStream(process.stderr, line);
+    } else {
+      this.writeLine(line);
+    }
   }
 
   public symbol(unicode: string, ascii: string): string {
@@ -319,12 +339,12 @@ export class OutputService implements IOutputService {
 
   public stderr(message: string): void {
     this.stopActiveSpinner();
-    console.error(stripControl(message));
+    writeToStream(process.stderr, stripControl(message));
   }
 
   public raw(data: Uint8Array): void {
     this.stopActiveSpinner();
-    ignoreClosedStdoutPipe();
+    ignoreClosedPipe(process.stdout);
     if (this.terminal.isTTY) {
       const text = stripControl(new TextDecoder().decode(data));
       if (this.pageBuffer) {
@@ -382,7 +402,7 @@ export class OutputService implements IOutputService {
       this.pageBuffer.push(`${line}\n`);
       return;
     }
-    console.log(line);
+    writeToStream(process.stdout, line);
   }
 
   /**
