@@ -62,6 +62,8 @@ Use `feat/` for new features and `fix/` for bug fixes. Other prefixes
 
 ### 2. Code
 
+- New command? Run `bun run new:command <group> <verb>` and follow the
+  checklist in [src/commands/AGENTS.md](src/commands/AGENTS.md).
 - Follow the patterns in `src/commands/`; extend `BaseCommand`, inject
   dependencies via the container. See
   [AGENTS.md → Command Pattern](AGENTS.md#command-pattern).
