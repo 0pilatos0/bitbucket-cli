@@ -106,6 +106,9 @@ bb auth status
 The API returns the displayed account username; it is distinct from the email
 used for API-token login. Expiry appears only for OAuth, and the default
 workspace appears only when configured. Add `--json` for structured output.
+When you are not logged in, `bb auth status` exits 1. Run
+[`bb doctor`](/commands/doctor/) to check network access, token scopes, and
+the rest of your setup as well.
 
 ## Logout
 

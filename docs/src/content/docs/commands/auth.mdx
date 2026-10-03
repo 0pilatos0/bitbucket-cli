@@ -134,8 +134,11 @@ OAuth adds a token-expiry line. The default workspace appears only when set.
 With more than one saved account, an `Account:` line names the one in use and
 an `Other accounts:` line lists the rest. JSON always includes `account` (the
 current account name) and `accounts` (all saved names). With no credentials,
-the command reports `Not logged in` and JSON is
-`{ "authenticated": false, "account": "default", "accounts": [] }`.
+the command reports `Not logged in`, JSON is
+`{ "authenticated": false, "account": "default", "accounts": [] }`, and it
+exits 1 (like `gh auth status`), so `bb auth status >/dev/null && ...` only
+continues when you are logged in. Invalid or expired credentials also exit 1.
+For a wider check of your setup, run [`bb doctor`](/commands/doctor/).
 
 `auth status --json` and `auth login --json` both report `method` as
 `"api_token"` or `"oauth"`. Earlier releases reported `"basic"` from

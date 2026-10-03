@@ -60,8 +60,7 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
 - `--limit` is enforced across paginated responses. When results are capped the
   CLI prints `Showing 25 pipelines. Use --limit <n> or --all to see more.`
   (suppressed with `--json`).
-- `--status` is upper-cased before validation, so `failed` and `FAILED` both
-  work. `--sort` is matched case-sensitively.
+- `--status` and `--sort` ignore case, so `failed` and `FAILED` both work.
 - An invalid value lists the allowed ones and, when the input is close to a
   valid one, suggests it:
 
@@ -69,9 +68,6 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
   --status must be one of: PARSING, PENDING, PAUSED, HALTED, BUILDING, ERROR, PASSED, FAILED, STOPPED, UNKNOWN
   (Did you mean FAILED?)
   ```
-
-  A `--sort` value that differs only in case gets
-  `(Values are case-sensitive, use created_on.)` instead of a suggestion.
 
 ---
 

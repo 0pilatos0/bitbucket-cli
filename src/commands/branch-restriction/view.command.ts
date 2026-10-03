@@ -43,7 +43,7 @@ export class ViewBranchRestrictionCommand extends BaseCommand<
       options,
       context
     );
-    const id = this.parsePositiveInt(options.id, 'id');
+    const id = this.parsePositiveIntArg(options.id, 'id');
 
     const response = await this.branchRestrictionsApi
       .repositoriesWorkspaceRepoSlugBranchRestrictionsIdGet({

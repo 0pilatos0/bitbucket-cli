@@ -413,6 +413,18 @@ describe('CLI help text integration', () => {
     expect(output).toContain('BB_LOCALE');
   });
 
+  it('should list the global flags in subcommand help', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const listCmd = prCmd.commands.find((c) => c.name() === 'list')!;
+    const output = captureHelp(listCmd);
+
+    expect(output).toContain('Global Options:');
+    expect(output).toContain('-w, --workspace <workspace>');
+    expect(output).toContain('-r, --repo <repo>');
+    expect(output).toContain('--json [fields]');
+    expect(output).toContain('--no-input');
+  });
+
   it('should include merge strategies and examples in pr merge help', () => {
     const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
     const mergeCmd = prCmd.commands.find((c) => c.name() === 'merge')!;
@@ -568,6 +580,7 @@ describe('CLI command registration', () => {
       'completion',
       'config',
       'deployment',
+      'doctor',
       'gpg-key',
       'pipeline',
       'pr',
@@ -959,10 +972,8 @@ describe('CLI leaf command options', () => {
     expect(required(requireCommand('pr', 'checkout'))).toEqual(['id']);
     expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
     expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
-    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
-      'id',
-      'message',
-    ]);
+    // <message> is optional so -F/--body-file can supply the text instead.
+    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual(['id']);
     expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
       'id',
       'user',

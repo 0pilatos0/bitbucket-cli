@@ -540,6 +540,8 @@ describe('ListRepoFilesCommand', () => {
       'ref',
       'path',
       'count',
+      'hasMore',
+      'limit',
       'entries',
     ]);
     expect(payload.ref).toBe('main');

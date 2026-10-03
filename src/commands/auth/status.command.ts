@@ -50,6 +50,9 @@ export class StatusCommand extends BaseCommand<void, void> {
     const otherAccounts = accounts.filter((name) => name !== account);
 
     if (!(await this.credentialStore.hasCredentials())) {
+      // Exit 1 like `gh auth status` so scripts can gate on it; the output
+      // stays a status report rather than an error.
+      process.exitCode = 1;
       if (context.globalOptions.json) {
         await this.output.json({ authenticated: false, account, accounts });
         return;

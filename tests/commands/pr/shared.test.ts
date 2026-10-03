@@ -322,7 +322,7 @@ describe('pr commands without an ID', () => {
         { id: '' },
         { globalOptions: {} }
       )
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
     expect(listCalls).toBe(0);
     expect(api.lastMergeBody).toBeUndefined();
   });
