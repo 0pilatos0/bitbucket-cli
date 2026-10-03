@@ -538,8 +538,8 @@ describe('OutputService', () => {
       output.setJsonFormatOptions({ json: true });
       output.info('Opening browser...');
 
-      expect(consoleLogs).toEqual([]);
-      expect(consoleErrors[0]).toContain('Opening browser...');
+      expect(stdoutLines).toEqual([]);
+      expect(stderrLines[0]).toContain('Opening browser...');
     });
   });
 

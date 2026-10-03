@@ -322,7 +322,7 @@ export class OutputService implements IOutputService {
     const line = `${symbol} ${stripControl(message)}`;
     // In JSON mode stdout carries only the JSON document.
     if (this.isJsonMode()) {
-      console.error(line);
+      writeToStream(process.stderr, line);
     } else {
       this.writeLine(line);
     }
