@@ -18,8 +18,10 @@ Bitbucket's authorization page and stores the resulting tokens. Access tokens
 normally expire after two hours; the CLI refreshes them while the refresh
 credentials remain valid. If refresh fails, log in again.
 
-With no interactive prompt, a bare `bb auth login` starts OAuth directly.
-If `BB_API_TOKEN` is set, even to an empty string, login selects API-token auth.
+Outside an interactive terminal (pipes, CI, agents, `--no-input`), a bare
+`bb auth login` fails with error `1001` instead of opening a browser: set
+`BB_USERNAME` and `BB_API_TOKEN`, or run it yourself in a terminal. If
+`BB_API_TOKEN` is set, even to an empty string, login selects API-token auth.
 Unset it to choose OAuth.
 
 <Aside type="caution">

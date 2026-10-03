@@ -37,6 +37,12 @@ The table shows name, size in bytes, download count, uploader, and upload date. 
 bb repo downloads upload <files...>
 ```
 
+#### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 Uploads one or more local files in a single request. Each artifact is named after the file's basename, and an existing artifact with the same name is replaced.
 
 ```bash
@@ -57,5 +63,6 @@ bb repo downloads delete <filename> --yes
 | Option      | Description                                                                 |
 | ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 `--json` emits `{ success, workspace, repoSlug, filename }`.

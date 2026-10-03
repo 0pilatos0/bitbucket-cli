@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerPrReviewersCommands(
   parent: Command,
@@ -33,6 +34,7 @@ export function registerPrReviewersCommands(
     .description(
       'Add a reviewer to a pull request (user is a nickname, display name, email, @me, account ID or {uuid})'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -58,6 +60,7 @@ export function registerPrReviewersCommands(
     .description(
       'Remove a reviewer from a pull request (user is a nickname, display name, email, @me, account ID or {uuid})'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

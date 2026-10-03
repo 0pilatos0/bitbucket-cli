@@ -1,6 +1,9 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
-import { withCompletionChoices } from '../../core/command-options.js';
+import {
+  withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
+} from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { COMMIT_STATUS_STATES } from './shared.js';
 
@@ -53,6 +56,7 @@ export function registerStatusCommands(
     .option('--name <name>', 'Build identifier, e.g. BB-DEPLOY-1')
     .option('--description <description>', 'Short build description')
     .option('--refname <refname>', 'Ref the build ran on, e.g. a branch name')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

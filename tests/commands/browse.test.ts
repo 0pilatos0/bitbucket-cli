@@ -2,7 +2,7 @@
  * BrowseCommand tests
  */
 
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { BrowseCommand } from '../../src/commands/browse.command.js';
 import { UrlBuilderService } from '../../src/services/url-builder.service.js';
 import {
@@ -44,8 +44,16 @@ function lastJsonPayload(logs: string[]): unknown {
   return JSON.parse(log.substring('json:'.length));
 }
 
+function setStdoutTTY(value: boolean | undefined): void {
+  Object.defineProperty(process.stdout, 'isTTY', {
+    value,
+    configurable: true,
+  });
+}
+
 describe('BrowseCommand', () => {
   let openCalls: string[];
+  const originalIsTTY = process.stdout.isTTY;
 
   beforeEach(() => {
     openCalls = [];
@@ -54,6 +62,11 @@ describe('BrowseCommand', () => {
         openCalls.push(url);
       },
     }));
+    setStdoutTTY(true);
+  });
+
+  afterEach(() => {
+    setStdoutTTY(originalIsTTY);
   });
 
   describe('repo home', () => {
@@ -312,6 +325,17 @@ describe('BrowseCommand', () => {
       expect(lastJsonPayload(output.logs)).toEqual({
         url: 'https://bitbucket.org/acme/widgets/pull-requests/7',
       });
+    });
+
+    it('prints the URL instead of opening a browser when stdout is not a terminal', async () => {
+      setStdoutTTY(undefined);
+      const { command, output } = buildCommand();
+      const result = await command.execute({ pr: '7' }, { globalOptions: {} });
+      expect(result.opened).toBe(false);
+      expect(openCalls).toEqual([]);
+      expect(output.logs).toEqual([
+        'text:https://bitbucket.org/acme/widgets/pull-requests/7',
+      ]);
     });
 
     it('opens the browser by default', async () => {

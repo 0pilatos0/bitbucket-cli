@@ -76,6 +76,11 @@ export interface ICredentialStore {
   isOAuthTokenExpired(): Promise<boolean>;
 }
 
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 /**
  * OS keychain access, one secret string per account name.
  */
@@ -88,11 +93,6 @@ export interface ISecretStorage {
 /**
  * Git service interface
  */
-export interface GitRemote {
-  name: string;
-  url: string;
-}
-
 export interface IGitService {
   isRepository(): Promise<boolean>;
   clone(url: string, destination?: string): Promise<void>;
@@ -105,7 +105,7 @@ export interface IGitService {
   getRemotes(): Promise<GitRemote[]>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
-  getRemoteUrl(remote?: string): Promise<string>;
+  resolveSshHostname(host: string): Promise<string | null>;
 }
 
 /**

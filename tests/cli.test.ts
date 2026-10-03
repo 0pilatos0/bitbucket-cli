@@ -98,6 +98,21 @@ describe('createContext prompt gating', () => {
     useFakePrompt(available);
     expect(createContext(fakeProgram(opts)).prompt).toBeUndefined();
   });
+
+  it('stays interactive under --json so a person can finish browser login', () => {
+    useFakePrompt(true);
+    expect(
+      createContext(fakeProgram({ input: true, json: true })).interactive
+    ).toBe(true);
+  });
+
+  it.each([
+    ['the terminal is not interactive', false, { input: true }],
+    ['--no-input is passed', true, { input: false }],
+  ])('is not interactive when %s', (_label, available, opts) => {
+    useFakePrompt(available);
+    expect(createContext(fakeProgram(opts)).interactive).toBeUndefined();
+  });
 });
 
 describe('withGlobalOptions', () => {
@@ -944,10 +959,8 @@ describe('CLI leaf command options', () => {
     expect(required(requireCommand('pr', 'checkout'))).toEqual(['id']);
     expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
     expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
-    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
-      'id',
-      'message',
-    ]);
+    // <message> is optional so -F/--body-file can supply the text instead.
+    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual(['id']);
     expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
       'id',
       'user',
