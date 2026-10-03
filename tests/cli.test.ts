@@ -672,6 +672,7 @@ describe('CLI command registration', () => {
       'run',
       'stop',
       'view',
+      'watch',
     ]);
   });
 

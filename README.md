@@ -38,7 +38,7 @@
 ## Why `bb`
 
 - **The whole pull request loop**: create, review, comment, resolve threads, approve and merge without leaving the terminal
-- **CI included**: trigger pipelines, follow their logs, inspect deployments and set build statuses
+- **CI included**: trigger pipelines, wait for them to finish, follow their logs, inspect deployments and set build statuses
 - **Repository admin**: webhooks, branch restrictions, default reviewers, downloads, and your SSH and GPG keys
 - **Built for scripts and AI agents**: `--json` on every command, field projection, and a built-in `--jq` (no `jq` binary needed)
 - **Zero setup per repo**: workspace and repository are picked up from your git remote
@@ -98,7 +98,8 @@ bb pr checkout 46                      # review it locally
 bb pr approve 46
 bb pr merge 47 --strategy squash --close-source-branch
 bb pipeline run --branch main
-bb pipeline logs 313
+bb pipeline watch                      # wait for this branch's latest run
+bb pipeline logs 313 --follow
 bb repo cat package.json --ref main    # read a file without cloning
 bb browse 42                           # open PR #42 in your browser
 bb api /user                           # any Bitbucket API endpoint
@@ -112,7 +113,7 @@ bb api /user                           # any Bitbucket API endpoint
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | [`pr`](https://bitbucket-cli.paulvanderlei.com/commands/pr/)                                                                                                                                                                                                                             | Pull requests: create, edit, review, comments, reviewers, checks, diff, merge |
 | [`repo`](https://bitbucket-cli.paulvanderlei.com/commands/repo/)                                                                                                                                                                                                                         | Clone, create, list, delete; read files and folders; downloads                |
-| [`pipeline`](https://bitbucket-cli.paulvanderlei.com/commands/pipeline/)                                                                                                                                                                                                                 | List, run, stop and view logs of Bitbucket Pipelines                          |
+| [`pipeline`](https://bitbucket-cli.paulvanderlei.com/commands/pipeline/)                                                                                                                                                                                                                 | List, run, stop, watch and follow logs of Bitbucket Pipelines                 |
 | [`deployment`](https://bitbucket-cli.paulvanderlei.com/commands/deployment/)                                                                                                                                                                                                             | Deployments and environments                                                  |
 | [`commit`](https://bitbucket-cli.paulvanderlei.com/commands/commit/)                                                                                                                                                                                                                     | List and inspect commits                                                      |
 | [`status`](https://bitbucket-cli.paulvanderlei.com/commands/status/)                                                                                                                                                                                                                     | Read and set build statuses on a commit                                       |
@@ -143,6 +144,9 @@ bb pr list --json --jq '.pullRequests[] | select(.author.display_name == "Ada Lo
 
 # Capture a value
 build=$(bb pipeline run --branch main --json --jq '.pipeline.build_number')
+
+# Block until it finishes; exits non-zero unless it passes
+bb pipeline watch "$build"
 ```
 
 Command prompts are disabled when stdin or stdout is not a terminal, with `--json`, or with `--no-input`. The completion installer has its own interactive prompts. See [JSON Output](https://bitbucket-cli.paulvanderlei.com/reference/json-output/), the [Scripting guide](https://bitbucket-cli.paulvanderlei.com/guides/scripting/) and [CI/CD](https://bitbucket-cli.paulvanderlei.com/guides/cicd/).

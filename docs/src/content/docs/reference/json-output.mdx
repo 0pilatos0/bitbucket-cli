@@ -294,7 +294,8 @@ Returns an envelope with metadata, a `count`, and a named array:
 | `webhook list`            | `webhooks`           |
 
 Three commands return collections without going through the shared list
-plumbing. They are not paginated and have no `--limit`/`--all`:
+plumbing. They have no `--limit`/`--all` (`pr checks` always reads every
+page):
 
 | Command                       | Shape                                                                       |
 | ----------------------------- | --------------------------------------------------------------------------- |
@@ -403,7 +404,7 @@ envelope. Read the resource from the named key, not from the root:
 | `webhook view`, `webhook create` | `{ workspace, repoSlug, webhook }` (no `repoSlug` with `--scope workspace`) |
 | `workspace view`                 | `{ workspace }` (the workspace object)                                      |
 | `status set`                     | `{ workspace, repoSlug, commit, status }`                                   |
-| `pipeline view`                  | `{ workspace, repoSlug, pipeline, steps }`                                  |
+| `pipeline view`, `pipeline watch` | `{ workspace, repoSlug, pipeline, steps }`                                 |
 | `pipeline run`                   | `{ workspace, repoSlug, pipeline }`                                         |
 | `pipeline logs --step <uuid>`    | `{ workspace, repoSlug, pipelineId, stepUuid, log }`                        |
 | `pipeline logs` (no `--step`)    | `{ workspace, repoSlug, pipelineId, count, steps }`                         |
@@ -682,6 +683,7 @@ present, the shape is:
 | `8002` JSON_FORMAT_INVALID         | _(none)_                                                                                                                                                                                                                                                                                    |
 | `9001` COMPLETION_INSTALL_FAILED   | _(none)_                                                                                                                                                                                                                                                                                    |
 | `9002` COMPLETION_UNINSTALL_FAILED | _(none)_                                                                                                                                                                                                                                                                                    |
+| `10001` CI_FAILED | `pipeline`, `status` (`pipeline watch`) or `pullRequestId` (`pr checks --watch`) |
 | `9999` UNKNOWN                     | _(none)_                                                                                                                                                                                                                                                                                    |
 
 In automation, always check the process exit code before parsing stdout JSON.

@@ -231,6 +231,7 @@ export const ServiceTokens = {
   RunPipelineCommand: 'RunPipelineCommand',
   StopPipelineCommand: 'StopPipelineCommand',
   LogsPipelineCommand: 'LogsPipelineCommand',
+  WatchPipelineCommand: 'WatchPipelineCommand',
 
   // Commands - Commit
   ListCommitsCommand: 'ListCommitsCommand',

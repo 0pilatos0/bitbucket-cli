@@ -2,6 +2,7 @@ import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import { withCompletionChoices } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DEFAULT_POLL_INTERVAL_SECONDS } from '../../services/polling.js';
 import {
   DEFAULT_PIPELINE_SORT,
   PIPELINE_SORTS,
@@ -63,14 +64,15 @@ export function registerPipelineCommands(
     });
 
   pipelineCmd
-    .command('view <id>')
+    .command('view [id]')
     .description(
-      'View pipeline details and step summary (id: build number or UUID)'
+      'View pipeline details and step summary (id: build number or UUID; default: latest run on this branch)'
     )
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pipeline view',
           'bb pipeline view 42',
           'bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}',
           "bb pipeline view 42 --json --jq '.pipeline.state'",
@@ -139,11 +141,51 @@ export function registerPipelineCommands(
     });
 
   pipelineCmd
-    .command('logs <id>')
-    .description('Print the log of a pipeline step (id: build number or UUID)')
+    .command('watch [id]')
+    .description(
+      'Wait for a pipeline to finish; exits non-zero unless it passes (default: latest run on this branch)'
+    )
+    .option(
+      '--interval <seconds>',
+      'Seconds between status checks',
+      DEFAULT_POLL_INTERVAL_SECONDS
+    )
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb pipeline watch',
+          'bb pipeline watch 42',
+          'bb pipeline run && bb pipeline watch',
+          "bb pipeline watch 42 --json --jq '.pipeline.state.result.name'",
+        ],
+        defaults: { interval: DEFAULT_POLL_INTERVAL_SECONDS },
+      })
+    )
+    .action(async (id, options) => {
+      await registrar.runWithGlobalOptions(ServiceTokens.WatchPipelineCommand, {
+        id,
+        ...options,
+      });
+    });
+
+  pipelineCmd
+    .command('logs [id]')
+    .description(
+      'Print the log of a pipeline step (id: build number or UUID; default: latest run on this branch)'
+    )
     .option(
       '-s, --step <uuid-or-index>',
       'Step to fetch (UUID or 1-based index; default: the only step)'
+    )
+    .option(
+      '-f, --follow',
+      'Stream new log output until the run finishes (all steps unless --step)'
+    )
+    .option(
+      '--interval <seconds>',
+      'Seconds between log checks with --follow',
+      DEFAULT_POLL_INTERVAL_SECONDS
     )
     .addHelpText(
       'after',
@@ -152,8 +194,10 @@ export function registerPipelineCommands(
           'bb pipeline logs 42',
           'bb pipeline logs 42 --step 2',
           'bb pipeline logs 42 --step {step-uuid}',
+          'bb pipeline logs --follow',
           "bb pipeline logs 42 --json --jq '.log'",
         ],
+        defaults: { interval: DEFAULT_POLL_INTERVAL_SECONDS },
       })
     )
     .action(async (id, options) => {

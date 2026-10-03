@@ -391,6 +391,7 @@ describe('ViewPipelineCommand', () => {
     const command = new ViewPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne, mockStepTwo] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -417,6 +418,7 @@ describe('ViewPipelineCommand', () => {
     const command = new ViewPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -438,6 +440,7 @@ describe('ViewPipelineCommand', () => {
     const command = new ViewPipelineCommand(
       createMockPipelinesApi({ pipelineNotFound: true }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -451,6 +454,7 @@ describe('ViewPipelineCommand', () => {
     const command = new ViewPipelineCommand(
       createMockPipelinesApi({ steps: makeSteps(60) }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -667,6 +671,7 @@ describe('LogsPipelineCommand', () => {
         },
       }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -691,6 +696,7 @@ describe('LogsPipelineCommand', () => {
         onLog: (request) => (captured = request),
       }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -708,6 +714,7 @@ describe('LogsPipelineCommand', () => {
         onLog: (request) => (captured = request),
       }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -724,6 +731,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne, mockStepTwo] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -737,6 +745,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne, mockStepTwo] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -756,6 +765,7 @@ describe('LogsPipelineCommand', () => {
         },
       }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -779,6 +789,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne, mockStepTwo] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -800,6 +811,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: [mockStepOne], log: 'the log' }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -823,6 +835,7 @@ describe('LogsPipelineCommand', () => {
         onLog: (request) => (captured = request),
       }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -836,6 +849,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: makeSteps(60) }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 
@@ -851,6 +865,7 @@ describe('LogsPipelineCommand', () => {
     const command = new LogsPipelineCommand(
       createMockPipelinesApi({ steps: [] }),
       repoContextService(),
+      createMockGitService(),
       output
     );
 

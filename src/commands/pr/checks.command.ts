@@ -9,9 +9,25 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { CommitStatusesApi, Commitstatus } from '../../generated/api.js';
-import type { GlobalOptions } from '../../types/config.js';
+import { collectPages } from '../../services/pagination.js';
+import {
+  DEFAULT_POLL_INTERVAL_SECONDS,
+  realSleep,
+  type Sleep,
+} from '../../services/polling.js';
+import type { GlobalOptions, RepoContext } from '../../types/config.js';
+import { BBError, ErrorCode } from '../../types/errors.js';
 
-export interface ChecksPROptions extends GlobalOptions {}
+/**
+ * Right after a push Bitbucket may not list any check yet; give CI this many
+ * extra polls to report one before the watch gives up.
+ */
+const NO_CHECKS_GRACE_POLLS = 3;
+
+export interface ChecksPROptions extends GlobalOptions {
+  watch?: boolean;
+  interval?: string;
+}
 
 export class ChecksPRCommand extends BaseCommand<
   { id: string } & ChecksPROptions,
@@ -24,7 +40,8 @@ export class ChecksPRCommand extends BaseCommand<
   constructor(
     private readonly commitStatusesApi: CommitStatusesApi,
     private readonly contextService: IContextService,
-    output: IOutputService
+    output: IOutputService,
+    private readonly sleep: Sleep = realSleep
   ) {
     super(output);
   }
@@ -39,18 +56,17 @@ export class ChecksPRCommand extends BaseCommand<
     );
 
     const prId = this.parsePositiveInt(options.id, 'id');
-
-    const response =
-      await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(
-        {
-          workspace: repoContext.workspace,
-          repoSlug: repoContext.repoSlug,
-          pullRequestId: prId,
-        }
-      );
-
-    const data = response.data;
-    const statuses = data?.values ? Array.from(data.values) : [];
+    const statuses = options.watch
+      ? await this.waitForStatuses(
+          repoContext,
+          prId,
+          this.parsePositiveInt(
+            options.interval ?? DEFAULT_POLL_INTERVAL_SECONDS,
+            'interval'
+          ) * 1000,
+          !context.globalOptions.json
+        )
+      : await this.fetchStatuses(repoContext, prId);
     const summary = this.getSummary(statuses);
 
     if (context.globalOptions.json) {
@@ -61,16 +77,110 @@ export class ChecksPRCommand extends BaseCommand<
         summary,
         statuses: statuses.map((status) => this.formatStatusForJson(status)),
       });
-      return;
-    }
-
-    if (statuses.length === 0) {
+    } else if (statuses.length === 0) {
       this.output.info('No CI/CD checks found for this pull request');
-      return;
+    } else {
+      this.renderHeader(prId, statuses.length);
+      this.renderStatuses(statuses, summary, context.globalOptions);
     }
 
-    this.renderHeader(prId, statuses.length);
-    this.renderStatuses(statuses, summary, context.globalOptions);
+    if (options.watch) {
+      this.failIfUnsuccessful(prId, statuses);
+    }
+  }
+
+  /** Every status page: a check on page 2 still decides whether CI is done. */
+  private async fetchStatuses(
+    repoContext: RepoContext,
+    prId: number
+  ): Promise<Commitstatus[]> {
+    return collectPages<Commitstatus>({
+      limit: Number.POSITIVE_INFINITY,
+      fetchPage: async (page, pagelen) => {
+        const response =
+          await this.commitStatusesApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdStatusesGet(
+            {
+              workspace: repoContext.workspace,
+              repoSlug: repoContext.repoSlug,
+              pullRequestId: prId,
+            },
+            { params: { page, pagelen } }
+          );
+        return response.data;
+      },
+    });
+  }
+
+  /**
+   * Poll until at least one check exists and none is `INPROGRESS`, printing
+   * one line per check whose state changes after the first poll.
+   */
+  private async waitForStatuses(
+    repoContext: RepoContext,
+    prId: number,
+    intervalMs: number,
+    showProgress: boolean
+  ): Promise<Commitstatus[]> {
+    const seen = new Map<string, string | undefined>();
+    for (let poll = 0; ; poll++) {
+      if (poll > 0) {
+        await this.sleep(intervalMs);
+      }
+      const statuses = await this.fetchStatuses(repoContext, prId);
+      const pending = this.getSummary(statuses).pending;
+
+      if (showProgress) {
+        if (poll === 0 && statuses.length === 0) {
+          this.output.text(
+            `Waiting for checks to be reported on pull request #${prId}...`
+          );
+        }
+        if (poll === 0 && pending > 0) {
+          this.output.text(
+            `Waiting for ${pending} of ${statuses.length} check${statuses.length === 1 ? '' : 's'} on pull request #${prId}...`
+          );
+        }
+        for (const status of statuses) {
+          const key = status.key ?? status.uuid ?? status.name ?? '';
+          if (poll > 0 && seen.get(key) !== status.state) {
+            this.output.text(
+              `  ${this.getStateIcon(status.state)} ${status.name ?? status.key ?? 'Unknown'} ${this.getStateLabel(status.state)}`
+            );
+          }
+          seen.set(key, status.state);
+        }
+      }
+
+      if (statuses.length === 0 && poll < NO_CHECKS_GRACE_POLLS) {
+        continue;
+      }
+      if (pending === 0) {
+        return statuses;
+      }
+    }
+  }
+
+  private failIfUnsuccessful(prId: number, statuses: Commitstatus[]): void {
+    if (statuses.length === 0) {
+      throw new BBError({
+        code: ErrorCode.CI_FAILED,
+        message: `No checks were reported on pull request #${prId}.`,
+        context: { pullRequestId: prId },
+      });
+    }
+    const unsuccessful = statuses.filter((status) =>
+      ['FAILED', 'STOPPED'].includes(status.state?.toUpperCase() ?? '')
+    );
+    if (unsuccessful.length === 0) {
+      return;
+    }
+    throw new BBError({
+      code: ErrorCode.CI_FAILED,
+      message: `${unsuccessful.length} check${unsuccessful.length === 1 ? '' : 's'} did not pass on pull request #${prId}: ${unsuccessful
+        .map((status) => status.name ?? status.key ?? 'Unknown')
+        .join(', ')}.`,
+      context: { pullRequestId: prId },
+    });
   }
 
   private formatStatusForJson(status: Commitstatus): Record<string, unknown> {

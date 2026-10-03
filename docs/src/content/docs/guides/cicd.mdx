@@ -284,7 +284,7 @@ bb pipeline run -w myworkspace -r myrepo \
   --pipeline deploy-prod --var ENV=prod --var DRY_RUN=false
 ```
 
-`bb pipeline list --status FAILED`, `bb pipeline view <id>`, `bb pipeline logs <id> --step <n>`, and `bb pipeline stop <id>` cover the rest. See [bb pipeline](/commands/pipeline/).
+`bb pipeline watch` waits for the latest run on the current branch and exits non-zero unless it passes; `bb pipeline logs --follow` streams its logs. `bb pipeline list --status FAILED`, `bb pipeline view <id>`, `bb pipeline logs <id> --step <n>`, and `bb pipeline stop <id>` cover the rest. See [bb pipeline](/commands/pipeline/).
 
 ### Create a PR from a branch
 

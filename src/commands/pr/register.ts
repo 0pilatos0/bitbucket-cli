@@ -6,6 +6,7 @@ import {
 } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
+import { DEFAULT_POLL_INTERVAL_SECONDS } from '../../services/polling.js';
 import { PR_STATES } from '../../types/pr.js';
 import { COLOR_WHENS } from './diff.command.js';
 import { registerPrCommentsCommands } from './comments.register.js';
@@ -190,10 +191,25 @@ export function registerPrCommands(
   prCmd
     .command('checks <id>')
     .description('Show CI/CD checks and build status for a pull request')
+    .option(
+      '--watch',
+      'Wait until no check is in progress; exits non-zero if any failed or stopped'
+    )
+    .option(
+      '--interval <seconds>',
+      'Seconds between status checks with --watch',
+      DEFAULT_POLL_INTERVAL_SECONDS
+    )
     .addHelpText(
       'after',
       buildHelpText({
-        examples: ['bb pr checks 42', 'bb pr checks 42 --json'],
+        examples: [
+          'bb pr checks 42',
+          'bb pr checks 42 --watch',
+          'bb pr checks 42 --watch && bb pr merge 42',
+          'bb pr checks 42 --json',
+        ],
+        defaults: { interval: DEFAULT_POLL_INTERVAL_SECONDS },
       })
     )
     .action(async (id, options) => {

@@ -20,7 +20,7 @@ Each required key must have exactly one status with `state: SUCCESSFUL`. Every r
 
 Set `REQUIRED_CHECK_KEYS` to the exact keys your CI publishes, separated by spaces. These are status keys, not display names. Keep keys free of whitespace for this script.
 
-`bb pr checks` returns only the first page. Its summary is useful for inspection, but cannot establish that all checks have passed.
+`bb pr checks 42 --watch` waits for running checks and exits non-zero when one failed or stopped, but it does not know which keys you require, so this recipe reads the statuses itself.
 
 ### jq filter for all-green
 
