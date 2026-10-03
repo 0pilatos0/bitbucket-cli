@@ -239,7 +239,9 @@ describe('shellAliasArgv', () => {
       expect(echo.exitCode).toBe(0);
       expect(run('Get-Item /does/not/exist', []).exitCode).toBe(1);
       expect(run('exit 4', []).exitCode).toBe(4);
-    }
+    },
+    // Three cold pwsh starts; one alone can take seconds on a CI runner.
+    30_000
   );
 });
 
