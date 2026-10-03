@@ -20,6 +20,8 @@ import {
   getStepDurationSeconds,
 } from '../../src/commands/pipeline/shared.js';
 import type { Pipeline, PipelinesApi } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 const mockPipeline: Pipeline = {
   type: 'pipeline',
@@ -76,33 +78,6 @@ const mockStepTwo = {
   duration_in_seconds: 50,
 };
 
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  const params = (
-    axiosOptions as { params?: { page?: number; pagelen?: number } }
-  )?.params;
-  return { page: params?.page ?? 1, pagelen: params?.pagelen ?? 25 };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
 function createMockPipelinesApi(
   options: {
     pipelines?: Pipeline[];
@@ -119,7 +94,7 @@ function createMockPipelinesApi(
   const pipelines = options.pipelines ?? [mockPipeline];
   const steps = options.steps ?? [mockStepOne];
 
-  return {
+  return fakeApi<PipelinesApi>({
     getPipelinesForRepository: async (
       request: unknown,
       axiosOptions?: unknown
@@ -205,7 +180,7 @@ function createMockPipelinesApi(
       options.onStop?.(request);
       return { data: undefined };
     },
-  } as unknown as PipelinesApi;
+  });
 }
 
 function repoContextService() {

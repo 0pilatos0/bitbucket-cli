@@ -114,7 +114,7 @@ describe('GetConfigCommand', () => {
     ).rejects.toBeDefined();
 
     expect(output.logs).toContain(
-      'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers","context":{"key":"invalidKey"}}'
+      'jsonError:{"name":"BBError","code":4003,"message":"Unknown config key \'invalidKey\'. Valid keys: username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol","context":{"key":"invalidKey"}}'
     );
   });
 

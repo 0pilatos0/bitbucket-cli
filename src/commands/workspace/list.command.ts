@@ -62,7 +62,7 @@ export class ListWorkspacesCommand extends BaseCommand<
     );
 
     if (!context.globalOptions.json) {
-      this.output.text(
+      this.output.stderr(
         this.output.dim(
           'Use a slug with -w <slug> or set a default: bb config set defaultWorkspace <slug>'
         )

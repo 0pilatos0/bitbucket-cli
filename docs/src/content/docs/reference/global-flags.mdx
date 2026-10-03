@@ -13,9 +13,11 @@ prints. `--limit` and `--all` look global but are not; see
 | ----------------------------- | ------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--json [fields]`             | optional CSV | _off_                     | Emit machine-readable JSON. Pass a comma-separated field list to project the output.                                                                  |
 | `--jq <expression>`           | string       | _off_                     | Run the JSON output through an in-process `jq` filter. Requires `--json` everywhere except `bb api`.                                                  |
+| `--raw-output`                | boolean      | _off_                     | Print `--jq` string results without JSON quotes, like `jq -r`. Requires `--jq`.                                                                       |
+| `--lean`                      | boolean      | _off_                     | Trim every `links` map in JSON output to its web URL (`links.html`). Requires `--json` everywhere except `bb api`.                                    |
 | `--no-color`                  | boolean      | colors on                 | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`.                                                                                        |
 | `--no-unicode`                | boolean      | Unicode on                | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`.                                                         |
-| `--no-truncate`               | boolean      | _off_                     | Show full values in table output without truncating long cells.                                                                                       |
+| `--no-truncate`               | boolean      | _off_                     | Print every table cell in full instead of fitting the table to the terminal width.                                                                    |
 | `--no-input`                  | boolean      | _off_                     | Never prompt, even in an interactive terminal (except `bb completion install`, see [`--no-input`](#--no-input)). Also honoured: `BB_PROMPT_DISABLED`. |
 | `--locale <locale>`           | BCP-47       | system                    | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`.                     |
 | `-w, --workspace <workspace>` | string       | git remote / env / config | Override the workspace.                                                                                                                               |
@@ -45,7 +47,8 @@ bb pr list --json id,title,state
 ```
 
 JSON mode also disables spinners, colors, and progress notes so the output is
-safe to pipe.
+safe to pipe. JSON is pretty-printed on a terminal and compact (one line) when
+stdout is a pipe or a file.
 
 `--json` takes an optional value, so a bare `--json` swallows the next plain
 token. Put it after the subcommand:
@@ -88,20 +91,44 @@ with `.[]`, not `.pullRequests[]`:
 bb pr list --json id,title --jq '.[] | .title'
 ```
 
+### `--raw-output`
+
+Print string results from `--jq` as plain text instead of JSON strings, like
+`jq -r`. Requires `--jq`:
+
+```bash
+bb pr list --json --jq '.pullRequests[].title' --raw-output
+```
+
+### `--lean`
+
+Trim Bitbucket's `links` maps, which make up most of a list payload, down to
+the web URL (`links.html`). Requires `--json`, except in `bb api`:
+
+```bash
+bb pr list --json --lean
+```
+
+See [Lean output](/reference/json-output/#lean-output---lean).
+
 ### `--no-truncate`
 
-Show table cells in full. By default, long values (pull request descriptions,
-comment bodies, branch names) are truncated to keep rows on one line. `--no-truncate`
-disables that for the current invocation:
+On a terminal, tables are fitted to the window width. Long titles,
+descriptions, messages and comment bodies shrink and end in `...`; ids,
+hashes, UUIDs and URLs keep their full width. A column never shrinks below 10
+characters, so on a very narrow terminal rows wrap instead. `--no-truncate`
+turns the fitting off and prints every cell in full:
 
 ```bash
 bb pr comments list 42 --no-truncate
 ```
 
-The truncation suffix is the three ASCII characters `...` and it counts against
-the column budget, so a 50-character cap yields 47 characters plus `...`.
-`--no-truncate` affects table output only; JSON payloads are never truncated,
-so passing it alongside `--json` does nothing.
+When stdout is not a terminal (piped or redirected), tables are printed as
+tab-separated values: one line per row, no header, no padding and nothing cut
+off, so `bb pr list | cut -f2` gives the full titles. Date columns are relative
+on a terminal (`3 hours ago`) and ISO 8601 when piped. The "Showing N results"
+hint goes to stderr. JSON is never truncated, so `--no-truncate` does nothing
+with `--json`.
 
 ### `--no-color` and `--no-unicode`
 

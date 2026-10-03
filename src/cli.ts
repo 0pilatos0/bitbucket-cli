@@ -7,9 +7,10 @@
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
 import tabtab from 'tabtab/lib/index.js';
+import systemShell from 'tabtab/lib/utils/systemShell.js';
 import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
-import { generateCompletions } from './completion.js';
+import { formatCompletions, generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
@@ -112,7 +113,11 @@ const locale = resolveLocale({
   env: process.env,
 });
 
-const container = bootstrap({ noColor, noUnicode, locale });
+// Table fitting happens inside OutputService, which is built before Commander
+// parses argv, so read the flag the same way as --no-color/--no-unicode.
+const noTruncate = process.argv.includes('--no-truncate');
+
+const container = bootstrap({ noColor, noUnicode, noTruncate, locale });
 
 // Exact path of the command currently executing (e.g. `pr comments add`),
 // derived from Commander's command tree by the root `preAction` hook below and
@@ -153,16 +158,23 @@ export function createContext(
 
   // `--jq` normally requires `--json` to flip list/table commands out of human
   // mode. Commands whose output is already JSON (e.g. `bb api`) opt out via
-  // `allowJqWithoutJson`, so `--jq` works standalone there.
-  if (
-    !validationError &&
-    jqOpt !== undefined &&
-    !json &&
-    !options.allowJqWithoutJson
-  ) {
+  // `outputIsJson`, so `--jq` works standalone there.
+  const jsonOnlyFlags: [string, boolean][] = [
+    ['--jq', jqOpt !== undefined],
+    ['--lean', opts.lean === true],
+  ];
+  const flagNeedingJson = jsonOnlyFlags.find(([, isSet]) => isSet)?.[0];
+  if (!validationError && !json && !options.outputIsJson && flagNeedingJson) {
     validationError = new BBError({
       code: ErrorCode.JSON_FORMAT_INVALID,
-      message: '--jq requires --json',
+      message: `${flagNeedingJson} requires --json`,
+    });
+  }
+
+  if (!validationError && opts.rawOutput && jqOpt === undefined) {
+    validationError = new BBError({
+      code: ErrorCode.JSON_FORMAT_INVALID,
+      message: '--raw-output requires --jq',
     });
   }
 
@@ -171,6 +183,8 @@ export function createContext(
       json: json || undefined,
       jsonFields,
       jq: jqOpt,
+      rawOutput: opts.rawOutput === true || undefined,
+      lean: opts.lean === true || undefined,
       noColor: opts.color === false,
       noUnicode: opts.unicode === false || noUnicode,
       noTruncate: opts.truncate === false,
@@ -290,6 +304,14 @@ cli
   .option(
     '--jq <expression>',
     'Filter the JSON output through a jq expression — runs in-process via embedded jq, requires --json (e.g. \'.pullRequests[] | select(.state == "OPEN") | .title\')'
+  )
+  .option(
+    '--raw-output',
+    'With --jq, print string results without JSON quotes (like jq -r)'
+  )
+  .option(
+    '--lean',
+    'Trim JSON output: keep only the web URL (links.html) from each Bitbucket links map; requires --json'
   )
   .option('--no-color', 'Disable color output')
   .option(
@@ -463,7 +485,12 @@ cli.allowExcessArguments();
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
-    tabtab.log(generateCompletions(cli, env));
+    // The scripts from `bb completion <shell>` name their shell; older
+    // installed scripts don't, so fall back to $SHELL like tabtab does.
+    const shell = process.env.BB_COMPLETION_SHELL ?? systemShell();
+    process.stdout.write(
+      formatCompletions(generateCompletions(cli, env), shell, env.last)
+    );
     process.exit(0);
   }
 }

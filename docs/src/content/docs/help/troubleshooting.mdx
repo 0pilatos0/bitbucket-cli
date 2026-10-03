@@ -133,6 +133,9 @@ lsof -i :19872   # macOS/Linux
 ```
 
 Close the other `bb auth login` (or whatever holds the port) and retry.
+There is no fallback port: Bitbucket only accepts a `redirect_uri` that matches
+the OAuth consumer's registered callback URL, which pins port 19872. If you
+can't free the port, use an API token instead.
 
 ---
 
@@ -319,11 +322,13 @@ If the limit is sustained:
 
 ### Clone fails
 
-`bb repo clone` shells out to `git clone git@bitbucket.org:<workspace>/<repo>.git`,
-so the error text is git's own, verbatim:
+`bb repo clone` runs `git clone git@bitbucket.org:<workspace>/<repo>.git` (or
+the HTTPS URL with `--protocol https`) and shows git's own output as it runs:
 
 ```text
-✗ git@bitbucket.org: Permission denied (publickey).
+git@bitbucket.org: Permission denied (publickey).
+fatal: Could not read from remote repository.
+✗ git clone failed with exit code 128; see git's output above
 ```
 
 That is an SSH problem, not a `bb auth` problem. The CLI does not pass its
@@ -331,7 +336,8 @@ token to git.
 
 ```bash
 ssh -T git@bitbucket.org                                  # verify your key
-git clone https://bitbucket.org/myworkspace/myrepo.git    # HTTPS fallback
+bb repo clone myworkspace/myrepo --protocol https         # HTTPS instead
+bb config set gitProtocol https                           # make HTTPS the default
 ```
 
 ---

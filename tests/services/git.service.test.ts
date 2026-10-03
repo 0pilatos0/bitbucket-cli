@@ -298,7 +298,79 @@ describe('GitService', () => {
     it('should throw error when no remote exists', async () => {
       await git(['init'], testDir, env);
 
-      await expect(gitService.fetch('origin')).rejects.toBeDefined();
+      await expect(gitService.fetch('origin')).rejects.toMatchObject({
+        code: ErrorCode.GIT_COMMAND_FAILED,
+        message: expect.stringContaining('git fetch failed with exit code'),
+      });
+    });
+
+    it('should fetch a refspec from a URL into FETCH_HEAD', async () => {
+      const source = join(testDir, 'source');
+      await mkdir(source);
+      await initRepoWithCommit(source);
+      const sha = await gitOut(['rev-parse', 'HEAD'], source, env);
+      const local = join(testDir, 'local');
+      await mkdir(local);
+      await git(['init'], local, env);
+
+      await gitService.withCwd(local).fetch(source, ['refs/heads/main']);
+
+      expect(await gitOut(['rev-parse', 'FETCH_HEAD'], local, env)).toBe(sha);
+    });
+  });
+
+  describe('fastForward', () => {
+    it('should move the current branch forward', async () => {
+      await initRepoWithCommit(testDir);
+      await git(['checkout', '-b', 'ahead'], testDir, env);
+      await writeFile(join(testDir, 'more.txt'), 'more');
+      await git(['add', '.'], testDir, env);
+      await git(['commit', '-m', 'More'], testDir, env);
+      const ahead = await gitOut(['rev-parse', 'HEAD'], testDir, env);
+      await git(['checkout', 'main'], testDir, env);
+
+      await gitService.fastForward('ahead');
+
+      expect(await gitService.getCurrentCommit()).toBe(ahead);
+    });
+
+    it('should refuse to merge diverged history', async () => {
+      await initRepoWithCommit(testDir);
+      await git(['checkout', '-b', 'other'], testDir, env);
+      await writeFile(join(testDir, 'other.txt'), 'other');
+      await git(['add', '.'], testDir, env);
+      await git(['commit', '-m', 'Other'], testDir, env);
+      await git(['checkout', 'main'], testDir, env);
+      await writeFile(join(testDir, 'main.txt'), 'main');
+      await git(['add', '.'], testDir, env);
+      await git(['commit', '-m', 'Main'], testDir, env);
+
+      await expect(gitService.fastForward('other')).rejects.toMatchObject({
+        code: ErrorCode.GIT_COMMAND_FAILED,
+      });
+    });
+  });
+
+  describe('branchExists', () => {
+    it('should report local branches only', async () => {
+      await initRepoWithCommit(testDir);
+      await git(['branch', 'feature'], testDir, env);
+
+      expect(await gitService.branchExists('feature')).toBe(true);
+      expect(await gitService.branchExists('missing')).toBe(false);
+    });
+  });
+
+  describe('isAncestor', () => {
+    it('should report whether one commit contains another', async () => {
+      await initRepoWithCommit(testDir);
+      await git(['checkout', '-b', 'ahead'], testDir, env);
+      await writeFile(join(testDir, 'more.txt'), 'more');
+      await git(['add', '.'], testDir, env);
+      await git(['commit', '-m', 'More'], testDir, env);
+
+      expect(await gitService.isAncestor('main', 'ahead')).toBe(true);
+      expect(await gitService.isAncestor('ahead', 'main')).toBe(false);
     });
   });
 
@@ -314,6 +386,20 @@ describe('GitService', () => {
       // Verify the clone worked by checking if it's a git repo
       const clonedGitService = new GitService(cloneDir, { env });
       const isRepo = await clonedGitService.isRepository();
+      expect(isRepo).toBe(true);
+    });
+
+    it('should not apply the command timeout to clone', async () => {
+      const bareDir = join(testDir, 'slow.git');
+      await git(['init', '--bare', bareDir], testDir, env);
+
+      const cloneDir = join(testDir, 'slow-clone');
+      await new GitService(testDir, { env, timeoutMs: 1 }).clone(
+        bareDir,
+        cloneDir
+      );
+
+      const isRepo = await new GitService(cloneDir, { env }).isRepository();
       expect(isRepo).toBe(true);
     });
 
