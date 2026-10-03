@@ -12,8 +12,12 @@ import {
   mock,
 } from 'bun:test';
 import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { createHash } from 'node:crypto';
-import { OAuthService } from '../../src/services/oauth.service.js';
+import {
+  OAuthService,
+  callbackRedirectUri,
+} from '../../src/services/oauth.service.js';
 import { createMockConfigService } from '../setup.js';
 import { ErrorCode } from '../../src/types/errors.js';
 
@@ -26,8 +30,9 @@ const originalFetch = globalThis.fetch;
 const openMock = mock(async (_url: string) => undefined);
 mock.module('open', () => ({ default: openMock }));
 
-const CALLBACK_PORT = 19872;
-const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/callback`;
+// Port 0 binds an ephemeral port, so parallel test runs (and a real
+// `bb auth login`) never collide on the default callback port.
+const EPHEMERAL_PORT = 0;
 
 interface FetchResponse {
   ok: boolean;
@@ -74,6 +79,14 @@ async function waitForBrowserOpen(timeoutMs = 2000): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   throw new Error('open() was never called within timeout');
+}
+
+function callbackUrl(authUrl: string): string {
+  const redirectUri = new URL(authUrl).searchParams.get('redirect_uri');
+  if (!redirectUri) {
+    throw new Error('auth URL missing redirect_uri parameter');
+  }
+  return redirectUri;
 }
 
 function extractState(authUrl: string): string {
@@ -123,7 +136,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const token = await service.getValidAccessToken();
 
@@ -137,7 +150,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100, // expired
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -171,7 +184,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 30, // 30 seconds from now (within 60s buffer)
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -201,7 +214,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -242,7 +255,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -268,7 +281,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       // A hostile token endpoint can return any string here — verify it
       // doesn't get persisted into the structured --json error contract.
@@ -299,7 +312,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -329,7 +342,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const longDescription = 'X'.repeat(1000);
       mockFetch([
@@ -364,7 +377,7 @@ describe('OAuthService', () => {
         oauthClientId: 'custom-id',
         oauthClientSecret: 'custom-secret',
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -400,7 +413,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -442,7 +455,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100, // expired
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -479,7 +492,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -526,7 +539,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'rt',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -560,7 +573,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([{ ok: true, status: 200 }]);
 
@@ -580,7 +593,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([{ ok: false, status: 500, text: async () => 'oops' }]);
 
@@ -593,7 +606,7 @@ describe('OAuthService', () => {
 
     it('should throw when no credentials exist', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const result = await outcome(service.revokeToken());
       expect(result.error).toBeDefined();
@@ -606,7 +619,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       globalThis.fetch = (async () => {
         throw new Error('network down');
@@ -618,7 +631,19 @@ describe('OAuthService', () => {
     });
   });
 
+  describe('callbackRedirectUri', () => {
+    it('should default to the callback URL registered on the OAuth consumer', () => {
+      expect(callbackRedirectUri()).toBe('http://localhost:19872/callback');
+    });
+  });
+
   describe('authorize (full OAuth flow)', () => {
+    function createService(
+      configService: ReturnType<typeof createMockConfigService>
+    ): OAuthService {
+      return new OAuthService(configService, EPHEMERAL_PORT);
+    }
+
     function tokenResponse(
       overrides: Partial<{
         access_token: string;
@@ -661,7 +686,7 @@ describe('OAuthService', () => {
 
     it('should complete the authorization flow and store credentials', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       const fetchMock = mockFetch([tokenResponse(), userResponse()]);
 
@@ -678,7 +703,7 @@ describe('OAuthService', () => {
       expect(state).toMatch(/^[0-9a-f]{64}$/);
 
       const callbackResponse = await originalFetch(
-        `${CALLBACK_URL}?code=the-code&state=${state}`
+        `${callbackUrl(authUrl)}?code=the-code&state=${state}`
       );
       expect(callbackResponse.status).toBe(200);
       const body = await callbackResponse.text();
@@ -698,8 +723,10 @@ describe('OAuthService', () => {
       const tokenBody = tokenCall.options.body as string;
       expect(tokenBody).toContain('grant_type=authorization_code');
       expect(tokenBody).toContain('code=the-code');
-      expect(tokenBody).toContain(
-        `redirect_uri=${encodeURIComponent(CALLBACK_URL)}`
+      const redirectUri = callbackUrl(authUrl);
+      expect(redirectUri).toMatch(/^http:\/\/localhost:\d+\/callback$/);
+      expect(new URLSearchParams(tokenBody).get('redirect_uri')).toBe(
+        redirectUri
       );
 
       // Verify user info was fetched with Bearer token
@@ -719,7 +746,7 @@ describe('OAuthService', () => {
 
     it('should persist custom client id and secret when provided', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([tokenResponse(), userResponse()]);
 
@@ -732,22 +759,20 @@ describe('OAuthService', () => {
       expect(authUrl).toContain('client_id=custom-client-id');
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
       await authorizePromise;
 
-      expect(await configService.getValue('oauthClientId')).toBe(
-        'custom-client-id'
-      );
-      expect(await configService.getValue('oauthClientSecret')).toBe(
-        'custom-client-secret'
-      );
+      expect(await configService.getOAuthClient()).toEqual({
+        clientId: 'custom-client-id',
+        clientSecret: 'custom-client-secret',
+      });
     });
 
     it('should use the stored custom client id when no override is given', async () => {
       const configService = createMockConfigService({
         oauthClientId: 'stored-client-id',
       });
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([tokenResponse(), userResponse()]);
 
@@ -756,22 +781,22 @@ describe('OAuthService', () => {
       expect(authUrl).toContain('client_id=stored-client-id');
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
       await authorizePromise;
     });
 
     it('should reject with AUTH_INVALID when the callback returns error=access_denied', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       // No fetch mocks needed — authorize should reject before exchangeCode
       mockFetch([]);
 
       const authorizeOutcome = outcome(service.authorize());
-      await waitForBrowserOpen();
+      const authUrl = await waitForBrowserOpen();
 
       const resp = await originalFetch(
-        `${CALLBACK_URL}?error=access_denied&error_description=User+declined`
+        `${callbackUrl(authUrl)}?error=access_denied&error_description=User+declined`
       );
       expect(resp.status).toBe(200);
       const body = await resp.text();
@@ -788,15 +813,15 @@ describe('OAuthService', () => {
 
     it('should reject with AUTH_INVALID when state does not match', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([]);
 
       const authorizeOutcome = outcome(service.authorize());
-      await waitForBrowserOpen();
+      const authUrl = await waitForBrowserOpen();
 
       const resp = await originalFetch(
-        `${CALLBACK_URL}?code=c&state=wrong-state`
+        `${callbackUrl(authUrl)}?code=c&state=wrong-state`
       );
       expect(resp.status).toBe(400);
 
@@ -809,7 +834,7 @@ describe('OAuthService', () => {
 
     it('should reject when the callback has no code and no error', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([]);
 
@@ -817,7 +842,7 @@ describe('OAuthService', () => {
       const authUrl = await waitForBrowserOpen();
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?state=${state}`);
 
       const result = await authorizeOutcome;
       expect(result.error).toBeDefined();
@@ -828,7 +853,7 @@ describe('OAuthService', () => {
 
     it('should return 404 for requests to paths other than /callback', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([tokenResponse(), userResponse()]);
 
@@ -837,19 +862,17 @@ describe('OAuthService', () => {
       const state = extractState(authUrl);
 
       // Unknown path should return 404 and not complete the flow
-      const bogus = await originalFetch(
-        `http://localhost:${CALLBACK_PORT}/nope`
-      );
+      const bogus = await originalFetch(new URL('/nope', callbackUrl(authUrl)));
       expect(bogus.status).toBe(404);
 
       // Hit the real callback to resolve the outer promise.
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
       await authorizePromise;
     });
 
     it('should reject with AUTH_INVALID when token exchange fails', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([
         {
@@ -863,7 +886,7 @@ describe('OAuthService', () => {
       const authUrl = await waitForBrowserOpen();
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
 
       const result = await authorizeOutcome;
       expect(result.error).toBeDefined();
@@ -883,7 +906,7 @@ describe('OAuthService', () => {
 
     it('should not leak token endpoint body into context, even with JSON error_description', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([
         {
@@ -901,7 +924,7 @@ describe('OAuthService', () => {
       const authUrl = await waitForBrowserOpen();
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
 
       const result = await authorizeOutcome;
       const err = result.error as {
@@ -918,7 +941,7 @@ describe('OAuthService', () => {
 
     it('should reject with AUTH_INVALID when user info fetch fails', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([
         tokenResponse(),
@@ -929,7 +952,7 @@ describe('OAuthService', () => {
       const authUrl = await waitForBrowserOpen();
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
 
       const result = await authorizeOutcome;
       expect(result.error).toBeDefined();
@@ -940,15 +963,15 @@ describe('OAuthService', () => {
 
     it('should HTML-escape the error description in the callback page', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       mockFetch([]);
 
       const authorizeOutcome = outcome(service.authorize());
-      await waitForBrowserOpen();
+      const authUrl = await waitForBrowserOpen();
 
       const resp = await originalFetch(
-        `${CALLBACK_URL}?error=denied&error_description=${encodeURIComponent(
+        `${callbackUrl(authUrl)}?error=denied&error_description=${encodeURIComponent(
           '<script>alert(1)</script>'
         )}`
       );
@@ -971,12 +994,13 @@ describe('OAuthService', () => {
         blocker.once('error', reject);
         // Match the loopback bind the OAuth service now uses; binding to a
         // different interface would leave the port available on 127.0.0.1.
-        blocker.listen(CALLBACK_PORT, '127.0.0.1', () => resolve());
+        blocker.listen(EPHEMERAL_PORT, '127.0.0.1', () => resolve());
       });
+      const { port } = blocker.address() as AddressInfo;
 
       try {
         const configService = createMockConfigService({});
-        const service = new OAuthService(configService, configService);
+        const service = new OAuthService(configService, port);
 
         mockFetch([]);
 
@@ -984,7 +1008,9 @@ describe('OAuthService', () => {
         expect(result.error).toBeDefined();
         const err = result.error as { code: number; message: string };
         expect(err.code).toBe(ErrorCode.AUTH_INVALID);
-        expect(err.message).toContain('already in use');
+        expect(err.message).toBe(
+          `Port ${port} is already in use. Close the application using it and try again.`
+        );
       } finally {
         await new Promise<void>((resolve) => blocker.close(() => resolve()));
       }
@@ -992,7 +1018,7 @@ describe('OAuthService', () => {
 
     it('should continue when the browser fails to open', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       // Swap open() to throw for this test only.
       const originalImplementation = openMock.getMockImplementation();
@@ -1008,7 +1034,7 @@ describe('OAuthService', () => {
         const authUrl = await waitForBrowserOpen();
         const state = extractState(authUrl);
 
-        await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+        await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
         const result = await authorizePromise;
         expect(result.username).toBe('pilot');
 
@@ -1025,7 +1051,7 @@ describe('OAuthService', () => {
 
     it('should send a PKCE S256 challenge on authorize and the matching verifier on token exchange', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       const fetchMock = mockFetch([tokenResponse(), userResponse()]);
 
@@ -1042,7 +1068,9 @@ describe('OAuthService', () => {
       expect(challenge).not.toContain('=');
 
       const state = extractState(authUrl);
-      await originalFetch(`${CALLBACK_URL}?code=the-code&state=${state}`);
+      await originalFetch(
+        `${callbackUrl(authUrl)}?code=the-code&state=${state}`
+      );
       await authorizePromise;
 
       const tokenCall = fetchMock.getCalls()[0];
@@ -1064,7 +1092,7 @@ describe('OAuthService', () => {
       const configService = createMockConfigService({
         oauthClientSecret: 'stored-secret',
       });
-      const service = new OAuthService(configService, configService);
+      const service = createService(configService);
 
       const fetchMock = mockFetch([tokenResponse(), userResponse()]);
 
@@ -1075,7 +1103,7 @@ describe('OAuthService', () => {
       const authUrl = await waitForBrowserOpen();
       const state = extractState(authUrl);
 
-      await originalFetch(`${CALLBACK_URL}?code=c&state=${state}`);
+      await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
       await authorizePromise;
 
       // Token exchange should use the override secret, not the stored one.

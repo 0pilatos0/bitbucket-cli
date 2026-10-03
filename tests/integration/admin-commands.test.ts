@@ -16,16 +16,11 @@ import { ListBranchRestrictionsCommand } from '../../src/commands/branch-restric
 import { DeleteSshKeyCommand } from '../../src/commands/ssh-key/delete.command.js';
 import { ListDeploymentsCommand } from '../../src/commands/deployment/list.command.js';
 import {
-  buildApiFor,
-  startMockBitbucket,
+  startCommandHarness,
   type MockBitbucketServer,
   type MockRoute,
 } from '../helpers/mock-bitbucket.js';
-import {
-  createMockContextService,
-  createMockCredentialStoreOnly,
-  createMockOutputService,
-} from '../setup.js';
+import { createMockContextService } from '../setup.js';
 
 const servers: MockBitbucketServer[] = [];
 
@@ -34,16 +29,9 @@ afterAll(async () => {
 });
 
 async function startHarness(routes: MockRoute[]) {
-  const server = await startMockBitbucket({ routes, latencyMs: 0 });
-  servers.push(server);
-  const credentialStore = createMockCredentialStoreOnly({
-    username: 'tester',
-    apiToken: 'test-token',
-  });
-  const output = createMockOutputService();
-  const build = <T>(ApiClass: Parameters<typeof buildApiFor<T>>[3]): T =>
-    buildApiFor(server.url, credentialStore, output, ApiClass);
-  return { server, output, build };
+  const harness = await startCommandHarness(routes);
+  servers.push(harness.server);
+  return harness;
 }
 
 const endsWith =
@@ -56,7 +44,7 @@ const repoContext = () =>
 
 describe('mock Bitbucket integration (admin command groups)', () => {
   it('sends branch-restriction filters as query params', async () => {
-    const { server, output, build } = await startHarness([
+    const { server, output, api } = await startHarness([
       {
         matchPathname: endsWith('/repositories/acme/app/branch-restrictions'),
         respond: () => ({
@@ -75,7 +63,7 @@ describe('mock Bitbucket integration (admin command groups)', () => {
       },
     ]);
     const command = new ListBranchRestrictionsCommand(
-      build(BranchRestrictionsApi),
+      api(BranchRestrictionsApi),
       repoContext(),
       output
     );
@@ -92,7 +80,7 @@ describe('mock Bitbucket integration (admin command groups)', () => {
   });
 
   it('resolves the account then deletes the key by its encoded {uuid}', async () => {
-    const { server, output, build } = await startHarness([
+    const { server, output, api } = await startHarness([
       {
         matchPathname: endsWith('/user'),
         respond: () => ({ body: { type: 'user', uuid: '{me}' } }),
@@ -103,11 +91,7 @@ describe('mock Bitbucket integration (admin command groups)', () => {
         respond: () => ({ status: 204 }),
       },
     ]);
-    const command = new DeleteSshKeyCommand(
-      build(SSHApi),
-      build(UsersApi),
-      output
-    );
+    const command = new DeleteSshKeyCommand(api(SSHApi), api(UsersApi), output);
 
     await command.execute(
       { keyId: '{key-1}', yes: true },
@@ -122,7 +106,7 @@ describe('mock Bitbucket integration (admin command groups)', () => {
   });
 
   it('lists deployments with environment names from the environments endpoint', async () => {
-    const { server, output, build } = await startHarness([
+    const { server, output, api } = await startHarness([
       {
         matchPathname: endsWith('/repositories/acme/app/environments'),
         respond: () => ({
@@ -157,7 +141,7 @@ describe('mock Bitbucket integration (admin command groups)', () => {
       },
     ]);
     const command = new ListDeploymentsCommand(
-      build(DeploymentsApi),
+      api(DeploymentsApi),
       repoContext(),
       output
     );

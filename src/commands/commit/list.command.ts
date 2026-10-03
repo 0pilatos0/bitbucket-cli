@@ -95,13 +95,9 @@ export class ListCommitsCommand extends BaseCommand<ListCommitsOptions, void> {
         tableHeaders: ['HASH', 'MESSAGE', 'AUTHOR', 'DATE'],
         mapRow: (commit) => [
           this.output.highlight(shortHash(commit.hash)),
-          this.truncateText(
-            firstMessageLine(commit.message),
-            60,
-            context.globalOptions
-          ),
+          firstMessageLine(commit.message),
           formatAuthor(commit.author),
-          commit.date ? this.output.formatDate(commit.date) : '-',
+          commit.date ? this.output.formatRelativeDate(commit.date) : '-',
         ],
         noun: 'commits',
       },

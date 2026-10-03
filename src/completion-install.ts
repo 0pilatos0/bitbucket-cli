@@ -23,24 +23,42 @@ import bashTemplate from 'tabtab/lib/scripts/bash.sh' with { type: 'text' };
 import fishTemplate from 'tabtab/lib/scripts/fish.sh' with { type: 'text' };
 import zshTemplate from 'tabtab/lib/scripts/zsh.sh' with { type: 'text' };
 import systemShell from 'tabtab/lib/utils/systemShell.js';
+import powershellTemplate from './completion-powershell.ps1' with { type: 'text' };
 
 export interface CompletionTarget {
   name: string;
   completer: string;
 }
 
-const TEMPLATES: Record<string, string> = {
+/** Shells `bb completion <shell>` can print a script for. */
+export const COMPLETION_SHELLS = ['bash', 'zsh', 'fish', 'powershell'] as const;
+export type CompletionShell = (typeof COMPLETION_SHELLS)[number];
+
+const TEMPLATES: Record<CompletionShell, string> = {
   bash: bashTemplate,
   fish: fishTemplate,
   zsh: zshTemplate,
+  powershell: powershellTemplate,
 };
 
-/** Renders tabtab's completion script for `shell`; unknown shells get bash. */
+function isCompletionShell(shell: string): shell is CompletionShell {
+  return (COMPLETION_SHELLS as readonly string[]).includes(shell);
+}
+
+/**
+ * Renders the completion script for `shell`; unknown shells get bash. tabtab's
+ * templates call the completer without naming their shell, so the output
+ * format would follow `$SHELL` instead of the shell that loaded the script;
+ * prefix the call with BB_COMPLETION_SHELL (the PowerShell template sets it
+ * itself).
+ */
 export function renderCompletionScript(
   shell: string,
   { name, completer }: CompletionTarget
 ): string {
-  return (TEMPLATES[shell] ?? bashTemplate)
+  const key = isCompletionShell(shell) ? shell : 'bash';
+  return TEMPLATES[key]
+    .replace(/\{completer\} completion --/g, `BB_COMPLETION_SHELL=${key} $&`)
     .replace(/\{pkgname\}/g, name)
     .replace(/\{completer\}/g, completer)
     .replace(/\r?\n/g, '\n');

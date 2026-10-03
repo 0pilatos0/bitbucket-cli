@@ -13,8 +13,20 @@ on:
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
+  # The full CI workflow (lint, API contract, tests on every OS, minimum Bun,
+  # compile smoke) on the commit being released. Every publish path needs it
+  # to succeed.
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
   release:
     name: Release
+    needs: [ci]
     if: github.event_name != 'workflow_dispatch' || inputs.publish_only != true
     runs-on: ubuntu-latest
     permissions:
@@ -41,15 +53,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Check formatting
-        run: bun run format:check
-
-      - name: Test
-        run: bun test
 
       - name: Build
         run: bun run build
@@ -217,9 +220,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Checksums and Sigstore build-provenance attestations for the binaries, so
-  # installers and package formulas can pin and verify them. Publishing the
-  # draft release is the last step.
+  # Compressed archives, checksums, the Homebrew formula and Scoop manifest,
+  # and Sigstore build-provenance attestations for the binaries, so installers
+  # and package formulas can pin and verify them. The install scripts ship as
+  # assets too, so each release carries the installer that matches it.
+  # Publishing the draft release is the last step.
   release-binaries:
     name: Attach binaries to release
     needs: [release, binaries]
@@ -230,6 +235,14 @@ jobs:
       attestations: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version-file: .bun-version
+
       - name: Download binaries
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -237,9 +250,8 @@ jobs:
           path: dist-bin
           merge-multiple: true
 
-      - name: Generate checksums
-        working-directory: dist-bin
-        run: sha256sum bb-* > SHA256SUMS && cat SHA256SUMS
+      - name: Package archives, checksums and manifests
+        run: bun scripts/package-release.ts --dir dist-bin && cat dist-bin/SHA256SUMS
 
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
@@ -248,7 +260,7 @@ jobs:
 
       - name: Upload to GitHub Release and publish it
         run: |
-          gh release upload "$TAG" dist-bin/* --clobber --repo "$GITHUB_REPOSITORY"
+          gh release upload "$TAG" dist-bin/* scripts/install.sh scripts/install.ps1 --clobber --repo "$GITHUB_REPOSITORY"
           gh release edit "$TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -293,11 +305,15 @@ jobs:
   #   - manual:    `gh workflow run "Release" --ref main -f publish_only=true`
   #                (ships whatever version is currently in package.json; use
   #                 this to re-publish a version that already has a git tag)
+  #
+  # always() bypasses the implicit success check, so the ci result is checked
+  # explicitly: without it, publish_only would publish past a failed CI run.
   publish:
     name: Publish to npm
-    needs: [release, release-binaries]
+    needs: [ci, release, release-binaries]
     if: |
       always() &&
+      needs.ci.result == 'success' &&
       (needs.release.result == 'success' || needs.release.result == 'skipped') &&
       (
         (needs.release.outputs.should_publish == 'true' && needs.release-binaries.result == 'success') ||
@@ -336,11 +352,6 @@ jobs:
 
       - name: Build
         run: bun run build
-
-      - name: Test
-        run: bun test
-        env:
-          NODE_ENV: test
 
       - name: Publish to npm
         run: npm publish --provenance --access public

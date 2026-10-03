@@ -71,10 +71,11 @@ export class ListSnippetCommentsCommand extends BaseCommand<
           return [
             String(comment.id ?? ''),
             getUserDisplayName(comment.user) ?? 'Unknown',
-            this.output.formatDate(comment.created_on ?? ''),
-            this.truncateText(content, 60, context.globalOptions),
+            this.output.formatRelativeDate(comment.created_on ?? ''),
+            content,
           ];
         },
+        flexColumns: [3],
         noun: 'comments',
       },
       context
