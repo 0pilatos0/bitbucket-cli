@@ -35,6 +35,7 @@
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check": "bun run lint && bun run lint:docs && bun run format:check && bun test",
     "generate:api": "bun scripts/normalize-spec.ts && openapi-generator-cli generate && bun scripts/patch-generated.ts",
     "check:api-contract": "bun scripts/check-api-contract.ts",
     "check:api-updates": "bun scripts/check-api-updates.ts check",
