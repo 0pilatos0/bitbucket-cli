@@ -689,7 +689,7 @@ Options:
   -t, --title <title>         Pull request title
   -b, --body <body>           Pull request description
   -s, --source <branch>       Source branch (default: current branch)
-  -d, --destination <branch>  Destination branch (default: main)
+  -d, --destination <branch>  Destination branch (default: repo's main branch)
   --close-source-branch       Close source branch after merge
   --draft                     Create the pull request as draft
   --reviewer <user>           Add a reviewer by account ID or {uuid}
@@ -709,7 +709,7 @@ Examples:
 
 Defaults:
   --source  current git branch
-  --destination  main
+  --destination  repository's main branch
   --default-reviewers  false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)
 
 See also:
