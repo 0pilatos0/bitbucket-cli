@@ -7,9 +7,10 @@
 import { Command } from 'commander';
 import pkg from '../package.json' with { type: 'json' };
 import tabtab from 'tabtab/lib/index.js';
+import systemShell from 'tabtab/lib/utils/systemShell.js';
 import { bootstrap } from './bootstrap.js';
 import { registerCommands } from './commands/register.js';
-import { generateCompletions } from './completion.js';
+import { formatCompletions, generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
 import type { ServiceToken } from './core/container.js';
@@ -456,7 +457,12 @@ cli.allowExcessArguments();
 if (process.argv.includes('--get-yargs-completions') || process.env.COMP_LINE) {
   const env = tabtab.parseEnv(process.env);
   if (env.complete) {
-    tabtab.log(generateCompletions(cli, env));
+    // The scripts from `bb completion <shell>` name their shell; older
+    // installed scripts don't, so fall back to $SHELL like tabtab does.
+    const shell = process.env.BB_COMPLETION_SHELL ?? systemShell();
+    process.stdout.write(
+      formatCompletions(generateCompletions(cli, env), shell, env.last)
+    );
     process.exit(0);
   }
 }

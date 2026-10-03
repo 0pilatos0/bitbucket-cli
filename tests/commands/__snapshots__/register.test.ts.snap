@@ -3115,25 +3115,6 @@ Examples:
 }
 `;
 
-exports[`command tree snapshot bb completion 1`] = `
-{
-  "help": 
-"Usage: bb completion [options] [command]
-
-Shell completion utilities
-
-Options:
-  -h, --help      display help for command
-
-Commands:
-  install         Install shell completions for bash, zsh, or fish
-  uninstall       Uninstall shell completions
-  help [command]  display help for command
-"
-,
-}
-`;
-
 exports[`command tree snapshot bb completion install 1`] = `
 {
   "dispatch": {
@@ -3715,6 +3696,133 @@ Examples:
 
 Defaults:
   --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion 1`] = `
+{
+  "help": 
+"Usage: bb completion [options] [command]
+
+Shell completion utilities
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  install         Install shell completions for bash, zsh, or fish
+  uninstall       Uninstall shell completions
+  bash            Print the completion script for bash
+  zsh             Print the completion script for zsh
+  fish            Print the completion script for fish
+  powershell      Print the completion script for powershell
+  help [command]  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion bash 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "bash",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion bash [options]
+
+Print the completion script for bash
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion bash
+  $ echo 'source <(bb completion bash)' >> ~/.bashrc
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion zsh 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "zsh",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion zsh [options]
+
+Print the completion script for zsh
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion zsh
+  $ echo 'source <(bb completion zsh)' >> ~/.zshrc
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion fish 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "fish",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion fish [options]
+
+Print the completion script for fish
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion fish
+  $ bb completion fish > ~/.config/fish/completions/bb.fish
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb completion powershell 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "shell": "powershell",
+    },
+    "token": "PrintCompletionCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb completion powershell [options]
+
+Print the completion script for powershell
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb completion powershell
+  $ Add-Content $PROFILE 'bb completion powershell | Out-String | Invoke-Expression'
 
 "
 ,

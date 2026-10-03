@@ -100,13 +100,28 @@ describe('registerCommands', () => {
       tokensByPath.set(path.join(' '), token);
     }
 
+    // `completion <shell>` is one command parameterized by the shell.
     const dispatched = [...tokensByPath.values()];
+    const unshared = dispatched.filter(
+      (token) => token !== ServiceTokens.PrintCompletionCommand
+    );
     const commandTokens = Object.values(ServiceTokens).filter((token) =>
       token.endsWith('Command')
     );
-    expect(new Set(dispatched).size).toBe(dispatched.length);
-    expect([...dispatched].sort()).toEqual([...commandTokens].sort());
+    expect(new Set(unshared).size).toBe(unshared.length);
+    expect([...new Set(dispatched)].sort()).toEqual([...commandTokens].sort());
   });
+
+  it.each(['bash', 'zsh', 'fish', 'powershell'])(
+    'dispatches completion %s with its shell',
+    async (shell) => {
+      expect(await dispatch(['completion', shell])).toEqual({
+        via: 'run',
+        token: ServiceTokens.PrintCompletionCommand,
+        options: { shell },
+      });
+    }
+  );
 
   it('passes local-only commands their options without global merging', async () => {
     expect(await dispatch(['auth', 'logout'])).toEqual({

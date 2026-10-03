@@ -292,6 +292,7 @@ export const ServiceTokens = {
   // Commands - Completion
   InstallCompletionCommand: 'InstallCompletionCommand',
   UninstallCompletionCommand: 'UninstallCompletionCommand',
+  PrintCompletionCommand: 'PrintCompletionCommand',
 } as const;
 
 export type ServiceToken = (typeof ServiceTokens)[keyof typeof ServiceTokens];

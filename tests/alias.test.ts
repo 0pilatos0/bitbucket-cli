@@ -11,6 +11,7 @@ import {
   isReservedCommandName,
   isShellAlias,
   isValidAliasName,
+  shellAliasArgv,
   splitShellWords,
   substitutePlaceholders,
 } from '../src/alias.js';
@@ -161,6 +162,85 @@ describe('expandAliasArgv', () => {
       argv: [...BIN, 'loop', 'again'],
     });
   });
+});
+
+describe('shellAliasArgv', () => {
+  const found = (bins: string[]) => (bin: string) =>
+    bins.includes(bin) ? `/bin/${bin}` : null;
+  const decode = (argv: string[]) =>
+    Buffer.from(argv.at(-1) as string, 'base64').toString('utf16le');
+
+  it('uses sh -c with positional parameters off Windows', () => {
+    expect(shellAliasArgv('echo "$1"', ['a b'], 'linux', found([]))).toEqual([
+      'sh',
+      '-c',
+      'echo "$1"',
+      'bb-alias',
+      'a b',
+    ]);
+  });
+
+  it('keeps sh on Windows when it is on PATH', () => {
+    expect(shellAliasArgv('echo hi', [], 'win32', found(['sh']))[0]).toBe('sh');
+  });
+
+  it('falls back to pwsh on Windows without sh, passing args as $args', () => {
+    const argv = shellAliasArgv(
+      'Write-Output $args[0]',
+      ["it's", 'a b', '‘x’'],
+      'win32',
+      found(['pwsh'])
+    );
+
+    expect(argv.slice(0, -1)).toEqual([
+      'pwsh',
+      '-NoProfile',
+      '-OutputFormat',
+      'Text',
+      '-EncodedCommand',
+    ]);
+    expect(decode(argv)).toBe(
+      [
+        '& {',
+        'Write-Output $args[0]',
+        'if (-not $?) { if ($LASTEXITCODE) { exit $LASTEXITCODE }; exit 1 }',
+        "} 'it''s' 'a b' '‘‘x’’'",
+      ].join('\n')
+    );
+  });
+
+  it('uses Windows PowerShell when pwsh is not installed', () => {
+    expect(shellAliasArgv('dir', [], 'win32', found([]))[0]).toBe('powershell');
+  });
+
+  it.skipIf(process.platform === 'win32')(
+    'runs the sh form with the arguments as $1 and $@',
+    () => {
+      const result = Bun.spawnSync(
+        shellAliasArgv('echo "$1|$#"; exit 3', ['a b', 'c'])
+      );
+
+      expect(result.stdout.toString()).toBe('a b|2\n');
+      expect(result.exitCode).toBe(3);
+    }
+  );
+
+  it.skipIf(!Bun.which('pwsh'))(
+    'runs the PowerShell form with quoted arguments and exit codes',
+    () => {
+      const run = (command: string, args: string[]) =>
+        Bun.spawnSync(shellAliasArgv(command, args, 'win32', found(['pwsh'])));
+
+      const echo = run('Write-Output "$($args[0])|$($args.Count)"', [
+        "it's $(x)",
+        'b',
+      ]);
+      expect(echo.stdout.toString().trim()).toBe("it's $(x)|2");
+      expect(echo.exitCode).toBe(0);
+      expect(run('Get-Item /does/not/exist', []).exitCode).toBe(1);
+      expect(run('exit 4', []).exitCode).toBe(4);
+    }
+  );
 });
 
 describe('alias name validation', () => {
