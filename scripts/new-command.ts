@@ -2,20 +2,34 @@
 // Scaffolds a `bb <group> <verb>` command: writes the command, test and docs
 // stubs, wires the DI token, bootstrap registration and Commander subcommand,
 // and prints the steps that still need a human. Every edit is computed and
-// validated in memory first, so a failed anchor leaves the tree untouched.
+// validated in memory first, and a failed write rolls back the ones before it.
 //
-//   bun run new:command <group> <verb> [--list] [--wrapper-key <key>]
+//   bun run new:command <group> <verb> [--list --wrapper-key <key>]
 //                       [--description <text>] [--dry-run] [--root <dir>]
 
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import type { Command } from 'commander';
 import * as prettier from 'prettier';
 
 const USAGE =
-  'Usage: bun run new:command <group> <verb> [--list] [--wrapper-key <key>] ' +
+  'Usage: bun run new:command <group> <verb> [--list --wrapper-key <key>] ' +
   '[--description <text>] [--dry-run] [--root <dir>]';
+
+const VERIFY =
+  'bun run lint && bun run lint:docs && bun test && bun run format:check';
+
+// Keys every scaffolded JSON envelope already uses.
+const ENVELOPE_KEYS = new Set(['workspace', 'repoSlug', 'count', 'values']);
 
 const NAME_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
@@ -64,25 +78,36 @@ const [group, verb, ...extra] = positionals;
 if (!group || !verb || extra.length > 0) fail(USAGE);
 if (!NAME_RE.test(group)) fail(`group "${group}" must be kebab-case`);
 if (!NAME_RE.test(verb)) fail(`verb "${verb}" must be kebab-case`);
-if (flags['wrapper-key'] && !flags.list) {
-  fail('--wrapper-key only applies with --list');
-}
+if (group === 'help' || verb === 'help') fail('"help" is reserved');
 
 const isList = flags.list ?? false;
-const wrapperKey = flags['wrapper-key'] ?? `${camel(group)}s`;
+// The wrapper key is a public JSON contract, so it is never guessed.
+const wrapperKey = flags['wrapper-key'] ?? '';
+if (isList !== Boolean(wrapperKey)) {
+  fail('--list and --wrapper-key <key> go together (e.g. --wrapper-key tags)');
+}
 if (isList && !/^[a-z][A-Za-z0-9]*$/.test(wrapperKey)) {
   fail(`wrapper key "${wrapperKey}" must be camelCase`);
 }
-
-// List commands name the class after the collection (`ListWebhooksCommand`),
-// everything else after the resource (`ViewWebhookCommand`).
-const className = `${pascal(verb)}${isList ? pascal(wrapperKey) : pascal(group)}Command`;
-const optionsName = `${className.slice(0, -'Command'.length)}Options`;
-const description =
-  flags.description ?? `TODO(scaffold): describe what bb ${group} ${verb} does`;
-if (/['`\\\n]/.test(description)) {
-  fail('--description cannot contain quotes, backticks or newlines');
+if (ENVELOPE_KEYS.has(wrapperKey)) {
+  fail(`wrapper key "${wrapperKey}" collides with an envelope field`);
 }
+
+// `list` commands name the class after the collection (`ListWebhooksCommand`),
+// everything else after the resource (`ViewWebhookCommand`).
+const className = `${pascal(verb)}${
+  isList && verb === 'list' ? pascal(wrapperKey) : pascal(group)
+}Command`;
+const optionsName = `${className.slice(0, -'Command'.length)}Options`;
+const description = (
+  flags.description ?? `TODO(scaffold): describe what bb ${group} ${verb} does`
+).replace(/\.$/, '');
+// The text lands in TypeScript strings (quoted via JSON.stringify) and in MDX,
+// where these characters would start JSX, an expression or code.
+if (/[<>{}`\n]/.test(description)) {
+  fail('--description cannot contain <, >, {, }, backticks or newlines');
+}
+const quotedDescription = JSON.stringify(description);
 
 const root = resolve(flags.root ?? join(import.meta.dir, '..'));
 const paths = {
@@ -94,8 +119,12 @@ const paths = {
   command: `src/commands/${group}/${verb}.command.ts`,
   test: `tests/commands/${group}-${verb}.test.ts`,
   docs: `docs/src/content/docs/commands/${group}.mdx`,
+  docsFolder: `docs/src/content/docs/commands/${group}/index.mdx`,
   outputService: 'src/services/output.service.ts',
   driftTest: 'tests/cli-completion-drift.test.ts',
+  alias: 'src/alias.ts',
+  cliTest: 'tests/cli.test.ts',
+  registerTest: 'tests/commands/register.test.ts',
 };
 
 const originals = new Map<string, string>();
@@ -136,9 +165,47 @@ function insertAfterLineAt(path: string, index: number, text: string): void {
   insertAt(path, text, source.indexOf('\n', index) + 1);
 }
 
-const isNewGroup = !existsSync(join(root, paths.groupRegister));
-if (isNewGroup && existsSync(join(root, paths.leafRegister))) {
+/** Rewrite the `toEqual([...])` string list in the test named `testName`. */
+function rewritePinnedList(
+  path: string,
+  testName: string,
+  update: (names: string[]) => string[]
+): void {
+  const source = read(path);
+  const testStart = source.indexOf(`it('${testName}`);
+  const listStart = source.indexOf('toEqual([', testStart) + 'toEqual('.length;
+  const listEnd = source.indexOf(']);', listStart);
+  if (testStart < 0 || listStart < testStart || listEnd < 0) {
+    fail(`${path}: list in test "${testName}" not found`);
+  }
+  const names = [...source.slice(listStart, listEnd).matchAll(/'([\w-]+)'/g)];
+  const lines = update(names.map((match) => match[1]!)).map((n) => `'${n}',`);
+  changes.set(
+    path,
+    `${source.slice(0, listStart)}[${lines.join('\n')}${source.slice(listEnd)}`
+  );
+}
+
+// The real command tree catches every collision: nested groups registered
+// from their own module, aliases, and top-level leaf commands.
+const { cli } = (await import(
+  pathToFileURL(join(root, 'src/cli.ts')).href
+)) as { cli: Command };
+const named = (commands: readonly Command[], name: string) =>
+  commands.find((c) => c.name() === name || c.aliases().includes(name));
+const groupCommand = named(cli.commands, group);
+const isNewGroup = !groupCommand;
+if (groupCommand && groupCommand.commands.length === 0) {
   fail(`"${group}" is a top-level command, not a command group`);
+}
+if (groupCommand && named(groupCommand.commands, verb)) {
+  fail(`bb ${group} ${verb} already exists`);
+}
+if (groupCommand && !existsSync(join(root, paths.groupRegister))) {
+  fail(`${paths.groupRegister} not found; wire this group by hand`);
+}
+if (isNewGroup && existsSync(join(root, paths.leafRegister))) {
+  fail(`${paths.leafRegister} exists but is not registered`);
 }
 
 const token = className;
@@ -185,7 +252,7 @@ export interface ${optionsName} {
 
 export class ${className} extends BaseCommand<${optionsName}, void> {
   public readonly name = '${verb}';
-  public readonly description = '${description}';
+  public readonly description = ${quotedDescription};
 
 ${constructorBlock}
 
@@ -221,7 +288,7 @@ export interface ${optionsName} {
 
 export class ${className} extends BaseCommand<${optionsName}, void> {
   public readonly name = '${verb}';
-  public readonly description = '${description}';
+  public readonly description = ${quotedDescription};
 
 ${constructorBlock}
 
@@ -374,7 +441,7 @@ function subcommandBlock(groupVar: string): string {
   return `
   ${groupVar}
     .command('${verb}')
-    .description('${description}')${listOptions}
+    .description(${quotedDescription})${listOptions}
     .addHelpText(
       'after',
       buildHelpText({
@@ -429,6 +496,19 @@ ${subcommandBlock(groupVar)}
     `import { ${registerFn} } from './${group}/register.js';\n`
   );
   insertBeforeLast(paths.topRegister, /^\];$/, `  ${registerFn},\n`);
+
+  // Lists that pin the top-level command set.
+  insertBeforeLast(paths.alias, /^ {2}'help',$/, `  '${group}',\n`);
+  rewritePinnedList(
+    paths.registerTest,
+    'registers the top-level commands',
+    (names) => [...names, group]
+  );
+  rewritePinnedList(
+    paths.cliTest,
+    'should register all top-level commands',
+    (names) => [...names, group].sort()
+  );
 } else {
   const source = read(paths.groupRegister);
   const groupVar = source.match(
@@ -436,13 +516,6 @@ ${subcommandBlock(groupVar)}
   )?.[1];
   if (!groupVar) {
     fail(`${paths.groupRegister}: cannot find new Command('${group}')`);
-  }
-  if (
-    new RegExp(`${groupVar}\\s*\\.command\\('${escapeRe(verb)}[ ']`).test(
-      source
-    )
-  ) {
-    fail(`bb ${group} ${verb} is already registered`);
   }
   insertBeforeLast(
     paths.groupRegister,
@@ -516,9 +589,25 @@ bb ${group} ${verb} --json
 \`\`\`
 `;
 
-if (existsSync(join(root, paths.docs))) {
+// A group documented as a folder of pages (`pr/`) needs a human to pick the
+// page; see `docsFolder` in the next steps.
+const docsInFolder = existsSync(join(root, paths.docsFolder));
+if (docsInFolder) {
+  // Nothing to write.
+} else if (existsSync(join(root, paths.docs))) {
+  // After the last command section, ahead of trailing "See also"-style ones.
   const source = read(paths.docs);
-  changes.set(paths.docs, `${source.trimEnd()}\n\n---\n\n${docsSection}`);
+  const sections = [...source.matchAll(/^## `bb /gm)];
+  const lastSection = sections.at(-1)?.index ?? 0;
+  const next = /^(?:---\n\n)?## /gm;
+  next.lastIndex = source.indexOf('\n', lastSection);
+  const trailing = next.exec(source);
+  changes.set(
+    paths.docs,
+    trailing
+      ? `${source.slice(0, trailing.index)}---\n\n${docsSection}\n${source.slice(trailing.index)}`
+      : `${source.trimEnd()}\n\n---\n\n${docsSection}`
+  );
 } else {
   create(
     paths.docs,
@@ -551,10 +640,21 @@ const created = [...changes.keys()].filter((path) => !originals.has(path));
 const edited = [...changes.keys()].filter((path) => originals.has(path));
 
 if (!flags['dry-run']) {
-  for (const [path, content] of changes) {
-    const full = join(root, path);
-    mkdirSync(dirname(full), { recursive: true });
-    await writeFile(full, content);
+  const written: string[] = [];
+  try {
+    for (const [path, content] of changes) {
+      const full = join(root, path);
+      mkdirSync(dirname(full), { recursive: true });
+      writeFileSync(full, content);
+      written.push(path);
+    }
+  } catch (error) {
+    for (const path of written) {
+      const original = originals.get(path);
+      if (original === undefined) rmSync(join(root, path));
+      else writeFileSync(join(root, path), original);
+    }
+    fail(`write failed, changes rolled back: ${String(error)}`);
   }
 }
 
@@ -562,15 +662,30 @@ const steps = [
   'Fill in every TODO(scaffold) marker: grep -rn "TODO(scaffold)" src tests docs',
   'Add arguments and options in the register.ts block, and inject the API client',
   'Refresh the help snapshot and review its diff: bun test --update-snapshots tests/commands/register.test.ts',
+  ...(!isNewGroup && read(paths.cliTest).includes(`requireCommand('${group}')`)
+    ? [
+        `Add '${verb}' to the pinned ${group} subcommand list in ${paths.cliTest}`,
+      ]
+    : []),
+  ...(docsInFolder
+    ? [
+        `Document the command on the right page under ${dirname(paths.docsFolder)}/`,
+      ]
+    : []),
   ...(isNewGroup
     ? [
-        `Add commands/${group} to the "Command Reference" sidebar in docs/astro.config.mjs`,
-        `Move ${registerFn} in src/commands/register.ts if it belongs elsewhere in bb --help`,
+        `Add commands/${group} to the "Command Reference" sidebar in docs/astro.config.mjs, the README command table and docs/src/components/CommandIndex.astro`,
+        `Move ${registerFn} in src/commands/register.ts (and the pinned order in ${paths.registerTest}) if it belongs elsewhere in bb --help`,
+      ]
+    : []),
+  ...(newWrapperKey
+    ? [
+        `Add '${wrapperKey}' to the wrapper key list in docs/src/content/docs/reference/json-output.mdx`,
       ]
     : []),
   'New ErrorCode or env var? Document it (bun run lint:docs checks), plus any new token scope in reference/token-scopes.mdx',
   'Add a changeset: bun run changeset (minor for a new command)',
-  'Verify: bun run lint && bun test',
+  `Verify: ${VERIFY}`,
 ];
 
 const label = flags['dry-run'] ? 'Would ' : '';

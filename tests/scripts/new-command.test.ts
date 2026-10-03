@@ -59,7 +59,11 @@ beforeAll(() => {
     join(root, 'docs/src/content/docs/commands'),
     { recursive: true }
   );
-  symlinkSync(join(repoRoot, 'node_modules'), join(root, 'node_modules'));
+  symlinkSync(
+    join(repoRoot, 'node_modules'),
+    join(root, 'node_modules'),
+    'junction'
+  );
 });
 
 afterAll(() => {
@@ -70,7 +74,14 @@ describe('scripts/new-command.ts', () => {
   it('--dry-run reports the plan without writing anything', () => {
     const before = read('src/core/container.ts');
 
-    const result = scaffold('tag', 'list', '--list', '--dry-run');
+    const result = scaffold(
+      'tag',
+      'list',
+      '--list',
+      '--wrapper-key',
+      'tags',
+      '--dry-run'
+    );
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('src/commands/tag/list.command.ts');
@@ -80,24 +91,32 @@ describe('scripts/new-command.ts', () => {
   });
 
   it('scaffolds a new list group and a verb in an existing group', () => {
-    expect(scaffold('tag', 'list', '--list').exitCode).toBe(0);
+    expect(
+      scaffold('tag', 'list', '--list', '--wrapper-key', 'tags').exitCode
+    ).toBe(0);
     expect(scaffold('tag', 'view').exitCode).toBe(0);
-    const star = scaffold('snippet', 'star', '--description', 'Star a snippet');
-    expect(star.exitCode).toBe(0);
-    expect(star.stdout).toContain('Next steps');
+    const exportAliases = scaffold(
+      'alias',
+      'export',
+      '--description',
+      "Export the user's aliases."
+    );
+    expect(exportAliases.exitCode).toBe(0);
+    expect(exportAliases.stdout).toContain('Next steps');
 
     expect(read('src/commands/register.ts')).toContain('registerTagCommands,');
+    expect(read('src/alias.ts')).toContain("'tag',");
     expect(read('src/services/output.service.ts')).toContain(
       "'tags', // tag list"
     );
     expect(read('tests/cli-completion-drift.test.ts')).toContain(
       "'tag list': 'tags',"
     );
-    expect(read('src/commands/snippet/register.ts')).toContain(
-      "snippetCmd\n    .command('star')\n    .description('Star a snippet')"
+    expect(read('src/commands/alias/register.ts')).toContain(
+      `aliasCmd\n    .command('export')\n    .description("Export the user's aliases")`
     );
-    expect(read('docs/src/content/docs/commands/snippet.mdx')).toContain(
-      '## `bb snippet star`\n\nStar a snippet.'
+    expect(read('docs/src/content/docs/commands/alias.mdx')).toContain(
+      "## `bb alias export`\n\nExport the user's aliases.\n"
     );
     expect(read('docs/src/content/docs/commands/tag.mdx')).toContain(
       '## `bb tag view`'
@@ -110,15 +129,19 @@ describe('scripts/new-command.ts', () => {
     expect(result.exitCode).toBe(0);
   }, 60_000);
 
-  it('passes the generated tests and the DI and JSON-key drift tests', () => {
+  it('passes the generated tests and every test that pins the command tree', () => {
     const result = run([
       'bun',
       'test',
+      '--update-snapshots',
       'tests/commands/tag-list.test.ts',
       'tests/commands/tag-view.test.ts',
-      'tests/commands/snippet-star.test.ts',
+      'tests/commands/alias-export.test.ts',
       'tests/core/bootstrap.test.ts',
       'tests/cli-completion-drift.test.ts',
+      'tests/cli.test.ts',
+      'tests/alias.test.ts',
+      'tests/commands/register.test.ts',
     ]);
     expect(result.stderr).toContain(' 0 fail');
     expect(result.exitCode).toBe(0);
@@ -145,20 +168,42 @@ describe('scripts/new-command.ts', () => {
     });
   }, 30_000);
 
-  it('refuses an existing command without touching any file', () => {
-    const before = read('src/bootstrap.ts');
+  it('places the docs section before a trailing "See also"', () => {
+    expect(scaffold('commit', 'ping').exitCode).toBe(0);
 
-    const result = scaffold('snippet', 'star');
-
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('already exists');
-    expect(read('src/bootstrap.ts')).toBe(before);
+    const docs = read('docs/src/content/docs/commands/commit.mdx');
+    expect(docs.indexOf('## `bb commit ping`')).toBeGreaterThan(
+      docs.indexOf('## `bb commit view`')
+    );
+    expect(docs.indexOf('## `bb commit ping`')).toBeLessThan(
+      docs.indexOf('## See also')
+    );
   });
 
-  it('refuses a top-level leaf command as a group', () => {
-    const result = scaffold('browse', 'open');
+  it('points to the pinned subcommand list and a docs folder', () => {
+    const result = scaffold('pr', 'star', '--dry-run');
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Add 'star' to the pinned pr subcommand");
+    expect(result.stdout).toContain('docs/src/content/docs/commands/pr/');
+    expect(result.stdout).not.toContain('commands/pr.mdx');
+  });
+
+  it.each([
+    [['snippet', 'list'], 'already exists'],
+    [['pr', 'comments'], 'already exists'],
+    [['browse', 'open'], 'is a top-level command'],
+    [['help', 'me'], 'reserved'],
+    [['tag', 'all', '--list'], '--wrapper-key'],
+    [['tag', 'all', '--list', '--wrapper-key', 'count'], 'envelope field'],
+    [['tag', 'show', '--description', 'Show <id>'], '--description'],
+  ])('refuses %p without touching any file', (args, message) => {
+    const before = read('src/bootstrap.ts');
+
+    const result = scaffold(...args);
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('is a top-level command');
+    expect(result.stderr).toContain(message);
+    expect(read('src/bootstrap.ts')).toBe(before);
   });
 });

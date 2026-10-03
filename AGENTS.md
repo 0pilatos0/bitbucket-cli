@@ -26,7 +26,7 @@ bun run format       # Prettier write
 bun run format:check # Prettier check
 
 # New command
-bun run new:command <group> <verb> [--list]  # Scaffold code, test, wiring and docs stubs
+bun run new:command <group> <verb> [--list --wrapper-key <key>]  # Scaffold code, test, wiring and docs stubs
 
 # Generated API
 bun run generate:api # Regenerate src/generated/ from the pinned spec
