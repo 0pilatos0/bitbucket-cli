@@ -12,6 +12,7 @@ import type { VersionCheckResult } from '../types/version.js';
 import { isDebugEnabled } from './http-debug.js';
 
 const NPM_REGISTRY_URL = 'https://registry.npmjs.org/@pilatos/bitbucket-cli';
+const VERSION_CHECK_TIMEOUT_MS = 1500;
 const PACKAGE_NAME = '@pilatos/bitbucket-cli';
 const RELEASES_URL =
   'https://github.com/0pilatos0/bitbucket-cli/releases/latest';
@@ -137,21 +138,40 @@ export class VersionService {
    * Fetch the latest version from npm registry
    */
   private async fetchLatestVersion(): Promise<string> {
-    const response = await fetch(NPM_REGISTRY_URL, {
-      headers: {
-        Accept: 'application/json',
-      },
+    const controller = new AbortController();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => {
+        reject(new Error('Version check timed out'));
+        controller.abort();
+      }, VERSION_CHECK_TIMEOUT_MS);
     });
 
-    if (!response.ok) {
-      throw new BBError({
-        code: ErrorCode.NETWORK_ERROR,
-        message: `Failed to fetch version info: ${response.statusText}`,
-      });
-    }
+    try {
+      return await Promise.race([
+        (async () => {
+          const response = await fetch(NPM_REGISTRY_URL, {
+            headers: {
+              Accept: 'application/json',
+            },
+            signal: controller.signal,
+          });
 
-    const data = (await response.json()) as NpmRegistryResponse;
-    return data['dist-tags'].latest;
+          if (!response.ok) {
+            throw new BBError({
+              code: ErrorCode.NETWORK_ERROR,
+              message: `Failed to fetch version info: ${response.statusText}`,
+            });
+          }
+
+          const data = (await response.json()) as NpmRegistryResponse;
+          return data['dist-tags'].latest;
+        })(),
+        deadline,
+      ]);
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /**

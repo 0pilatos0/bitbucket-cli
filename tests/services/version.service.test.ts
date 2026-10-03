@@ -250,6 +250,34 @@ describe('VersionService', () => {
       expect(capturedHeaders).toEqual({ Accept: 'application/json' });
     });
 
+    it.each(['request', 'body'] as const)(
+      'bounds a stalled registry %s and aborts without caching a success',
+      async (stage) => {
+        let signal: AbortSignal | null | undefined;
+        globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
+          signal = init?.signal;
+          if (stage === 'request') {
+            return await new Promise<Response>(() => {});
+          }
+          return {
+            ok: true,
+            json: () => new Promise(() => {}),
+          } as unknown as Response;
+        }) as typeof fetch;
+        const config = createMockConfigService({});
+        service = new VersionService(config, '1.0.0');
+        const started = performance.now();
+
+        const result = await service.checkForUpdate();
+
+        expect(result).toBeNull();
+        expect(signal).toBeInstanceOf(AbortSignal);
+        expect(signal?.aborted).toBe(true);
+        expect(performance.now() - started).toBeLessThan(3000);
+        expect(await config.getValue('lastVersionCheck')).toBeUndefined();
+      }
+    );
+
     it('should return null silently when registry returns 503', async () => {
       stubFetchWithStatus(503, 'Service Unavailable');
 

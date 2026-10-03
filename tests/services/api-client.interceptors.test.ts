@@ -472,7 +472,7 @@ describe('createApiClient - interceptor edges', () => {
 
 describe('createApiClient - HTTP debug logging and redaction', () => {
   let client: AxiosInstance;
-  let consoleDebugSpy: ReturnType<typeof spyOn>;
+  let consoleErrorSpy: ReturnType<typeof spyOn>;
   let originalDebug: string | undefined;
   let originalBbDebug: string | undefined;
 
@@ -488,17 +488,17 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
     originalDebug = process.env.DEBUG;
     originalBbDebug = process.env.BB_DEBUG;
     delete process.env.BB_DEBUG;
-    consoleDebugSpy = spyOn(console, 'debug').mockImplementation(() => {});
+    consoleErrorSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleDebugSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
     restoreEnv('DEBUG', originalDebug);
     restoreEnv('BB_DEBUG', originalBbDebug);
   });
 
   function debugLines(): string[] {
-    return consoleDebugSpy.mock.calls.map((args) =>
+    return consoleErrorSpy.mock.calls.map((args) =>
       args.map((a) => String(a)).join(' ')
     );
   }
@@ -607,7 +607,7 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
 
     await client.get('/test');
 
-    expect(consoleDebugSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('logs nothing on the request or error path when debugging is off', async () => {
@@ -624,7 +624,7 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
       // expected — we only care about the debug log absence
     }
 
-    expect(consoleDebugSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('handles circular references without infinite recursion', async () => {
@@ -697,7 +697,7 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
 
     await client.get('/test');
 
-    expect(consoleDebugSpy).not.toHaveBeenCalled();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
   });
 
   it('keeps one correlation id across status retries', async () => {
