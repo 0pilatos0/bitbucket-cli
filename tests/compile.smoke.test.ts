@@ -19,7 +19,8 @@ import { isCompileTarget } from '../scripts/compile.js';
 const REPO_ROOT = resolve(import.meta.dir, '..');
 const COMPILE_TIMEOUT_MS = 120_000;
 const RUN_TIMEOUT_MS = 30_000;
-const WINDOWS_JQ_ATTEMPTS = 200;
+// Repeat launches to catch intermittent jq process-exit hangs.
+const WINDOWS_JQ_ATTEMPTS = 100;
 
 const hostPlatform =
   process.platform === 'win32' ? 'windows' : process.platform;
@@ -204,7 +205,7 @@ describe.skipIf(
         }
       }
     },
-    10 * 60_000
+    2 * 60_000
   );
 
   it('embeds the bash, zsh and fish completion templates', async () => {

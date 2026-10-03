@@ -11,6 +11,82 @@ the standalone binaries, checksums, and release notes.
 Run `bb --version` to check your installed version. Follow
 [Installation](/getting-started/installation/) to update it.
 
+## 2.2.2: Windows jq runtime fix
+
+- Windows `--jq` now requires Bun 1.4.2 or newer, preventing hangs on older
+  runtimes. Standalone release binaries embed Bun 1.4.2.
+- Refreshed the API client with pull request mergeability checks and named
+  webhook event operations. Connect app property operations are deprecated.
+
+## 2.2.1: HTTP trace timing fix
+
+`BB_DEBUG` no longer reports a phantom `(waited 1ms)` when nothing delayed
+an HTTP request.
+
+## 2.2.0: Standalone binaries and new commands
+
+- Standalone executables for Linux and macOS on x64/arm64, and Windows on x64,
+  run without Bun, Node.js or npm. Releases include `SHA256SUMS` and build
+  provenance attestations.
+- New command groups cover branch restrictions, account SSH/GPG keys,
+  deployments, code search and webhooks. `bb repo cat` and `bb repo ls` read
+  repository contents without cloning; `bb repo downloads` manages artifacts.
+- `BB_DEBUG=http` traces requests and timing; `BB_DEBUG=verbose` also prints
+  redacted bodies. `BB_DEBUG=off` silences debug output.
+- Interactive terminals prompt for missing input and destructive-action
+  confirmation. Pipes, CI, `--json`, `--no-input` and `BB_PROMPT_DISABLED`
+  keep flag-only behavior.
+- Shell completion templates are embedded in the executable. Early stdout
+  closure on macOS no longer prints an ENOTCONN crash report.
+
+## 2.1.1: API client refresh
+
+Refreshed the pinned Bitbucket Cloud spec and generated API client, including
+removal of the unused, deprecated `GET /repositories` operation.
+
+## 2.1.0: Full upstream API errors
+
+`bb api` prints upstream error bodies to stderr, honors `--include` on failures,
+and includes upstream headers and status text in JSON errors. Plain-text error
+bodies become the error message. Error bodies bypass field projection and jq.
+
+## 2.0.0: Removed Bitbucket issue tracker
+
+**Breaking changes:** `bb issue` and `bb browse --issue`, `--issues` and `--wiki`
+were removed after Bitbucket Cloud retired its native issues and wikis.
+`bb workspace list` now lists your memberships, with `SLUG`, `UUID` and `ADMIN`
+columns; its `--role` filter was removed. Update scripts using those commands
+or flags before upgrading.
+
+## 1.25.0: Faster pagination and bodyless requests
+
+- `--all` fetches up to four pages concurrently when the API reports a total
+  size, preserving page order. Request pacing uses rate-limit headers.
+- Bodyless POST and DELETE requests no longer send `Content-Type:
+  application/json`, avoiding upstream 400 errors for empty bodies.
+
+## 1.24.0: Command aliases
+
+`bb alias set`, `list` and `delete` manage aliases. Expansions support `$1`–`$9`
+placeholders and shell commands with a `!` prefix; aliases cannot shadow built-ins.
+
+## 1.23.2: Packaged jq fix
+
+The npm package now ships the jq WebAssembly asset beside the bundled CLI, so
+`--jq` works after installation. The bundle is minified with sourcemaps retained.
+
+## 1.23.1: API spec update automation
+
+Refreshed the generated API client and added pinned-spec update commands plus
+an automated upstream update check.
+
+## 1.23.0: Typo suggestions and remediation hints
+
+Mistyped commands and enum values get suggestions. Authentication and missing
+resource errors include remediation hints, including a `hint` field in JSON
+errors. `bb help <command>` works for nested commands, and `bb pr diff --color`
+rejects invalid values.
+
 ## Migrating from 1.x to 2.x
 
 Version 2.0 removed commands for Bitbucket Cloud features that Atlassian retired:
