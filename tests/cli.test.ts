@@ -800,8 +800,12 @@ describe('CLI command registration', () => {
 
     const completionCmd = requireCommand('completion');
     expect(completionCmd.commands.map((c) => c.name()).sort()).toEqual([
+      'bash',
+      'fish',
       'install',
+      'powershell',
       'uninstall',
+      'zsh',
     ]);
   });
 

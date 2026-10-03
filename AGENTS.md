@@ -186,6 +186,8 @@ bun run changeset    # Add a changeset (see Changesets below)
 ### Generated Code
 
 - `src/generated/**` is auto-generated; avoid manual edits
+- Generator options live in `openapitools.json`; it skips the API/model markdown docs and `git_push.sh`, so `src/generated/` holds only the client sources
+- `src/generated/api.ts` is several MB: never read it whole. Grep for `class <Name>Api` (or the method/interface name) and read a line range
 - The pinned spec `specs/bitbucket-cloud.json` is committed; `bun run generate:api` normalizes it via `scripts/normalize-spec.ts` (fixing upstream warts at the spec level) into a gitignored copy, then generates
 - Prefer spec-level fixes in `scripts/normalize-spec.ts` over output-level patches in `scripts/patch-generated.ts`
 - `.github/workflows/check-api-updates.yml` runs `check:api-updates` weekly and opens an issue when upstream drifts

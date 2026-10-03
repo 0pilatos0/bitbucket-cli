@@ -125,6 +125,14 @@ bb pr list -r myrepo  # Lists PRs in "myworkspace/myrepo"
 bb completion install
 ```
 
+On PowerShell (or to load the script yourself in any shell), print it with
+`bb completion <bash|zsh|fish|powershell>`; see
+[Completion Commands](/commands/completion/#bb-completion-shell).
+
+```powershell
+Add-Content $PROFILE 'bb completion powershell | Out-String | Invoke-Expression'
+```
+
 Restart your shell, then try:
 
 ```bash
