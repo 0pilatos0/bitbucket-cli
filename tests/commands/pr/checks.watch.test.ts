@@ -4,13 +4,18 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import { ChecksPRCommand } from '../../src/commands/pr/checks.command.js';
+import { ChecksPRCommand } from '../../../src/commands/pr/checks.command.js';
 import type {
   CommitStatusesApi,
   Commitstatus,
-} from '../../src/generated/api.js';
-import { BBError, ErrorCode } from '../../src/types/errors.js';
-import { createMockContextService, createMockOutputService } from '../setup.js';
+  PullrequestsApi,
+} from '../../../src/generated/api.js';
+import { BBError, ErrorCode } from '../../../src/types/errors.js';
+import {
+  createMockContextService,
+  createMockGitService,
+  createMockOutputService,
+} from '../../setup.js';
 
 function check(key: string, state: string): Commitstatus {
   return { type: 'commit_status', key, name: key, state } as Commitstatus;
@@ -57,7 +62,9 @@ function command(h: ReturnType<typeof harness>) {
     output,
     command: new ChecksPRCommand(
       h.api,
+      {} as PullrequestsApi,
       createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
+      createMockGitService(),
       output,
       h.sleep
     ),
