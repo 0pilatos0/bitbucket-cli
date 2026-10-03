@@ -21,7 +21,7 @@ bun test <file>      # Run a single test file (e.g., bun test tests/commands/rep
 COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
 # Type-checking / formatting
-bun run lint         # Type-check with tsc --noEmit
+bun run lint         # Type-check src, tests and scripts (tsc --noEmit)
 bun run format       # Prettier write
 bun run format:check # Prettier check
 

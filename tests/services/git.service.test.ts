@@ -29,7 +29,7 @@ const HERMETIC_GLOBAL_CONFIG = `[init]
     email = test@test.com
 `;
 
-function hermeticEnv(home: string): Record<string, string> {
+function hermeticEnv(home: string) {
   return {
     PATH: process.env.PATH ?? '',
     GIT_CONFIG_NOSYSTEM: '1',
@@ -87,7 +87,7 @@ async function gitOut(
 describe('GitService', () => {
   let testDir: string;
   let hermeticHome: string;
-  let env: Record<string, string>;
+  let env: ReturnType<typeof hermeticEnv>;
   let gitService: GitService;
 
   /** Init a repo in `cwd` with a first commit, using the hermetic identity. */

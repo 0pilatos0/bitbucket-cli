@@ -35,7 +35,7 @@ function stubFetchWithLatest(latest: string): { callCount: () => number } {
       statusText: 'OK',
       json: async () => ({ 'dist-tags': { latest } }),
     } as unknown as Response;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   return { callCount: () => calls };
 }
 
@@ -47,13 +47,13 @@ function stubFetchWithStatus(status: number, statusText = 'Error'): void {
       statusText,
       json: async () => ({}),
     } as unknown as Response;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 function stubFetchToThrow(error: Error): void {
   globalThis.fetch = (async () => {
     throw error;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 describe('isStandaloneBinary', () => {
@@ -234,7 +234,7 @@ describe('VersionService', () => {
     });
 
     it('should send Accept: application/json', async () => {
-      let capturedHeaders: HeadersInit | undefined;
+      let capturedHeaders: RequestInit['headers'];
       globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
         capturedHeaders = init?.headers;
         return {

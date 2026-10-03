@@ -120,6 +120,18 @@ function getTableRows(logs: string[]): string[][] {
   return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
 }
 
+interface RecordedPullrequestCalls {
+  lastCommentBody?: Record<string, unknown>;
+  lastCommentRequest?: Record<string, unknown>;
+  lastCommentEditBody?: Record<string, unknown>;
+  lastResolveRequest?: Record<string, unknown>;
+  lastResolveOptions?: Record<string, unknown>;
+  lastUnresolveRequest?: Record<string, unknown>;
+  lastCommentGetRequest?: Record<string, unknown>;
+  lastMergeBody?: Record<string, unknown>;
+  lastPutBody?: Record<string, unknown>;
+}
+
 // Mock PullrequestsApi factory - returns a partial mock that we cast to the full type
 function createMockPullrequestsApi(
   options: {
@@ -153,17 +165,7 @@ function createMockPullrequestsApi(
     onActivityCall?: (request: unknown, axiosOptions?: unknown) => void;
     onCommentsListCall?: (request: unknown, axiosOptions?: unknown) => void;
   } = {}
-): PullrequestsApi & {
-  lastCommentBody?: Record<string, unknown>;
-  lastCommentRequest?: Record<string, unknown>;
-  lastCommentEditBody?: Record<string, unknown>;
-  lastResolveRequest?: Record<string, unknown>;
-  lastResolveOptions?: Record<string, unknown>;
-  lastUnresolveRequest?: Record<string, unknown>;
-  lastCommentGetRequest?: Record<string, unknown>;
-  lastMergeBody?: Record<string, unknown>;
-  lastPutBody?: Record<string, unknown>;
-} {
+): PullrequestsApi & RecordedPullrequestCalls {
   const prs = options.pullRequests ?? [mockPullRequest];
   const allPullRequests = options.pullRequestPages
     ? options.pullRequestPages.flat()
@@ -189,7 +191,7 @@ function createMockPullrequestsApi(
     } as PullrequestComment,
   ];
 
-  const mockApi = {
+  const mockApi: RecordedPullrequestCalls & Record<string, unknown> = {
     async repositoriesWorkspaceRepoSlugPullrequestsGet(
       request: unknown,
       axiosOptions?: unknown
@@ -574,15 +576,7 @@ function createMockPullrequestsApi(
   };
 
   // Return the mock as PullrequestsApi - we only implement the methods we use
-  return mockApi as unknown as PullrequestsApi & {
-    lastCommentBody?: Record<string, unknown>;
-    lastCommentRequest?: Record<string, unknown>;
-    lastCommentEditBody?: Record<string, unknown>;
-    lastResolveRequest?: Record<string, unknown>;
-    lastResolveOptions?: Record<string, unknown>;
-    lastUnresolveRequest?: Record<string, unknown>;
-    lastCommentGetRequest?: Record<string, unknown>;
-  };
+  return mockApi as unknown as PullrequestsApi & RecordedPullrequestCalls;
 }
 
 function createMockCommitStatusesApi(
@@ -907,10 +901,10 @@ describe('ListPRsCommand', () => {
         id: 1,
         source: {
           branch: { name: 'feature' },
-        } as unknown as import('../../src/generated/api.js').PullrequestSource,
+        },
         destination: {
           branch: { name: 'main' },
-        } as unknown as import('../../src/generated/api.js').PullrequestDestination,
+        },
       },
     ];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -940,10 +934,10 @@ describe('ListPRsCommand', () => {
         id: 1,
         source: {
           branch: { name: 'feature' },
-        } as unknown as import('../../src/generated/api.js').PullrequestSource,
+        },
         destination: {
           branch: { name: 'main' },
-        } as unknown as import('../../src/generated/api.js').PullrequestDestination,
+        },
       },
     ];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -1559,8 +1553,8 @@ describe('ActivityPRCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows).toHaveLength(1);
-    expect(rows[0][1]).toBe('CR User');
-    expect(rows[0][2]).toContain('2024-03-01');
+    expect(rows[0]![1]).toBe('CR User');
+    expect(rows[0]![2]).toContain('2024-03-01');
   });
 });
 
@@ -4809,7 +4803,7 @@ describe('ListReviewersPRCommand', () => {
       reviewers: new Set([
         { display_name: 'Alice', account_id: 'acc-1' },
         { display_name: 'Bob', account_id: 'acc-2' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -4836,7 +4830,7 @@ describe('ListReviewersPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -4867,7 +4861,7 @@ describe('ListReviewersPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { display_name: 'Alice', account_id: 'acc-1' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -4897,7 +4891,7 @@ describe('ListReviewersPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -4927,7 +4921,9 @@ describe('ListReviewersPRCommand', () => {
     const prWithPartialReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set([{ type: 'user' }]) as Pullrequest['reviewers'],
+      reviewers: new Set([
+        { type: 'user' },
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithPartialReviewers],
@@ -4947,8 +4943,8 @@ describe('ListReviewersPRCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows.length).toBe(1);
-    expect(rows[0][0]).toBe('Unknown');
-    expect(rows[0][1]).toBe('');
+    expect(rows[0]![0]).toBe('Unknown');
+    expect(rows[0]![1]).toBe('');
   });
 });
 
@@ -4961,7 +4957,7 @@ describe('AddReviewerPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -4997,7 +4993,7 @@ describe('AddReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{existing-uuid}', display_name: 'Existing' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -5033,7 +5029,7 @@ describe('AddReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{same-uuid}', display_name: 'Same User' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -5065,7 +5061,7 @@ describe('AddReviewerPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -5132,7 +5128,7 @@ describe('RemoveReviewerPRCommand', () => {
       reviewers: new Set([
         { uuid: '{remove-uuid}', display_name: 'Remove Me' },
         { uuid: '{keep-uuid}', display_name: 'Keep Me' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -5168,7 +5164,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{only-uuid}', display_name: 'Only Reviewer' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithOneReviewer],
@@ -5204,7 +5200,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{other-uuid}', display_name: 'Other' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -5240,7 +5236,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{remove-uuid}', display_name: 'Remove Me' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],

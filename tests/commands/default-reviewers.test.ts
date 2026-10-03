@@ -101,6 +101,9 @@ function createContextService(): IContextService {
     async requireWorkspace() {
       return 'ws';
     },
+    async resolveWorkspaceFor() {
+      return 'ws';
+    },
   };
 }
 

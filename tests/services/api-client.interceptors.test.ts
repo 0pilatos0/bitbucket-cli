@@ -41,7 +41,7 @@ afterEach(() => {
 
 describe('createApiClient - 401 refresh replay', () => {
   it('re-sends the replayed request with the refreshed Bearer token', async () => {
-    const authHeaders: Array<string | undefined> = [];
+    const authHeaders: unknown[] = [];
     // Stateful mock: the store rotates to the new token on refresh, which is
     // what the request interceptor picks up when the 401 replay re-runs it.
     let currentToken = 'expired-token';
@@ -498,8 +498,8 @@ describe('createApiClient - HTTP debug logging and redaction', () => {
   });
 
   function debugLines(): string[] {
-    return consoleErrorSpy.mock.calls.map((args) =>
-      args.map((a) => String(a)).join(' ')
+    return consoleErrorSpy.mock.calls.map((args: unknown[]) =>
+      args.map((a: unknown) => String(a)).join(' ')
     );
   }
 

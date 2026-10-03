@@ -22,7 +22,7 @@ Common scripts (full list in [AGENTS.md](AGENTS.md#commands)):
 ```bash
 bun test              # run all tests
 bun run test:coverage # run tests with coverage (gated in CI on Linux)
-bun run lint          # type-check
+bun run lint          # type-check src, tests and scripts
 bun run format:check  # required by the pre-commit hook
 ```
 

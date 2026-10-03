@@ -181,7 +181,9 @@ describe('bootstrap()', () => {
       ServiceTokens.SharedApiAxios
     );
     // The shared instance is a singleton: resolving twice yields one object.
-    expect(container.resolve(ServiceTokens.SharedApiAxios)).toBe(shared);
+    expect(container.resolve<AxiosInstance>(ServiceTokens.SharedApiAxios)).toBe(
+      shared
+    );
 
     // Generated typescript-axios clients store the constructor's axios arg on
     // a protected `axios` property — assert identity through a cast.

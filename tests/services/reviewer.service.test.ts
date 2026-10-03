@@ -46,7 +46,7 @@ describe('extractReviewerUuids', () => {
   });
 
   it('should return empty array when reviewers is empty Set', () => {
-    const reviewers = new Set<Account>() as Pullrequest['reviewers'];
+    const reviewers = new Set<Account>() as unknown as Pullrequest['reviewers'];
     expect(extractReviewerUuids(reviewers)).toEqual([]);
   });
 
@@ -62,7 +62,7 @@ describe('extractReviewerUuids', () => {
     const reviewers = new Set([
       { type: 'user', uuid: '{uuid-1}' },
       { type: 'user', uuid: '{uuid-2}' },
-    ]) as Pullrequest['reviewers'];
+    ]) as unknown as Pullrequest['reviewers'];
     expect(extractReviewerUuids(reviewers)).toEqual(['{uuid-1}', '{uuid-2}']);
   });
 
@@ -93,8 +93,8 @@ describe('buildReviewersUpdateBody', () => {
     const body = buildReviewersUpdateBody(['{uuid-1}', '{uuid-2}']);
     expect(body.type).toBe('pullrequest');
     expect(body.reviewers).toHaveLength(2);
-    expect(body.reviewers![0].uuid).toBe('{uuid-1}');
-    expect(body.reviewers![1].uuid).toBe('{uuid-2}');
+    expect(body.reviewers![0]!.uuid).toBe('{uuid-1}');
+    expect(body.reviewers![1]!.uuid).toBe('{uuid-2}');
   });
 
   it('should create body with empty reviewers for empty uuid list', () => {
@@ -105,7 +105,7 @@ describe('buildReviewersUpdateBody', () => {
 
   it('should set type to user on each reviewer account', () => {
     const body = buildReviewersUpdateBody(['{uuid-1}']);
-    expect(body.reviewers![0].type).toBe('user');
+    expect(body.reviewers![0]!.type).toBe('user');
   });
 });
 
@@ -155,8 +155,8 @@ describe('updatePullRequestReviewers', () => {
     const body = lastPutBody()!;
     expect(body.type).toBe('pullrequest');
     expect(body.reviewers).toHaveLength(2);
-    expect(body.reviewers![0].uuid).toBe('{existing}');
-    expect(body.reviewers![1].uuid).toBe('{new-uuid}');
+    expect(body.reviewers![0]!.uuid).toBe('{existing}');
+    expect(body.reviewers![1]!.uuid).toBe('{new-uuid}');
   });
 
   it('should remove a uuid via transform', async () => {
@@ -175,7 +175,7 @@ describe('updatePullRequestReviewers', () => {
 
     const body = lastPutBody()!;
     expect(body.reviewers).toHaveLength(1);
-    expect(body.reviewers![0].uuid).toBe('{keep}');
+    expect(body.reviewers![0]!.uuid).toBe('{keep}');
   });
 
   it('should handle empty reviewer list', async () => {
@@ -189,7 +189,7 @@ describe('updatePullRequestReviewers', () => {
 
     const body = lastPutBody()!;
     expect(body.reviewers).toHaveLength(1);
-    expect(body.reviewers![0].uuid).toBe('{first}');
+    expect(body.reviewers![0]!.uuid).toBe('{first}');
   });
 
   it('should handle undefined reviewers on PR', async () => {
@@ -203,7 +203,7 @@ describe('updatePullRequestReviewers', () => {
 
     const body = lastPutBody()!;
     expect(body.reviewers).toHaveLength(1);
-    expect(body.reviewers![0].uuid).toBe('{added}');
+    expect(body.reviewers![0]!.uuid).toBe('{added}');
   });
 
   it('should handle Set-based reviewers', async () => {
@@ -211,7 +211,7 @@ describe('updatePullRequestReviewers', () => {
       ...basePr,
       reviewers: new Set([
         { type: 'user', uuid: '{set-uuid}' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const { api, lastPutBody } = createMockPullrequestsApi(pr);
 
@@ -219,7 +219,7 @@ describe('updatePullRequestReviewers', () => {
 
     const body = lastPutBody()!;
     expect(body.reviewers).toHaveLength(1);
-    expect(body.reviewers![0].uuid).toBe('{set-uuid}');
+    expect(body.reviewers![0]!.uuid).toBe('{set-uuid}');
   });
 
   it('should return the updated PR data', async () => {

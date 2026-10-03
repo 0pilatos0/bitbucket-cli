@@ -10,6 +10,7 @@ import {
   redactRequestUrl,
   redactSensitive,
   resolveHttpDebugLevel,
+  type HttpDebugLevel,
 } from '../../src/services/http-debug.js';
 
 const BASE = 'https://api.bitbucket.org/2.0';
@@ -57,27 +58,28 @@ function withEnv(
 }
 
 describe('resolveHttpDebugLevel', () => {
-  const cases: Array<[string | undefined, string | undefined, string]> = [
-    [undefined, undefined, 'off'],
-    ['http', undefined, 'http'],
-    ['verbose', undefined, 'verbose'],
-    [' HTTP ', undefined, 'http'],
-    ['Verbose', undefined, 'verbose'],
-    [undefined, 'true', 'verbose'],
-    [undefined, '1', 'off'],
-    [undefined, 'TRUE', 'off'],
-    ['', 'true', 'verbose'],
-    ['http', 'true', 'http'],
-    ['off', 'true', 'off'],
-    ['1', undefined, 'http'],
-    ['true', undefined, 'http'],
-    ['ON', undefined, 'http'],
-    ['nonsense', 'true', 'http'],
-    ['0', 'true', 'off'],
-    ['false', undefined, 'off'],
-    ['no', undefined, 'off'],
-    [' None ', 'true', 'off'],
-  ];
+  const cases: Array<[string | undefined, string | undefined, HttpDebugLevel]> =
+    [
+      [undefined, undefined, 'off'],
+      ['http', undefined, 'http'],
+      ['verbose', undefined, 'verbose'],
+      [' HTTP ', undefined, 'http'],
+      ['Verbose', undefined, 'verbose'],
+      [undefined, 'true', 'verbose'],
+      [undefined, '1', 'off'],
+      [undefined, 'TRUE', 'off'],
+      ['', 'true', 'verbose'],
+      ['http', 'true', 'http'],
+      ['off', 'true', 'off'],
+      ['1', undefined, 'http'],
+      ['true', undefined, 'http'],
+      ['ON', undefined, 'http'],
+      ['nonsense', 'true', 'http'],
+      ['0', 'true', 'off'],
+      ['false', undefined, 'off'],
+      ['no', undefined, 'off'],
+      [' None ', 'true', 'off'],
+    ];
 
   for (const [bbDebug, debug, expected] of cases) {
     it(`BB_DEBUG=${JSON.stringify(bbDebug)} DEBUG=${JSON.stringify(debug)} -> ${expected}`, () => {
@@ -112,8 +114,8 @@ describe('createHttpDebugLogger', () => {
   });
 
   function lines(): string[] {
-    return consoleErrorSpy.mock.calls.map((args) =>
-      args.map((a) => String(a)).join(' ')
+    return consoleErrorSpy.mock.calls.map((args: unknown[]) =>
+      args.map((a: unknown) => String(a)).join(' ')
     );
   }
 
@@ -495,7 +497,7 @@ describe('redactSensitive', () => {
     // and never share references, but the guard must stay bounded anyway.
     const inner: Record<string, unknown> = { token: 'x' };
     const arr = [inner, inner];
-    const result = redactSensitive(arr) as Array<Record<string, unknown>>;
+    const result = redactSensitive(arr) as unknown[];
     expect(result[0]).toEqual({ token: '[REDACTED]' });
     expect(result[1]).toBe('[Circular]');
   });

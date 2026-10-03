@@ -2,6 +2,7 @@
  * CLI helper tests
  */
 
+import type { EventEmitter } from 'node:events';
 import { describe, it, expect, afterEach } from 'bun:test';
 import type { Command } from 'commander';
 import {
@@ -144,7 +145,11 @@ describe('withGlobalOptions', () => {
   });
 
   it('should handle undefined values in local options', () => {
-    const options = { workspace: undefined, repo: undefined, limit: '5' };
+    const options: { workspace?: string; repo?: string; limit: string } = {
+      workspace: undefined,
+      repo: undefined,
+      limit: '5',
+    };
     const context: CommandContext = {
       globalOptions: { workspace: 'fallback-workspace', repo: 'fallback-repo' },
     };
@@ -790,7 +795,8 @@ describe('CLI command registration', () => {
     const leaves = collectLeafCommands(cli);
     const missing: string[] = [];
     for (const leaf of leaves) {
-      if (leaf.listenerCount('afterHelp') < 1) {
+      // Command extends EventEmitter at runtime; its typings omit that.
+      if ((leaf as unknown as EventEmitter).listenerCount('afterHelp') < 1) {
         missing.push(leaf.name());
         continue;
       }

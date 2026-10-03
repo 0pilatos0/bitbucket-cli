@@ -913,6 +913,7 @@ describe('pipeline shared helpers', () => {
   it('prefers the API-reported step duration over timestamps', () => {
     expect(
       getStepDurationSeconds({
+        type: 'pipeline_step',
         duration_in_seconds: 17,
         started_on: '2026-01-01T00:00:00Z',
         completed_on: '2026-01-01T01:00:00Z',
@@ -923,6 +924,7 @@ describe('pipeline shared helpers', () => {
   it('falls back to the started/completed timestamp delta', () => {
     expect(
       getStepDurationSeconds({
+        type: 'pipeline_step',
         started_on: '2026-01-01T00:00:00Z',
         completed_on: '2026-01-01T00:01:30Z',
       })
@@ -930,9 +932,10 @@ describe('pipeline shared helpers', () => {
   });
 
   it('returns undefined when timestamps are missing or unparsable', () => {
-    expect(getStepDurationSeconds({})).toBeUndefined();
+    expect(getStepDurationSeconds({ type: 'pipeline_step' })).toBeUndefined();
     expect(
       getStepDurationSeconds({
+        type: 'pipeline_step',
         started_on: 'not-a-date',
         completed_on: 'also-not-a-date',
       })

@@ -47,7 +47,7 @@ describe('suggestSimilar', () => {
     it('returns the candidate spelling, never the user input', () => {
       // Whatever comes back must be pasteable as-is.
       for (const match of suggestSimilar('opne', PR_STATES)) {
-        expect(PR_STATES).toContain(match);
+        expect<readonly string[]>(PR_STATES).toContain(match);
       }
     });
 

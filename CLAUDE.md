@@ -19,7 +19,7 @@ See [AGENTS.md](AGENTS.md) for full coding conventions, DI patterns, and command
 ```bash
 bun test                             # Run all tests
 bun test tests/commands/foo.test.ts  # Single test file
-bun run lint                         # Type-check (tsc --noEmit)
+bun run lint                         # Type-check src, tests and scripts (tsc --noEmit)
 bun run format                       # Prettier write
 bun run format:check                 # Prettier check (runs on pre-commit)
 bun run build                        # Build CLI to dist/

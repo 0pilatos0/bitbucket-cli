@@ -499,7 +499,7 @@ export const mockRepository: Repository = {
       { name: 'https', href: 'https://bitbucket.org/workspace/repo.git' },
     ],
     avatar: { href: 'https://avatar.bitbucket.org/repo' },
-  } as unknown as import('../src/generated/api.js').RepositoryLinks,
+  },
   owner: mockUser,
   workspace: {
     type: 'workspace',
@@ -509,7 +509,7 @@ export const mockRepository: Repository = {
     links: {
       html: { href: 'https://bitbucket.org/workspace' },
       avatar: { href: 'https://avatar.bitbucket.org/workspace' },
-    } as unknown as import('../src/generated/api.js').WorkspaceLinks,
+    },
   },
 };
 
@@ -523,14 +523,14 @@ export const mockPullRequest: Pullrequest = {
   author: mockUser,
   source: {
     branch: { name: 'feature-branch' },
-    repository: { full_name: 'workspace/repo' },
+    repository: { type: 'repository', full_name: 'workspace/repo' },
     commit: { hash: 'abc123' },
-  } as unknown as import('../src/generated/api.js').PullrequestSource,
+  },
   destination: {
     branch: { name: 'main' },
-    repository: { full_name: 'workspace/repo' },
+    repository: { type: 'repository', full_name: 'workspace/repo' },
     commit: { hash: 'def456' },
-  } as unknown as import('../src/generated/api.js').PullrequestDestination,
+  },
   created_on: '2024-01-01T00:00:00.000Z',
   updated_on: '2024-01-02T00:00:00.000Z',
   close_source_branch: false,
@@ -554,7 +554,7 @@ export const mockPullRequest: Pullrequest = {
     merge: {
       href: 'https://api.bitbucket.org/2.0/repositories/workspace/repo/pullrequests/1/merge',
     },
-  } as unknown as import('../src/generated/api.js').PullrequestLinks,
+  },
   participants: [],
   reviewers: [],
 };
@@ -663,7 +663,7 @@ export function createMockAdapter(
     const idx = callCount;
     callCount++;
     options.onRequest?.(config);
-    const resp = responses[idx] ?? responses[responses.length - 1];
+    const resp = responses[idx] ?? responses[responses.length - 1]!;
     return resolveMockResponse(config, resp);
   };
 
@@ -775,7 +775,7 @@ export function createUrlKeyedAdapter(routes: Record<string, MockResponse[]>): {
     const idx = callCounts[url] ?? 0;
     callCounts[url] = idx + 1;
     const queue = routes[url] ?? [];
-    const resp = queue[idx] ?? queue[queue.length - 1];
+    const resp = queue[idx] ?? queue[queue.length - 1]!;
     return resolveMockResponse(config, resp);
   };
   return {

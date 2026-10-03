@@ -3,7 +3,7 @@
  * Simple IoC container for managing service dependencies
  */
 
-type Constructor<T> = new (...args: unknown[]) => T;
+type Constructor<T> = new (...args: never[]) => T;
 type Factory<T> = () => T;
 
 interface ServiceRegistration<T> {
@@ -70,7 +70,9 @@ export class Container {
     this.services.set(token, {
       factory: () => {
         const deps = dependencies.map((dep) => this.resolve(dep));
-        return new constructor(...deps);
+        // Token-resolved deps can't be checked against the constructor's
+        // parameter types, so widen it to accept them.
+        return new (constructor as new (...args: unknown[]) => T)(...deps);
       },
       singleton: options.singleton ?? true,
     });

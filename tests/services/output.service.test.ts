@@ -725,7 +725,7 @@ describe('OutputService', () => {
       (helper, code) => {
         const result = (
           colorOutput as unknown as Record<string, (t: string) => string>
-        )[helper]('hello');
+        )[helper]!('hello');
         expect(result).toContain('hello');
         expect(result).toContain(`\u001b[${code}m`);
         expect(result).toContain('\u001b[39m'); // color reset
@@ -795,7 +795,7 @@ describe('OutputService', () => {
       expect(headerLine).toContain('BBBB');
       expect(separator).toMatch(/^-+  -+$/);
       // All rows should share the same printed length because of padding.
-      expect(row1.length).toBe(row2.length);
+      expect(row1!.length).toBe(row2!.length);
     });
   });
 
@@ -831,7 +831,7 @@ describe('OutputService', () => {
           consoleErrors.length = 0;
           consoleWarns.length = 0;
 
-          (output as unknown as Record<string, (m: string) => void>)[method](
+          (output as unknown as Record<string, (m: string) => void>)[method]!(
             payload
           );
 
