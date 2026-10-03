@@ -31,7 +31,7 @@
     "build:binary": "bun scripts/compile.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && oxlint --deny-warnings",
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -44,10 +44,11 @@
     "changeset": "changeset",
     "version": "changeset version",
     "release": "bun run build && changeset publish",
+    "prepare": "simple-git-hooks",
     "prepublishOnly": "bun run build"
   },
   "simple-git-hooks": {
-    "pre-commit": "bun run format:check"
+    "pre-commit": "bun run format:check && bun run lint && bun run lint:docs"
   },
   "dependencies": {
     "axios": "^1.20.0",
@@ -67,6 +68,7 @@
     "@types/bun": "^1.4.2",
     "@types/node": "^26.6.2",
     "jq-wasm": "^3.0.0-jq-1.8.2",
+    "oxlint": "^1.86.0",
     "prettier": "^3.9.8",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^7.0.2"

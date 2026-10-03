@@ -1,0 +1,42 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "options": {
+    "reportUnusedDisableDirectives": "error"
+  },
+  "ignorePatterns": ["src/generated/**", "docs/**", "dist/**", "coverage/**"],
+  "rules": {
+    "no-console": "error",
+    "typescript/no-explicit-any": "error",
+    "import/extensions": ["error", "always", { "ignorePackages": true }],
+    // noUncheckedIndexedAccess makes `!` the idiomatic narrowing for regex
+    // groups and bounds-checked indexes, so it stays allowed.
+    "typescript/no-non-null-assertion": "off",
+    // tsc already resolves every named and namespace import.
+    "import/namespace": "off"
+  },
+  "overrides": [
+    {
+      // Terminal writers: the output service, the stderr HTTP tracer, and the
+      // entrypoint's runtime guard (which runs before any service can load).
+      "files": [
+        "src/services/output.service.ts",
+        "src/services/http-debug.ts",
+        "src/index.ts"
+      ],
+      "rules": { "no-console": "off" }
+    },
+    {
+      "files": ["scripts/**"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      // Typed test fakes would replace these casts; until then they stay.
+      "files": ["tests/**"],
+      "rules": { "no-console": "off", "typescript/no-explicit-any": "off" }
+    }
+  ]
+}

@@ -407,9 +407,11 @@ export class OAuthService {
           // tell debug users why nothing opened.
           if (isDebugEnabled()) {
             const message = err instanceof Error ? err.message : String(err);
+            // eslint-disable-next-line no-console -- debug note on stderr
             console.error(`[oauth] could not open browser: ${message}`);
           }
         }
+        // eslint-disable-next-line no-console -- keeps stdout clean while login waits
         console.error(`If the browser doesn't open, visit:\n${authUrl}\n`);
       });
     });

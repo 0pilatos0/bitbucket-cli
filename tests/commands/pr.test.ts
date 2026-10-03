@@ -281,7 +281,7 @@ function createMockPullrequestsApi(
       });
     },
 
-    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdApprovePost(params: {
+    async repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdApprovePost(_params: {
       pullRequestId: number;
     }) {
       if (options.throwOnApprove) {

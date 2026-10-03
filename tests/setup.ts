@@ -25,8 +25,6 @@ import type {
   AuthCredentials,
   OAuthCredentials,
   AuthMethod,
-  RepoContext,
-  GlobalOptions,
 } from '../src/types/config.js';
 
 const originalNodeEnv = process.env.NODE_ENV;

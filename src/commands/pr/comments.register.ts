@@ -74,7 +74,7 @@ export function registerPrCommentsCommands(
         ],
       })
     )
-    .action(async (prId, commentId, message, options) => {
+    .action(async (prId, commentId, message) => {
       await registrar.runWithGlobalOptions(ServiceTokens.EditCommentPRCommand, {
         prId,
         commentId,

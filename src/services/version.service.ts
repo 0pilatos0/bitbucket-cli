@@ -93,6 +93,7 @@ export class VersionService {
       // "why am I not seeing the update banner?" can see the cause.
       if (isDebugEnabled()) {
         const message = error instanceof Error ? error.message : String(error);
+        // eslint-disable-next-line no-console -- debug note on stderr
         console.error(`[version-check] skipped: ${message}`);
       }
       return null;
