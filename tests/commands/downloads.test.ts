@@ -13,6 +13,8 @@ import {
   createMockOutputService,
   createMockPromptService,
 } from '../setup.js';
+import { getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const mockDownloads = [
   {
@@ -43,7 +45,7 @@ function createMockDownloadsApi(options: { deleteNotFound?: boolean } = {}): {
   recorded: Recorded;
 } {
   const recorded: Recorded = { listParams: [] };
-  const api = {
+  const api = fakeApi<DownloadsApi>({
     repositoriesWorkspaceRepoSlugDownloadsGet: async (
       _request: unknown,
       axiosOptions?: { params?: { page: number; pagelen: number } }
@@ -87,21 +89,12 @@ function createMockDownloadsApi(options: { deleteNotFound?: boolean } = {}): {
       recorded.deleted = request;
       return { data: undefined };
     },
-  } as unknown as DownloadsApi;
+  });
   return { api, recorded };
 }
 
 function repoContextService() {
   return createMockContextService({ workspace: 'workspace', repoSlug: 'repo' });
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
 }
 
 describe('ListDownloadsCommand', () => {

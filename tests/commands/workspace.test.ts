@@ -12,6 +12,8 @@ import type {
   WorkspaceAccess,
   WorkspacesApi,
 } from '../../src/generated/api.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const mockWorkspace: Workspace = {
   type: 'workspace',
@@ -41,23 +43,6 @@ const mockAccess = (
   workspace: { type: 'workspace', slug, uuid },
 });
 
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
 function createMockWorkspacesApi(
   options: {
     access?: WorkspaceAccess[];
@@ -68,7 +53,7 @@ function createMockWorkspacesApi(
 ): WorkspacesApi {
   const access = options.access ?? [mockAccess('acme', '{ws-uuid}', true)];
 
-  return {
+  return fakeApi<WorkspacesApi>({
     userWorkspacesGet: async (request: unknown, axiosOptions?: unknown) => {
       options.onListCall?.(request, axiosOptions);
       const params = (
@@ -98,7 +83,7 @@ function createMockWorkspacesApi(
       options.onViewCall?.(request);
       return { data: mockWorkspace };
     },
-  } as unknown as WorkspacesApi;
+  });
 }
 
 describe('ListWorkspacesCommand', () => {

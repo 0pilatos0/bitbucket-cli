@@ -185,7 +185,7 @@ export class OutputService implements IOutputService {
     const { fields, jq, rawOutput, lean } = this.jsonFormatOptions;
     // Pretty for people reading a terminal, compact for pipes, files, and
     // agents, where indentation is only extra bytes to parse.
-    const pretty = !!process.stdout.isTTY;
+    const pretty = !!this.terminal.isTTY;
 
     let result: unknown = data;
     if (fields && fields.length > 0) {

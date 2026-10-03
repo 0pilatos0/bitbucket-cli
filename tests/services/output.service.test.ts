@@ -118,20 +118,12 @@ describe('OutputService', () => {
   });
 
   describe('json', () => {
-    const originalIsTTY = process.stdout.isTTY;
     const setStdoutTTY = (value: boolean): void => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value,
-        configurable: true,
-      });
+      terminal.isTTY = value;
     };
 
     beforeEach(() => {
       setStdoutTTY(false);
-    });
-
-    afterEach(() => {
-      setStdoutTTY(originalIsTTY);
     });
 
     it('pretty-prints JSON when stdout is a terminal', async () => {
