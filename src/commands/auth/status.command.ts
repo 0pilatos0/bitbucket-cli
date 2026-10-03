@@ -10,6 +10,7 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { UsersApi } from '../../generated/api.js';
+import { DEFAULT_ACCOUNT } from '../../services/credential-store.service.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
 export interface AuthStatus {
@@ -54,14 +55,16 @@ export class StatusCommand extends BaseCommand<void, void> {
         return;
       }
 
+      const login =
+        account === DEFAULT_ACCOUNT
+          ? 'bb auth login'
+          : `bb auth login --account ${account}`;
       this.output.info(
         accounts.length > 0
           ? `Not logged in to account '${account}'`
           : 'Not logged in'
       );
-      this.output.text(
-        `Run ${this.output.highlight('bb auth login')} to authenticate.`
-      );
+      this.output.text(`Run ${this.output.highlight(login)} to authenticate.`);
       this.printOtherAccounts(otherAccounts);
       return;
     }

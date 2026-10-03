@@ -202,15 +202,19 @@ export class ConfigService implements IConfigService {
     return config[key];
   }
 
+  public async updateConfig(
+    update: (config: BBConfig) => BBConfig
+  ): Promise<void> {
+    // Another bb process may have written since this one cached the file.
+    this.configCache = null;
+    await this.setConfig(update(await this.getConfig()));
+  }
+
   public async setValue<K extends keyof BBConfig>(
     key: K,
     value: BBConfig[K]
   ): Promise<void> {
-    const config = await this.getConfig();
-    await this.setConfig({
-      ...config,
-      [key]: value,
-    });
+    await this.updateConfig((config) => ({ ...config, [key]: value }));
   }
 
   public getConfigPath(): string {

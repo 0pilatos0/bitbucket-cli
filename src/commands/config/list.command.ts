@@ -40,9 +40,8 @@ export class ListConfigCommand extends BaseCommand<void, void> {
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const config = await this.configService.getConfig();
-    const accountName = await this.credentialStore.getAccountName();
     const account = (await this.credentialStore.listAccounts()).find(
-      (summary) => summary.name === accountName
+      (summary) => summary.current
     );
 
     // Build display config with masked password

@@ -159,11 +159,13 @@ export class CredentialStore implements ICredentialStore {
   }
 
   public async listAccounts(): Promise<AccountSummary[]> {
+    const current = await this.getAccountName();
     const { accounts, activeAccount = DEFAULT_ACCOUNT } =
       await this.readState();
     return Object.entries(accounts).map(([name, account]) => ({
       name,
       active: name === activeAccount,
+      current: name === current,
       authMethod: account.authMethod,
       username: account.username,
       storage: account.storage ?? 'file',
@@ -172,10 +174,9 @@ export class CredentialStore implements ICredentialStore {
 
   public async switchAccount(name: string): Promise<void> {
     validateAccountName(name);
-    const config = await this.configService.getConfig();
-    const state = toAccountsState(config);
-    if (!findAccount(state.accounts, name)) {
-      const known = Object.keys(state.accounts);
+    const { accounts } = await this.readState();
+    if (!findAccount(accounts, name)) {
+      const known = Object.keys(accounts);
       throw new BBError({
         code: ErrorCode.VALIDATION_INVALID,
         message:
@@ -186,7 +187,7 @@ export class CredentialStore implements ICredentialStore {
         context: { account: name },
       });
     }
-    await this.writeState(config, { ...state, activeAccount: name });
+    await this.writeAccounts((state) => ({ ...state, activeAccount: name }));
   }
 
   public async setStorage(storage: CredentialStorage): Promise<number> {
@@ -339,14 +340,22 @@ export class CredentialStore implements ICredentialStore {
     update: (account: AccountConfig) => AccountConfig
   ): Promise<void> {
     const name = await this.getAccountName();
-    await this.saveAccount(name, update((await this.currentAccount()) ?? {}));
+    // Clearing an account needs none of its secrets, so logout still works
+    // when the keychain cannot be read.
+    const cleared = !hasCredentialFields(
+      update((await this.currentRecord()) ?? {})
+    );
+    await this.saveAccount(
+      name,
+      cleared ? {} : update((await this.currentAccount()) ?? {})
+    );
   }
 
   /**
-   * Write one account in `storage` (default: the `credentialStorage`
-   * setting). An account left without credentials is removed. Secrets are
-   * written to their new home before the old copy goes, so a failure midway
-   * never loses them.
+   * Write one account in `storage`, by default the storage it already uses
+   * (else the `credentialStorage` setting), so a half-finished `setStorage`
+   * never sends keychain secrets back to the file. An account left without
+   * credentials is removed.
    */
   private async saveAccount(
     name: string,
@@ -354,42 +363,62 @@ export class CredentialStore implements ICredentialStore {
     storage?: CredentialStorage
   ): Promise<void> {
     const config = await this.configService.getConfig();
-    const state = toAccountsState(config);
-    const previous = findAccount(state.accounts, name);
+    const previous = findAccount(toAccountsState(config).accounts, name);
     const fields = omit(account, ['storage']);
-    const accounts = { ...state.accounts };
+    const target = storage ?? previous?.storage ?? config.credentialStorage;
 
-    if (!hasCredentialFields(fields)) {
-      delete accounts[name];
-    } else if ((storage ?? config.credentialStorage) === 'keychain') {
+    let record: AccountConfig | undefined;
+    if (hasCredentialFields(fields) && target === 'keychain') {
       const secrets = pick(fields, SECRET_FIELDS);
       await this.keychain.set(name, JSON.stringify(secrets));
       this.secretCache.set(name, secrets);
-      accounts[name] = { ...omit(fields, SECRET_FIELDS), storage: 'keychain' };
-    } else {
-      accounts[name] = fields;
+      record = { ...omit(fields, SECRET_FIELDS), storage: 'keychain' };
+    } else if (hasCredentialFields(fields)) {
+      record = fields;
     }
 
-    await this.writeState(config, { ...state, accounts });
-
-    if (
-      previous?.storage === 'keychain' &&
-      accounts[name]?.storage !== 'keychain'
-    ) {
-      await this.keychain.delete(name);
-      this.secretCache.delete(name);
+    // Order keeps a copy findable on failure: a removed account's entry goes
+    // before its file record (so logout can be retried), while secrets moving
+    // to the file are written there before the keychain copy goes.
+    const leavesKeychain =
+      previous?.storage === 'keychain' && record?.storage !== 'keychain';
+    if (leavesKeychain && !record) {
+      await this.deleteSecrets(name);
+    }
+    await this.writeAccounts((state) => {
+      const accounts = { ...state.accounts };
+      if (record) {
+        accounts[name] = record;
+      } else {
+        delete accounts[name];
+      }
+      return { ...state, accounts };
+    });
+    if (leavesKeychain && record) {
+      await this.deleteSecrets(name);
     }
   }
 
-  /** Persist accounts, dropping any pre-account top-level credentials. */
-  private async writeState(
-    config: BBConfig,
-    state: AccountsState
+  private async deleteSecrets(name: string): Promise<void> {
+    await this.keychain.delete(name);
+    this.secretCache.delete(name);
+  }
+
+  /**
+   * Apply `update` to the accounts in a fresh read of the config, dropping any
+   * pre-account top-level credentials. The fresh read keeps a parallel bb
+   * process that refreshed another account from being overwritten.
+   */
+  private async writeAccounts(
+    update: (state: AccountsState) => AccountsState
   ): Promise<void> {
-    await this.configService.setConfig({
-      ...omit(config, ACCOUNT_FIELDS),
-      accounts: state.accounts,
-      activeAccount: state.activeAccount,
+    await this.configService.updateConfig((config) => {
+      const state = update(toAccountsState(config));
+      return {
+        ...omit(config, ACCOUNT_FIELDS),
+        accounts: state.accounts,
+        activeAccount: state.activeAccount,
+      };
     });
   }
 

@@ -1091,6 +1091,25 @@ describe('multiple accounts', () => {
     ).toBe(true);
   });
 
+  it('status points a missing account at login --account', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+    configService.useAccount('ci');
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      createMockUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: {} });
+
+    expect(output.logs).toContain("info:Not logged in to account 'ci'");
+    expect(
+      output.logs.some((log) => log.includes('bb auth login --account ci'))
+    ).toBe(true);
+  });
+
   it('status --json reports the current and saved accounts', async () => {
     const configService = createMockConfigService(TWO_ACCOUNTS);
     const output = createMockOutputService();

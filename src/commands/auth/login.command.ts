@@ -79,20 +79,22 @@ export class LoginCommand extends BaseCommand<LoginOptions, void> {
   ): Promise<void> {
     this.output.info('Opening browser to authenticate with Bitbucket...');
 
+    let userInfo;
     try {
-      const userInfo = await this.oauthService.authorize(
+      userInfo = await this.oauthService.authorize(
         options.clientId,
         options.clientSecret
       );
-      await this.reportLogin(context, 'oauth', {
-        username: userInfo.username,
-        displayName: userInfo.displayName,
-        accountId: userInfo.accountId,
-      });
     } catch (error) {
       await this.credentialStore.clearOAuthCredentials();
       throw error;
     }
+
+    await this.reportLogin(context, 'oauth', {
+      username: userInfo.username,
+      displayName: userInfo.displayName,
+      accountId: userInfo.accountId,
+    });
   }
 
   private async loginWithApiToken(

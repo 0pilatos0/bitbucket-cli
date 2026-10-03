@@ -25,7 +25,7 @@ export class LogoutCommand extends BaseCommand<void, void> {
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const account = await this.credentialStore.getAccountName();
     const wasActive = (await this.credentialStore.listAccounts()).some(
-      (summary) => summary.name === account && summary.active
+      (summary) => summary.current && summary.active
     );
     const authMethod = await this.credentialStore.getAuthMethod();
 

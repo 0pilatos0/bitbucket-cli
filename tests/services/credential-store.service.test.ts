@@ -271,6 +271,7 @@ describe('CredentialStore', () => {
         {
           name: 'default',
           active: true,
+          current: true,
           authMethod: 'basic',
           username: 'work@x.com',
           storage: 'file',
@@ -278,6 +279,7 @@ describe('CredentialStore', () => {
         {
           name: 'personal',
           active: false,
+          current: false,
           authMethod: 'basic',
           username: 'me@y.com',
           storage: 'file',
@@ -396,6 +398,92 @@ describe('CredentialStore', () => {
       expect(config.accounts?.default?.apiToken).toBe('t');
       expect(config.credentialStorage).toBeUndefined();
     });
+
+    it('keeps a moved account in the keychain after a partial move', async () => {
+      const store = createStore(
+        {},
+        {
+          ...secrets,
+          async set(account, value) {
+            if (account === 'other') throw new Error('keychain locked');
+            await secrets.set(account, value);
+          },
+        }
+      );
+      await store.setCredentials({ username: 'u', apiToken: 'secret-1' });
+      store.useAccount('other');
+      await store.setCredentials({ username: 'v', apiToken: 'secret-2' });
+      await expect(store.setStorage('keychain')).rejects.toThrow();
+
+      store.useAccount('default');
+      await store.setCredentials({ username: 'u', apiToken: 'rotated' });
+
+      expect(
+        await readFile(join(configDir, 'config.json'), 'utf-8')
+      ).not.toContain('rotated');
+      expect(secrets.entries.get('default')).toContain('rotated');
+    });
+
+    it('logs out without reading an unreadable keychain', async () => {
+      await configService.setValue('credentialStorage', 'keychain');
+      await createStore().setCredentials({ username: 'u', apiToken: 't' });
+      const store = createStore(
+        {},
+        {
+          ...secrets,
+          async get() {
+            throw new Error('keychain locked');
+          },
+        }
+      );
+
+      await store.clearCredentials();
+
+      expect(await store.listAccounts()).toEqual([]);
+      expect(secrets.entries.size).toBe(0);
+    });
+
+    it('keeps the account when its keychain entry cannot be deleted, so logout can be retried', async () => {
+      await configService.setValue('credentialStorage', 'keychain');
+      await createStore().setCredentials({ username: 'u', apiToken: 't' });
+      const failing = createStore(
+        {},
+        {
+          ...secrets,
+          async delete() {
+            throw new Error('keychain locked');
+          },
+        }
+      );
+
+      await expect(failing.clearCredentials()).rejects.toThrow(
+        'keychain locked'
+      );
+      expect((await readConfigFile()).accounts?.default?.storage).toBe(
+        'keychain'
+      );
+
+      await createStore().clearCredentials();
+      expect(secrets.entries.size).toBe(0);
+    });
+  });
+
+  it('does not overwrite an account another process saved meanwhile', async () => {
+    const work = createStore({ BB_ACCOUNT: 'work' });
+    const personal = new CredentialStore(
+      new ConfigService(configDir),
+      secrets,
+      { BB_ACCOUNT: 'personal' }
+    );
+    await work.setCredentials({ username: 'w', apiToken: 'w1' });
+    expect(await personal.hasCredentials()).toBe(false);
+
+    await work.setCredentials({ username: 'w', apiToken: 'w2' });
+    await personal.setCredentials({ username: 'p', apiToken: 'p1' });
+
+    const { accounts } = await readConfigFile();
+    expect(accounts?.work?.apiToken).toBe('w2');
+    expect(accounts?.personal?.apiToken).toBe('p1');
   });
 });
 
@@ -441,6 +529,22 @@ describe('KeychainSecretStorage', () => {
       code: ErrorCode.CONFIG_WRITE_FAILED,
       message:
         "Failed to write the OS keychain: no secret service. Run 'bb config set credentialStorage file' to keep credentials in the config file instead.",
+    });
+  });
+
+  it('asks to unlock the keychain when a read fails', async () => {
+    const fake = {
+      get: async () => {
+        throw new Error('locked');
+      },
+    } as unknown as typeof Bun.secrets;
+
+    await expect(
+      new KeychainSecretStorage(fake).get('work')
+    ).rejects.toMatchObject({
+      code: ErrorCode.CONFIG_READ_FAILED,
+      message:
+        'Failed to read the OS keychain: locked. Make sure the OS keychain is unlocked and reachable, then try again.',
     });
   });
 

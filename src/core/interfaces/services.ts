@@ -22,7 +22,8 @@ import type { CommandContext } from './commands.js';
  */
 export interface IConfigService {
   getConfig(): Promise<BBConfig>;
-  setConfig(config: BBConfig): Promise<void>;
+  /** Re-read the config file, then write `update`'s result. */
+  updateConfig(update: (config: BBConfig) => BBConfig): Promise<void>;
   clearConfig(): Promise<void>;
   getValue<K extends keyof BBConfig>(key: K): Promise<BBConfig[K] | undefined>;
   setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]): Promise<void>;
@@ -31,7 +32,10 @@ export interface IConfigService {
 
 export interface AccountSummary {
   name: string;
+  /** The persisted active account. */
   active: boolean;
+  /** The account this process uses (`--account`, `BB_ACCOUNT` or active). */
+  current: boolean;
   authMethod?: AuthMethod;
   username?: string;
   storage: CredentialStorage;

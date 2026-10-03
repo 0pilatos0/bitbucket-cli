@@ -78,8 +78,7 @@ export class GetConfigCommand extends BaseCommand<{ key: string }, void> {
   }
 
   private async currentUsername(): Promise<string | undefined> {
-    const account = await this.credentialStore.getAccountName();
     const accounts = await this.credentialStore.listAccounts();
-    return accounts.find((summary) => summary.name === account)?.username;
+    return accounts.find((summary) => summary.current)?.username;
   }
 }

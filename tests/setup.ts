@@ -93,8 +93,8 @@ export function createMockConfigService(
     async getConfig() {
       return currentConfig;
     },
-    async setConfig(next: BBConfig) {
-      currentConfig = next;
+    async updateConfig(update: (config: BBConfig) => BBConfig) {
+      currentConfig = update(currentConfig);
     },
     async clearConfig() {
       currentConfig = {};
@@ -148,7 +148,7 @@ export function createMockConfigServiceOnly(
 ): IConfigService {
   const {
     getConfig,
-    setConfig,
+    updateConfig,
     clearConfig,
     getValue,
     setValue,
@@ -156,7 +156,7 @@ export function createMockConfigServiceOnly(
   } = createMockConfigService(config);
   return {
     getConfig,
-    setConfig,
+    updateConfig,
     clearConfig,
     getValue,
     setValue,
@@ -172,7 +172,7 @@ export function createMockCredentialStoreOnly(
 ): ICredentialStore {
   const {
     getConfig: _getConfig,
-    setConfig: _setConfig,
+    updateConfig: _updateConfig,
     clearConfig: _clearConfig,
     getValue: _getValue,
     setValue: _setValue,
