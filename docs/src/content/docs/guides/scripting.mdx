@@ -201,16 +201,25 @@ The error envelope carries:
 | `response`   | Raw API response body, `APIError` only, when non-empty              |
 | `hint`       | Remediation advice; optional, see below                             |
 
-`hint` appears only on API errors with status 401, 403, or 404, and is skipped
-on 404 when the message already names the missing resource. Treat it as
-optional in scripts.
+`hint` appears on API errors with status 401, 403, or 404 (skipped on 404 when
+the message already names the missing resource) and on argument-parsing errors.
+Treat it as optional in scripts.
 
-Argument-parsing failures are the exception. An unknown option, a missing
-argument, or too many arguments prints a **plain text** usage error to stderr
-and exits 1 even under `--json`, so `jq` cannot parse it. The one parse failure
-that still emits an envelope is an unknown top-level command, `bb bogus --json`
-returns code 5002, while `bb pr bogus --json` prints
-`error: unknown command 'bogus'` as plain text.
+Argument-parsing failures use the same envelope whenever `--json` or `--jq`
+appears before any `--`. An unknown subcommand or option, a missing argument,
+too many arguments, or a group run without a subcommand returns code 5002 (or
+5001 for a missing value) with `context.parseError`, `context.commandPath` and
+a `hint`:
+
+```bash
+bb pr bogus --json 2> err.json
+jq -c '{code, parseError: .context.parseError, commandPath: .context.commandPath, hint}' err.json
+# {"code":5002,"parseError":"unknownCommand","commandPath":"pr","hint":"Run `bb pr --help` for usage."}
+```
+
+An unknown top-level command (`bb bogus --json`) also returns 5002, with
+`context: { command, args }` naming the token that didn't match. Without
+`--json` or `--jq`, parse errors stay plain text.
 
 ---
 
