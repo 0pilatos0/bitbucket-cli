@@ -1,6 +1,18 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import {
+  COMPLETION_SHELLS,
+  type CompletionShell,
+} from '../../completion-install.js';
+
+const LOAD_EXAMPLES: Record<CompletionShell, string> = {
+  bash: "echo 'source <(bb completion bash)' >> ~/.bashrc",
+  zsh: "echo 'source <(bb completion zsh)' >> ~/.zshrc",
+  fish: 'bb completion fish > ~/.config/fish/completions/bb.fish',
+  powershell:
+    "Add-Content $PROFILE 'bb completion powershell | Out-String | Invoke-Expression'",
+};
 
 export function registerCompletionCommands(
   parent: Command,
@@ -43,6 +55,21 @@ export function registerCompletionCommands(
     .action(async () => {
       await registrar.run(ServiceTokens.UninstallCompletionCommand);
     });
+
+  for (const shell of COMPLETION_SHELLS) {
+    completionCmd
+      .command(shell)
+      .description(`Print the completion script for ${shell}`)
+      .addHelpText(
+        'after',
+        buildHelpText({
+          examples: [`bb completion ${shell}`, LOAD_EXAMPLES[shell]],
+        })
+      )
+      .action(async () => {
+        await registrar.run(ServiceTokens.PrintCompletionCommand, { shell });
+      });
+  }
 
   parent.addCommand(completionCmd);
 }

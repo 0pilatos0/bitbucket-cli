@@ -7,28 +7,17 @@ import { LoginCommand } from '../../src/commands/auth/login.command.js';
 import { LogoutCommand } from '../../src/commands/auth/logout.command.js';
 import { StatusCommand } from '../../src/commands/auth/status.command.js';
 import { TokenCommand } from '../../src/commands/auth/token.command.js';
+import { SwitchCommand } from '../../src/commands/auth/switch.command.js';
+import { ErrorCode } from '../../src/types/errors.js';
 import {
   createMockConfigService,
   createMockOutputService,
+  createMockPromptService,
   mockUser,
 } from '../setup.js';
-import type { UsersApi } from '../../src/generated/api.js';
 import type { OAuthService } from '../../src/services/oauth.service.js';
-
-// Helper to create mock UsersApi
-function createMockUsersApi(user = mockUser): UsersApi {
-  return {
-    userGet: async () => ({ data: user }),
-  } as unknown as UsersApi;
-}
-
-function createMockUsersApiError(message: string): UsersApi {
-  return {
-    userGet: async () => {
-      throw new Error(message);
-    },
-  } as unknown as UsersApi;
-}
+import type { ICredentialStore } from '../../src/core/interfaces/services.js';
+import { fakeUsersApi } from '../helpers/fake-api.js';
 
 // Restore an env var, deleting it if the original was unset. Plain assignment
 // of `undefined` stringifies to "undefined" on Bun/Windows, which then leaks
@@ -49,13 +38,21 @@ function stubStdin(command: LoginCommand, token: string): void {
   ).readTokenFromStdin = async () => token;
 }
 
-function createMockOAuthService(): OAuthService {
+// `store` lets `authorize` save tokens the way the real service does.
+function createMockOAuthService(store?: ICredentialStore): OAuthService {
   return {
-    authorize: async () => ({
-      username: 'oauthuser',
-      displayName: 'OAuth User',
-      accountId: 'oauth-123',
-    }),
+    authorize: async () => {
+      await store?.setOAuthCredentials({
+        accessToken: 'oauth-access',
+        refreshToken: 'oauth-refresh',
+        expiresAt: 9999999999,
+      });
+      return {
+        username: 'oauthuser',
+        displayName: 'OAuth User',
+        accountId: 'oauth-123',
+      };
+    },
     refreshAccessToken: async () => 'refreshed-token',
     revokeToken: async () => {},
     getValidAccessToken: async () => 'valid-token',
@@ -66,7 +63,7 @@ describe('LoginCommand', () => {
   it('should explain how to provide an email for API token login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -86,7 +83,7 @@ describe('LoginCommand', () => {
   it('should fail when password is not provided for app-password flow', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -107,7 +104,7 @@ describe('LoginCommand', () => {
   it('should store credentials and return user on success with api token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -141,7 +138,7 @@ describe('LoginCommand', () => {
     try {
       const configService = createMockConfigService();
       const output = createMockOutputService();
-      const usersApi = createMockUsersApi();
+      const usersApi = fakeUsersApi();
       const oauthService = createMockOAuthService();
 
       const command = new LoginCommand(
@@ -165,7 +162,9 @@ describe('LoginCommand', () => {
       defaultWorkspace: 'team-workspace',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApiError('Invalid credentials');
+    const usersApi = fakeUsersApi({
+      currentUserError: new Error('Invalid credentials'),
+    });
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -189,16 +188,15 @@ describe('LoginCommand', () => {
 
     // Verify credentials were cleared
     const config = await configService.getConfig();
-    expect(config.username).toBeUndefined();
-    expect(config.apiToken).toBeUndefined();
+    expect(config.accounts?.default).toBeUndefined();
     expect(config.defaultWorkspace).toBe('team-workspace');
   });
 
   it('should use OAuth flow when no flags are provided', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
-    const oauthService = createMockOAuthService();
+    const usersApi = fakeUsersApi();
+    const oauthService = createMockOAuthService(configService);
 
     const command = new LoginCommand(
       configService,
@@ -216,7 +214,7 @@ describe('LoginCommand', () => {
   it('should use API token flow when --app-password flag is set', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -238,7 +236,7 @@ describe('LoginCommand', () => {
   it('should use API token flow when -u flag is provided', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -264,7 +262,7 @@ describe('LoginCommand', () => {
     try {
       const configService = createMockConfigService();
       const output = createMockOutputService();
-      const usersApi = createMockUsersApi();
+      const usersApi = fakeUsersApi();
       const oauthService = createMockOAuthService();
 
       const command = new LoginCommand(
@@ -293,7 +291,7 @@ describe('LoginCommand', () => {
       oauthExpiresAt: 9999999999,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -307,17 +305,17 @@ describe('LoginCommand', () => {
       { globalOptions: {} }
     );
 
-    const config = await configService.getConfig();
-    expect(config.oauthAccessToken).toBeUndefined();
-    expect(config.oauthRefreshToken).toBeUndefined();
-    expect(config.authMethod).toBe('basic');
-    expect(config.username).toBe('newuser');
+    const account = (await configService.getConfig()).accounts?.default;
+    expect(account?.oauthAccessToken).toBeUndefined();
+    expect(account?.oauthRefreshToken).toBeUndefined();
+    expect(account?.authMethod).toBe('basic');
+    expect(account?.username).toBe('newuser');
   });
 
   it('should clear OAuth credentials when OAuth login fails', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = {
       ...createMockOAuthService(),
       authorize: async () => {
@@ -340,8 +338,8 @@ describe('LoginCommand', () => {
   it('should output JSON with method field for OAuth login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
-    const oauthService = createMockOAuthService();
+    const usersApi = fakeUsersApi();
+    const oauthService = createMockOAuthService(configService);
 
     const command = new LoginCommand(
       configService,
@@ -362,7 +360,7 @@ describe('LoginCommand', () => {
   it('should output JSON with method field for API token login', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -384,7 +382,7 @@ describe('LoginCommand', () => {
   it('should read the API token from stdin with --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -408,7 +406,7 @@ describe('LoginCommand', () => {
   it('should trim surrounding whitespace from the stdin token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -432,7 +430,7 @@ describe('LoginCommand', () => {
   it('should fail when stdin is empty for --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -456,7 +454,7 @@ describe('LoginCommand', () => {
   it('should reject combining --password with --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -478,7 +476,7 @@ describe('LoginCommand', () => {
   it('should require an Atlassian account email for --with-token', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = createMockOAuthService();
 
     const command = new LoginCommand(
@@ -502,11 +500,12 @@ describe('LoginCommand', () => {
 
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
     const oauthService = {
       authorize: async (cid?: string, cs?: string) => {
         receivedClientId = cid;
         receivedClientSecret = cs;
+        await createMockOAuthService(configService).authorize();
         return {
           username: 'user',
           displayName: 'User',
@@ -551,6 +550,7 @@ describe('LogoutCommand', () => {
     const config = await configService.getConfig();
     expect(config.username).toBeUndefined();
     expect(config.apiToken).toBeUndefined();
+    expect(config.accounts).toEqual({});
     expect(config.defaultWorkspace).toBe('team-workspace');
 
     expect(output.logs).toContain('success:Logged out of Bitbucket');
@@ -574,6 +574,7 @@ describe('LogoutCommand', () => {
     expect(config.oauthAccessToken).toBeUndefined();
     expect(config.oauthRefreshToken).toBeUndefined();
     expect(config.authMethod).toBeUndefined();
+    expect(config.accounts).toEqual({});
     expect(config.defaultWorkspace).toBe('team-workspace');
 
     expect(output.logs).toContain('success:Logged out of Bitbucket');
@@ -643,7 +644,7 @@ describe('StatusCommand', () => {
   it('should show not logged in when no credentials', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -662,7 +663,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -682,7 +683,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -701,7 +702,7 @@ describe('StatusCommand', () => {
       apiToken: 'testpass',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -722,7 +723,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -743,7 +744,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -764,7 +765,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -785,7 +786,7 @@ describe('StatusCommand', () => {
       oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -801,10 +802,32 @@ describe('StatusCommand', () => {
     expect(parsed.tokenExpiresAt).toBeDefined();
   });
 
+  it('reports API-token credentials as method api_token in JSON output, like auth login', async () => {
+    const configService = createMockConfigService({
+      authMethod: 'basic',
+      username: 'testuser',
+      apiToken: 'testpass',
+    });
+    const output = createMockOutputService();
+    const usersApi = fakeUsersApi();
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      usersApi,
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    const jsonLog = output.logs.find((l) => l.startsWith('json:'));
+    const parsed = JSON.parse(jsonLog!.replace('json:', ''));
+    expect(parsed.method).toBe('api_token');
+  });
+
   it('should show not logged in when json flag is set and no credentials', async () => {
     const configService = createMockConfigService();
     const output = createMockOutputService();
-    const usersApi = createMockUsersApi();
+    const usersApi = fakeUsersApi();
 
     const command = new StatusCommand(
       configService,
@@ -825,7 +848,9 @@ describe('StatusCommand', () => {
       apiToken: 'badtoken',
     });
     const output = createMockOutputService();
-    const usersApi = createMockUsersApiError('Unauthorized');
+    const usersApi = fakeUsersApi({
+      currentUserError: new Error('Unauthorized'),
+    });
 
     const command = new StatusCommand(
       configService,
@@ -956,5 +981,224 @@ describe('TokenCommand', () => {
 
     expect(getValidCalled).toBe(true);
     expect(output.logs).toContain('text:fresh-token');
+  });
+});
+
+describe('multiple accounts', () => {
+  const TWO_ACCOUNTS = {
+    activeAccount: 'work',
+    accounts: {
+      work: {
+        authMethod: 'basic' as const,
+        username: 'w@x.com',
+        apiToken: 'w',
+      },
+      personal: {
+        authMethod: 'basic' as const,
+        username: 'p@y.com',
+        apiToken: 'p',
+      },
+    },
+  };
+
+  it('login --account adds the account and makes it active', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+    configService.useAccount('ci');
+
+    const command = new LoginCommand(
+      configService,
+      fakeUsersApi(),
+      createMockOAuthService(),
+      output
+    );
+    await command.execute(
+      { username: 'ci@z.com', password: 'c' },
+      { globalOptions: {} }
+    );
+
+    const config = await configService.getConfig();
+    expect(config.activeAccount).toBe('ci');
+    expect(Object.keys(config.accounts ?? {})).toEqual([
+      'work',
+      'personal',
+      'ci',
+    ]);
+    expect(output.logs).toContain('text:  Active account: ci');
+  });
+
+  it('login reports the account in JSON', async () => {
+    const configService = createMockConfigService();
+    const output = createMockOutputService();
+
+    const command = new LoginCommand(
+      configService,
+      fakeUsersApi(),
+      createMockOAuthService(),
+      output
+    );
+    await command.execute(
+      { username: 'u@x.com', password: 't' },
+      { globalOptions: { json: true } }
+    );
+
+    expect(JSON.parse(output.logs[0]!.replace(/^json:/, ''))).toMatchObject({
+      authenticated: true,
+      method: 'api_token',
+      account: 'default',
+    });
+  });
+
+  it('logout of the active account switches to another saved account', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+
+    const command = new LogoutCommand(
+      configService,
+      createMockOAuthService(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: {} });
+
+    const config = await configService.getConfig();
+    expect(Object.keys(config.accounts ?? {})).toEqual(['personal']);
+    expect(config.activeAccount).toBe('personal');
+    expect(output.logs).toContain('text:  Active account is now personal');
+  });
+
+  it('logout of a non-active account keeps the active one', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+    configService.useAccount('personal');
+
+    const command = new LogoutCommand(
+      configService,
+      createMockOAuthService(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    const config = await configService.getConfig();
+    expect(config.activeAccount).toBe('work');
+    expect(output.logs[0]).toContain('"account":"personal"');
+    expect(output.logs[0]).not.toContain('switchedTo');
+  });
+
+  it('status names the account and lists the others', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      fakeUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: {} });
+
+    expect(output.logs).toContain('text:  Account: work');
+    expect(
+      output.logs.some((log) => log.includes('Other accounts: personal'))
+    ).toBe(true);
+  });
+
+  it('status points a missing account at login --account', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+    configService.useAccount('ci');
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      fakeUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: {} });
+
+    expect(output.logs).toContain("info:Not logged in to account 'ci'");
+    expect(
+      output.logs.some((log) => log.includes('bb auth login --account ci'))
+    ).toBe(true);
+  });
+
+  it('status --json reports the current and saved accounts', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+    configService.useAccount('personal');
+
+    const command = new StatusCommand(
+      configService,
+      configService,
+      fakeUsersApi(),
+      output
+    );
+    await command.execute(undefined, { globalOptions: { json: true } });
+
+    expect(JSON.parse(output.logs[0]!.replace(/^json:/, ''))).toMatchObject({
+      authenticated: true,
+      account: 'personal',
+      accounts: ['work', 'personal'],
+    });
+  });
+});
+
+describe('SwitchCommand', () => {
+  const TWO_ACCOUNTS = {
+    activeAccount: 'work',
+    accounts: {
+      work: { username: 'w@x.com', apiToken: 'w' },
+      personal: { username: 'p@y.com', apiToken: 'p' },
+    },
+  };
+
+  it('switches to the named account', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const output = createMockOutputService();
+
+    await new SwitchCommand(configService, output).execute(
+      { account: 'personal' },
+      { globalOptions: {} }
+    );
+
+    expect((await configService.getConfig()).activeAccount).toBe('personal');
+    expect(output.logs).toContain('success:Switched to account personal');
+  });
+
+  it('asks which account when none is given in a terminal', async () => {
+    const configService = createMockConfigService(TWO_ACCOUNTS);
+    const prompt = createMockPromptService(['personal']);
+
+    await new SwitchCommand(configService, createMockOutputService()).execute(
+      {},
+      { globalOptions: {}, prompt }
+    );
+
+    expect(prompt.calls).toEqual(['select:Which account should be active?']);
+    expect((await configService.getConfig()).activeAccount).toBe('personal');
+  });
+
+  it('lists the saved accounts when none is given without a terminal', async () => {
+    const command = new SwitchCommand(
+      createMockConfigService(TWO_ACCOUNTS),
+      createMockOutputService()
+    );
+
+    await expect(
+      command.execute({}, { globalOptions: {} })
+    ).rejects.toMatchObject({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      message: 'Account name is required. Saved accounts: work, personal.',
+    });
+  });
+
+  it('requires a saved account', async () => {
+    const command = new SwitchCommand(
+      createMockConfigService(),
+      createMockOutputService()
+    );
+
+    await expect(
+      command.execute({ account: 'work' }, { globalOptions: {} })
+    ).rejects.toMatchObject({ code: ErrorCode.AUTH_REQUIRED });
   });
 });

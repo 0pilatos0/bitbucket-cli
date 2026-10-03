@@ -221,13 +221,20 @@ export function createApiClient(
       httpDebug.response(response);
       return response;
     },
-    async (error: AxiosError) => {
+    async (error: AxiosError | BBError) => {
+      httpDebug.error(error);
+
+      // Request interceptor failures (missing credentials, insecure config,
+      // failed proactive OAuth refresh) are routed here by axios too. They
+      // are already classified; re-wrapping them would hide their code.
+      if (error instanceof BBError) {
+        throw error;
+      }
+
       // Rate-limited responses carry the freshest budget information too:
       // pace subsequent requests from a 429's headers even though the
       // response is rejected (the success path handles normal responses).
       rateLimiter.onResponse(error.response?.headers);
-
-      httpDebug.error(error);
 
       // Reactive OAuth token refresh on 401
       if (error.response?.status === 401 && oauthService) {
@@ -235,17 +242,22 @@ export function createApiClient(
         if (config && !config.__tokenRefreshed) {
           const authMethod = await credentialStore.getAuthMethod();
           if (authMethod === 'oauth') {
+            config.__tokenRefreshed = true;
+            let newToken: string;
             try {
-              config.__tokenRefreshed = true;
-              const newToken = await oauthService.refreshAccessToken();
-              config.headers.Authorization = `Bearer ${newToken}`;
-              return instance(config);
-            } catch {
+              newToken = await oauthService.refreshAccessToken();
+            } catch (refreshError) {
+              if (refreshError instanceof BBError) {
+                throw refreshError;
+              }
               throw new BBError({
                 code: ErrorCode.AUTH_EXPIRED,
                 message: `OAuth token expired. Run 'bb auth login' to re-authenticate.`,
+                cause: refreshError instanceof Error ? refreshError : undefined,
               });
             }
+            config.headers.Authorization = `Bearer ${newToken}`;
+            return instance(config);
           }
         }
       }

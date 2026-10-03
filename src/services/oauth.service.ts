@@ -3,11 +3,9 @@
  */
 
 import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { createHash, randomBytes } from 'node:crypto';
-import type {
-  IConfigService,
-  ICredentialStore,
-} from '../core/interfaces/services.js';
+import type { ICredentialStore } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { isDebugEnabled } from './http-debug.js';
 
@@ -15,9 +13,10 @@ const BITBUCKET_AUTHORIZE_URL = 'https://bitbucket.org/site/oauth2/authorize';
 const BITBUCKET_TOKEN_URL = 'https://bitbucket.org/site/oauth2/access_token';
 
 const CALLBACK_HOST = '127.0.0.1';
-const CALLBACK_PORT = 19872;
+// Fixed because the OAuth consumer's registered callback URL pins it: Bitbucket
+// rejects a redirect_uri on any other port, so there is no fallback port.
+const DEFAULT_CALLBACK_PORT = 19872;
 const CALLBACK_PATH = '/callback';
-const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`;
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT_MS = 10_000;
 
@@ -38,6 +37,12 @@ const OAUTH_SCOPES = [
   'pullrequest',
   'pullrequest:write',
 ].join(' ');
+
+export function callbackRedirectUri(
+  port: number = DEFAULT_CALLBACK_PORT
+): string {
+  return `http://localhost:${port}${CALLBACK_PATH}`;
+}
 
 interface TokenResponse {
   access_token: string;
@@ -116,9 +121,13 @@ export class OAuthService {
    */
   private refreshInFlight: Promise<string> | null = null;
 
+  /**
+   * @param callbackPort Port for the local callback server. Tests pass 0 to
+   *   bind an ephemeral port; the redirect_uri follows the bound port.
+   */
   constructor(
-    private readonly configService: IConfigService,
-    private readonly credentialStore: ICredentialStore
+    private readonly credentialStore: ICredentialStore,
+    private readonly callbackPort: number = DEFAULT_CALLBACK_PORT
   ) {}
 
   /**
@@ -136,34 +145,31 @@ export class OAuthService {
     const state = generateState();
     const { verifier, challenge } = generatePkcePair();
 
-    const authUrl = this.buildAuthUrl(resolvedClientId, state, challenge);
-
     // Start local server before opening browser
-    const { code } = await this.waitForCallback(authUrl, state);
+    const { code, redirectUri } = await this.waitForCallback(
+      (uri) => this.buildAuthUrl(resolvedClientId, state, challenge, uri),
+      state
+    );
 
     // Exchange authorization code for tokens
     const tokenResponse = await this.exchangeCode(
       code,
       resolvedClientId,
       verifier,
+      redirectUri,
       clientSecret
     );
 
-    // Store tokens
+    // Store tokens, plus the custom OAuth consumer if one was provided
     const expiresAt = Math.floor(Date.now() / 1000) + tokenResponse.expires_in;
-    await this.credentialStore.setOAuthCredentials({
-      accessToken: tokenResponse.access_token,
-      refreshToken: tokenResponse.refresh_token,
-      expiresAt,
-    });
-
-    // Store custom OAuth consumer credentials if provided
-    if (clientId) {
-      await this.configService.setValue('oauthClientId', clientId);
-    }
-    if (clientSecret) {
-      await this.configService.setValue('oauthClientSecret', clientSecret);
-    }
+    await this.credentialStore.setOAuthCredentials(
+      {
+        accessToken: tokenResponse.access_token,
+        refreshToken: tokenResponse.refresh_token,
+        expiresAt,
+      },
+      { clientId, clientSecret }
+    );
 
     // Verify by fetching user info
     const userInfo = await this.fetchUserInfo(tokenResponse.access_token);
@@ -279,24 +285,25 @@ export class OAuthService {
   }
 
   private async getClientId(): Promise<string> {
-    const customClientId = await this.configService.getValue('oauthClientId');
-    return customClientId ?? DEFAULT_CLIENT_ID;
+    const { clientId } = await this.credentialStore.getOAuthClient();
+    return clientId ?? DEFAULT_CLIENT_ID;
   }
 
   private async getClientSecret(): Promise<string> {
-    const customSecret = await this.configService.getValue('oauthClientSecret');
-    return customSecret ?? DEFAULT_CLIENT_SECRET;
+    const { clientSecret } = await this.credentialStore.getOAuthClient();
+    return clientSecret ?? DEFAULT_CLIENT_SECRET;
   }
 
   private buildAuthUrl(
     clientId: string,
     state: string,
-    codeChallenge: string
+    codeChallenge: string,
+    redirectUri: string
   ): string {
     const params = new URLSearchParams({
       client_id: clientId,
       response_type: 'code',
-      redirect_uri: CALLBACK_URL,
+      redirect_uri: redirectUri,
       scope: OAUTH_SCOPES,
       state,
       code_challenge: codeChallenge,
@@ -306,11 +313,12 @@ export class OAuthService {
   }
 
   private async waitForCallback(
-    authUrl: string,
+    buildAuthUrl: (redirectUri: string) => string,
     expectedState: string
-  ): Promise<{ code: string }> {
+  ): Promise<{ code: string; redirectUri: string }> {
     return new Promise((resolve, reject) => {
       let server: Server;
+      let redirectUri: string;
       let timeout: ReturnType<typeof setTimeout>;
 
       const cleanup = () => {
@@ -329,10 +337,7 @@ export class OAuthService {
       }, AUTH_TIMEOUT_MS);
 
       server = createServer((req, res) => {
-        const url = new URL(
-          req.url ?? '/',
-          `http://localhost:${CALLBACK_PORT}`
-        );
+        const url = new URL(req.url ?? '/', 'http://localhost');
 
         if (url.pathname !== CALLBACK_PATH) {
           res.writeHead(404);
@@ -374,7 +379,7 @@ export class OAuthService {
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(this.buildSuccessPage());
         cleanup();
-        resolve({ code });
+        resolve({ code, redirectUri });
       });
 
       server.on('error', (err: NodeJS.ErrnoException) => {
@@ -383,7 +388,7 @@ export class OAuthService {
           reject(
             new BBError({
               code: ErrorCode.AUTH_INVALID,
-              message: `Port ${CALLBACK_PORT} is already in use. Close the application using it and try again.`,
+              message: `Port ${this.callbackPort} is already in use. Close the application using it and try again.`,
             })
           );
         } else {
@@ -397,7 +402,10 @@ export class OAuthService {
         }
       });
 
-      server.listen(CALLBACK_PORT, CALLBACK_HOST, async () => {
+      server.listen(this.callbackPort, CALLBACK_HOST, async () => {
+        const { port } = server.address() as AddressInfo;
+        redirectUri = callbackRedirectUri(port);
+        const authUrl = buildAuthUrl(redirectUri);
         // Open browser
         try {
           const open = (await import('open')).default;
@@ -421,13 +429,14 @@ export class OAuthService {
     code: string,
     clientId: string,
     codeVerifier: string,
+    redirectUri: string,
     clientSecretOverride?: string
   ): Promise<TokenResponse> {
     const clientSecret = clientSecretOverride ?? (await this.getClientSecret());
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      redirect_uri: CALLBACK_URL,
+      redirect_uri: redirectUri,
       code_verifier: codeVerifier,
     });
 

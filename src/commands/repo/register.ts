@@ -1,6 +1,8 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { withCompletionChoices } from '../../core/command-options.js';
+import { GIT_PROTOCOLS } from '../../types/config.js';
 import { registerRepoDefaultReviewersCommands } from './default-reviewers.register.js';
 import { registerRepoDownloadsCommands } from './downloads.register.js';
 
@@ -16,13 +18,26 @@ export function registerRepoCommands(
     .command('clone <repository>')
     .description('Clone a Bitbucket repository')
     .option('-d, --directory <dir>', 'Directory to clone into')
+    .addOption(
+      withCompletionChoices(
+        new Option(
+          '--protocol <protocol>',
+          'Clone over ssh or https (default: gitProtocol config, else ssh)'
+        ),
+        GIT_PROTOCOLS
+      )
+    )
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
           'bb repo clone workspace/repo-name',
           'bb repo clone workspace/repo-name -d my-directory',
+          'bb repo clone workspace/repo-name --protocol https',
         ],
+        validValues: {
+          'Valid --protocol values': [...GIT_PROTOCOLS],
+        },
       })
     )
     .action(async (repository, options) => {

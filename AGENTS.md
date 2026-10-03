@@ -6,9 +6,15 @@ with the current conventions.
 
 ## Commands
 
+`bun run check` is the definition of done: it runs `lint`, `lint:docs`,
+`format:check` and the full test suite, and must pass before you open a PR.
+
 ```bash
 # Dependencies
 bun install
+
+# Definition of done
+bun run check        # lint + lint:docs + format:check + bun test
 
 # CLI
 bun run dev          # Run CLI in dev mode (executes src/index.ts)
@@ -20,12 +26,13 @@ bun test             # Run all tests
 bun test <file>      # Run a single test file (e.g., bun test tests/commands/repo.test.ts)
 COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
-# Type-checking / formatting
+# Type-checking / formatting / docs drift
 bun run lint         # Type-check (tsc --noEmit) and lint (oxlint)
+bun run lint:docs    # Fail when error codes or BB_* env vars are missing from the docs
 bun run format       # Prettier write
 bun run format:check # Prettier check
 
-# Generated API
+# Generated API (needs Java 21 on PATH for openapi-generator)
 bun run generate:api # Regenerate src/generated/ from the pinned spec
 bun run check:api-contract # Regenerate and fail if src/generated/ drifts (CI gate)
 bun run check:api-updates # Check if the pinned spec has an upstream update (0=current, 1=update, 2=unverifiable)
@@ -36,9 +43,9 @@ bun run docs:dev     # Start docs dev server
 bun run docs:build   # Build docs
 
 # Release helpers
-bun run changeset
-bun run version
-bun run release
+bun run changeset    # Add a changeset (see Changesets below)
+# Never run `version` or `release` locally: the Release workflow versions
+# and publishes, and `release` PUBLISHES to npm.
 ```
 
 ## Repository Layout
@@ -58,7 +65,8 @@ bun run release
 - `src/services/**` service implementations (preferred helpers live here)
 - `src/types/**` shared types and error definitions
 - `src/generated/**` OpenAPI client (auto-generated; do not edit)
-- `tests/**` Bun tests mirroring src structure
+- `tests/**` Bun tests mirroring src structure; conventions in
+  `tests/AGENTS.md`
 - `docs/**` docs site (Astro)
 
 ## Code Style Guidelines
@@ -111,6 +119,9 @@ bun run release
 - Use command-level `try/catch` only when adding context, fallback behavior, or cleanup before rethrowing
 - `handleError()` in `BaseCommand` sets `process.exitCode` except in tests
 - Use `requireOption()` from `BaseCommand` for required CLI options
+- Parse options with the `BaseCommand` helpers instead of hand-rolled
+  checks: `parsePositiveInt()` for IDs/limits, `parseIntOption()` for other
+  integers, `parseEnumOption()` for fixed value sets
 - Only throw for exceptional cases; CLI is responsible for exit behavior
 
 ### Command Pattern
@@ -150,25 +161,33 @@ bun run release
 - Respect `context.globalOptions.json` and option-level `json` flags
 - For JSON output, call `output.json()` and return early
 - Use `output.table()` for aligned tabular output
+- List commands go through `BaseCommand.runList()` (pagination, `--all`,
+  JSON envelope, table, more-results hint); its `wrapperKey` must be listed in
+  `WRAPPER_ARRAY_KEYS` (`src/services/output.service.ts`) or `runList()`
+  throws
 - Use `output.info/success/warning/error` for user-facing messaging
 
 ### Dependency Injection
 
 - Register services and commands in `src/bootstrap.ts` with `ServiceTokens`
-- Container is a singleton; tests reset it in `tests/setup.ts`
+- Container is a singleton; tests reset it with `Container.reset()` (see
+  `tests/AGENTS.md`)
 - Services are singletons by default (override via options if needed)
 
 ### Testing
 
-- Use Bun test runner (`bun:test`)
-- Single test file: `bun test tests/commands/<name>.test.ts`
-- Test files: `<name>.test.ts` or `<name>.expanded.test.ts`
-- Mocks/utilities live in `tests/setup.ts` (container reset hooks included)
-- Prefer descriptive test names focused on behavior
+- Bun test runner (`bun:test`); see `tests/AGENTS.md` for the preload,
+  `setup.ts` and the mock Bitbucket server
+- Never run `bb auth login` or hit the real Bitbucket API while developing;
+  drive the CLI against `tests/helpers/mock-bitbucket.ts` or a local server
+  via `BB_API_BASE_URL`, with `HOME` (plus `USERPROFILE` and `APPDATA` on
+  Windows) pointed at a throwaway directory
 
 ### Generated Code
 
 - `src/generated/**` is auto-generated; avoid manual edits
+- Generator options live in `openapitools.json`; it skips the API/model markdown docs and `git_push.sh`, so `src/generated/` holds only the client sources
+- `src/generated/api.ts` is several MB: never read it whole. Grep for `class <Name>Api` (or the method/interface name) and read a line range
 - The pinned spec `specs/bitbucket-cloud.json` is committed; `bun run generate:api` normalizes it via `scripts/normalize-spec.ts` (fixing upstream warts at the spec level) into a gitignored copy, then generates
 - Prefer spec-level fixes in `scripts/normalize-spec.ts` over output-level patches in `scripts/patch-generated.ts`
 - `.github/workflows/check-api-updates.yml` runs `check:api-updates` weekly and opens an issue when upstream drifts
@@ -183,6 +202,23 @@ bun run release
 - Avoid printing sensitive config values to output
 - API auth uses Basic auth via `ConfigService.getCredentials()`
 
+## Changesets and Branches
+
+- User-facing changes (commands, flags, output, config, errors) need a
+  changeset: `bun run changeset`, or write `.changeset/<slug>.md` by hand.
+  The frontmatter package name must be exactly `@pilatos/bitbucket-cli`:
+
+  ```md
+  ---
+  '@pilatos/bitbucket-cli': patch
+  ---
+
+  One-sentence, user-facing description.
+  ```
+
+- Branch names: `feat/` or `fix/`, or `docs/`, `chore/`, `refactor/` when
+  they fit
+
 ## Tooling Notes
 
 - Git hook: `simple-git-hooks` (installed by `prepare`) runs `format:check`,
@@ -193,3 +229,5 @@ bun run release
 - PRs: the Changeset workflow requires a changeset when `src/` changes
   (waived by the `no-changeset` label) and validates changeset frontmatter
 - Runtime: Bun only (`src/index.ts` guards against non-Bun runtimes)
+- CI's Bun version lives in `.bun-version`; dependency and Bun bumps follow
+  [CONTRIBUTING.md → Dependency Updates](CONTRIBUTING.md#dependency-updates)

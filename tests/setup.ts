@@ -9,10 +9,12 @@ import axios, {
 } from 'axios';
 import { Container } from '../src/core/container.js';
 import { ContextService } from '../src/services/context.service.js';
+import { CredentialStore } from '../src/services/credential-store.service.js';
 import type { OAuthService } from '../src/services/oauth.service.js';
 import type {
   IConfigService,
   ICredentialStore,
+  ISecretStorage,
   IGitService,
   IContextService,
   IOutputService,
@@ -20,12 +22,7 @@ import type {
   ISpinner,
 } from '../src/core/interfaces/services.js';
 import type { BBError } from '../src/types/errors.js';
-import type {
-  BBConfig,
-  AuthCredentials,
-  OAuthCredentials,
-  AuthMethod,
-} from '../src/types/config.js';
+import type { BBConfig } from '../src/types/config.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSetTimeout = globalThis.setTimeout;
@@ -51,45 +48,46 @@ afterEach(() => {
  */
 
 /**
+ * In-memory OS keychain for `CredentialStore` tests.
+ */
+export function createMockSecretStorage(): ISecretStorage & {
+  entries: Map<string, string>;
+} {
+  const entries = new Map<string, string>();
+  return {
+    entries,
+    async get(account) {
+      return entries.get(account) ?? null;
+    },
+    async set(account, value) {
+      entries.set(account, value);
+    },
+    async delete(account) {
+      entries.delete(account);
+    },
+  };
+}
+
+/**
  * Returns an object satisfying both `IConfigService` and `ICredentialStore`
- * with shared in-memory state, mirroring the production `ConfigService` class
- * that backs both interfaces. Tests that only need one interface can still
- * pass this (widening is fine); tests that want a narrower mock should reach
- * for `createMockConfigServiceOnly` or `createMockCredentialStoreOnly`.
+ * over shared in-memory state: an in-memory config backs the real
+ * `CredentialStore`, so credentials land under `accounts` just as in
+ * production. Tests that only need one interface can still pass this
+ * (widening is fine); tests that want a narrower mock should reach for
+ * `createMockConfigServiceOnly` or `createMockCredentialStoreOnly`.
  */
 export function createMockConfigService(
-  config: BBConfig = {}
+  config: BBConfig = {},
+  options: { secrets?: ISecretStorage; env?: NodeJS.ProcessEnv } = {}
 ): IConfigService & ICredentialStore {
   let currentConfig = { ...config };
 
-  return {
+  const configService: IConfigService = {
     async getConfig() {
       return currentConfig;
     },
-    async getCredentials(): Promise<AuthCredentials> {
-      if (!currentConfig.username || !currentConfig.apiToken) {
-        throw {
-          code: 1001,
-          message: 'Auth required',
-        } as BBError;
-      }
-      return {
-        username: currentConfig.username,
-        apiToken: currentConfig.apiToken,
-      };
-    },
-    async setCredentials(creds: AuthCredentials) {
-      currentConfig.authMethod = 'basic';
-      currentConfig.username = creds.username;
-      currentConfig.apiToken = creds.apiToken;
-    },
-    async clearCredentials() {
-      const {
-        username: _username,
-        apiToken: _apiToken,
-        ...rest
-      } = currentConfig;
-      currentConfig = rest;
+    async updateConfig(update: (config: BBConfig) => BBConfig) {
+      currentConfig = update(currentConfig);
     },
     async clearConfig() {
       currentConfig = {};
@@ -100,54 +98,36 @@ export function createMockConfigService(
       return currentConfig[key];
     },
     async setValue<K extends keyof BBConfig>(key: K, value: BBConfig[K]) {
-      currentConfig[key] = value;
+      currentConfig = { ...currentConfig, [key]: value };
     },
     getConfigPath() {
       return '/tmp/test-config/config.json';
     },
-    async getAuthMethod(): Promise<AuthMethod> {
-      return (currentConfig.authMethod as AuthMethod) ?? 'basic';
-    },
-    async getOAuthCredentials(): Promise<OAuthCredentials> {
-      if (
-        !currentConfig.oauthAccessToken ||
-        !currentConfig.oauthRefreshToken ||
-        !currentConfig.oauthExpiresAt
-      ) {
-        throw { code: 1001, message: 'OAuth auth required' } as BBError;
-      }
-      return {
-        accessToken: currentConfig.oauthAccessToken,
-        refreshToken: currentConfig.oauthRefreshToken,
-        expiresAt: currentConfig.oauthExpiresAt,
-      };
-    },
-    async setOAuthCredentials(creds: OAuthCredentials) {
-      const { username: _u, apiToken: _t, ...rest } = currentConfig;
-      currentConfig = {
-        ...rest,
-        authMethod: 'oauth',
-        oauthAccessToken: creds.accessToken,
-        oauthRefreshToken: creds.refreshToken,
-        oauthExpiresAt: creds.expiresAt,
-      };
-    },
-    async clearOAuthCredentials() {
-      const {
-        authMethod: _am,
-        oauthAccessToken: _at,
-        oauthRefreshToken: _rt,
-        oauthExpiresAt: _ea,
-        oauthClientId: _ci,
-        oauthClientSecret: _cs,
-        ...rest
-      } = currentConfig;
-      currentConfig = rest;
-    },
-    async isOAuthTokenExpired(): Promise<boolean> {
-      if (!currentConfig.oauthExpiresAt) return true;
-      return Date.now() >= (currentConfig.oauthExpiresAt - 60) * 1000;
-    },
+  };
+  const store = new CredentialStore(
+    configService,
+    options.secrets ?? createMockSecretStorage(),
+    options.env ?? {}
+  );
+
+  return {
+    ...configService,
+    useAccount: (name) => store.useAccount(name),
+    getAccountName: () => store.getAccountName(),
+    listAccounts: () => store.listAccounts(),
+    switchAccount: (name) => store.switchAccount(name),
+    setStorage: (storage) => store.setStorage(storage),
+    getAuthMethod: () => store.getAuthMethod(),
+    hasCredentials: () => store.hasCredentials(),
+    getCredentials: () => store.getCredentials(),
+    setCredentials: (creds) => store.setCredentials(creds),
+    clearCredentials: () => store.clearCredentials(),
+    getOAuthCredentials: () => store.getOAuthCredentials(),
+    setOAuthCredentials: (creds, client) =>
+      store.setOAuthCredentials(creds, client),
+    getOAuthClient: () => store.getOAuthClient(),
+    clearOAuthCredentials: () => store.clearOAuthCredentials(),
+    isOAuthTokenExpired: () => store.isOAuthTokenExpired(),
   };
 }
 
@@ -159,9 +139,22 @@ export function createMockConfigService(
 export function createMockConfigServiceOnly(
   config: BBConfig = {}
 ): IConfigService {
-  const { getConfig, clearConfig, getValue, setValue, getConfigPath } =
-    createMockConfigService(config);
-  return { getConfig, clearConfig, getValue, setValue, getConfigPath };
+  const {
+    getConfig,
+    updateConfig,
+    clearConfig,
+    getValue,
+    setValue,
+    getConfigPath,
+  } = createMockConfigService(config);
+  return {
+    getConfig,
+    updateConfig,
+    clearConfig,
+    getValue,
+    setValue,
+    getConfigPath,
+  };
 }
 
 /**
@@ -171,25 +164,15 @@ export function createMockCredentialStoreOnly(
   config: BBConfig = {}
 ): ICredentialStore {
   const {
-    getAuthMethod,
-    getCredentials,
-    setCredentials,
-    clearCredentials,
-    getOAuthCredentials,
-    setOAuthCredentials,
-    clearOAuthCredentials,
-    isOAuthTokenExpired,
+    getConfig: _getConfig,
+    updateConfig: _updateConfig,
+    clearConfig: _clearConfig,
+    getValue: _getValue,
+    setValue: _setValue,
+    getConfigPath: _getConfigPath,
+    ...credentialStore
   } = createMockConfigService(config);
-  return {
-    getAuthMethod,
-    getCredentials,
-    setCredentials,
-    clearCredentials,
-    getOAuthCredentials,
-    setOAuthCredentials,
-    clearOAuthCredentials,
-    isOAuthTokenExpired,
-  };
+  return credentialStore;
 }
 
 export function createMockGitService(
@@ -216,6 +199,20 @@ export function createMockGitService(
     },
     async checkoutNewBranch() {
       // Mock implementation
+    },
+    async fastForward() {
+      // Mock implementation
+    },
+    async branchExists() {
+      return false;
+    },
+    async isAncestor() {
+      return true;
+    },
+    async getRemotes() {
+      return options.remoteUrl
+        ? [{ name: 'origin', url: options.remoteUrl }]
+        : [];
     },
     async getCurrentBranch() {
       if (options.throwOnGetCurrentBranch) {
@@ -383,6 +380,9 @@ export function createMockOutputService(
       logs.push(`table:${headers.join(',')}`);
       logs.push(`table-rows:${JSON.stringify(rows)}`);
     },
+    withPager<T>(run: () => Promise<T>) {
+      return run();
+    },
     success(message: string) {
       logs.push(`success:${message}`);
     },
@@ -456,6 +456,9 @@ export function createMockOutputService(
       return text;
     },
     formatDate(date: string | Date) {
+      return new Date(date).toISOString();
+    },
+    formatRelativeDate(date: string | Date) {
       return new Date(date).toISOString();
     },
   };
