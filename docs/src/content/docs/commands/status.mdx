@@ -50,8 +50,9 @@ bb status list abc1234 --json --jq '.statuses[].state'
 ### Notes
 
 - Columns: status key, state (colored: green `SUCCESSFUL`, red `FAILED`,
-  yellow `INPROGRESS`, gray `STOPPED`), name, description (truncated to 40
-  characters; disable with `--no-truncate`), and URL.
+  yellow `INPROGRESS`, gray `STOPPED`), name, description (name and
+  description shrink to fit the terminal; disable with `--no-truncate`), and
+  URL.
 - `bb pr checks` colors states the same way but renders a different table:
   `STATUS / NAME / DESCRIPTION / UPDATED`, with the state shown as
   `OK passed` / `FAIL failed` / `RUN running` / `STOP stopped` rather than the

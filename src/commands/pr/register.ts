@@ -37,7 +37,7 @@ export function registerPrCommands(
     .option('--draft', 'Create the pull request as draft')
     .option(
       '--reviewer <user>',
-      'Add a reviewer by account ID or {uuid} (repeatable)',
+      'Add a reviewer by nickname, display name, email, @me, account ID or {uuid} (repeatable)',
       collectRepeated,
       [] as string[]
     )
@@ -56,6 +56,7 @@ export function registerPrCommands(
           'bb pr create -t "My PR" -s feature -d develop',
           'bb pr create -t "My PR" --close-source-branch',
           'bb pr create -t "My PR" --default-reviewers',
+          'bb pr create -t "My PR" --reviewer jdoe --reviewer "Jane Smith"',
           'bb pr create -t "My PR" --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
         ],
         defaults: {

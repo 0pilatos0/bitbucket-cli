@@ -7,10 +7,12 @@ import type {
   IOutputService,
   ISpinner,
   JsonFormatOptions,
+  TableOptions,
 } from '../core/interfaces/services.js';
 import { BBError, ErrorCode } from '../types/errors.js';
 import { DEFAULT_LOCALE } from './locale.js';
 import { projectFields } from './output.project.js';
+import { resolvePagerCommand, runPager } from './pager.js';
 import { Spinner, createNoopSpinner } from './spinner.js';
 
 const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -33,6 +35,26 @@ const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
 const CONTROL_CHARS =
   // eslint-disable-next-line no-control-regex
   /(\x1b\[[0-9;?]*m)|\x1b\[[0-9;?]*[A-Za-ln-z]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\x9B\x9D]/g;
+
+// eslint-disable-next-line no-control-regex
+const SGR = /\x1b\[[0-9;?]*m/g;
+
+const COLUMN_GAP = '  ';
+const ELLIPSIS = '...';
+// Shrinking a column narrower than this leaves too little to recognize; past
+// that point the row is allowed to overflow and wrap instead.
+const MIN_FLEX_WIDTH = 10;
+
+const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
+  ['year', 365 * 24 * 60 * 60],
+  ['month', (365 / 12) * 24 * 60 * 60],
+  ['day', 24 * 60 * 60],
+  ['hour', 60 * 60],
+  ['minute', 60],
+  ['second', 1],
+];
+
+type TerminalState = Pick<NodeJS.WriteStream, 'isTTY' | 'columns'>;
 
 function stripControl(value: string): string {
   return value.replace(
@@ -93,18 +115,28 @@ function ignoreClosedStdoutPipe(): void {
 export class OutputService implements IOutputService {
   private readonly noColor: boolean;
   private readonly noUnicode: boolean;
+  private readonly noTruncate: boolean;
   private readonly locale: string;
+  private readonly terminal: TerminalState;
   private jsonFormatOptions: JsonFormatOptions = {};
   private activeSpinner: ISpinner | null = null;
+  // Collects stdout while a `withPager()` run is active, so the whole page
+  // can be handed to the pager in one go.
+  private pageBuffer: string[] | null = null;
 
   constructor(options?: {
     noColor?: boolean;
     noUnicode?: boolean;
+    noTruncate?: boolean;
     locale?: string;
+    /** Where stdout goes; defaults to the live `process.stdout`. */
+    terminal?: TerminalState;
   }) {
     this.noColor = options?.noColor ?? false;
     this.noUnicode = options?.noUnicode ?? false;
+    this.noTruncate = options?.noTruncate ?? false;
     this.locale = options?.locale ?? DEFAULT_LOCALE;
+    this.terminal = options?.terminal ?? process.stdout;
   }
 
   public setJsonFormatOptions(options: JsonFormatOptions): void {
@@ -122,7 +154,7 @@ export class OutputService implements IOutputService {
     // spinner so callers see a uniform handle.
     const enabled =
       !this.isJsonMode() &&
-      !!process.stdout.isTTY &&
+      !!this.terminal.isTTY &&
       process.env.NODE_ENV !== 'test';
 
     if (!enabled) {
@@ -179,7 +211,11 @@ export class OutputService implements IOutputService {
     console.error(JSON.stringify(data));
   }
 
-  public table(headers: string[], rows: string[][]): void {
+  public table(
+    headers: string[],
+    rows: string[][],
+    options: TableOptions = {}
+  ): void {
     this.stopActiveSpinner();
     if (rows.length === 0) {
       return;
@@ -194,40 +230,54 @@ export class OutputService implements IOutputService {
 
     const sanitizedHeaders = headers.map(sanitizeCell);
     const sanitizedRows = rows.map((row) =>
-      row.map((cell) => sanitizeCell(cell || ''))
+      sanitizedHeaders.map((_, index) => sanitizeCell(row[index] || ''))
     );
 
-    // Calculate column widths
-    const widths = sanitizedHeaders.map((header, index) => {
-      const maxRowWidth = Math.max(
-        ...sanitizedRows.map((row) => (row[index] || '').length)
-      );
-      return Math.max(header.length, maxRowWidth);
-    });
+    // Piped output is tab-separated with no header, like `gh`, so `cut -f`
+    // and friends see whole values instead of padded, truncated columns.
+    if (!this.terminal.isTTY) {
+      for (const row of sanitizedRows) {
+        this.writeLine(row.map((cell) => cell.replace(SGR, '')).join('\t'));
+      }
+      return;
+    }
 
-    // Print header
-    const headerRow = sanitizedHeaders
-      .map((header, index) => header.padEnd(widths[index]!))
-      .join('  ');
+    const naturalWidths = sanitizedHeaders.map((header, index) =>
+      Math.max(
+        Bun.stringWidth(header),
+        ...sanitizedRows.map((row) => Bun.stringWidth(row[index]!))
+      )
+    );
+    const widths = this.noTruncate
+      ? naturalWidths
+      : fitColumnWidths(
+          naturalWidths,
+          options.flexColumns ?? [],
+          this.terminal.columns
+        );
 
-    console.log(this.format(headerRow, chalk.bold));
+    const lastIndex = widths.length - 1;
+    const renderRow = (cells: string[]): string =>
+      cells
+        .map((cell, index) => {
+          const fitted = truncateToWidth(cell, widths[index]!);
+          return index === lastIndex
+            ? fitted
+            : fitted + ' '.repeat(widths[index]! - Bun.stringWidth(fitted));
+        })
+        .join(COLUMN_GAP);
 
-    // Print separator
-    console.log(widths.map((width) => '-'.repeat(width)).join('  '));
-
-    // Print rows
+    this.writeLine(this.format(renderRow(sanitizedHeaders), chalk.bold));
+    this.writeLine(widths.map((width) => '-'.repeat(width)).join(COLUMN_GAP));
     for (const row of sanitizedRows) {
-      const formattedRow = row
-        .map((cell, index) => cell.padEnd(widths[index]!))
-        .join('  ');
-      console.log(formattedRow);
+      this.writeLine(renderRow(row));
     }
   }
 
   public success(message: string): void {
     this.stopActiveSpinner();
     const symbol = this.format(this.symbol('✓', 'OK'), chalk.green);
-    console.log(`${symbol} ${stripControl(message)}`);
+    this.writeLine(`${symbol} ${stripControl(message)}`);
   }
 
   public error(message: string): void {
@@ -250,7 +300,7 @@ export class OutputService implements IOutputService {
     if (this.isJsonMode()) {
       console.error(line);
     } else {
-      console.log(line);
+      this.writeLine(line);
     }
   }
 
@@ -260,7 +310,7 @@ export class OutputService implements IOutputService {
 
   public text(message: string): void {
     this.stopActiveSpinner();
-    console.log(stripControl(message));
+    this.writeLine(stripControl(message));
   }
 
   public stderr(message: string): void {
@@ -271,8 +321,13 @@ export class OutputService implements IOutputService {
   public raw(data: Uint8Array): void {
     this.stopActiveSpinner();
     ignoreClosedStdoutPipe();
-    if (process.stdout.isTTY) {
-      process.stdout.write(stripControl(new TextDecoder().decode(data)));
+    if (this.terminal.isTTY) {
+      const text = stripControl(new TextDecoder().decode(data));
+      if (this.pageBuffer) {
+        this.pageBuffer.push(text);
+        return;
+      }
+      process.stdout.write(text);
       return;
     }
     process.stdout.write(data);
@@ -281,10 +336,49 @@ export class OutputService implements IOutputService {
   public separator(width = 60): void {
     this.stopActiveSpinner();
     if (width <= 0) {
-      console.log('');
+      this.writeLine('');
       return;
     }
-    console.log(this.format(this.symbol('─', '-').repeat(width), chalk.gray));
+    this.writeLine(
+      this.format(this.symbol('─', '-').repeat(width), chalk.gray)
+    );
+  }
+
+  public async withPager<T>(run: () => Promise<T>): Promise<T> {
+    const pager =
+      this.isJsonMode() || !this.terminal.isTTY || this.pageBuffer
+        ? undefined
+        : resolvePagerCommand(process.env.BB_PAGER ?? process.env.PAGER);
+    if (!pager) {
+      return run();
+    }
+
+    const buffer: string[] = [];
+    this.pageBuffer = buffer;
+    let result: T;
+    try {
+      result = await run();
+    } catch (error) {
+      // Show partial output right away so the error printed next isn't
+      // hidden behind a pager waiting for input.
+      this.pageBuffer = null;
+      process.stdout.write(buffer.join(''));
+      throw error;
+    }
+    this.pageBuffer = null;
+    const text = buffer.join('');
+    if (text.length > 0 && !(await runPager(pager, text))) {
+      process.stdout.write(text);
+    }
+    return result;
+  }
+
+  private writeLine(line: string): void {
+    if (this.pageBuffer) {
+      this.pageBuffer.push(`${line}\n`);
+      return;
+    }
+    console.log(line);
   }
 
   /**
@@ -318,6 +412,32 @@ export class OutputService implements IOutputService {
       // Invalid BCP-47 tag: fall back to the historical default so a typo
       // in --locale or LANG doesn't crash a date-rendering command.
       return d.toLocaleDateString(DEFAULT_LOCALE, DATE_FORMAT_OPTIONS);
+    }
+  }
+
+  public formatRelativeDate(date: string | Date, now = new Date()): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (Number.isNaN(d.getTime())) {
+      return '-';
+    }
+    // Piped output feeds other tools, which want a sortable, locale-free date.
+    if (!this.terminal.isTTY) {
+      return d.toISOString();
+    }
+
+    const seconds = (d.getTime() - now.getTime()) / 1000;
+    const [unit, size] = RELATIVE_UNITS.find(
+      ([, unitSeconds]) => Math.abs(seconds) >= unitSeconds
+    ) ?? ['second', 1];
+    const value = Math.trunc(seconds / size);
+    try {
+      return new Intl.RelativeTimeFormat(this.locale, {
+        numeric: 'auto',
+      }).format(value, unit);
+    } catch {
+      return new Intl.RelativeTimeFormat(DEFAULT_LOCALE, {
+        numeric: 'auto',
+      }).format(value, unit);
     }
   }
 
@@ -383,6 +503,72 @@ export class OutputService implements IOutputService {
   public underline(text: string): string {
     return this.format(text, chalk.underline);
   }
+}
+
+/**
+ * Narrow the flexible columns just enough for the row to fit `maxWidth`. The
+ * widest flexible columns give up space first (a shared cap), so a long title
+ * shrinks before a short branch name does. Without a known terminal width, or
+ * when the row already fits, the natural widths are kept.
+ */
+export function fitColumnWidths(
+  widths: number[],
+  flexColumns: number[],
+  maxWidth: number | undefined
+): number[] {
+  const total =
+    widths.reduce((sum, width) => sum + width, 0) +
+    COLUMN_GAP.length * (widths.length - 1);
+  if (!maxWidth || total <= maxWidth) {
+    return widths;
+  }
+
+  const flex = new Set(flexColumns.filter((index) => index < widths.length));
+  const fixedTotal = total - [...flex].reduce((sum, i) => sum + widths[i]!, 0);
+  let budget = maxWidth - fixedTotal;
+  const flexWidths = [...flex]
+    .map((index) => widths[index]!)
+    .sort((a, b) => a - b);
+  let cap = flexWidths.at(-1) ?? 0;
+  for (const [position, width] of flexWidths.entries()) {
+    const remaining = flexWidths.length - position;
+    if (width * remaining > budget) {
+      cap = Math.floor(budget / remaining);
+      break;
+    }
+    budget -= width;
+  }
+  const limit = Math.max(cap, MIN_FLEX_WIDTH);
+
+  return widths.map((width, index) =>
+    flex.has(index) ? Math.min(width, limit) : width
+  );
+}
+
+/**
+ * Cut `text` to at most `width` terminal columns, ending in `...`. Width is
+ * measured on screen, so ANSI color codes count as zero and wide (e.g. CJK)
+ * characters as two. A cut cell loses its color: re-closing SGR spans
+ * mid-string is not worth the complexity for a truncated value.
+ */
+export function truncateToWidth(text: string, width: number): string {
+  if (Bun.stringWidth(text) <= width) {
+    return text;
+  }
+
+  const budget = width > ELLIPSIS.length ? width - ELLIPSIS.length : width;
+  const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  let result = '';
+  let used = 0;
+  for (const { segment } of segmenter.segment(text.replace(SGR, ''))) {
+    const segmentWidth = Bun.stringWidth(segment);
+    if (used + segmentWidth > budget) {
+      break;
+    }
+    result += segment;
+    used += segmentWidth;
+  }
+  return width > ELLIPSIS.length ? result + ELLIPSIS : result;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

@@ -57,8 +57,9 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
         mapRow: (repo) => [
           repo.full_name ?? '',
           repo.is_private ? 'private' : 'public',
-          this.truncateText(repo.description ?? '', 50, context.globalOptions),
+          repo.description ?? '',
         ],
+        flexColumns: [2],
         noun: 'repositories',
       },
       context

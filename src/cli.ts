@@ -113,7 +113,11 @@ const locale = resolveLocale({
   env: process.env,
 });
 
-const container = bootstrap({ noColor, noUnicode, locale });
+// Table fitting happens inside OutputService, which is built before Commander
+// parses argv, so read the flag the same way as --no-color/--no-unicode.
+const noTruncate = process.argv.includes('--no-truncate');
+
+const container = bootstrap({ noColor, noUnicode, noTruncate, locale });
 
 // Exact path of the command currently executing (e.g. `pr comments add`),
 // derived from Commander's command tree by the root `preAction` hook below and

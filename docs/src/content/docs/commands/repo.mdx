@@ -141,7 +141,7 @@ The `--json` envelope is `{ workspace, count, repositories }`, where `repositori
 ### Notes
 
 - `--limit` caps how many repositories come back, not the page size. The CLI walks pages (at most 50 per request) until the cap is reached. A value below 1 fails with `--limit must be a positive integer`.
-- Long descriptions are truncated to 50 characters in the table (disable with the global `--no-truncate`); `--json` always carries the full values.
+- Long descriptions are shortened to fit the terminal width (disable with the global `--no-truncate`); `--json` always carries the full values.
 - When the result is capped by `--limit`, a hint shows how many were listed; use a higher `--limit` or `--all` to see the rest (suppressed with `--json`).
 
 ---

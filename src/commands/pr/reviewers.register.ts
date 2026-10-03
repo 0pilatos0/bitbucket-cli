@@ -32,13 +32,16 @@ export function registerPrReviewersCommands(
   prReviewersCmd
     .command('add <id> <user>')
     .description(
-      'Add a reviewer to a pull request (user is an account ID or {uuid})'
+      'Add a reviewer to a pull request (user is a nickname, display name, email, @me, account ID or {uuid})'
     )
     .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pr reviewers add 42 jdoe',
+          'bb pr reviewers add 42 "Jane Doe"',
+          'bb pr reviewers add 42 @me',
           'bb pr reviewers add 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"',
           'bb pr reviewers add 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
         ],
@@ -55,13 +58,14 @@ export function registerPrReviewersCommands(
   prReviewersCmd
     .command('remove <id> <user>')
     .description(
-      'Remove a reviewer from a pull request (user is an account ID or {uuid})'
+      'Remove a reviewer from a pull request (user is a nickname, display name, email, @me, account ID or {uuid})'
     )
     .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
         examples: [
+          'bb pr reviewers remove 42 jdoe',
           'bb pr reviewers remove 42 "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"',
           'bb pr reviewers remove 42 "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
         ],

@@ -55,9 +55,9 @@ bb project list --json | jq -r '.projects[].key'
 
 ```text
 KEY       NAME               PRIVACY  DESCRIPTION                        UPDATED
---------  -----------------  -------  ---------------------------------  ------------------------
-PLATFORM  Platform Services  private  Shared infrastructure and tooling  Jul 30, 2026 at 09:12 AM
-WEB       Web Apps           private  Customer-facing web frontends      Jul 24, 2026 at 04:38 PM
+--------  -----------------  -------  ---------------------------------  ----------
+PLATFORM  Platform Services  private  Shared infrastructure and tooling  3 days ago
+WEB       Web Apps           private  Customer-facing web frontends      last week
 ```
 
 An empty workspace prints `No projects found in workspace <workspace>`.
@@ -69,8 +69,9 @@ of project objects.
 
 ### Notes
 
-- The `DESCRIPTION` column is truncated to 50 characters. Pass the global
-  `--no-truncate` for the full text; `--json` always carries the full values.
+- Long `NAME` and `DESCRIPTION` values are shortened to fit the terminal
+  width. Pass the global `--no-truncate` for the full text; `--json` always
+  carries the full values.
 - When more results exist than `--limit` returned, the table is followed by
   `Showing 25 projects. Use --limit <n> or --all to see more.` This footer is
   never printed under `--json`.

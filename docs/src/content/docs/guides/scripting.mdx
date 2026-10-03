@@ -105,6 +105,21 @@ bb pr list --json --all | jq '.pullRequests | group_by(.author.nickname // .auth
 
 ---
 
+## Piped table output
+
+When stdout is not a terminal, list tables come out as tab-separated values:
+one line per row, no header, nothing padded or cut off. Quick one-liners work
+without `--json`:
+
+```bash
+bb pr list | cut -f1,2          # "#42<TAB>Fix login redirect"
+bb repo list | sort -t$'\t' -k1
+```
+
+Dates in piped tables are ISO 8601 timestamps (`2026-07-28T11:14:00.000Z`),
+and hints such as "Showing N results" go to stderr. Use `--json` when a script depends on the exact fields; the TSV columns
+follow the table and may change.
+
 ## Raw API access (escape hatch)
 
 When no typed command covers what you need, [`bb api`](/commands/api/) calls any
