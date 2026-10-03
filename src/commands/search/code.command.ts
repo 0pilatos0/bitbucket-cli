@@ -24,8 +24,6 @@ import {
 // workspace-wide search cannot do without.
 const REPOSITORY_FIELDS = '+values.file.commit.repository';
 
-const MATCH_TEXT_MAX_LENGTH = 60;
-
 export interface SearchCodeOptions extends GlobalOptions {
   query: string[];
   limit?: string;
@@ -90,15 +88,10 @@ export class SearchCodeCommand extends BaseCommand<SearchCodeOptions, void> {
             result.file?.commit?.repository?.full_name ?? '',
             result.file?.path ?? '',
             line?.line === undefined ? '' : String(line.line),
-            line
-              ? this.truncateText(
-                  lineText(line),
-                  MATCH_TEXT_MAX_LENGTH,
-                  context.globalOptions
-                )
-              : '',
+            line ? lineText(line) : '',
           ];
         },
+        flexColumns: [1, 3],
         noun: 'results',
       },
       context

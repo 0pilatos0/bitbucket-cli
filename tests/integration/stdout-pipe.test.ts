@@ -140,7 +140,9 @@ describe('output larger than the pipe buffer', () => {
       expect(result.stderr).toBe('');
       expect(result.status).toBe('0');
       expect(result.stdout.length).toBeGreaterThan(64 * 1024);
-      expect(result.stdout).toContain(`ws/repo-${REPO_COUNT - 1} `);
+      const rows = result.stdout.trimEnd().split('\n');
+      expect(rows).toHaveLength(REPO_COUNT);
+      expect(rows.at(-1)).toStartWith(`ws/repo-${REPO_COUNT - 1}\t`);
     },
     30_000
   );

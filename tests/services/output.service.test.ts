@@ -2,12 +2,69 @@
  * OutputService tests
  */
 
+import { chmod, mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import chalk from 'chalk';
 import {
   OutputService,
+  fitColumnWidths,
   needsWindowsJqBunUpgrade,
+  truncateToWidth,
 } from '../../src/services/output.service.js';
+
+type Terminal = { isTTY: boolean; columns?: number };
+
+describe('truncateToWidth', () => {
+  it('returns text that already fits unchanged', () => {
+    expect(truncateToWidth('hello', 5)).toBe('hello');
+  });
+
+  it('cuts by visible width and appends an ellipsis', () => {
+    expect(truncateToWidth('hello world', 8)).toBe('hello...');
+  });
+
+  it('counts wide characters as two columns', () => {
+    const cut = truncateToWidth('漢字漢字漢字', 7);
+    expect(cut).toBe('漢字...');
+    expect(Bun.stringWidth(cut)).toBeLessThanOrEqual(7);
+  });
+
+  it('ignores color codes when measuring and drops them when cutting', () => {
+    expect(truncateToWidth('\x1b[32mok\x1b[39m', 2)).toBe('\x1b[32mok\x1b[39m');
+    expect(truncateToWidth('\x1b[32mpassing\x1b[39m', 6)).toBe('pas...');
+  });
+
+  it('skips the ellipsis when the column is too narrow for it', () => {
+    expect(truncateToWidth('abcdef', 3)).toBe('abc');
+  });
+});
+
+describe('fitColumnWidths', () => {
+  it('keeps natural widths when the row fits or the width is unknown', () => {
+    expect(fitColumnWidths([5, 10], [0, 1], 80)).toEqual([5, 10]);
+    expect(fitColumnWidths([50, 100], [0, 1], undefined)).toEqual([50, 100]);
+  });
+
+  it('shrinks the widest flexible column first', () => {
+    // 4 + 2 + 60 + 2 + 20 = 88 > 60: the title gives up 28 columns while the
+    // shorter flexible column keeps its width.
+    expect(fitColumnWidths([4, 60, 20], [1, 2], 60)).toEqual([4, 32, 20]);
+  });
+
+  it('shares the space between flexible columns that are both too wide', () => {
+    expect(fitColumnWidths([4, 60, 60], [1, 2], 50)).toEqual([4, 21, 21]);
+  });
+
+  it('never shrinks fixed columns', () => {
+    expect(fitColumnWidths([38, 60], [1], 60)).toEqual([38, 20]);
+  });
+
+  it('stops at a minimum width and lets the row overflow', () => {
+    expect(fitColumnWidths([38, 60], [1], 40)).toEqual([38, 10]);
+  });
+});
 
 describe('Windows jq runtime requirement', () => {
   it('requires an upgrade before Bun 1.4.2 on Windows', () => {
@@ -28,6 +85,7 @@ describe('Windows jq runtime requirement', () => {
 
 describe('OutputService', () => {
   let output: OutputService;
+  let terminal: Terminal;
   let stdoutLines: string[];
   let stderrLines: string[];
   let stdoutSpy: ReturnType<typeof spyOn>;
@@ -50,7 +108,9 @@ describe('OutputService', () => {
       captureLines(stderrLines)
     );
 
-    output = new OutputService();
+    // Table tests describe the terminal layout unless they opt out.
+    terminal = { isTTY: true };
+    output = new OutputService({ terminal });
   });
 
   afterEach(() => {
@@ -59,12 +119,42 @@ describe('OutputService', () => {
   });
 
   describe('json', () => {
-    it('should output formatted JSON', async () => {
+    const setStdoutTTY = (value: boolean): void => {
+      terminal.isTTY = value;
+    };
+
+    beforeEach(() => {
+      setStdoutTTY(false);
+    });
+
+    it('pretty-prints JSON when stdout is a terminal', async () => {
+      setStdoutTTY(true);
       await output.json({ name: 'test', value: 42 });
 
-      expect(stdoutLines).toHaveLength(1);
-      expect(stdoutLines[0]).toContain('"name": "test"');
-      expect(stdoutLines[0]).toContain('"value": 42');
+      expect(stdoutLines).toEqual(['{\n  "name": "test",\n  "value": 42\n}']);
+    });
+
+    it('prints compact JSON when stdout is piped', async () => {
+      setStdoutTTY(false);
+      await output.json({ name: 'test', nested: { value: 42 } });
+
+      expect(stdoutLines).toEqual(['{"name":"test","nested":{"value":42}}']);
+    });
+
+    it('prints compact --jq results when stdout is piped', async () => {
+      setStdoutTTY(false);
+      output.setJsonFormatOptions({ jq: '.items[]' });
+      await output.json({ items: [{ id: 1 }, { id: 2 }] });
+
+      expect(stdoutLines).toEqual(['{"id":1}\n{"id":2}']);
+    });
+
+    it('pretty-prints --jq results when stdout is a terminal', async () => {
+      setStdoutTTY(true);
+      output.setJsonFormatOptions({ jq: '.items[0]' });
+      await output.json({ items: [{ id: 1 }] });
+
+      expect(stdoutLines).toEqual(['{\n  "id": 1\n}']);
     });
 
     it('should handle arrays', async () => {
@@ -229,10 +319,89 @@ describe('OutputService', () => {
       expect(lines).toEqual(['"first"', '"second"']);
     });
 
+    it('quotes string results by default', async () => {
+      output.setJsonFormatOptions({ jq: '.[].title' });
+      await output.json([{ title: 'first' }, { title: 'a "quoted" one' }]);
+
+      expect(stdoutLines).toEqual(['"first"\n"a \\"quoted\\" one"']);
+    });
+
+    it('prints string results unquoted with rawOutput', async () => {
+      output.setJsonFormatOptions({ jq: '.[].title', rawOutput: true });
+      await output.json([{ title: 'first' }, { title: 'a "quoted" one' }]);
+
+      expect(stdoutLines).toEqual(['first\na "quoted" one']);
+    });
+
     it('throws BBError on invalid jq expression', async () => {
       output.setJsonFormatOptions({ jq: '.invalid syntax [' });
 
       await expect(output.json({ id: 1 })).rejects.toThrow(/jq evaluation/);
+    });
+  });
+
+  describe('json with --lean', () => {
+    const pullRequest = {
+      id: 1,
+      links: {
+        self: { href: 'https://api.bitbucket.org/2.0/pr/1' },
+        html: { href: 'https://bitbucket.org/ws/repo/pull-requests/1' },
+        diff: { href: 'https://api.bitbucket.org/2.0/pr/1/diff' },
+      },
+      author: {
+        display_name: 'Jane',
+        links: { avatar: { href: 'https://avatar' } },
+      },
+      reviewers: [
+        {
+          display_name: 'Joe',
+          links: {
+            self: { href: 'https://api' },
+            html: { href: 'https://bitbucket.org/joe' },
+          },
+        },
+      ],
+    };
+
+    it('keeps only links.html in every links map', async () => {
+      output.setJsonFormatOptions({ lean: true });
+      await output.json({ count: 1, pullRequests: [pullRequest] });
+
+      expect(JSON.parse(stdoutLines[0]!)).toEqual({
+        count: 1,
+        pullRequests: [
+          {
+            id: 1,
+            links: {
+              html: { href: 'https://bitbucket.org/ws/repo/pull-requests/1' },
+            },
+            author: { display_name: 'Jane' },
+            reviewers: [
+              {
+                display_name: 'Joe',
+                links: { html: { href: 'https://bitbucket.org/joe' } },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('leaves output unchanged without lean', async () => {
+      await output.json(pullRequest);
+
+      expect(JSON.parse(stdoutLines[0]!)).toEqual(pullRequest);
+    });
+
+    it('prunes after field projection and before jq', async () => {
+      output.setJsonFormatOptions({
+        lean: true,
+        fields: ['id', 'author'],
+        jq: '.[0].author | keys',
+      });
+      await output.json({ pullRequests: [pullRequest] });
+
+      expect(JSON.parse(stdoutLines.join(''))).toEqual(['display_name']);
     });
   });
 
@@ -398,13 +567,6 @@ describe('OutputService', () => {
   describe('raw', () => {
     let writes: unknown[];
     let writeSpy: ReturnType<typeof spyOn>;
-    const originalIsTTY = process.stdout.isTTY;
-    const setStdoutTTY = (value: boolean | undefined): void => {
-      Object.defineProperty(process.stdout, 'isTTY', {
-        value,
-        configurable: true,
-      });
-    };
 
     beforeEach(() => {
       writes = [];
@@ -418,11 +580,10 @@ describe('OutputService', () => {
 
     afterEach(() => {
       writeSpy.mockRestore();
-      setStdoutTTY(originalIsTTY);
     });
 
     it('writes the exact bytes with no trailing newline when piped', () => {
-      setStdoutTTY(false);
+      terminal.isTTY = false;
       const bytes = new Uint8Array([0x89, 0x50, 0x1b, 0x5d, 0x00, 0x0a]);
 
       output.raw(bytes);
@@ -432,7 +593,7 @@ describe('OutputService', () => {
     });
 
     it('strips terminal control sequences when stdout is a TTY', () => {
-      setStdoutTTY(true);
+      terminal.isTTY = true;
 
       output.raw(new TextEncoder().encode('ok\x1b]0;pwned\x07after\n'));
 
@@ -795,8 +956,8 @@ describe('OutputService', () => {
       expect(headerLine).toContain('A ');
       expect(headerLine).toContain('BBBB');
       expect(separator).toMatch(/^-+  -+$/);
-      // All rows should share the same printed length because of padding.
-      expect(row1.length).toBe(row2.length);
+      // The second column starts at the same offset on every row.
+      expect(row1.indexOf('x')).toBe(row2.indexOf('yy'));
     });
   });
 
@@ -955,6 +1116,255 @@ describe('OutputService', () => {
       } finally {
         chalk.level = originalLevel;
       }
+    });
+  });
+
+  describe('table layout', () => {
+    it('prints tab-separated rows without a header when piped', () => {
+      terminal.isTTY = false;
+
+      output.table(
+        ['ID', 'TITLE'],
+        [
+          ['#1', 'A long title that is never cut'],
+          ['#2', 'tab\tinside'],
+        ]
+      );
+
+      expect(stdoutLines).toEqual([
+        '#1\tA long title that is never cut',
+        '#2\ttab inside',
+      ]);
+    });
+
+    it('keeps an empty field for missing cells when piped', () => {
+      terminal.isTTY = false;
+
+      output.table(['A', 'B', 'C'], [['only']]);
+
+      expect(stdoutLines).toEqual(['only\t\t']);
+    });
+
+    it('aligns colored and wide cells by their visible width', () => {
+      const originalLevel = chalk.level;
+      chalk.level = 1;
+      try {
+        output.table(
+          ['NAME', 'STATE'],
+          [
+            [chalk.green('ok'), 'x'],
+            ['漢字', 'y'],
+            ['abcd', 'z'],
+          ]
+        );
+      } finally {
+        chalk.level = originalLevel;
+      }
+
+      const rows = stdoutLines.slice(2);
+      const stateColumn = rows.map(
+        (row) => Bun.stringWidth(row) - Bun.stringWidth(row.at(-1)!)
+      );
+      expect(new Set(stateColumn).size).toBe(1);
+      expect(stateColumn[0]).toBe(6); // 'NAME' + two-space gap
+    });
+
+    it('does not pad the last column', () => {
+      output.table(
+        ['A', 'B'],
+        [
+          ['1', 'long value'],
+          ['2', 'x'],
+        ]
+      );
+
+      for (const line of stdoutLines) {
+        expect(line).toBe(line.trimEnd());
+      }
+    });
+
+    it('fits rows to the terminal width by cutting flexible columns', () => {
+      terminal.columns = 30;
+      const title = 'A pull request title that is far too long';
+
+      output.table(['ID', 'TITLE', 'BY'], [['#1', title, 'paul']], {
+        flexColumns: [1],
+      });
+
+      for (const line of stdoutLines) {
+        expect(Bun.stringWidth(line)).toBeLessThanOrEqual(30);
+      }
+      expect(stdoutLines[2]).toContain('#1');
+      expect(stdoutLines[2]).toContain('...');
+      expect(stdoutLines[2]).toEndWith('paul');
+    });
+
+    it('prints full values with --no-truncate', () => {
+      terminal.columns = 30;
+      const title = 'A pull request title that is far too long';
+
+      new OutputService({ noTruncate: true, terminal }).table(
+        ['ID', 'TITLE'],
+        [['#1', title]]
+      );
+
+      expect(stdoutLines[2]).toBe(`#1  ${title}`);
+    });
+  });
+
+  describe('formatRelativeDate', () => {
+    const now = new Date('2026-10-03T12:00:00Z');
+
+    it('renders relative times on a terminal', () => {
+      expect(output.formatRelativeDate('2026-10-03T11:59:30Z', now)).toBe(
+        '30 seconds ago'
+      );
+      expect(output.formatRelativeDate('2026-10-03T09:00:00Z', now)).toBe(
+        '3 hours ago'
+      );
+      expect(output.formatRelativeDate('2026-10-02T09:00:00Z', now)).toBe(
+        'yesterday'
+      );
+      expect(output.formatRelativeDate('2026-07-01T12:00:00Z', now)).toBe(
+        '3 months ago'
+      );
+      expect(output.formatRelativeDate('2028-10-03T12:00:00Z', now)).toBe(
+        'in 2 years'
+      );
+    });
+
+    it('uses the configured locale', () => {
+      const localized = new OutputService({ locale: 'de-DE', terminal });
+      expect(localized.formatRelativeDate('2026-10-03T09:00:00Z', now)).toBe(
+        'vor 3 Stunden'
+      );
+    });
+
+    it('prints ISO 8601 timestamps when piped', () => {
+      terminal.isTTY = false;
+      expect(output.formatRelativeDate('2026-10-03T09:00:00Z', now)).toBe(
+        '2026-10-03T09:00:00.000Z'
+      );
+    });
+
+    it('prints a dash for missing or invalid dates', () => {
+      expect(output.formatRelativeDate('', now)).toBe('-');
+    });
+
+    it('does not round eleven and a half months up to a year', () => {
+      expect(output.formatRelativeDate('2025-10-05T12:00:00Z', now)).toBe(
+        '11 months ago'
+      );
+    });
+  });
+
+  describe('withPager', () => {
+    const originalPager = process.env.BB_PAGER;
+    let dir: string;
+    let pagedFile: string;
+
+    // Stand-in pager that saves what it receives instead of showing it.
+    beforeEach(async () => {
+      dir = await mkdtemp(join(tmpdir(), 'bb-pager-'));
+      pagedFile = join(dir, 'paged.txt');
+      const pager = join(dir, 'pager.sh');
+      await Bun.write(pager, '#!/bin/sh\ncat > "$1"\n');
+      await chmod(pager, 0o755);
+      process.env.BB_PAGER = `${pager} ${pagedFile}`;
+    });
+
+    afterEach(async () => {
+      if (originalPager === undefined) {
+        delete process.env.BB_PAGER;
+      } else {
+        process.env.BB_PAGER = originalPager;
+      }
+      await rm(dir, { recursive: true, force: true });
+    });
+
+    it.skipIf(process.platform === 'win32')(
+      'sends everything written during the run through the pager',
+      async () => {
+        const plain = new OutputService({ noColor: true, terminal });
+        const result = await plain.withPager(async () => {
+          plain.text('line one');
+          plain.table(['A'], [['cell']]);
+          return 42;
+        });
+
+        expect(result).toBe(42);
+        expect(stdoutLines).toHaveLength(0);
+        expect(await Bun.file(pagedFile).text()).toBe(
+          'line one\nA\n----\ncell\n'
+        );
+      }
+    );
+
+    it('writes directly when stdout is not a terminal', async () => {
+      terminal.isTTY = false;
+
+      await output.withPager(async () => output.text('piped'));
+
+      expect(stdoutLines).toEqual(['piped']);
+      expect(await Bun.file(pagedFile).exists()).toBe(false);
+    });
+
+    it('writes directly in JSON mode', async () => {
+      output.setJsonFormatOptions({ json: true });
+
+      await output.withPager(async () => output.json({ ok: true }));
+
+      expect(stdoutLines).toEqual([JSON.stringify({ ok: true }, null, 2)]);
+      expect(await Bun.file(pagedFile).exists()).toBe(false);
+    });
+
+    it('writes directly when paging is disabled', async () => {
+      process.env.BB_PAGER = '';
+
+      await output.withPager(async () => output.text('plain'));
+
+      expect(stdoutLines).toEqual(['plain']);
+    });
+
+    it('prints the output itself when the pager cannot start', async () => {
+      process.env.BB_PAGER = 'bb-no-such-pager-binary';
+      const writes: unknown[] = [];
+      const writeSpy = spyOn(process.stdout, 'write').mockImplementation(
+        (chunk: unknown) => {
+          writes.push(chunk);
+          return true;
+        }
+      );
+      try {
+        await output.withPager(async () => output.text('fallback'));
+      } finally {
+        writeSpy.mockRestore();
+      }
+
+      expect(writes).toEqual(['fallback\n']);
+    });
+
+    it('prints partial output directly when the command fails', async () => {
+      const writes: unknown[] = [];
+      const writeSpy = spyOn(process.stdout, 'write').mockImplementation(
+        (chunk: unknown) => {
+          writes.push(chunk);
+          return true;
+        }
+      );
+      try {
+        await expect(
+          output.withPager(async () => {
+            output.text('partial');
+            throw new Error('boom');
+          })
+        ).rejects.toThrow('boom');
+      } finally {
+        writeSpy.mockRestore();
+      }
+
+      expect(writes).toEqual(['partial\n']);
+      expect(await Bun.file(pagedFile).exists()).toBe(false);
     });
   });
 

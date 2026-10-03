@@ -18,8 +18,17 @@ describe('renderCompletionScript', () => {
     const script = renderCompletionScript(shell, TARGET);
 
     expect(script).toContain('###-begin-bb-completion-###');
-    expect(script).toContain('bb completion --');
+    expect(script).toContain(`BB_COMPLETION_SHELL=${shell} bb completion --`);
     expect(script).toContain(registration);
+    expect(script).not.toMatch(/\{pkgname\}|\{completer\}/);
+  });
+
+  it('renders the PowerShell template for bb', () => {
+    const script = renderCompletionScript('powershell', TARGET);
+
+    expect(script).toContain("-Native -CommandName 'bb'");
+    expect(script).toContain("& 'bb' completion --");
+    expect(script).toContain("$env:BB_COMPLETION_SHELL = 'powershell'");
     expect(script).not.toMatch(/\{pkgname\}|\{completer\}/);
   });
 

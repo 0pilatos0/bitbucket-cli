@@ -5,13 +5,8 @@
 import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type { IOutputService } from '../../core/interfaces/services.js';
-import type { installCompletion } from '../../completion-install.js';
+import { installCompletion } from '../../completion-install.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
-
-// Loaded on demand so tabtab and its prompt stack stay out of every other
-// command's startup.
-const installCompletionOnDemand: typeof installCompletion = async (options) =>
-  (await import('../../completion-install.js')).installCompletion(options);
 
 export class InstallCompletionCommand extends BaseCommand<void, void> {
   public readonly name = 'install';
@@ -19,7 +14,7 @@ export class InstallCompletionCommand extends BaseCommand<void, void> {
 
   constructor(
     output: IOutputService,
-    private readonly install: typeof installCompletion = installCompletionOnDemand
+    private readonly install: typeof installCompletion = installCompletion
   ) {
     super(output);
   }

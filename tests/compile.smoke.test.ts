@@ -208,10 +208,10 @@ describe.skipIf(
     2 * 60_000
   );
 
-  it('embeds the bash, zsh and fish completion templates', async () => {
+  it('embeds the bash, zsh, fish and PowerShell completion templates', async () => {
     const contents = await readFile(binary, 'latin1');
 
-    expect(contents.split('begin-{pkgname}-completion').length - 1).toBe(3);
+    expect(contents.split('begin-{pkgname}-completion').length - 1).toBe(4);
   });
 
   it(

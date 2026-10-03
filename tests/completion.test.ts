@@ -10,7 +10,8 @@
 
 import { describe, it, expect } from 'bun:test';
 import { cli } from '../src/cli.js';
-import { generateCompletions } from '../src/completion.js';
+import { fileURLToPath } from 'node:url';
+import { formatCompletions, generateCompletions } from '../src/completion.js';
 import { PR_STATES } from '../src/types/pr.js';
 import {
   PullrequestMergeParametersMergeStrategyEnum,
@@ -268,5 +269,53 @@ describe('generateCompletions', () => {
       expect(complete('bb')).toContain('auth');
       expect(complete('bb ')).toContain('pr');
     });
+  });
+});
+
+describe('formatCompletions', () => {
+  const items = [
+    { name: 'list', description: 'List pull requests' },
+    { name: 'a:b', description: 'Has a colon' },
+    { name: 'OPEN' },
+  ];
+
+  it.each([
+    ['zsh', 'list:List pull requests\na\\:b:Has a colon\nOPEN\n'],
+    ['fish', 'list\tList pull requests\na:b\tHas a colon\nOPEN\n'],
+    ['powershell', 'list\tList pull requests\na:b\tHas a colon\nOPEN\n'],
+    ['tcsh', 'list\na:b\nOPEN\n'],
+  ])('formats %s candidates like tabtab', (shell, expected) => {
+    expect(formatCompletions(items, shell, '')).toBe(expected);
+  });
+
+  it('filters bash candidates by the word being completed', () => {
+    expect(formatCompletions(items, 'bash', 'li')).toBe('list\n');
+  });
+
+  it('writes nothing when there are no candidates', () => {
+    expect(formatCompletions([], 'powershell', '')).toBe('');
+  });
+
+  it('formats for BB_COMPLETION_SHELL rather than $SHELL', async () => {
+    const proc = Bun.spawn(['bun', 'run', 'src/index.ts', 'completion', '--'], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      env: {
+        ...process.env,
+        SHELL: '/bin/zsh',
+        COMP_LINE: 'bb pr li',
+        COMP_POINT: '8',
+        COMP_CWORD: '2',
+        BB_COMPLETION_SHELL: 'powershell',
+      },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const [exitCode, stdout] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+    ]);
+
+    expect(exitCode).toBe(0);
+    expect(stdout.split('\n')).toContain('list\tList pull requests');
   });
 });

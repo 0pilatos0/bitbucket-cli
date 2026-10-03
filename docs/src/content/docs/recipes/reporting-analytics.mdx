@@ -12,10 +12,10 @@ WORKSPACE=myworkspace
 REPO=myrepo
 ```
 
-Use `--all` for complete reports and external `jq -r` for raw strings or CSV.
+Use `--all` for complete reports, and `--raw-output` (or external `jq -r`) for raw strings or CSV.
 
 - `count` describes fetched results. `bb pr list` stops at `--limit 25` by default, so `.count` maxes out at 25 and the `Use --limit <n> or --all to see more.` hint is suppressed under `--json`. Pass `--all` whenever the number itself is the answer.
-- `--jq` JSON-encodes its output. There is no raw mode. When you need a bare string for the shell or a file, pipe `--json` into external `jq -r` instead.
+- `--jq` JSON-encodes its output. When you need a bare string for the shell or a file, add `--raw-output` or pipe `--json` into external `jq -r`.
 
 ## Count pull requests per state
 
@@ -122,7 +122,7 @@ bb pr list -w "$WORKSPACE" -r "$REPO" -s MERGED --all --json --jq '
 
 ## CSV export
 
-Use external `jq -r` with `@csv`. The built-in `--jq` JSON-encodes strings again, so it does not produce raw CSV rows.
+Use `jq -r` with `@csv`; without `-r` (or the built-in `--raw-output`), each CSV row comes out as a quoted JSON string.
 
 ```bash
 bb pr list -w "$WORKSPACE" -r "$REPO" --all --json | jq -r '
