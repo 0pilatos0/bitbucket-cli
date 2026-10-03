@@ -21,6 +21,7 @@ export function registerConfigCommands(
           'Readable config keys': [
             'username',
             'defaultWorkspace',
+            'credentialStorage',
             'skipVersionCheck',
             'versionCheckInterval',
             'prCreateIncludeDefaultReviewers',
@@ -43,11 +44,13 @@ export function registerConfigCommands(
           'bb config set defaultWorkspace my-workspace',
           'bb config set skipVersionCheck true',
           'bb config set versionCheckInterval 7',
+          'bb config set credentialStorage keychain',
           'bb config set gitProtocol https',
         ],
         validValues: {
           'Settable config keys': [
             'defaultWorkspace (string)',
+            'credentialStorage (file/keychain; moves saved credentials)',
             'skipVersionCheck (true/false)',
             'versionCheckInterval (positive integer, days)',
             'prCreateIncludeDefaultReviewers (true/false)',

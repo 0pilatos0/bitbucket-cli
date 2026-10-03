@@ -6,9 +6,11 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
+  type CredentialStorage,
   SETTABLE_CONFIG_KEYS,
   coerceBooleanConfigValue,
   coerceGitProtocolValue,
@@ -20,6 +22,7 @@ export interface ConfigDisplay {
   username?: string;
   defaultWorkspace?: string;
   apiToken?: string;
+  credentialStorage?: CredentialStorage;
   skipVersionCheck?: boolean;
   versionCheckInterval?: number;
   prCreateIncludeDefaultReviewers?: boolean;
@@ -32,6 +35,7 @@ export class ListConfigCommand extends BaseCommand<void, void> {
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     output: IOutputService
   ) {
     super(output);
@@ -39,19 +43,26 @@ export class ListConfigCommand extends BaseCommand<void, void> {
 
   public async execute(_options: void, context: CommandContext): Promise<void> {
     const config = await this.configService.getConfig();
+    const account = (await this.credentialStore.listAccounts()).find(
+      (summary) => summary.current
+    );
 
     // Build display config with masked password
     const displayConfig: ConfigDisplay = {};
-    if (config.username) {
-      displayConfig.username = config.username;
+    if (account?.username) {
+      displayConfig.username = account.username;
     }
 
     if (config.defaultWorkspace) {
       displayConfig.defaultWorkspace = config.defaultWorkspace;
     }
 
-    if (config.apiToken) {
+    if (account && account.authMethod !== 'oauth') {
       displayConfig.apiToken = '********';
+    }
+
+    if (config.credentialStorage) {
+      displayConfig.credentialStorage = config.credentialStorage;
     }
 
     const skipVersionCheck = coerceBooleanConfigValue(

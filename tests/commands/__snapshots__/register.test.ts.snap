@@ -8,14 +8,15 @@ exports[`command tree snapshot bb auth 1`] = `
 Authenticate with Bitbucket
 
 Options:
-  -h, --help       display help for command
+  -h, --help        display help for command
 
 Commands:
-  login [options]  Authenticate with Bitbucket (OAuth or API token)
-  logout           Log out of Bitbucket
-  status           Show authentication status
-  token            Print the current access token
-  help [command]   display help for command
+  login [options]   Authenticate with Bitbucket (OAuth or API token)
+  logout            Log out of Bitbucket
+  status            Show authentication status
+  token             Print the current access token
+  switch [account]  Switch the active account
+  help [command]    display help for command
 "
 ,
 }
@@ -43,6 +44,9 @@ For headless/secret-safe: pipe the token in with --with-token.
 OAuth needs a loopback browser (http://localhost:19872/callback); there
 is no device-code flow, so use token auth on headless hosts.
 Note: Bitbucket app passwords are retired; use OAuth or an API token.
+Logs in to the current account (\`default\` unless switched); pass
+--account <name> to add or re-authenticate another account. The
+account you log in to becomes the active one.
 
 Usage: bb auth login [options]
 
@@ -67,6 +71,7 @@ Examples:
   $ printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
   $ bb auth login --client-id <id> --client-secret <secret>
   $ BB_USERNAME=you@example.com bb auth login --with-token < token.txt
+  $ bb auth login --account work
 
 Environment variables:
   BB_USERNAME   Atlassian account email used when --username is not provided
@@ -143,6 +148,36 @@ Options:
 Examples:
   $ bb auth token
   $ bb auth token | pbcopy
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb auth switch 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "account": "account-value",
+    },
+    "token": "SwitchCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb auth switch [options] [account]
+
+Switch the active account
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb auth switch work
+  $ bb auth switch
+  $ bb --account personal pr list
+
+Environment variables:
+  BB_ACCOUNT  Use this account for one invocation without switching (--account wins)
 
 "
 ,
@@ -3057,7 +3092,7 @@ Examples:
   $ bb config get defaultWorkspace
 
 Readable config keys:
-  username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
+  username, defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 
 "
 ,
@@ -3086,10 +3121,11 @@ Examples:
   $ bb config set defaultWorkspace my-workspace
   $ bb config set skipVersionCheck true
   $ bb config set versionCheckInterval 7
+  $ bb config set credentialStorage keychain
   $ bb config set gitProtocol https
 
 Settable config keys:
-  defaultWorkspace (string), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false), gitProtocol (ssh/https)
+  defaultWorkspace (string), credentialStorage (file/keychain; moves saved credentials), skipVersionCheck (true/false), versionCheckInterval (positive integer, days), prCreateIncludeDefaultReviewers (true/false), gitProtocol (ssh/https)
 
 See also:
   Configuration File  https://bitbucket-cli.paulvanderlei.com/reference/configuration/

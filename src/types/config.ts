@@ -9,15 +9,33 @@ export type AuthMethod = 'basic' | 'oauth';
 export const GIT_PROTOCOLS = ['ssh', 'https'] as const;
 export type GitProtocol = (typeof GIT_PROTOCOLS)[number];
 
-export interface BBConfig {
+export const CREDENTIAL_STORAGE_VALUES = ['file', 'keychain'] as const;
+export type CredentialStorage = (typeof CREDENTIAL_STORAGE_VALUES)[number];
+
+/**
+ * Credentials of one named account. Secret fields are omitted from the config
+ * file when `storage` is `keychain`; they then live in the OS keychain.
+ */
+export interface AccountConfig {
+  authMethod?: AuthMethod;
   username?: string;
   apiToken?: string;
-  authMethod?: AuthMethod;
   oauthAccessToken?: string;
   oauthRefreshToken?: string;
   oauthExpiresAt?: number;
   oauthClientId?: string;
   oauthClientSecret?: string;
+  storage?: CredentialStorage;
+}
+
+/**
+ * The top-level credential fields predate named accounts. They are still read
+ * (as the `default` account) and dropped on the first credential write.
+ */
+export interface BBConfig extends Omit<AccountConfig, 'storage'> {
+  accounts?: Record<string, AccountConfig>;
+  activeAccount?: string;
+  credentialStorage?: CredentialStorage;
   defaultWorkspace?: string;
   lastVersionCheck?: string;
   skipVersionCheck?: boolean;
@@ -36,6 +54,12 @@ export interface OAuthCredentials {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+}
+
+/** A custom OAuth consumer; absent fields fall back to the built-in one. */
+export interface OAuthClient {
+  clientId?: string;
+  clientSecret?: string;
 }
 
 export interface RepoContext {
@@ -65,6 +89,9 @@ export const CONFIG_KEYS = [
   'oauthExpiresAt',
   'oauthClientId',
   'oauthClientSecret',
+  'accounts',
+  'activeAccount',
+  'credentialStorage',
   'defaultWorkspace',
   'lastVersionCheck',
   'skipVersionCheck',
@@ -77,6 +104,7 @@ export type ConfigKey = (typeof CONFIG_KEYS)[number];
 
 export const SETTABLE_CONFIG_KEYS = [
   'defaultWorkspace',
+  'credentialStorage',
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
@@ -87,6 +115,7 @@ export type SettableConfigKey = (typeof SETTABLE_CONFIG_KEYS)[number];
 export const READABLE_CONFIG_KEYS = [
   'username',
   'defaultWorkspace',
+  'credentialStorage',
   'skipVersionCheck',
   'versionCheckInterval',
   'prCreateIncludeDefaultReviewers',
@@ -133,6 +162,14 @@ function parsePositiveIntegerLiteral(value: string): number | undefined {
   return parsed;
 }
 
+function parseCredentialStorage(value: unknown): CredentialStorage | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  return CREDENTIAL_STORAGE_VALUES.find((v) => v === normalized);
+}
+
 export function parseSettableConfigValue<K extends SettableConfigKey>(
   key: K,
   value: string
@@ -140,6 +177,17 @@ export function parseSettableConfigValue<K extends SettableConfigKey>(
   switch (key) {
     case 'defaultWorkspace':
       return value as BBConfig[K];
+    case 'credentialStorage': {
+      const parsed = parseCredentialStorage(value);
+      if (parsed === undefined) {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message: `Invalid value for 'credentialStorage'. Expected ${CREDENTIAL_STORAGE_VALUES.map((v) => `'${v}'`).join(' or ')}.`,
+          context: { key, value },
+        });
+      }
+      return parsed as BBConfig[K];
+    }
     case 'skipVersionCheck': {
       const parsed = parseBooleanLiteral(value);
       if (parsed === undefined) {
@@ -245,6 +293,8 @@ export function normalizeReadableConfigValue(
       return coerceVersionCheckIntervalValue(value);
     case 'gitProtocol':
       return coerceGitProtocolValue(value);
+    case 'credentialStorage':
+      return parseCredentialStorage(value);
     case 'username':
     case 'defaultWorkspace':
       return typeof value === 'string' ? value : undefined;
