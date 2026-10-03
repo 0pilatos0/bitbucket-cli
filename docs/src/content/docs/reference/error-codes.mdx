@@ -60,9 +60,12 @@ The CLI prints this next step alongside the error:
 
 ### 1003 - AUTH_EXPIRED
 
-**Message:** OAuth token expired. Run `bb auth login` to re-authenticate.
+**Message:** one of:
 
-**Cause:** Specifically: an OAuth access token expired _and_ the reactive refresh attempt also failed (refresh token revoked or expired). For non-OAuth flows, a stale token surfaces as `AUTH_INVALID` (1002) instead.
+- `OAuth token expired. Run 'bb auth login' to re-authenticate.`
+- `Failed to refresh OAuth token. Run 'bb auth login' to re-authenticate.`, followed by Bitbucket's reason when it gives one
+
+**Cause:** Specifically: an OAuth access token expired _and_ Bitbucket rejected the refresh (refresh token revoked or expired). The CLI refreshes before a request whose token has expired or is about to, and again after a 401; a rejected refresh at either point reports this code. For non-OAuth flows, a stale token surfaces as `AUTH_INVALID` (1002) instead.
 
 **Solution:**
 
@@ -211,11 +214,15 @@ git remote add origin git@bitbucket.org:workspace/repo.git
 
 **Message:** Cannot read config file
 
-**Cause:** The configuration file is corrupted or unreadable.
+**Cause:** The configuration file is corrupted or unreadable, or the config file or directory is readable by other users. The insecure-permissions case says so and names the fix:
+
+```
+Config directory has insecure permissions (755); expected 700. Run: chmod 700 /Users/you/.config/bb
+```
 
 **Solution:**
 
-1. Check file permissions
+1. Check file permissions (run the `chmod` from the message for the insecure-permissions case)
 2. If corrupted, delete and recreate:
 
 ```bash
@@ -246,16 +253,18 @@ bb auth login
 
 **Cause:** Attempted to get or set an unknown configuration key.
 
-**Solution:** Use a valid key. `bb config set` accepts four:
+**Solution:** Use a valid key. `bb config set` accepts six:
 
-| Key                               | Meaning                                                  |
-| --------------------------------- | -------------------------------------------------------- |
-| `defaultWorkspace`                | Workspace used when `-w` is omitted                      |
-| `skipVersionCheck`                | Disable update notifications                             |
-| `versionCheckInterval`            | Days between update checks                               |
-| `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create` |
+| Key                               | Meaning                                                                   |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `defaultWorkspace`                | Workspace used when `-w` is omitted                                       |
+| `credentialStorage`               | Where account secrets live: `file` or `keychain`                          |
+| `skipVersionCheck`                | Disable update notifications                                              |
+| `versionCheckInterval`            | Days between update checks                                                |
+| `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create`                  |
+| `gitProtocol`                     | `ssh` or `https` for `bb repo clone` and fork fetches in `bb pr checkout` |
 
-`bb config get` accepts those four plus `username`.
+`bb config get` accepts those six plus `username`.
 
 ```bash
 bb config set defaultWorkspace myworkspace
@@ -338,7 +347,7 @@ bb pr list --state opne
 # (Did you mean OPEN?)
 
 bb config set defaultWorkspce foo
-# ✗ Unknown config key 'defaultWorkspce'. Valid keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
+# ✗ Unknown config key 'defaultWorkspce'. Valid keys: defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers, gitProtocol
 # (Did you mean defaultWorkspace?)
 ```
 

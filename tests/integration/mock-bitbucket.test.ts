@@ -2,7 +2,7 @@
  * Integration tests: real generated API client + real axios stack against a
  * local mock Bitbucket server (issue #264).
  *
- * Unlike the command unit tests (which inject `as unknown as SomeApi` stubs),
+ * Unlike the stub-based unit tests (`tests/helpers/fake-api.ts`),
  * these drive actual commands through bootstrap-style wiring so endpoint
  * paths, query params, auth headers, pagination walking, retry behavior, and
  * error mapping are validated against the wire protocol — not against mocks

@@ -9,21 +9,14 @@ import type {
   IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type {
-  PullrequestsApi,
-  Pullrequest,
-  UsersApi,
-} from '../../generated/api.js';
+import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import {
   collectPagesWithMeta,
   DEFAULT_LIMIT,
   type CollectPagesResult,
 } from '../../services/pagination.js';
-import {
-  bbqlString,
-  CURRENT_USER,
-  resolveUserUuid,
-} from '../../services/pr-filters.js';
+import { bbqlString, CURRENT_USER } from '../../services/pr-filters.js';
+import type { UserResolverService } from '../../services/user-resolver.service.js';
 import { getBranchName } from '../../services/response-parsers.js';
 import type { GlobalOptions, RepoContext } from '../../types/config.js';
 
@@ -35,7 +28,7 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
-    private readonly usersApi: UsersApi,
+    private readonly userResolver: UserResolverService,
     private readonly contextService: IContextService,
     private readonly gitService: IGitService,
     output: IOutputService
@@ -51,9 +44,9 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
       options,
       context
     );
-    const [currentBranch, uuid] = await Promise.all([
+    const [currentBranch, { uuid }] = await Promise.all([
       this.getLocalBranchFor(repoContext),
-      resolveUserUuid(this.usersApi, CURRENT_USER),
+      this.userResolver.resolve(repoContext.workspace, CURRENT_USER),
     ]);
 
     const [branchMatches, createdByYou, reviewRequested] = await Promise.all([

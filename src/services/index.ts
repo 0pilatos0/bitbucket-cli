@@ -3,6 +3,8 @@
  */
 
 export { ConfigService } from './config.service.js';
+export { CredentialStore } from './credential-store.service.js';
+export { KeychainSecretStorage } from './keychain.js';
 export { GitService } from './git.service.js';
 export { ContextService } from './context.service.js';
 export { OutputService } from './output.service.js';
@@ -13,6 +15,7 @@ export { OAuthService } from './oauth.service.js';
 export { SnippetFilesService } from './snippet-files.service.js';
 export { updatePullRequestReviewers } from './reviewer.service.js';
 export { DefaultReviewerService } from './default-reviewer.service.js';
+export { UserResolverService } from './user-resolver.service.js';
 export {
   UrlBuilderService,
   BITBUCKET_WEB_BASE,
@@ -22,3 +25,4 @@ export type {
   DefaultReviewerEntry,
   DefaultReviewerMode,
 } from './default-reviewer.service.js';
+export type { ResolvedUser } from './user-resolver.service.js';

@@ -6,7 +6,12 @@
  */
 
 import { afterAll, describe, expect, it } from 'bun:test';
-import { PullrequestsApi, UsersApi } from '../../src/generated/api.js';
+import {
+  PullrequestsApi,
+  UsersApi,
+  WorkspacesApi,
+} from '../../src/generated/api.js';
+import { UserResolverService } from '../../src/services/user-resolver.service.js';
 import { ListPRsCommand } from '../../src/commands/pr/list.command.js';
 import { StatusPRCommand } from '../../src/commands/pr/status.command.js';
 import { UnapprovePRCommand } from '../../src/commands/pr/unapprove.command.js';
@@ -55,8 +60,17 @@ const userRoutes: MockRoute[] = [
   },
   {
     method: 'GET',
-    matchPathname: (pathname) => pathname.endsWith('/users/alice-account-id'),
-    respond: () => ({ body: { type: 'user', uuid: ALICE } }),
+    matchPathname: (pathname) => pathname.endsWith('/workspaces/acme/members'),
+    respond: () => ({
+      body: {
+        values: [
+          {
+            type: 'workspace_membership',
+            user: { type: 'user', uuid: ALICE, nickname: 'alice' },
+          },
+        ],
+      },
+    }),
   },
 ];
 
@@ -99,13 +113,13 @@ const listQueries = (server: MockBitbucketServer) =>
     .map((request) => request.query.get('q'));
 
 describe('pr list filters', () => {
-  it('ANDs every filter into one BBQL query, resolving users to UUIDs', async () => {
+  it('ANDs every filter into one BBQL query, resolving users (incl. nicknames) to UUIDs', async () => {
     const { server, output, build } = await startHarness([
       pullRequestsRoute(() => [pr(7, 'Add login', 'feature/login')]),
     ]);
     const command = new ListPRsCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       output
     );
@@ -113,7 +127,7 @@ describe('pr list filters', () => {
     await command.execute(
       {
         author: '@me',
-        reviewer: 'alice-account-id',
+        reviewer: 'alice',
         source: 'feature/login',
         destination: 'main',
         query: 'title ~ "login" OR title ~ "auth"',
@@ -140,7 +154,7 @@ describe('pr list filters', () => {
     ]);
     const command = new ListPRsCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       output
     );
@@ -161,7 +175,7 @@ describe('pr list filters', () => {
     ]);
     const command = new ListPRsCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       output
     );
@@ -186,7 +200,7 @@ describe('pr list filters', () => {
     const { server, output, build } = await startHarness([]);
     const command = new ListPRsCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       output
     );
@@ -224,7 +238,7 @@ describe('pr status', () => {
     const { server, output, build } = await startHarness(routes);
     const command = new StatusPRCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       createMockGitService({ currentBranch: 'feature/login' }),
       output
@@ -248,7 +262,7 @@ describe('pr status', () => {
     const { server, output, build } = await startHarness(routes);
     const command = new StatusPRCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       createMockContextService({ workspace: 'other', repoSlug: 'clone' }),
       createMockGitService({ currentBranch: 'feature/login' }),
       output
@@ -274,7 +288,7 @@ describe('pr status', () => {
     const { server, output, build } = await startHarness(routes);
     const command = new StatusPRCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       createMockGitService({ throwOnGetCurrentBranch: true }),
       output
@@ -292,7 +306,7 @@ describe('pr status', () => {
     const { server, output, build } = await startHarness(routes);
     const command = new StatusPRCommand(
       build(PullrequestsApi),
-      build(UsersApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
       repoContext(),
       createMockGitService({ currentBranch: 'HEAD' }),
       output

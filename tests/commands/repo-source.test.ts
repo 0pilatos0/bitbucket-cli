@@ -13,6 +13,8 @@ import type {
 import type { IOutputService } from '../../src/core/interfaces/services.js';
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import { createMockContextService, createMockOutputService } from '../setup.js';
+import { getTableRows, getJsonPayload } from '../helpers/output-logs.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 const HASH = 'abc123def4567890abc123def4567890abc12345';
 const BRANCH_HASH = 'fff000fff000fff000fff000fff000fff000fff0';
@@ -51,7 +53,7 @@ function createMockSourceApi(
   } = {}
 ): { api: SourceApi; calls: SrcCall[] } {
   const calls: SrcCall[] = [];
-  const api = {
+  const api = fakeApi<SourceApi>({
     repositoriesWorkspaceRepoSlugSrcCommitPathGet: async (
       request: { commit: string; path: string; format?: string },
       axiosOptions?: {
@@ -104,7 +106,7 @@ function createMockSourceApi(
         },
       };
     },
-  } as unknown as SourceApi;
+  });
   return { api, calls };
 }
 
@@ -113,7 +115,7 @@ function createMockCommitsApi(heads: Record<string, string> = {}): {
   revisions: string[];
 } {
   const revisions: string[] = [];
-  const api = {
+  const api = fakeApi<CommitsApi>({
     repositoriesWorkspaceRepoSlugCommitsRevisionGet: async ({
       revision,
     }: {
@@ -126,28 +128,12 @@ function createMockCommitsApi(heads: Record<string, string> = {}): {
       }
       return { data: { values: [{ hash }] } };
     },
-  } as unknown as CommitsApi;
+  });
   return { api, revisions };
 }
 
 function repoContextService() {
   return createMockContextService({ workspace: 'workspace', repoSlug: 'repo' });
-}
-
-function getJsonPayload(logs: string[]): Record<string, unknown> {
-  const jsonLog = logs.find((log) => log.startsWith('json:'));
-  expect(jsonLog).toBeDefined();
-  return JSON.parse(jsonLog!.substring('json:'.length)) as Record<
-    string,
-    unknown
-  >;
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  return rowsLog
-    ? (JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][])
-    : [];
 }
 
 const encode = (text: string): Uint8Array => new TextEncoder().encode(text);
@@ -267,11 +253,11 @@ describe('CatRepoFileCommand', () => {
 
   it('names the ref when a slashed --ref resolves to no commits', async () => {
     const { api, calls } = createMockSourceApi();
-    const commitsApi = {
+    const commitsApi = fakeApi<CommitsApi>({
       repositoriesWorkspaceRepoSlugCommitsRevisionGet: async () => ({
         data: { values: [] },
       }),
-    } as unknown as CommitsApi;
+    });
     const cmd = new CatRepoFileCommand(
       api,
       commitsApi,

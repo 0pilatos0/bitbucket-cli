@@ -8,17 +8,10 @@ import type {
   IContextService,
   IOutputService,
 } from '../../core/interfaces/services.js';
-import type {
-  PullrequestsApi,
-  Pullrequest,
-  UsersApi,
-} from '../../generated/api.js';
+import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import { resolveLimit } from '../../services/pagination.js';
-import {
-  bbqlString,
-  CURRENT_USER,
-  resolveUserUuid,
-} from '../../services/pr-filters.js';
+import { bbqlString, CURRENT_USER } from '../../services/pr-filters.js';
+import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 import { PR_STATES } from '../../types/pr.js';
@@ -41,7 +34,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
 
   constructor(
     private readonly pullrequestsApi: PullrequestsApi,
-    private readonly usersApi: UsersApi,
+    private readonly userResolver: UserResolverService,
     private readonly contextService: IContextService,
     output: IOutputService
   ) {
@@ -64,7 +57,10 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     // without an API call; runList re-resolves the same value.
     resolveLimit(options);
     const reviewer = this.resolveReviewerOption(options);
-    const query = await this.buildQuery({ ...options, reviewer });
+    const query = await this.buildQuery(repoContext.workspace, {
+      ...options,
+      reviewer,
+    });
 
     const arrow = this.output.symbol('→', '->');
     await this.runList<Pullrequest>(
@@ -106,7 +102,7 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
         emptyMessage: query
           ? `No ${state.toLowerCase()} pull requests match the filters`
           : `No ${state.toLowerCase()} pull requests found`,
-        tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES'],
+        tableHeaders: ['ID', 'TITLE', 'AUTHOR', 'BRANCHES', 'UPDATED'],
         mapRow: (pr: Pullrequest) => {
           const title = pr.draft ? `[DRAFT] ${pr.title}` : pr.title;
           const source = pr.source as
@@ -115,11 +111,13 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
             { branch?: { name?: string } } | undefined;
           return [
             `#${pr.id}`,
-            this.truncateText(title ?? '', 50, context.globalOptions),
+            title ?? '',
             pr.author?.display_name ?? 'Unknown',
             `${source?.branch?.name ?? 'unknown'} ${arrow} ${destination?.branch?.name ?? 'unknown'}`,
+            pr.updated_on ? this.output.formatRelativeDate(pr.updated_on) : '-',
           ];
         },
+        flexColumns: [1, 3],
         noun: 'pull requests',
       },
       context
@@ -142,15 +140,22 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
   }
 
   private async buildQuery(
+    workspace: string,
     options: ListPRsOptions
   ): Promise<string | undefined> {
     const clauses: string[] = [];
     if (options.author) {
-      const uuid = await resolveUserUuid(this.usersApi, options.author);
+      const { uuid } = await this.userResolver.resolve(
+        workspace,
+        options.author
+      );
       clauses.push(`author.uuid=${bbqlString(uuid)}`);
     }
     if (options.reviewer) {
-      const uuid = await resolveUserUuid(this.usersApi, options.reviewer);
+      const { uuid } = await this.userResolver.resolve(
+        workspace,
+        options.reviewer
+      );
       clauses.push(`reviewers.uuid=${bbqlString(uuid)}`);
     }
     if (options.source) {

@@ -14,15 +14,56 @@ Either way, `bb` needs Git to detect the workspace and repository of the current
 
 ## Standalone binary
 
-| Platform              | Asset                |
-| --------------------- | -------------------- |
-| Linux x64             | `bb-linux-x64`       |
-| Linux arm64           | `bb-linux-arm64`     |
-| macOS Intel           | `bb-darwin-x64`      |
-| macOS Apple silicon   | `bb-darwin-arm64`    |
-| Windows x64           | `bb-windows-x64.exe` |
+### Install script
 
-Each release also ships `SHA256SUMS`. Download the binary and the checksums, verify, then put the binary on your `PATH`:
+The install script picks the binary for your platform, checks it against the release's `SHA256SUMS` and installs it:
+
+<Tabs>
+  <TabItem label="Linux and macOS">
+    ```bash
+    curl -fsSL https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/install.sh | sh
+    ```
+
+    Installs to `~/.local/bin/bb`. Add that folder to your `PATH` if the script says it is missing.
+
+  </TabItem>
+  <TabItem label="Windows">
+    ```powershell
+    irm https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/install.ps1 | iex
+    ```
+
+    Installs to `%LOCALAPPDATA%\Programs\bb\bb.exe` and adds that folder to your user `PATH`, for the current terminal and new ones.
+
+  </TabItem>
+</Tabs>
+
+Run the script again to update. These environment variables change what it does:
+
+| Variable          | Effect                                                                      |
+| ----------------- | --------------------------------------------------------------------------- |
+| `BB_VERSION`      | Install this version, e.g. `2.2.0`, instead of the latest release           |
+| `BB_INSTALL_DIR`  | Install into this folder. On Windows, `PATH` is then left to you            |
+| `BB_RELEASES_URL` | Download from a mirror of `https://github.com/0pilatos0/bitbucket-cli/releases` |
+
+For example, to install for all users:
+
+```bash
+curl -fsSL https://github.com/0pilatos0/bitbucket-cli/releases/latest/download/install.sh | sudo env BB_INSTALL_DIR=/usr/local/bin sh
+```
+
+### Manual download
+
+| Platform            | Binary               | Archive                  |
+| ------------------- | -------------------- | ------------------------ |
+| Linux x64           | `bb-linux-x64`       | `bb-linux-x64.tar.gz`    |
+| Linux arm64         | `bb-linux-arm64`     | `bb-linux-arm64.tar.gz`  |
+| macOS Intel         | `bb-darwin-x64`      | `bb-darwin-x64.tar.gz`   |
+| macOS Apple silicon | `bb-darwin-arm64`    | `bb-darwin-arm64.tar.gz` |
+| Windows x64         | `bb-windows-x64.exe` | `bb-windows-x64.zip`     |
+
+The archives hold the same binary, named `bb` (`bb.exe` on Windows), plus the license, and are less than half the download. Releases before they were added only have the raw binaries.
+
+Each release also ships `SHA256SUMS` covering binaries and archives. Download the binary and the checksums, verify, then put the binary on your `PATH`:
 
 <Tabs>
   <TabItem label="Linux">
@@ -66,7 +107,7 @@ To pin a version, replace `latest/download` with `download/v<version>`.
 
 ### Verify provenance
 
-Every binary carries a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations) that proves it was built by this repository's release workflow. Check it with the [GitHub CLI](https://cli.github.com):
+Every binary and archive carries a [build provenance attestation](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations) that proves it was built by this repository's release workflow. Check it with the [GitHub CLI](https://cli.github.com):
 
 ```bash
 gh attestation verify bb-linux-x64 --repo 0pilatos0/bitbucket-cli
@@ -90,6 +131,10 @@ On Windows, `--jq` requires Bun 1.4.2 or newer. With Bun 1.3.14, it can print
 the result and then fail to exit.
 
 For other platforms and install methods, see [bun.sh](https://bun.sh). Then install the CLI with any package manager:
+
+<Aside type="caution">
+  npm and pnpm install `bb` without Bun. If Bun is missing, `bb` fails before it starts with an error that `bun` was not found, such as `env: bun: No such file or directory`. See [Troubleshooting](/help/troubleshooting/#bb-fails-because-bun-is-not-found) for the other forms. Install Bun, or use the [standalone binary](#standalone-binary).
+</Aside>
 
 <Tabs>
   <TabItem label="npm">
@@ -131,6 +176,44 @@ bun link
 ```bash
 bb --version
 ```
+
+## Update
+
+Update `bb` the same way you installed it.
+
+- **Standalone binary**: repeat the [download steps](#standalone-binary) and replace the old binary. They fetch the latest release.
+- **Package manager**: install the latest version with the package manager you used: `npm install -g @pilatos/bitbucket-cli@latest`, `pnpm add -g @pilatos/bitbucket-cli@latest`, or `bun install -g @pilatos/bitbucket-cli@latest`.
+
+- **Built from source**: pull and rebuild in your clone. The `bun link` from the first install still points at it.
+
+  ```bash
+  git pull
+  bun install
+  bun run build
+  ```
+
+Run `bb --version` to confirm the new version.
+
+## Uninstall
+
+Sign out and remove shell completion first, while `bb` is still installed:
+
+```bash
+bb auth logout           # revokes an OAuth token and deletes stored credentials
+bb completion uninstall  # only if you installed completion
+```
+
+`bb auth logout` does not revoke API tokens. Delete those in your
+[Bitbucket API token settings](https://bitbucket.org/account/settings/api-tokens/).
+
+Then remove the CLI:
+
+- **Standalone binary**: delete the binary, for example `sudo rm /usr/local/bin/bb`, or `bb.exe` on Windows.
+- **Package manager**: `npm uninstall -g @pilatos/bitbucket-cli`, `pnpm remove -g @pilatos/bitbucket-cli`, or `bun remove -g @pilatos/bitbucket-cli`.
+- **Built from source**: run `bun unlink` in your clone, then delete the clone.
+
+Finally, delete the configuration directory, which holds your settings and aliases:
+`~/.config/bb` on macOS and Linux, `%APPDATA%\bb` on Windows.
 
 ## Next steps
 

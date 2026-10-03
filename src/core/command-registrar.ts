@@ -15,10 +15,10 @@ import type { HelpTextBuilder } from '../help-text.js';
 
 export interface ContextOptions {
   /**
-   * Let `--jq` apply without `--json`, for commands whose output is already
-   * JSON (e.g. `bb api`).
+   * Let `--jq` and `--lean` apply without `--json`, for commands whose
+   * output is already JSON (e.g. `bb api`).
    */
-  allowJqWithoutJson?: boolean;
+  outputIsJson?: boolean;
 }
 
 export interface CommandRegistrar {
