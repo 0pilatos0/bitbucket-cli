@@ -1,13 +1,13 @@
 ---
 title: Recipes
-description: Cookbook of common Bitbucket CLI workflows — auto-merge, bulk reviewer assignment, fork sync, jq analytics, and retry wrappers.
+description: Cookbook of common Bitbucket CLI workflows; auto-merge, bulk reviewer assignment, fork sync, jq analytics, and retry wrappers.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Ready-to-copy workflows that combine `bb` with `jq` and shell. Each recipe is a complete, runnable script — drop it into a CI job or a dotfile and adjust the workspace and repository names.
+Ready-to-copy workflows that combine `bb` with `jq` and shell. Set the required environment variables and read the caveats before running a script. Some examples depend on a companion script from the same page.
 
-For the *primitives* these recipes are built on, see the [Scripting & Automation guide](/guides/scripting/) and the [CI/CD Integration guide](/guides/cicd/).
+For JSON, pagination and CI setup, see the [Scripting & Automation guide](/guides/scripting/) and the [CI/CD Integration guide](/guides/cicd/).
 
 ## Available recipes
 
@@ -15,7 +15,7 @@ For the *primitives* these recipes are built on, see the [Scripting & Automation
   <LinkCard
     title="Auto-merge when CI is green"
     href="/recipes/auto-merge-on-ci-green/"
-    description="Poll bb pr checks until all checks pass, then merge — the GitOps-friendly way."
+    description="Read all status pages, require named CI checks and recheck the head before merging."
   />
   <LinkCard
     title="Bulk reviewer assignment"
@@ -41,8 +41,9 @@ For the *primitives* these recipes are built on, see the [Scripting & Automation
 
 ## Conventions used in these recipes
 
-- All recipes assume `bb auth login` has already succeeded — interactively, or via the `BB_USERNAME` and `BB_API_TOKEN` env vars.
-- `WORKSPACE` and `REPO` are read from the environment with a `${VAR:-default}` fallback. Export them in CI, or edit the defaults at the top of the script.
-- List commands default to `--limit 25`. Pass `--all` wherever a recipe has to see every result — the `Showing 25 pull requests. Use --limit <n> or --all to see more.` hint is printed with table output only, never under `--json`.
-- The CLI already retries HTTP 429, 502, 503 and 504 up to 3 times with exponential backoff. It also retries `ECONNRESET`, `ETIMEDOUT`, `ECONNABORTED`, `EAI_AGAIN` and `EPIPE` on GET, HEAD and OPTIONS. Nothing else is retried — a 500 is not, and neither is `ENOTFOUND` or a TLS failure. The [retry wrapper recipe](/recipes/retry-wrapper/) is for failures that persist past that.
+- Authenticate first with `bb auth login`, or set `BB_USERNAME` to your Atlassian account email and `BB_API_TOKEN` to your API token.
+- Set `WORKSPACE` and `REPO` in the environment. Scripts either require them or supply example defaults.
+- Use Bash and external jq. Make saved scripts executable with `chmod +x script-name.sh`.
+- List commands default to `--limit 25`. Pass `--all` wherever a recipe has to see every result; the `Showing 25 pull requests. Use --limit <n> or --all to see more.` hint is printed with table output only, never under `--json`.
+- The CLI already retries HTTP 429, 502, 503 and 504 up to 3 times with exponential backoff. It also retries `ECONNRESET`, `ETIMEDOUT`, `ECONNABORTED`, `EAI_AGAIN` and `EPIPE` on GET, HEAD and OPTIONS. Nothing else is retried; a 500 is not, and neither is `ENOTFOUND` or a TLS failure. The [retry wrapper recipe](/recipes/retry-wrapper/) is for failures that persist past that.
 - `--jq` JSON-encodes its output: strings come back with quotes around them. Pipe `--json` to external `jq -r` when you need a raw string for the shell. See the [JSON Output reference](/reference/json-output/) for the envelope structure of list-style commands.

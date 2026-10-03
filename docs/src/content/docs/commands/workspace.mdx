@@ -8,7 +8,7 @@ Find the workspace slugs you pass to `-w, --workspace`, to
 `bb repo create`.
 
 Workspace commands run at **account** scope. `bb workspace list` needs no
-context at all — it lists your workspace memberships. `bb workspace view`
+context at all, it lists your workspace memberships. `bb workspace view`
 falls back to the resolved workspace context when you pass no slug.
 
 Both accept the [global flags](/reference/global-flags/), including
@@ -26,11 +26,10 @@ bb workspace list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option             | Description                                |
+| ------------------ | ------------------------------------------ |
 | `--limit <number>` | Maximum number of workspaces (default: 25) |
-| `--all` | List all workspaces (overrides `--limit`) |
-| `--json` | Output as JSON |
+| `--all`            | List all workspaces (overrides `--limit`)  |
 
 ### Examples
 
@@ -42,10 +41,10 @@ bb workspace list --all
 bb workspace list --json workspace.slug,administrator
 
 # Slugs, one per line (JSON-quoted — the embedded jq has no -r)
-bb workspace list --json --jq '.workspaces[].slug'
+bb workspace list --json --jq '.workspaces[].workspace.slug'
 
 # Bare slugs for a shell loop, via the jq binary
-bb workspace list --json | jq -r '.workspaces[].slug'
+bb workspace list --json | jq -r '.workspaces[].workspace.slug'
 ```
 
 ### Output
@@ -88,16 +87,13 @@ bb workspace view [slug] [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `slug` | Workspace slug (optional; defaults to the resolved workspace context) |
+| Argument | Description                                                           |
+| -------- | --------------------------------------------------------------------- |
+| `slug`   | Workspace slug (optional; defaults to the resolved workspace context) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-w, --workspace <workspace>` | Workspace (used when no `slug` argument is passed) |
-| `--json` | Output as JSON |
+Only [global flags](/reference/global-flags/) apply.
 
 ### Examples
 
@@ -118,14 +114,14 @@ bb workspace view my-workspace --json --jq '.workspace.uuid'
   current repository's Bitbucket remote, the `BB_WORKSPACE` environment
   variable, then the configured `defaultWorkspace`.
 - An unknown or inaccessible slug fails with
-  `Workspace <slug> not found (or you do not have access to it).` — exit code 1,
+  `Workspace <slug> not found (or you do not have access to it).`, exit code 1,
   and `--json` writes a structured error envelope to stderr. Because that
   message already names the missing workspace, the generic 404 "check the
   slug" hint is suppressed.
 
 ### Related
 
-- [Project Commands](/commands/project/) — list the projects inside a workspace.
-- [Repository Context](/guides/repository-context/) — how the CLI resolves
+- [Project Commands](/commands/project/), list the projects inside a workspace.
+- [Repository Context](/guides/repository-context/), how the CLI resolves
   workspace and repository.
-- [Configuration](/reference/configuration/) — set `defaultWorkspace` once.
+- [Configuration](/reference/configuration/), set `defaultWorkspace` once.

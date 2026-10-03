@@ -41,13 +41,13 @@ export function registerConfigCommands(
         examples: [
           'bb config set defaultWorkspace my-workspace',
           'bb config set skipVersionCheck true',
-          'bb config set versionCheckInterval 86400',
+          'bb config set versionCheckInterval 7',
         ],
         validValues: {
           'Settable config keys': [
             'defaultWorkspace (string)',
             'skipVersionCheck (true/false)',
-            'versionCheckInterval (positive integer, seconds)',
+            'versionCheckInterval (positive integer, days)',
             'prCreateIncludeDefaultReviewers (true/false)',
           ],
         },

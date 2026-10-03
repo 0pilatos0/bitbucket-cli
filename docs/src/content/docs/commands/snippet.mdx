@@ -3,13 +3,13 @@ title: Snippet Commands - Manage Bitbucket Snippets
 description: Reference for Bitbucket CLI snippet commands. Create, view, edit, delete, watch, and comment on Bitbucket Cloud snippets from the command line.
 ---
 
-Manage Bitbucket Cloud snippets — workspace-scoped code/text pastes.
+Manage Bitbucket Cloud snippets, workspace-scoped code/text pastes.
 
 Snippet commands operate at **workspace** scope (no repository context
 required). Use `-w, --workspace <workspace>` or set a default with
 `bb config set defaultWorkspace <workspace>`.
 
-Global options available on all snippet commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`. See [Global flags](/reference/global-flags/) for the full list. The per-command tables below list only command-specific options.
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 ---
 
@@ -23,11 +23,11 @@ bb snippet list [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `--role <role>` | Filter by authenticated user's role: `owner`, `contributor`, or `member` |
-| `--limit <number>` | Maximum number of snippets (default: 25) |
-| `--all` | List all snippets (overrides `--limit`) |
+| Option             | Description                                                              |
+| ------------------ | ------------------------------------------------------------------------ |
+| `--role <role>`    | Filter by authenticated user's role: `owner`, `contributor`, or `member` |
+| `--limit <number>` | Maximum number of snippets (default: 25)                                 |
+| `--all`            | List all snippets (overrides `--limit`)                                  |
 
 ### Examples
 
@@ -63,16 +63,16 @@ bb snippet view <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
+| Argument | Description                      |
+| -------- | -------------------------------- |
+| `id`     | Snippet encoded ID (e.g. `kypj`) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option              | Description                                      |
+| ------------------- | ------------------------------------------------ |
 | `-f, --file <name>` | Print contents of a specific file in the snippet |
-| `--files` | Print contents of all files in the snippet |
+| `--files`           | Print contents of all files in the snippet       |
 
 ### Examples
 
@@ -103,7 +103,7 @@ bb snippet view kypj --files
 ## `bb snippet create`
 
 Create a snippet. The files you pass are uploaded as `multipart/form-data`
-to Bitbucket — their contents are the snippet body.
+to Bitbucket, their contents are the snippet body.
 
 ```bash
 bb snippet create [options]
@@ -111,12 +111,12 @@ bb snippet create [options]
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-t, --title <title>` | Snippet title (required) |
-| `-f, --file <path...>` | File path(s) to include (required; variadic — pass several paths or repeat the flag) |
-| `--private` | Create a private snippet (default) |
-| `--public` | Create a public snippet |
+| Option                 | Description                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `-t, --title <title>`  | Snippet title (required)                                                            |
+| `-f, --file <path...>` | File path(s) to include (required; variadic, pass several paths or repeat the flag) |
+| `--private`            | Create a private snippet (default)                                                  |
+| `--public`             | Create a public snippet                                                             |
 
 ### Examples
 
@@ -147,17 +147,17 @@ bb snippet edit <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
+| Argument | Description                      |
+| -------- | -------------------------------- |
+| `id`     | Snippet encoded ID (e.g. `kypj`) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
-| `-t, --title <title>` | New title |
-| `--private` | Make snippet private |
-| `--public` | Make snippet public |
+| Option                 | Description                                                 |
+| ---------------------- | ----------------------------------------------------------- |
+| `-t, --title <title>`  | New title                                                   |
+| `--private`            | Make snippet private                                        |
+| `--public`             | Make snippet public                                         |
 | `-f, --file <path...>` | Replace or add file(s); sends a multipart update (variadic) |
 
 ### Examples
@@ -187,14 +187,14 @@ bb snippet delete <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
+| Argument | Description                      |
+| -------- | -------------------------------- |
+| `id`     | Snippet encoded ID (e.g. `kypj`) |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option      | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
@@ -224,9 +224,9 @@ bb snippet unwatch <id> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
+| Argument | Description                      |
+| -------- | -------------------------------- |
+| `id`     | Snippet encoded ID (e.g. `kypj`) |
 
 ### Examples
 
@@ -237,148 +237,55 @@ bb snippet unwatch kypj
 
 ### Notes
 
-- **JSON envelope:** `{ success, snippetId, watching }` — `watching` is `true`
+- **JSON envelope:** `{ success, snippetId, watching }`, `watching` is `true`
   for `watch` and `false` for `unwatch`.
 
 ---
 
 ## `bb snippet comments list`
 
-List comments on a snippet.
+See [snippet comments](/commands/snippet/comments/) for options and examples.
 
-```bash
-bb snippet comments list <id> [options]
-```
+<span id="arguments-4"></span>
 
-### Arguments
+<span id="options-5"></span>
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
+<span id="examples-6"></span>
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--limit <number>` | Maximum number of comments (default: 25) |
-| `--all` | List all comments (overrides `--limit`) |
-
-### Examples
-
-```bash
-bb snippet comments list kypj
-bb snippet comments list kypj --all
-bb snippet comments list kypj --limit 50 --json
-```
-
-### Notes
-
-- Table columns: ID, AUTHOR, DATE, CONTENT.
-- CONTENT is truncated to 60 characters; pass the global `--no-truncate` for
-  full comment bodies (`--json` always carries the full value). DATE is
-  formatted with `--locale`/`BB_LOCALE`, falling back to the system locale and
-  then `en-US`.
-- **JSON envelope:** `{ workspace, snippetId, count, comments }`.
-
----
+<span id="notes-6"></span>
 
 ## `bb snippet comments add`
 
-Add a comment to a snippet.
+[`bb snippet comments add`](/commands/snippet/comments/#bb-snippet-comments-add).
 
-```bash
-bb snippet comments add <id> [message] [options]
-```
+<span id="arguments-5"></span>
 
-### Arguments
+<span id="options-6"></span>
 
-| Argument | Description |
-|----------|-------------|
-| `id` | Snippet encoded ID (e.g. `kypj`) |
-| `message` | Comment body. Alternative to `-m, --message`; one of the two is required. The positional wins if both are passed. |
+<span id="examples-7"></span>
 
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `-m, --message <text>` | Comment body (alternative to the positional `message`) |
-
-### Examples
-
-```bash
-bb snippet comments add kypj "Great snippet!"
-bb snippet comments add kypj -m "Great snippet!"
-bb snippet comments add kypj "Great snippet!" --json
-```
-
-### Notes
-
-- Omitting both forms fails with
-  `Comment message is required. Use --message option.`
-- **JSON envelope:** `{ success, snippetId, comment }` with the created comment.
-
----
+<span id="notes-7"></span>
 
 ## `bb snippet comments edit`
 
-Edit a comment on a snippet.
+[`bb snippet comments edit`](/commands/snippet/comments/#bb-snippet-comments-edit).
 
-```bash
-bb snippet comments edit <snippet-id> <comment-id> <message> [options]
-```
+<span id="arguments-6"></span>
 
-### Arguments
+<span id="examples-8"></span>
 
-| Argument | Description |
-|----------|-------------|
-| `snippet-id` | Snippet encoded ID (e.g. `kypj`) |
-| `comment-id` | Numeric comment ID (e.g. `123`) |
-| `message` | Replacement comment body (Markdown) |
-
-### Examples
-
-```bash
-bb snippet comments edit kypj 123 "Updated comment"
-bb snippet comments edit kypj 123 "Updated comment" --json
-```
-
-### Notes
-
-- The message replaces the existing body outright.
-- **JSON envelope:** `{ success, snippetId, comment }` with the updated comment.
-
----
+<span id="notes-8"></span>
 
 ## `bb snippet comments delete`
 
-Delete a comment on a snippet.
+[`bb snippet comments delete`](/commands/snippet/comments/#bb-snippet-comments-delete).
 
-```bash
-bb snippet comments delete <snippet-id> <comment-id> [options]
-```
+<span id="arguments-7"></span>
 
-### Arguments
+<span id="options-7"></span>
 
-| Argument | Description |
-|----------|-------------|
-| `snippet-id` | Snippet encoded ID (e.g. `kypj`) |
-| `comment-id` | Numeric comment ID (e.g. `123`) |
+<span id="examples-9"></span>
 
-### Options
+<span id="notes-9"></span>
 
-| Option | Description |
-|--------|-------------|
-| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
-
-### Examples
-
-```bash
-bb snippet comments delete kypj 123 --yes
-```
-
-### Notes
-
-- Without `--yes` the command asks `Continue? (y/N)` in an interactive
-  terminal. Anywhere else (see [`--no-input`](/reference/global-flags/#--no-input)) it fails with
-  `This will permanently delete comment #<comment-id> on snippet <snippet-id>.`
-- **JSON envelope:** `{ success, snippetId, commentId }`.
+[Notes](/commands/snippet/comments/#notes-3).

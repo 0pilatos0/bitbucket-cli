@@ -7,10 +7,10 @@ sidebar:
 
 Manage pull request (PR) reviewers.
 
-Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 :::tip[Looking for repo-level defaults?]
-This page covers reviewers on **existing** pull requests. To manage the repository's **default reviewers** — the list Bitbucket auto-suggests when someone opens a PR — see [`bb repo default-reviewers`](/commands/repo/#bb-repo-default-reviewers). `bb pr create` can also auto-apply them via `--default-reviewers` or the `prCreateIncludeDefaultReviewers` config key.
+This page covers reviewers on **existing** pull requests. To manage the repository's **default reviewers**, the list Bitbucket auto-suggests when someone opens a PR, see [`bb repo default-reviewers`](/commands/repo/default-reviewers/). `bb pr create` can also auto-apply them via `--default-reviewers` or the `prCreateIncludeDefaultReviewers` config key.
 :::
 
 ## Identifying users
@@ -26,25 +26,26 @@ Both forms come back from `bb pr reviewers list --json`, as the `account_id` and
 # One object per reviewer: [{"account_id": "712020:3cfed..."}, …]
 bb pr reviewers list 42 --json account_id
 
-# Copy every reviewer from PR #42 onto PR #43
-for u in $(bb pr reviewers list 42 --json --jq '.reviewers[].account_id' | tr -d '"'); do
-  bb pr reviewers add 43 "$u"
-done
+# Raw IDs for shell scripts, using the external jq binary
+bb pr reviewers list 42 --json | jq -r '.reviewers[].account_id'
 ```
 
-Two things to watch in scripts. `--json <fields>` projects across the `reviewers` array and drops the surrounding `{workspace, repoSlug, pullRequestId, count}` envelope, so you get a bare array of objects — not bare IDs. And the built-in jq runs without `-r`, so strings arrive JSON-quoted; strip the quotes with `tr -d '"'` or interpolate inside jq.
+`--json account_id` returns a flat array of objects. Built-in `--jq` prints
+JSON-quoted strings; use external `jq -r` when a script needs unquoted IDs.
+For assigning reviewers in bulk, including author exclusion, see the
+[reviewer assignment recipe](/recipes/bulk-reviewer-assignment/).
 
 See [`bb pr create`](/commands/pr/create-and-edit/#bb-pr-create) for matching `--reviewer` examples.
 
 ## `bb pr reviewers`
 
-| Subcommand | Description |
-|------------|-------------|
-| `list <id>` | List reviewers on a pull request |
-| `add <id> <user>` | Add a reviewer to a pull request |
+| Subcommand           | Description                           |
+| -------------------- | ------------------------------------- |
+| `list <id>`          | List reviewers on a pull request      |
+| `add <id> <user>`    | Add a reviewer to a pull request      |
 | `remove <id> <user>` | Remove a reviewer from a pull request |
 
-None of the three take command-specific options — only the global ones. `<id>` is the pull request ID; `<user>` is an account ID or a braced UUID.
+None of the three take command-specific options, only the global ones. `<id>` is the pull request ID; `<user>` is an account ID or a braced UUID.
 
 ---
 
@@ -62,7 +63,7 @@ bb pr reviewers list 42
 bb pr reviewers list 42 -w myworkspace -r myrepo
 ```
 
-Human output is a two-column table of display name and account ID. If the pull request has no reviewers, the command prints `No reviewers assigned to this pull request`. The deprecated `username` field is never shown — Bitbucket Cloud stopped returning it for GDPR reasons.
+Human output is a two-column table of display name and account ID. If the pull request has no reviewers, the command prints `No reviewers assigned to this pull request`. The deprecated `username` field is never shown, Bitbucket Cloud stopped returning it for GDPR reasons.
 
 `--json` returns the full envelope:
 
@@ -86,7 +87,7 @@ Human output is a two-column table of display name and account ID. If the pull r
 
 ## `bb pr reviewers add`
 
-Add a reviewer by account ID or UUID. The legacy `username` (login name) is not accepted by Bitbucket Cloud — see [Identifying users](#identifying-users).
+Add a reviewer using an [account ID or UUID](#identifying-users).
 
 ```bash
 bb pr reviewers add <id> <user>
@@ -140,4 +141,4 @@ Both commands emit the same envelope. `reviewer.username` echoes the `<user>` va
 
 ## When the user lookup fails
 
-Both commands resolve `<user>` through Bitbucket's user endpoint before touching the pull request. A bad account ID or UUID fails there with a 404, carrying whatever message Bitbucket returns. The CLI appends its generic 404 hint, which mentions `--workspace` and `--repo` — but for these two commands the wrong value is almost always the `<user>` argument, not the repository.
+Both commands resolve `<user>` through Bitbucket's user endpoint before touching the pull request. A bad account ID or UUID fails there with a 404, carrying whatever message Bitbucket returns. The CLI appends its generic 404 hint, which mentions `--workspace` and `--repo`, but for these two commands the wrong value is almost always the `<user>` argument, not the repository.

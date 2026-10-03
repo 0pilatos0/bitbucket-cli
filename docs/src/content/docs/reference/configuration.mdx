@@ -6,7 +6,8 @@ description: Complete reference for the bb configuration file
 import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
 
 All persistent settings live in one JSON file, written by `bb auth login`,
-`bb config set`, and `bb alias set`. This page documents the file itself; for
+`bb config set`, and `bb alias set`. Logout and automatic OAuth refresh also
+update it. This page documents the file itself; for
 the commands that read and write it, see the [Config command reference](/commands/config/).
 
 ## File location
@@ -23,6 +24,7 @@ the commands that read and write it, see the [Config command reference](/command
     ```
 
     Typically: `C:\Users\<username>\AppData\Roaming\bb\config.json`
+
   </TabItem>
 </Tabs>
 
@@ -30,22 +32,22 @@ the commands that read and write it, see the [Config command reference](/command
 
 ## Configuration schema
 
-| Key | Type | Description | Set by |
-|-----|------|-------------|--------|
-| `authMethod` | `"basic"` \| `"oauth"` | Active authentication method | `bb auth login` |
-| `username` | string | Your Bitbucket username (API token auth) | `bb auth login -u` |
-| `apiToken` | string | Your API token (API token auth) | `bb auth login -p` |
-| `oauthAccessToken` | string | OAuth access token | `bb auth login` (OAuth) |
-| `oauthRefreshToken` | string | OAuth refresh token | `bb auth login` (OAuth) |
-| `oauthExpiresAt` | number | OAuth token expiry (Unix timestamp) | `bb auth login` (OAuth) |
-| `oauthClientId` | string | Custom OAuth consumer client ID | `bb auth login --client-id` |
-| `oauthClientSecret` | string | Custom OAuth consumer client secret | `bb auth login --client-secret` |
-| `defaultWorkspace` | string | Default workspace | `bb config set defaultWorkspace` |
-| `skipVersionCheck` | boolean | Disable update notifications | `bb config set` |
-| `versionCheckInterval` | number | Days between update checks (default: 1) | `bb config set` |
-| `prCreateIncludeDefaultReviewers` | boolean | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set` |
-| `aliases` | object | User-defined command aliases | `bb alias set` |
-| `lastVersionCheck` | string | Timestamp of last update check | Automatic |
+| Key                               | Type                   | Description                                                                    | Set by                           |
+| --------------------------------- | ---------------------- | ------------------------------------------------------------------------------ | -------------------------------- |
+| `authMethod`                      | `"basic"` \| `"oauth"` | Active authentication method                                                   | `bb auth login`                  |
+| `username`                        | string                 | Your Atlassian account email (API token auth)                                  | `bb auth login -u`               |
+| `apiToken`                        | string                 | Your API token (API token auth)                                                | `bb auth login --with-token`     |
+| `oauthAccessToken`                | string                 | OAuth access token                                                             | `bb auth login` (OAuth)          |
+| `oauthRefreshToken`               | string                 | OAuth refresh token                                                            | `bb auth login` (OAuth)          |
+| `oauthExpiresAt`                  | number                 | OAuth token expiry (Unix timestamp)                                            | `bb auth login` (OAuth)          |
+| `oauthClientId`                   | string                 | Custom OAuth consumer client ID                                                | `bb auth login --client-id`      |
+| `oauthClientSecret`               | string                 | Custom OAuth consumer client secret                                            | `bb auth login --client-secret`  |
+| `defaultWorkspace`                | string                 | Default workspace                                                              | `bb config set defaultWorkspace` |
+| `skipVersionCheck`                | boolean                | Disable update notifications                                                   | `bb config set`                  |
+| `versionCheckInterval`            | number                 | Days between update checks (default: 1)                                        | `bb config set`                  |
+| `prCreateIncludeDefaultReviewers` | boolean                | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set`                  |
+| `aliases`                         | object                 | User-defined command aliases                                                   | `bb alias set`                   |
+| `lastVersionCheck`                | string                 | Timestamp of last update check                                                 | Automatic                        |
 
 ### Example configuration (OAuth)
 
@@ -64,7 +66,7 @@ the commands that read and write it, see the [Config command reference](/command
 ```json
 {
   "authMethod": "basic",
-  "username": "myuser",
+  "username": "you@example.com",
   "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx",
   "defaultWorkspace": "myworkspace",
   "skipVersionCheck": false,
@@ -83,12 +85,13 @@ bb config list
 ```
 
 Output:
+
 ```text
 Config file: /Users/you/.config/bb/config.json
 
 KEY               VALUE
 ----------------  -----------
-username          myuser
+username          you@example.com
 defaultWorkspace  myworkspace
 apiToken          ********
 skipVersionCheck  false
@@ -127,15 +130,15 @@ bb config set versionCheckInterval 7
 list as a footer. Everything else is written by `bb auth login` or by the CLI
 itself.
 
-| Key | Type | Example |
-|-----|------|---------|
-| `defaultWorkspace` | string | `bb config set defaultWorkspace myworkspace` |
-| `skipVersionCheck` | boolean | `bb config set skipVersionCheck true` |
-| `versionCheckInterval` | integer (days, ≥ 1) | `bb config set versionCheckInterval 7` |
-| `prCreateIncludeDefaultReviewers` | boolean | `bb config set prCreateIncludeDefaultReviewers true` |
+| Key                               | Type                | Example                                              |
+| --------------------------------- | ------------------- | ---------------------------------------------------- |
+| `defaultWorkspace`                | string              | `bb config set defaultWorkspace myworkspace`         |
+| `skipVersionCheck`                | boolean             | `bb config set skipVersionCheck true`                |
+| `versionCheckInterval`            | integer (days, ≥ 1) | `bb config set versionCheckInterval 7`               |
+| `prCreateIncludeDefaultReviewers` | boolean             | `bb config set prCreateIncludeDefaultReviewers true` |
 
 `skipVersionCheck` and `prCreateIncludeDefaultReviewers` accept only `true` or
-`false`. `versionCheckInterval` accepts only positive integers (`>= 1`).
+`false` (case-insensitive, surrounding whitespace ignored). `versionCheckInterval` accepts only positive integers (`>= 1`).
 
 #### Readable keys
 
@@ -145,7 +148,7 @@ itself.
 username, defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers
 ```
 
-`username` is readable but not settable — change it with `bb auth login -u`.
+`username` is readable but not settable; change it with `bb auth login -u`.
 `bb config get apiToken` refuses:
 
 ```text
@@ -157,25 +160,25 @@ suggestion, e.g. `(Did you mean defaultWorkspace?)`.
 
 #### `prCreateIncludeDefaultReviewers` and the `--default-reviewers` flag
 
-| Config | Flag | Result |
-|--------|------|--------|
-| unset / `false` | (none) | Default reviewers are **not** added |
-| `true` | (none) | Default reviewers are added |
-| unset / `false` | `--default-reviewers` | Default reviewers are added |
-| `true` | `--no-default-reviewers` | Default reviewers are **not** added |
+| Config          | Flag                     | Result                              |
+| --------------- | ------------------------ | ----------------------------------- |
+| unset / `false` | (none)                   | Default reviewers are **not** added |
+| `true`          | (none)                   | Default reviewers are added         |
+| unset / `false` | `--default-reviewers`    | Default reviewers are added         |
+| `true`          | `--no-default-reviewers` | Default reviewers are **not** added |
 
 ### Protected keys
 
 These keys cannot be set with `bb config set`:
 
-| Key | Reason | How to set |
-|-----|--------|------------|
-| `username` | Tied to authentication | Use `bb auth login -u` |
-| `apiToken` | Security-sensitive | Use `bb auth login -p` |
-| `authMethod` | Managed by login flow | Use `bb auth login` |
-| `oauthAccessToken` | Managed by OAuth flow | Use `bb auth login` |
-| `oauthRefreshToken` | Managed by OAuth flow | Use `bb auth login` |
-| `oauthExpiresAt` | Managed by OAuth flow | Use `bb auth login` |
+| Key                 | Reason                 | How to set                       |
+| ------------------- | ---------------------- | -------------------------------- |
+| `username`          | Tied to authentication | Use `bb auth login -u`           |
+| `apiToken`          | Security-sensitive     | Use `bb auth login --with-token` |
+| `authMethod`        | Managed by login flow  | Use `bb auth login`              |
+| `oauthAccessToken`  | Managed by OAuth flow  | Use `bb auth login`              |
+| `oauthRefreshToken` | Managed by OAuth flow  | Use `bb auth login`              |
+| `oauthExpiresAt`    | Managed by OAuth flow  | Use `bb auth login`              |
 
 ---
 
@@ -235,7 +238,7 @@ The full order, including which commands skip the git-remote step, is in
 examples.
 
 Some runtime behavior is tuned only with environment variables, not config
-keys — `BB_HTTP_TIMEOUT` for the API request timeout, for example.
+keys; `BB_HTTP_TIMEOUT` for the API request timeout, for example.
 
 ---
 
@@ -244,12 +247,12 @@ keys — `BB_HTTP_TIMEOUT` for the API request timeout, for example.
 The config file holds your API token, so the CLI creates the directory `0700`
 and the file `0600`, and writes atomically (temp file, then rename).
 
-| Platform | Directory | File |
-|----------|-----------|------|
-| macOS/Linux | `0700` (owner only) | `0600` (owner read/write only) |
-| Windows | Inherits user profile permissions | Inherits user profile permissions |
+| Platform    | Directory                         | File                              |
+| ----------- | --------------------------------- | --------------------------------- |
+| macOS/Linux | `0700` (owner only)               | `0600` (owner read/write only)    |
+| Windows     | Inherits user profile permissions | Inherits user profile permissions |
 
-On macOS and Linux the CLI also *verifies* both on every read. If any group or
+On macOS and Linux the CLI also _verifies_ both on every read. If any group or
 other bit is set, every command fails with error 4001 until you fix it:
 
 ```text
@@ -261,7 +264,8 @@ Windows skips the check, and a path that does not exist yet is not checked, so
 a fresh install never hits this.
 
 <Aside type="caution" title="Security">
-Never share your config file or commit it to version control. The API token grants access to your Bitbucket account.
+  Never share your config file or commit it to version control. The API token
+  grants access to your Bitbucket account.
 </Aside>
 
 ---
@@ -275,7 +279,7 @@ bb auth logout
 ```
 
 This removes authentication credentials (OAuth tokens or API token) but keeps
-`defaultWorkspace` and other settings. For OAuth, it also revokes the token on
+`defaultWorkspace` and other settings. For OAuth, it also attempts to revoke the token on
 Bitbucket's side.
 
 ### Full reset
@@ -284,14 +288,18 @@ Delete the config file entirely:
 
 <Tabs>
   <TabItem label="macOS / Linux">
+
     ```bash
     rm ~/.config/bb/config.json
     ```
+
   </TabItem>
   <TabItem label="Windows">
+
     ```powershell
     Remove-Item $env:APPDATA\bb\config.json
     ```
+
   </TabItem>
 </Tabs>
 

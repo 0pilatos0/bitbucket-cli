@@ -59,13 +59,13 @@ describe('buildHelpText', () => {
   it('should render env vars section with aligned names', () => {
     const result = buildHelpText({
       envVars: {
-        BB_USERNAME: 'Bitbucket username',
+        BB_USERNAME: 'Atlassian account email',
         BB_API_TOKEN: 'Bitbucket API token',
       },
     });
 
     expect(result).toContain('Environment variables:');
-    expect(result).toContain('  BB_USERNAME   Bitbucket username');
+    expect(result).toContain('  BB_USERNAME   Atlassian account email');
     expect(result).toContain('  BB_API_TOKEN  Bitbucket API token');
   });
 

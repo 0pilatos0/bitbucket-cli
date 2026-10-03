@@ -4,22 +4,22 @@ description: Complete reference of error codes and their meanings
 ---
 
 Every failure carries a numeric `code` in the `--json` error payload
-(`{"code": 2002, …}`). The process exit status is always `1`, so branch on
+(`{"code": 2002, …}`). The process exit status is normally `1` (Ctrl+C at a prompt uses `130`), so branch on
 `code`, not on the exit status. Ctrl-F the number below.
 
 ## Error code ranges
 
-| Range | Category | Description |
-|-------|----------|-------------|
-| 1xxx | Authentication | Login, credentials, and token issues |
-| 2xxx | API | Bitbucket API request failures |
-| 3xxx | Git | Local git operations |
-| 4xxx | Configuration | Config file read/write issues |
-| 5xxx | Validation | Invalid input or missing required fields |
-| 6xxx | Context | Repository/workspace detection issues |
-| 7xxx | Network | Transport/network failures before API response |
-| 8xxx | Output formatting | `--json fields` and `--jq` evaluation issues |
-| 9xxx | Shell completion / Unknown | Completion install/uninstall failures and uncategorized errors |
+| Range | Category                   | Description                                                    |
+| ----- | -------------------------- | -------------------------------------------------------------- |
+| 1xxx  | Authentication             | Login, credentials, and token issues                           |
+| 2xxx  | API                        | Bitbucket API request failures                                 |
+| 3xxx  | Git                        | Local git operations                                           |
+| 4xxx  | Configuration              | Config file read/write issues                                  |
+| 5xxx  | Validation                 | Invalid input or missing required fields                       |
+| 6xxx  | Context                    | Repository/workspace detection issues                          |
+| 7xxx  | Network                    | Transport/network failures before API response                 |
+| 8xxx  | Output formatting          | `--json fields` and `--jq` evaluation issues                   |
+| 9xxx  | Shell completion / Unknown | Completion install/uninstall failures and uncategorized errors |
 
 ---
 
@@ -32,6 +32,7 @@ Every failure carries a numeric `code` in the `--json` error payload
 **Cause:** You haven't logged in yet, or your credentials have been cleared.
 
 **Solution:**
+
 ```bash
 bb auth login
 ```
@@ -40,12 +41,14 @@ bb auth login
 
 **Message:** Invalid credentials
 
-**Cause:** Your credentials were rejected by Bitbucket at request time. This is the code emitted for any 401 response that was *not* recovered by an OAuth refresh — e.g. a wrong API token, a revoked password, or basic-auth requests with bad credentials.
+**Cause:** Your credentials were rejected by Bitbucket at request time. This is the code emitted for any 401 response that was _not_ recovered by an OAuth refresh; e.g. a wrong API token, a revoked password, or basic-auth requests with bad credentials.
 
 **Solution:**
-1. Verify your Bitbucket username
+
+1. Verify your Atlassian account email for API-token login
 2. Generate a new API token at [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
 3. Re-authenticate:
+
 ```bash
 bb auth logout
 bb auth login
@@ -59,9 +62,10 @@ The CLI prints this next step alongside the error:
 
 **Message:** OAuth token expired. Run `bb auth login` to re-authenticate.
 
-**Cause:** Specifically: an OAuth access token expired *and* the reactive refresh attempt also failed (refresh token revoked or expired). For non-OAuth flows, a stale token surfaces as `AUTH_INVALID` (1002) instead.
+**Cause:** Specifically: an OAuth access token expired _and_ the reactive refresh attempt also failed (refresh token revoked or expired). For non-OAuth flows, a stale token surfaces as `AUTH_INVALID` (1002) instead.
 
 **Solution:**
+
 1. Re-run `bb auth login` to perform a fresh OAuth flow
 2. If that also fails, create a new API token in Bitbucket settings and switch auth methods
 
@@ -74,7 +78,7 @@ The CLI prints this next step alongside the error:
 **Message:** API request failed
 
 **Cause:** Bitbucket answered with an unexpected HTTP status below 500 that
-isn't 401/403/404/429 — typically 400 (malformed request body) or 409
+isn't 401/403/404/429; typically 400 (malformed request body) or 409
 (conflict, e.g. merging a pull request that is already merged). The server did
 respond, so this is not a connectivity problem.
 
@@ -103,6 +107,7 @@ Connection failures are [7001](#7001---network_error); server faults are
 **Cause:** The requested repository, PR, or resource doesn't exist.
 
 **Solution:**
+
 - Check spelling of workspace and repository names
 - Verify the resource exists in Bitbucket
 - Ensure you have access to the repository
@@ -119,28 +124,27 @@ the URL yourself.
 
 **Message:** Access denied
 
-**Cause:** Your API token doesn't have the required permissions.
+**Cause:** Bitbucket rejected the operation. Missing scopes, account permissions,
+or repository restrictions can cause a 403.
 
 **Solution:**
-1. Check your API token scopes at [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/)
-2. See [Token Scopes](/reference/token-scopes/) for the exact scope each `bb` command requires.
-3. If a scope is missing, mint a new token (you can't add scopes to an existing one) and re-authenticate with `bb auth login`.
+
+1. Check account permissions and repository restrictions.
+2. For API tokens, check the [command scopes](/reference/token-scopes/) and create a new token if needed. Existing API-token scopes cannot be changed.
+3. For OAuth, check the consumer's permissions and sign in again.
 
 The CLI prints this next step alongside the error:
 
-> Your token may be missing a required scope. Scopes can't be added to an existing token — mint a new one, then run `bb auth login`.
+> Your token may be missing a required scope, or your account may lack permission. For API tokens, create a token with the required scopes. For OAuth, check consumer permissions, then run `bb auth login`.
 >
 > Docs: https://bitbucket-cli.paulvanderlei.com/reference/token-scopes/
-
-A `403` can also be a plain permission denial rather than a scope problem — the
-API doesn't distinguish the two, hence the hedged wording.
 
 ### 2004 - API_RATE_LIMITED
 
 **Message:** Rate limit exceeded
 
-**Cause:** Bitbucket returned 429 and the CLI's three automatic retries — which
-honour the `Retry-After` header — were all exhausted.
+**Cause:** Bitbucket returned 429 and the CLI's three automatic retries; which
+honour the `Retry-After` header; were all exhausted.
 
 **Solution:** Reduce request volume. Prefer `--limit` over `--all`, and batch
 with `bb api --paginate` instead of looping single calls:
@@ -157,6 +161,7 @@ bb api /repositories/myworkspace/myrepo/pullrequests --paginate --json
 **Cause:** Bitbucket's servers are experiencing issues.
 
 **Solution:**
+
 - Check [status.bitbucket.org](https://status.bitbucket.org)
 - Retry after a few minutes
 
@@ -166,7 +171,7 @@ bb api /repositories/myworkspace/myrepo/pullrequests --paginate --json
 
 ### 3001 - GIT_NOT_REPOSITORY
 
-Reserved. No code path currently emits `3001` — running outside a git
+Reserved. No code path currently emits `3001`; running outside a git
 repository surfaces as [6001 CONTEXT_REPO_NOT_FOUND](#6001---context_repo_not_found).
 Don't branch on `3001` in scripts.
 
@@ -177,6 +182,7 @@ Don't branch on `3001` in scripts.
 **Cause:** A git operation (clone, fetch, checkout) failed.
 
 **Solution:**
+
 - Ensure git is installed and in your PATH
 - Check git error message for details
 - Verify you have proper SSH keys or credentials configured
@@ -188,10 +194,13 @@ Don't branch on `3001` in scripts.
 **Cause:** The repository has no remote pointing to Bitbucket.
 
 **Solution:**
+
 - Add a Bitbucket remote:
+
 ```bash
 git remote add origin git@bitbucket.org:workspace/repo.git
 ```
+
 - Or use explicit flags: `-w <workspace> -r <repo>`
 
 ---
@@ -205,8 +214,10 @@ git remote add origin git@bitbucket.org:workspace/repo.git
 **Cause:** The configuration file is corrupted or unreadable.
 
 **Solution:**
+
 1. Check file permissions
 2. If corrupted, delete and recreate:
+
 ```bash
 # macOS/Linux
 rm ~/.config/bb/config.json
@@ -224,6 +235,7 @@ bb auth login
 **Cause:** No write permission to the config directory.
 
 **Solution:**
+
 - Check directory permissions
 - Ensure the parent directory exists
 - On shared systems, verify you own the config directory
@@ -236,11 +248,11 @@ bb auth login
 
 **Solution:** Use a valid key. `bb config set` accepts four:
 
-| Key | Meaning |
-|-----|---------|
-| `defaultWorkspace` | Workspace used when `-w` is omitted |
-| `skipVersionCheck` | Disable update notifications |
-| `versionCheckInterval` | Days between update checks |
+| Key                               | Meaning                                                  |
+| --------------------------------- | -------------------------------------------------------- |
+| `defaultWorkspace`                | Workspace used when `-w` is omitted                      |
+| `skipVersionCheck`                | Disable update notifications                             |
+| `versionCheckInterval`            | Days between update checks                               |
 | `prCreateIncludeDefaultReviewers` | Add the repository's default reviewers on `bb pr create` |
 
 `bb config get` accepts those four plus `username`.
@@ -269,11 +281,13 @@ the unknown-key message above.
 
 **Solution:**
 Check command help for required options:
+
 ```bash
 bb <command> --help
 ```
 
 Common required fields:
+
 - `bb pr create` requires `--title`
 - `bb repo create` requires a name argument
 
@@ -285,13 +299,14 @@ Common required fields:
 top-level command was given.
 
 **Solution:**
+
 - Check the expected format in command help
 - Common issues:
   - Pull request ID must be a number
   - State must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
   - An unknown command (`bb prr`)
   - `--json` placed before the subcommand, so it ate the subcommand as its
-    field list — see [Troubleshooting](/help/troubleshooting/)
+    field list; see [Troubleshooting](/help/troubleshooting/)
 
 The misplaced-`--json` case names the token it swallowed. Because `--json` did
 take effect, it comes back as an error envelope on stderr:
@@ -301,7 +316,12 @@ bb --json pr list
 ```
 
 ```json
-{"name":"BBError","code":5002,"message":"--json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.\nPut --json after the subcommand: bb pr list --json","context":{"command":"pr","args":["list"]}}
+{
+  "name": "BBError",
+  "code": 5002,
+  "message": "--json consumed 'pr' as its field list, so 'list' was parsed as a top-level command.\nPut --json after the subcommand: bb pr list --json",
+  "context": { "command": "pr", "args": ["list"] }
+}
 ```
 
 When a value or name is close to a valid one, the CLI suggests the correction.
@@ -340,17 +360,18 @@ bb pr list --state open
 `bb api`) doesn't exist on disk, or a named file isn't present inside a snippet.
 
 **Solution:**
+
 - Verify the path is correct relative to the current working directory
 - For `bb snippet view --file <name>`, list snippet files first to confirm the name
 
 The `context` field carries the offending path, so scripts can tell this apart
 from a generic `VALIDATION_INVALID`. The key depends on the command:
 
-| Key | Set by |
-|-----|--------|
-| `file` | `bb snippet create/edit/view` |
-| `bodyFile` | `bb pr edit --body-file` only |
-| `path` | `bb api -F key=@file`, `bb api --input <file>` |
+| Key        | Set by                                         |
+| ---------- | ---------------------------------------------- |
+| `file`     | `bb snippet create/edit/view`                  |
+| `bodyFile` | `bb pr edit --body-file` only                  |
+| `path`     | `bb api -F key=@file`, `bb api --input <file>` |
 
 `bb snippet view --file` also attaches `available`, the list of filenames the
 snippet actually contains.
@@ -373,6 +394,7 @@ The process exits with status 1, except after Ctrl+C, which exits with 130
 like any other interrupted command.
 
 **Solution:**
+
 - Run the command again and answer `y`, or pass `--yes` to skip the question
 
 ---
@@ -381,19 +403,22 @@ like any other interrupted command.
 
 ### 6001 - CONTEXT_REPO_NOT_FOUND
 
-**Message:** Could not determine repository
+**Message:** Depends on the missing context: `Not in a git repository.`,
+`Git repository has no remote configured.`, or `Remote … is not a Bitbucket URL.`,
+followed by instructions to supply `--workspace` and `--repo`.
 
-**Cause:** The CLI couldn't figure out which repository to use.
+**Cause:** The CLI could not resolve a Bitbucket repository. JSON errors include
+`context.reason` and, when available, `context.remoteUrl`.
 
 **Solution:**
+
 1. Use explicit flags:
+
 ```bash
 bb pr list -w myworkspace -r myrepo
 ```
-2. Set a default:
-```bash
-bb config set defaultWorkspace myworkspace
-```
+
+2. Supply both values outside a checkout; a default workspace alone does not identify a repository.
 3. Run from within a cloned Bitbucket repository
 
 See [Understanding Repository Context](/guides/repository-context/) for details.
@@ -405,11 +430,15 @@ See [Understanding Repository Context](/guides/repository-context/) for details.
 **Cause:** The CLI couldn't figure out which workspace to use.
 
 **Solution:**
+
 1. Use the `-w` flag:
+
 ```bash
 bb repo list -w myworkspace
 ```
+
 2. Set a default workspace:
+
 ```bash
 bb config set defaultWorkspace myworkspace
 ```
@@ -433,9 +462,10 @@ And the timeout one, when the server accepted the connection but never answered:
 > Network error: Request to Bitbucket API timed out after 30000ms. The server accepted the connection but did not respond in time. Increase or disable the timeout via BB_HTTP_TIMEOUT (milliseconds; set BB_HTTP_TIMEOUT=0 to disable), or run with BB_DEBUG=http for details.
 
 **Solution:**
+
 - Check internet and DNS connectivity
 - Verify proxy/TLS settings if applicable
-- If the message says *timed out*, raise or remove the 30-second default:
+- If the message says _timed out_, raise or remove the 30-second default:
 
 ```bash
 BB_HTTP_TIMEOUT=60000 bb pr list   # 60 seconds
@@ -455,18 +485,21 @@ See [Environment Variables](/reference/environment-variables/) for the full list
 **Cause:** The expression passed to `--jq` is invalid or produced a runtime error.
 
 **Solution:**
+
 - Test the expression interactively against the full output first:
+
 ```bash
 bb pr list --json | jq '<expression>'
 ```
+
 - The embedded jq is jq 1.8.x; module imports (`include`, `import`) are not supported.
-- Remember `--jq` runs *after* field projection — when combined with `--json fields`, the input is already a flat array (the wrapper has been dropped).
+- Remember `--jq` runs _after_ field projection; when combined with `--json fields`, the input is already a flat array (the wrapper has been dropped).
 
 ### 8002 - JSON_FORMAT_INVALID
 
 `8002` has exactly two messages.
 
-**`--jq requires --json`** — add `--json`, with or without a field list:
+**`--jq requires --json`**; add `--json`, with or without a field list:
 
 ```bash
 bb pr list --json --jq '.count'
@@ -475,10 +508,10 @@ bb pr list --json --jq '.count'
 `bb api` is exempt, because its output is already JSON: `bb api /repositories/my-ws --jq '.values[].name'` needs no `--json`.
 
 This one prints as plain text on stderr (`✗ --jq requires --json`) rather than
-as a JSON envelope, because JSON mode was never enabled — scripts cannot parse
+as a JSON envelope, because JSON mode was never enabled; scripts cannot parse
 `.code` for it.
 
-**`--json field list cannot be empty`** — triggered by `--json ""` or `--json ,,,`.
+**`--json field list cannot be empty`**; triggered by `--json ""` or `--json ,,,`.
 Drop the argument to get the full output, or name at least one field:
 
 ```bash
@@ -494,9 +527,10 @@ bb pr list --json id,title
 
 **Message:** Failed to install completions: `<reason>`
 
-**Cause:** `bb completion install` couldn't write the shell completion hooks — typically because the target shell profile isn't writable, or the underlying `tabtab` install failed.
+**Cause:** `bb completion install` couldn't write the shell completion hooks; typically because the target shell profile isn't writable, or the underlying `tabtab` install failed.
 
 **Solution:**
+
 - Check write permissions on your shell rc file (e.g. `~/.zshrc`, `~/.bashrc`)
 - If the issue persists, install completions manually by following your shell's documentation for `tabtab`
 
@@ -504,9 +538,10 @@ bb pr list --json id,title
 
 **Message:** Failed to uninstall completions: `<reason>`
 
-**Cause:** `bb completion uninstall` couldn't remove the completion hooks — usually because the rc file isn't writable or the entry was already removed manually.
+**Cause:** `bb completion uninstall` couldn't remove the completion hooks; usually because the rc file isn't writable or the entry was already removed manually.
 
 **Solution:**
+
 - Check write permissions on your shell rc file
 - Manually remove the `tabtab` block from your shell rc file if needed
 
@@ -521,9 +556,11 @@ bb pr list --json id,title
 **Cause:** The CLI encountered an error that doesn't fit any known category.
 
 **Solution:**
+
 - Check the error message for details
 - Retry the command
 - If the issue persists, [report it](https://github.com/0pilatos0/bitbucket-cli/issues) with full debug output:
+
 ```bash
 BB_DEBUG=verbose bb <your-command> 2>&1
 ```
@@ -532,8 +569,8 @@ BB_DEBUG=verbose bb <your-command> 2>&1
 
 ## Exit codes and error codes
 
-`0` on success, `1` on any failure. The exit status never carries the error
-code — read it from the stderr payload instead:
+`0` on success, normally `1` on failure, and `130` for Ctrl+C at a prompt. The exit status never carries the error
+code; read it from the stderr payload instead:
 
 ```bash
 bb pr view 999 --json 2> err.json || jq -r '.code' err.json
@@ -543,7 +580,17 @@ bb pr view 999 --json 2> err.json || jq -r '.code' err.json
 That payload is a single-line JSON object:
 
 ```json
-{"name":"APIError","code":2002,"message":"Pull request 999 not found in acme/demo.","context":{"status":404,"method":"GET","url":"/repositories/acme/demo/pullrequests/999"},"statusCode":404}
+{
+  "name": "APIError",
+  "code": 2002,
+  "message": "Pull request 999 not found in acme/demo.",
+  "context": {
+    "status": 404,
+    "method": "GET",
+    "url": "/repositories/acme/demo/pullrequests/999"
+  },
+  "statusCode": 404
+}
 ```
 
 See [Exit Codes in the scripting guide](/guides/scripting/#exit-codes) for a
@@ -553,7 +600,7 @@ field and the `context` shape per code.
 ## Handling errors in scripts
 
 Keep stdout and stderr on separate files. Folding stderr into the data file
-(`> prs.json 2>&1`) puts the error envelope — and any warning the CLI prints —
+(`> prs.json 2>&1`) puts the error envelope; and any warning the CLI prints;
 inside `prs.json`, which breaks `jq` on the next line.
 
 ```bash

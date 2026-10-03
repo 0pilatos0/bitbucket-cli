@@ -2,24 +2,25 @@
 title: Troubleshooting
 description: Common issues and their solutions
 banner:
-  content: 'Bitbucket app passwords stopped working on June 9, 2026. Use OAuth or an API token instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
+  content: 'Bitbucket app passwords stopped working on July 28, 2026. Use OAuth or an API token instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
-Find your error message below. Errors go to stderr and exit 1, with a `✗`
-prefix (`ERR` under `--no-unicode` or `BB_NO_UNICODE`). Under `--json` a
-failure becomes a single-line JSON object on stderr instead. Errors raised
-before the command runs — unknown command, unknown option — stay plain text
-with an `error:` prefix either way.
+Find your error message below. Command errors go to stderr and exit 1, with a
+`✗` prefix, or `ERR` under `--no-unicode` or `BB_NO_UNICODE`.
+Under `--json`, command failures become a single-line JSON object on stderr.
+Argument-parser errors, such as an unknown option or subcommand, remain plain
+text. Unknown top-level commands can return a JSON validation error.
+Interrupting an interactive prompt with Ctrl+C exits 130.
 
 ## Authentication
 
 ### Authentication required
 
 ```text
-✗ Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.
+✗ Authentication required. Run 'bb auth login'.
 ```
 
-No credentials are stored — you have not logged in, or `bb auth logout` cleared
+No credentials are stored, you have not logged in, or `bb auth logout` cleared
 them.
 
 ```bash
@@ -48,7 +49,7 @@ bb auth login
 `bb auth login` reports a rejected API token like this:
 
 ```text
-✗ Invalid username or token: Unauthorized. Verify your Bitbucket username and that the API token is current and has the required scopes.
+✗ Invalid email or token: Unauthorized. Verify your Atlassian account email and that the API token is current and has the required scopes.
 ```
 
 On any other command a 401 shows Bitbucket's own message plus a dimmed
@@ -66,13 +67,15 @@ bb auth logout
 bb auth login
 ```
 
-If you use an API token, mint a fresh one at
-[Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/) —
-scopes cannot be added to an existing token — then log in again, keeping the
-token out of shell history:
+If you use an API token, first check that `-u` or `BB_USERNAME` is your
+[Atlassian account email](https://support.atlassian.com/bitbucket-cloud/kb/getting-401-http-error-while-authenticating-to-bitbucket-cloud-rest-apis/),
+not your Bitbucket username. If the token is expired or lacks scopes, mint a fresh one at
+[Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/).
+Scopes cannot be added to an existing token. Log in again, keeping the token
+out of shell history:
 
 ```bash
-echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
+printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
 ```
 
 ---
@@ -81,18 +84,19 @@ echo "$BB_API_TOKEN" | bb auth login -u myuser --with-token
 
 The most common cause is environmental, not network:
 
-- **`BB_API_TOKEN` is exported in your shell.** Its mere presence — even set to
-  an empty string — selects API-token auth and skips OAuth entirely. Run
+- **`BB_API_TOKEN` is exported in your shell.** Its mere presence, even set to
+  an empty string, selects API-token auth and skips OAuth entirely. Run
   `unset BB_API_TOKEN` and retry. (`-u`, `-p`, `--app-password`, and
   `--with-token` select the same path, deliberately.)
 - SSH session, headless machine, or WSL without browser integration.
 - No default browser configured.
 
-When the browser cannot be opened, `bb` prints the authorization URL to stderr —
-copy it into any browser and the flow completes normally. Or skip OAuth:
+`bb` prints the authorization URL to stderr. Open it in a browser that can
+reach `localhost:19872` on the machine running the CLI. A browser on another
+host needs a loopback port-forward; otherwise use an API token:
 
 ```bash
-bb auth login -u myuser -p your-api-token
+printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
 ```
 
 ---
@@ -115,22 +119,24 @@ Close the other `bb auth login` (or whatever holds the port) and retry.
 
 ### Token works in the browser but not in the CLI
 
-1. Confirm it is an **API token**, minted at
+1. Use your Atlassian account email with `-u` or `BB_USERNAME`.
+
+2. Confirm it is an **API token**, minted at
    [Bitbucket API Tokens](https://bitbucket.org/account/settings/api-tokens/).
    App passwords live at a different URL and no longer work.
 
-2. Check the scopes cover what you are running — see
+3. Check the scopes cover what you are running. See
    [Token Scopes](/reference/token-scopes/). A missing scope surfaces as a 403
    with the hint `Your token may be missing a required scope.`
 
-3. Strip whitespace when pasting:
+4. Strip whitespace when pasting:
 
    ```bash
    # Good - token only
-   bb auth login -u myuser -p ATBB_xxxxx
+   bb auth login -u you@example.com -p ATBB_xxxxx
 
    # Bad - leading space inside the quotes
-   bb auth login -u myuser -p " ATBB_xxxxx"
+   bb auth login -u you@example.com -p " ATBB_xxxxx"
    ```
 
 ---
@@ -180,7 +186,6 @@ All four are code 6001 (`CONTEXT_REPO_NOT_FOUND`). Pick whichever fix suits:
 
 ```bash
 bb pr list -w myworkspace -r myrepo     # explicit flags
-bb config set defaultWorkspace myworkspace
 cd /path/to/cloned-bitbucket-repo && bb pr list
 ```
 
@@ -199,7 +204,7 @@ Commands that know what they were looking for name it, and stop there:
 ```
 
 Everywhere else a 404 surfaces Bitbucket's own message with a dimmed
-remediation line appended — see
+remediation line appended. See
 [Failures that tell you the next step](#failures-that-tell-you-the-next-step).
 In `--json` mode that line arrives as a top-level `hint` string on the error
 envelope.
@@ -227,6 +232,10 @@ curl -I https://api.bitbucket.org          # connectivity
 export HTTPS_PROXY=http://proxy.example.com:8080
 BB_DEBUG=http bb repo list                 # [HTTP] tracing on stdout, secrets redacted
 ```
+
+HTTP traces write to stdout even under `--json`. Set `BB_DEBUG=off` before
+piping output into a JSON parser. Verbose tracing redacts credentials but may
+include sensitive repository content; review it before sharing.
 
 Bitbucket's own availability is at
 [status.bitbucket.org](https://status.bitbucket.org).
@@ -256,10 +265,10 @@ A 429 is retried automatically. In human mode you see the attempts on stderr:
 ⚠ Rate limited, retrying in 1.0s (attempt 1/3)...
 ```
 
-Retries cover HTTP 429, 502, 503, and 504, up to 3 attempts. On a 429 the
+Retries cover HTTP 429, 502, 503, and 504, up to 3 retries (4 requests total). On a 429 the
 `Retry-After` header sets the delay when Bitbucket sends one; otherwise the
 delay is exponential backoff from 1s. Transient network failures on GET, HEAD,
-and OPTIONS share the same 3-attempt budget. Once it is exhausted, the command
+and OPTIONS share the same 3-retry budget. Once it is exhausted, the command
 fails with Bitbucket's own 429 message.
 
 The retry warning is suppressed in `--json` mode, so scripts see only the final
@@ -296,7 +305,7 @@ so the error text is git's own, verbatim:
 ✗ git@bitbucket.org: Permission denied (publickey).
 ```
 
-That is an SSH problem, not a `bb auth` problem — the CLI does not pass its
+That is an SSH problem, not a `bb auth` problem. The CLI does not pass its
 token to git.
 
 ```bash
@@ -338,18 +347,18 @@ A missing title is caught locally, before any request:
 ```
 
 Everything else is Bitbucket's own message, with any `error.fields` detail
-flattened in — for example:
+flattened in, for example:
 
 ```text
 ✗ Bad request (type: extra keys not allowed)
 ```
 
-| Cause | Fix |
-|-------|-----|
-| Branch doesn't exist on remote | `git push -u origin your-branch` |
-| PR already exists for branch | Check `bb pr list` |
-| Branch restrictions block the destination | Check repository settings |
-| No changes between branches | Ensure commits exist |
+| Cause                                     | Fix                              |
+| ----------------------------------------- | -------------------------------- |
+| Branch doesn't exist on remote            | `git push -u origin your-branch` |
+| PR already exists for branch              | Check `bb pr list`               |
+| Branch restrictions block the destination | Check repository settings        |
+| No changes between branches               | Ensure commits exist             |
 
 ---
 
@@ -365,8 +374,9 @@ bb pr activity 42   # who requested changes
 ```
 
 Common blockers are merge conflicts, unmet required approvals, and failing
-build checks. Fall back to the web UI only for branch-restriction rules, which
-the API does not expose.
+build checks. Inspect repository rules with `bb branch-restriction list --all`.
+`bb pr checks` reads only one page of statuses. For a complete merge gate, use
+the [paginated checks recipe](/recipes/auto-merge-on-ci-green/).
 
 ---
 
@@ -412,7 +422,7 @@ back:
 ```bash
 bb pr list --state open
 # ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
-# (Values are case-sensitive — use OPEN.)
+# (Values are case-sensitive, use OPEN.)
 ```
 
 Use `bb help <command>` (or `bb <command> --help`) to see a command's valid
@@ -444,7 +454,7 @@ bb pr list --jq '.pullRequests[].title'
 ```
 
 Because `--json` was never set, this failure renders as **plain text on stderr**,
-not as a JSON envelope — surprising in a script that only parses stdout.
+not as a JSON envelope. This matters in a script that only parses stdout.
 `bb api` is the one exception: it accepts `--jq` on its own.
 
 ```bash
@@ -483,8 +493,8 @@ bb repo list -w does-not-exist
 # Verify the id or slug you passed, and that --workspace/--repo point at the right repository your token can see.
 ```
 
-A `401` points you at `bb auth login`; a `403` explains that scopes can't be
-added to an existing token and links [Token Scopes](/reference/token-scopes/).
+A `401` points you at `bb auth login`; a `403` suggests checking permissions
+and scopes and links [Token Scopes](/reference/token-scopes/).
 In `--json` mode the same text arrives as a `hint` field. See
 [Error codes](/reference/error-codes/) for the full list.
 
@@ -502,7 +512,7 @@ bb --version
 uname -a  # Linux/macOS
 systeminfo | findstr /B /C:"OS"  # Windows
 
-# Bun version (required runtime)
+# Bun version (npm installation only)
 bun --version
 
 # Auth status (never prints the token; use bb auth token for that)

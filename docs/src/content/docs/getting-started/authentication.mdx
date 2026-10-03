@@ -1,11 +1,11 @@
 ---
 title: Authentication
-description: How to authenticate with Bitbucket
+description: Sign in through your browser or use an API token for automation.
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-The Bitbucket CLI supports two authentication methods: **OAuth** (recommended) and **API tokens**.
+Use OAuth for browser login or an API token for CI and headless hosts.
 
 ## OAuth (recommended)
 
@@ -13,99 +13,77 @@ The Bitbucket CLI supports two authentication methods: **OAuth** (recommended) a
 bb auth login
 ```
 
-This opens your browser where you authorize the CLI with your Bitbucket account. No tokens to copy, no scopes to select manually. Tokens expire after 2 hours and are refreshed automatically.
+In a terminal, choose **Log in with a web browser (OAuth)**. The CLI opens
+Bitbucket's authorization page and stores the resulting tokens. Access tokens
+normally expire after two hours; the CLI refreshes them while the refresh
+credentials remain valid. If refresh fails, log in again.
 
-If `BB_API_TOKEN` is exported in your shell, `bb auth login` uses API-token auth instead of opening a browser. It is the variable being *set* that switches the flow, not its value — even `export BB_API_TOKEN=` does it. Run `unset BB_API_TOKEN` first if you want OAuth.
+With no interactive prompt, a bare `bb auth login` starts OAuth directly.
+If `BB_API_TOKEN` is set, even to an empty string, login selects API-token auth.
+Unset it to choose OAuth.
 
 <Aside type="caution">
-OAuth needs a browser that can reach a loopback callback server on `http://localhost:19872/callback`. There is **no device-code flow**, so if you're on a headless host (SSH session, container, CI runner) where no browser is available, use an [API token](#api-token-for-cicd-and-headless-environments) instead.
+  OAuth requires a browser that can reach `http://localhost:19872/callback` on
+  the machine running `bb`. There is no device-code flow. Use an API token on
+  SSH hosts, containers, or CI runners without that browser access.
 </Aside>
 
 ### Using a custom OAuth consumer
 
-Organizations can use their own OAuth consumer instead of the built-in default:
+Create a consumer under **Workspace settings > Apps and features > OAuth
+consumers**. Set the callback to `http://localhost:19872/callback` and grant
+at least Account Read, Repositories Read/Admin, and Pull requests Read/Write
+to cover the scopes the CLI requests. Grant additional permissions for other
+workflows, then sign in with the consumer's key and secret:
 
 ```bash
 bb auth login --client-id YOUR_CLIENT_ID --client-secret YOUR_CLIENT_SECRET
 ```
 
-To set up a custom OAuth consumer:
-1. Go to **Workspace settings** > **Apps and features** > **OAuth consumers**
-2. Click **Add consumer**
-3. Set **Callback URL** to `http://localhost:19872/callback`
-4. Grant permissions: Account (Read), Repositories (Read, Write, Admin), Pull requests (Read, Write)
-5. Save and use the generated **Key** as `--client-id` and **Secret** as `--client-secret`
+The custom credentials are stored in the config file. Passing the secret as
+an argument exposes it to process listings and potentially shell history.
 
-Custom credentials are stored in your config file for subsequent logins.
-
-<Aside type="caution" title="OAuth cannot reach every command">
-The CLI requests a hardcoded OAuth scope set: `account repository repository:admin pullrequest pullrequest:write`. A custom consumer cannot widen it. `bb pipeline`, `bb deployment`, `bb snippet`, `bb project`, `bb repo delete` and adding or deleting SSH/GPG keys are not covered — use an API token for those. See [Token Scopes](/reference/token-scopes/).
-</Aside>
-
----
+The CLI requests `account repository repository:admin pullrequest
+pullrequest:write`. These are legacy OAuth names. The consumer's configured
+permissions determine the resulting grant: [Bitbucket does not narrow a token
+when fewer scopes are requested](https://support.atlassian.com/bitbucket-cloud/docs/use-oauth-on-bitbucket-cloud/).
+A custom consumer can therefore grant additional scopes. Do not treat the
+requested list as proof of the built-in consumer's complete permissions.
 
 ## API token (for CI/CD and headless environments)
 
-Use API tokens when a browser is not available (SSH sessions, Docker containers, CI/CD pipelines).
+1. [Create a Bitbucket API token](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/).
+   Include `read:user:bitbucket` so login can verify your identity, plus the
+   [scopes for your commands](/reference/token-scopes/).
+2. Supply your **Atlassian account email** and token. The existing option name
+   is `--username` / `-u`, but API tokens require the email, not your Bitbucket
+   username. [Atlassian documents this requirement](https://support.atlassian.com/bitbucket-cloud/kb/getting-401-http-error-while-authenticating-to-bitbucket-cloud-rest-apis/).
 
-<Steps>
+If your secret manager or CI platform supplies `BB_API_TOKEN`:
 
-1. **Create an API token**
+```bash
+printf '%s' "$BB_API_TOKEN" | bb auth login -u you@example.com --with-token
+```
 
-   1. Log in to [Bitbucket](https://bitbucket.org)
-   2. Go to **Personal settings** (click your avatar in the bottom left)
-   3. Navigate to **API tokens** under "Access management"
-   4. Click **Create API token**
-   5. Give it a descriptive name (e.g., "Bitbucket CLI")
-   6. Select the required scopes:
-      - `read:user:bitbucket` — verify your identity
-      - `read:repository:bitbucket` — list and view repositories, commits, build statuses
-      - `write:repository:bitbucket` — set commit build statuses
-      - `admin:repository:bitbucket` — create repositories, manage default reviewers
-      - `delete:repository:bitbucket` — delete repositories (optional)
-      - `read:pullrequest:bitbucket` — list and view pull requests
-      - `write:pullrequest:bitbucket` — create, edit, merge, approve, decline pull requests
+Or provide the email through the existing environment variable:
 
-      See [Token Scopes](/reference/token-scopes/) for a per-command breakdown
-      if you want to mint a token with the minimum scope set for your workflow.
-   7. Click **Create**
-   8. **Copy the generated token** — Bitbucket will not show it again.
+```bash
+export BB_USERNAME=you@example.com
+bb auth login  # BB_API_TOKEN must already be supplied by your secret store
+```
 
-2. **Authenticate**
+Interactive login can also ask for the email and token, with the token hidden
+as you type. Outside a terminal, missing credentials are an error.
 
-   ```bash
-   bb auth login -u your-username -p your-api-token
-   ```
-
-   Or pipe the token via stdin so it never lands in your shell history or
-   `ps` output (recommended):
-
-   ```bash
-   echo "$BB_API_TOKEN" | bb auth login -u your-username --with-token
-   ```
-
-   `--with-token` reads all of stdin and trims it, so a trailing newline is
-   fine. It cannot be combined with `-p` — that fails with error `5002`
-   ("Cannot combine --password with --with-token"). If nothing is piped in,
-   the login fails with `5001` ("No API token found on stdin").
-
-   Or using environment variables:
-
-   ```bash
-   export BB_USERNAME=your-username
-   export BB_API_TOKEN=your-api-token
-   bb auth login
-   ```
-
-</Steps>
+`--with-token` reads and trims all of stdin. Empty input fails with `5001`;
+combining it with `-p/--password` fails with `5002`. See
+[Auth commands](/commands/auth/) for the full option reference.
 
 <Aside type="tip">
-Prefer `--with-token` or `BB_API_TOKEN` over `-p` in scripts and CI. Passing a secret as a command-line argument leaves it visible in shell history and to anyone who can list processes (`ps`).
+  Use stdin or your CI secret store. Passing a token with `-p` exposes it in
+  process arguments and potentially shell history. Avoid saving literal tokens
+  in shell startup files.
 </Aside>
-
-See [Environment Variables Reference](/reference/environment-variables/) for more details on using environment variables in scripts and CI/CD.
-
----
 
 ## Check auth status
 
@@ -123,7 +101,9 @@ bb auth status
   Default workspace: acme
 ```
 
-`Token expires` only appears for OAuth logins. `Default workspace` only appears once one is configured. Add `--json` for a machine-readable version.
+The API returns the displayed account username; it is distinct from the email
+used for API-token login. Expiry appears only for OAuth, and the default
+workspace appears only when configured. Add `--json` for structured output.
 
 ## Logout
 
@@ -131,23 +111,23 @@ bb auth status
 bb auth logout
 ```
 
-This removes stored credentials and revokes your OAuth token (if using OAuth). Non-auth settings are preserved.
+Logout removes credentials for the active authentication method. OAuth logout
+also attempts to revoke the OAuth token.
+It preserves other settings. If revocation fails, local credentials are still
+removed and the command reports `revokeFailed: true` under `--json`.
 
 ## Configuration storage
 
-Credentials are stored in:
+Credentials are plaintext in `~/.config/bb/config.json` on Linux/macOS, or
+`%APPDATA%\bb\config.json` on Windows.
 
-- **Linux/macOS**: `~/.config/bb/config.json`
-- **Windows**: `%APPDATA%\bb\config.json`
-
-See [Configuration File Reference](/reference/configuration/) for details on the config file format.
-
-<Aside type="caution">
-Tokens are stored in plaintext JSON. On Linux and macOS the CLI writes the file with mode `600` and the directory with mode `700`, and refuses to read either if any group or other permission bit is set — you get error `4001` with the exact `chmod` to run. Windows skips the check.
-</Aside>
+On Linux/macOS, the CLI writes directory mode `700` and file mode `600` and
+rejects group/other access with error `4001`. Windows uses profile permissions
+and skips that mode check. These permissions do not hide the file from tools
+running as your user. See [Configuration file](/reference/configuration/).
 
 ## Next steps
 
-- [Quick Start Guide](/getting-started/quickstart/) - Get up and running in 60 seconds
-- [Repository Context](/guides/repository-context/) - How the CLI detects your workspace/repo
-- [Troubleshooting](/help/troubleshooting/) - Common authentication issues and solutions
+- [Quick start](/getting-started/quickstart/)
+- [Repository context](/guides/repository-context/)
+- [Troubleshooting](/help/troubleshooting/)

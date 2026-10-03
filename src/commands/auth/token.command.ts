@@ -43,8 +43,7 @@ export class TokenCommand extends BaseCommand<void, void> {
     if (!credentials.username || !credentials.apiToken) {
       throw new BBError({
         code: ErrorCode.AUTH_REQUIRED,
-        message:
-          "Not authenticated. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.",
+        message: "Not authenticated. Run 'bb auth login'.",
       });
     }
 

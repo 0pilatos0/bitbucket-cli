@@ -9,7 +9,7 @@ import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 Manage pull requests (PRs) in Bitbucket repositories. New here? Start with [Create, edit, and view](/commands/pr/create-and-edit/).
 
-Global options work on every PR command: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo` — see [Global Flags](/reference/global-flags/).
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 ## Command groups
 
@@ -48,19 +48,19 @@ Global options work on every PR command: `--json [fields]`, `--jq <expression>`,
 
 ## Most-used commands
 
-| Task | Command |
-|------|---------|
-| Create a PR | `bb pr create -t "Add feature"` |
+| Task                                                | Command                                             |
+| --------------------------------------------------- | --------------------------------------------------- |
+| Create a PR                                         | `bb pr create -t "Add feature"`                     |
 | Create a PR with the repository's default reviewers | `bb pr create -t "Add feature" --default-reviewers` |
-| List open PRs | `bb pr list` |
-| List all PRs (ignore the default limit) | `bb pr list --all` |
-| List PRs where you are a reviewer | `bb pr list --mine` |
-| View PR details | `bb pr view 42` |
-| View checks | `bb pr checks 42` |
-| Review diff | `bb pr diff 42 --stat` |
-| Checkout PR locally | `bb pr checkout 42` |
-| Approve PR | `bb pr approve 42` |
-| Merge PR | `bb pr merge 42 --strategy squash` |
+| List open PRs                                       | `bb pr list`                                        |
+| List all PRs (ignore the default limit)             | `bb pr list --all`                                  |
+| List PRs where you are a reviewer                   | `bb pr list --mine`                                 |
+| View PR details                                     | `bb pr view 42`                                     |
+| View checks                                         | `bb pr checks 42`                                   |
+| Review diff                                         | `bb pr diff 42 --stat`                              |
+| Checkout PR locally                                 | `bb pr checkout 42`                                 |
+| Approve PR                                          | `bb pr approve 42`                                  |
+| Merge PR                                            | `bb pr merge 42 --strategy squash`                  |
 
 ## JSON for automation
 
@@ -79,8 +79,10 @@ bb pr list --json id,title,state --jq '.[] | select(.state == "OPEN") | .title'
 # Grab a PR URL from view output
 bb pr view 42 --json --jq '.links.html.href'
 
-# Capture diffstat totals
+# Capture totals for the returned diffstat page
 bb pr diff 42 --stat --json --jq '{filesChanged, totalAdditions, totalDeletions}'
 ```
 
-`--json <fields>` misfires on `bb pr create`, `bb pr edit` and `bb pr view` — see [Create, Edit, and View PRs](/commands/pr/create-and-edit/) for why, and [JSON Output](/reference/json-output/) for the full reference.
+Diffstat totals can be partial; see [Diff and checkout](/commands/pr/diff-and-checkout/).
+
+`--json <fields>` misfires on `bb pr create`, `bb pr edit` and `bb pr view`, see [Create, Edit, and View PRs](/commands/pr/create-and-edit/) for why, and [JSON Output](/reference/json-output/) for the full reference.

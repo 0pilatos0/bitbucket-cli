@@ -70,8 +70,7 @@ describe('remediationHintLines', () => {
     it('says nothing for auth errors thrown before any request', () => {
       const error = new BBError({
         code: ErrorCode.AUTH_REQUIRED,
-        message:
-          "Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.",
+        message: "Authentication required. Run 'bb auth login'.",
       });
 
       expect(remediationHintLines(error)).toEqual([]);

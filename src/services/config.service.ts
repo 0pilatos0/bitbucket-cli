@@ -205,8 +205,7 @@ export class ConfigService implements IConfigService, ICredentialStore {
     if (!username || !apiToken) {
       throw new BBError({
         code: ErrorCode.AUTH_REQUIRED,
-        message:
-          "Authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.",
+        message: "Authentication required. Run 'bb auth login'.",
       });
     }
 
@@ -268,8 +267,7 @@ export class ConfigService implements IConfigService, ICredentialStore {
     if (!oauthAccessToken || !oauthRefreshToken || !oauthExpiresAt) {
       throw new BBError({
         code: ErrorCode.AUTH_REQUIRED,
-        message:
-          "OAuth authentication required. Run 'bb auth login' or set BB_USERNAME and BB_API_TOKEN.",
+        message: "OAuth authentication required. Run 'bb auth login'.",
       });
     }
 

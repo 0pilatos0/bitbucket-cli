@@ -11,32 +11,32 @@ Global options available on all config commands: `--json [fields]`, `--jq <expre
 
 Configuration is stored in a JSON file at:
 
-- **Linux/macOS**: `~/.config/bb/config.json` (fixed path — `XDG_CONFIG_HOME` is not read)
+- **Linux/macOS**: `~/.config/bb/config.json` (fixed path; `XDG_CONFIG_HOME` is not read)
 - **Windows**: `%APPDATA%\bb\config.json`, falling back to `%USERPROFILE%\AppData\Roaming\bb\config.json`
 
 On Linux and macOS the CLI creates the directory `0700` and the file `0600`, and refuses to run if either grants group or other access. See [Configuration file](/reference/configuration/) for the permission rules and how to fix them.
 
 ## Available settings
 
-| Key | `bb config get` | `bb config set` | Description |
-|-----|-----------------|-----------------|-------------|
-| `defaultWorkspace` | yes | yes | Default workspace for commands |
-| `skipVersionCheck` | yes | yes | Disable update notifications (default: false) |
-| `versionCheckInterval` | yes | yes | Days between update checks (default: 1) |
-| `prCreateIncludeDefaultReviewers` | yes | yes | Auto-add the repository's default reviewers on `bb pr create` (default: false) |
-| `username` | yes | no — use `bb auth login` | Bitbucket username |
-| `apiToken` | no — use `bb auth token` | no — use `bb auth login` | Bitbucket API token (masked in `bb config list`) |
-| `aliases` | no — use [`bb alias`](/commands/alias/) | no — use [`bb alias`](/commands/alias/) | User-defined command aliases |
-| `lastVersionCheck` | no | no | Timestamp of the last update check. Auto-managed; `bb config get lastVersionCheck` fails with `Unknown config key` |
+| Key                               | `bb config get`                        | `bb config set`                        | Description                                                                                                        |
+| --------------------------------- | -------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `defaultWorkspace`                | yes                                    | yes                                    | Default workspace for commands                                                                                     |
+| `skipVersionCheck`                | yes                                    | yes                                    | Disable update notifications (default: false)                                                                      |
+| `versionCheckInterval`            | yes                                    | yes                                    | Days between update checks (default: 1)                                                                            |
+| `prCreateIncludeDefaultReviewers` | yes                                    | yes                                    | Auto-add the repository's default reviewers on `bb pr create` (default: false)                                     |
+| `username`                        | yes                                    | no; use `bb auth login`                | Atlassian account email for API-token login                                                                        |
+| `apiToken`                        | no; use `bb auth token`                | no; use `bb auth login`                | Bitbucket API token (masked in `bb config list`)                                                                   |
+| `aliases`                         | no; use [`bb alias`](/commands/alias/) | no; use [`bb alias`](/commands/alias/) | User-defined command aliases                                                                                       |
+| `lastVersionCheck`                | no                                     | no                                     | Timestamp of the last update check. Auto-managed; `bb config get lastVersionCheck` fails with `Unknown config key` |
 
-`bb auth login` also writes `authMethod` — `basic` for API tokens, `oauth` for OAuth — and, after an OAuth login, the `oauth*` keys (`oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, and custom consumer credentials). Only `bb auth login` and `bb auth logout` touch those keys; see [Configuration file](/reference/configuration/) for the full schema.
+`bb auth login` also writes `authMethod`; `basic` for API tokens, `oauth` for OAuth; and, after an OAuth login, the `oauth*` keys (`oauthAccessToken`, `oauthRefreshToken`, `oauthExpiresAt`, and custom consumer credentials). Login, logout, and automatic OAuth refresh update those keys; see [Configuration file](/reference/configuration/) for the full schema.
 
 ### Configuration file format
 
 ```json
 {
   "authMethod": "basic",
-  "username": "myuser",
+  "username": "you@example.com",
   "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx",
   "defaultWorkspace": "myworkspace",
   "skipVersionCheck": false,
@@ -82,12 +82,12 @@ bb config set <key> <value>
 
 Settable keys, and the values each accepts:
 
-| Key | Accepted values | Stored type |
-|-----|-----------------|-------------|
-| `defaultWorkspace` | Any string | string |
-| `skipVersionCheck` | `true` or `false` | boolean |
-| `versionCheckInterval` | Positive integer (`>= 1`), in days | number |
-| `prCreateIncludeDefaultReviewers` | `true` or `false` | boolean |
+| Key                               | Accepted values                    | Stored type |
+| --------------------------------- | ---------------------------------- | ----------- |
+| `defaultWorkspace`                | Any string                         | string      |
+| `skipVersionCheck`                | `true` or `false`                  | boolean     |
+| `versionCheckInterval`            | Positive integer (`>= 1`), in days | number      |
+| `prCreateIncludeDefaultReviewers` | `true` or `false`                  | boolean     |
 
 ### Examples
 
@@ -171,4 +171,4 @@ Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreat
 
 With an empty config file the table is replaced by `ℹ No configuration set`; the `Config file:` line and the `Settable keys:` footer still print.
 
-`apiToken` is always masked. OAuth credentials are omitted from `bb config list` entirely — after an OAuth login the listing shows no auth rows at all.
+`apiToken` is always masked. OAuth credentials are omitted from `bb config list` entirely. After an OAuth login the listing shows no auth rows at all.

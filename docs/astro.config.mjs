@@ -18,7 +18,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Bitbucket CLI",
-      description: "A powerful command-line interface for Bitbucket Cloud. Clone repos, manage PRs, and automate workflows — all from your terminal.",
+      description: "A command-line interface for Bitbucket Cloud. Clone repositories, manage pull requests, and automate workflows from your terminal.",
       logo: {
         src: './src/assets/logo.svg',
         alt: 'Bitbucket CLI',
@@ -98,12 +98,25 @@ export default defineConfig({
           label: "Command Reference",
           items: [
             { label: "Auth Commands", slug: "commands/auth" },
-            { label: "Repo Commands", slug: "commands/repo" },
+            {
+              label: "Repo Commands",
+              items: [
+                { label: "Repository basics", slug: "commands/repo" },
+                { label: "Downloads", slug: "commands/repo/downloads" },
+                { label: "Default reviewers", slug: "commands/repo/default-reviewers" },
+              ],
+            },
             {
               label: 'PR Commands',
               items: [{ autogenerate: { directory: 'commands/pr' } }],
             },
-            { label: "Snippet Commands", slug: "commands/snippet" },
+            {
+              label: "Snippet Commands",
+              items: [
+                { label: "Snippet basics", slug: "commands/snippet" },
+                { label: "Comments", slug: "commands/snippet/comments" },
+              ],
+            },
             {
               label: "Pipeline Commands",
               slug: "commands/pipeline",

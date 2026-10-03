@@ -71,7 +71,7 @@ export function registerApiCommand(
           'bb api /user',
           'bb api GET /user',
           'bb api /repositories/{workspace}/{repo}/pullrequests --paginate',
-          'bb api POST /repositories/my-ws/my-repo/pipelines/ -f target.commit=abc1234',
+          'bb api POST /repositories/my-ws/my-repo/pipelines/ --input pipeline.json',
           'bb api PUT /repositories/my-ws/my-repo/pullrequests/42 --input body.json',
           'cat body.json | bb api POST /repositories/my-ws/my-repo/pullrequests/42/comments --input -',
           "bb api /repositories/my-ws --jq '.values[].name'",

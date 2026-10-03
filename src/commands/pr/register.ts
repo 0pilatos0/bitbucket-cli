@@ -54,7 +54,7 @@ export function registerPrCommands(
           'bb pr create -t "My PR" -s feature -d develop',
           'bb pr create -t "My PR" --close-source-branch',
           'bb pr create -t "My PR" --default-reviewers',
-          'bb pr create -t "My PR" --reviewer jdoe --reviewer asmith',
+          'bb pr create -t "My PR" --reviewer "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"',
         ],
         defaults: {
           source: 'current git branch',

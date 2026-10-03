@@ -5,7 +5,7 @@ description: Complete reference for Bitbucket CLI repository commands. Clone, cr
 
 Manage Bitbucket repositories.
 
-Global options available on all repo commands: `--json [fields]`, `--jq <expression>`, `--no-color`, `--no-unicode`, `--no-truncate`, `--locale <locale>`, `-w, --workspace`, `-r, --repo`. See [Global flags](/reference/global-flags/) for the full list. The per-command tables below list only command-specific options. One exception: `bb repo clone` ignores `-w, --workspace`.
+See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 ## `bb repo clone`
 
@@ -17,16 +17,16 @@ bb repo clone <repository> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument     | Description                                                   |
+| ------------ | ------------------------------------------------------------- |
 | `repository` | `workspace/repo`, a bare repository name, or a full clone URL |
 
 For a bare name, the workspace comes from `BB_WORKSPACE`, then the `defaultWorkspace` config key. The global `-w` is **not** honoured by this command.
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option                  | Description             |
+| ----------------------- | ----------------------- |
 | `-d, --directory <dir>` | Directory to clone into |
 
 ### Examples
@@ -63,18 +63,18 @@ bb repo create <name> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `name` | Name for the new repository |
+| Argument | Description                 |
+| -------- | --------------------------- |
+| `name`   | Name for the new repository |
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-d, --description <description>` | Repository description | |
-| `--private` | Create a private repository | true |
-| `--public` | Create a public repository | |
-| `-p, --project <project>` | Project key | |
+| Option                            | Description                 | Default |
+| --------------------------------- | --------------------------- | ------- |
+| `-d, --description <description>` | Repository description      |         |
+| `--private`                       | Create a private repository | true    |
+| `--public`                        | Create a public repository  |         |
+| `-p, --project <project>`         | Project key                 |         |
 
 ### Examples
 
@@ -91,7 +91,7 @@ bb repo create my-new-repo -w myworkspace -p PROJ
 
 ### Notes
 
-- Visibility is private unless `--public` is passed. If both `--private` and `--public` are given, `--public` currently wins and no error is raised — unlike `bb snippet create` and `bb project create`, which reject the combination.
+- Visibility is private unless `--public` is passed. If both `--private` and `--public` are given, `--public` currently wins and no error is raised, unlike `bb snippet create` and `bb project create`, which reject the combination.
 - `--json` emits the raw Bitbucket repository object, with no envelope.
 
 ---
@@ -106,10 +106,10 @@ bb repo list [options]
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--limit <number>` | Maximum number of repositories | 25 |
-| `--all` | List all repositories (overrides `--limit`) | |
+| Option             | Description                                 | Default |
+| ------------------ | ------------------------------------------- | ------- |
+| `--limit <number>` | Maximum number of repositories              | 25      |
+| `--all`            | List all repositories (overrides `--limit`) |         |
 
 ### Examples
 
@@ -155,8 +155,8 @@ bb repo view [repository] [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument     | Description                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
 | `repository` | `workspace/repo`, or a bare repository name paired with `-w`. Optional inside a repository directory. |
 
 ### Examples
@@ -192,14 +192,14 @@ bb repo cat <path> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `path` | File path relative to the repository root (leading and trailing `/` are ignored) |
+| Argument | Description                                                                      |
+| -------- | -------------------------------------------------------------------------------- |
+| `path`   | File path relative to the repository root (leading and trailing `/` are ignored) |
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
+| Option        | Description                         | Default                    |
+| ------------- | ----------------------------------- | -------------------------- |
 | `--ref <ref>` | Branch, tag, or commit to read from | the repository main branch |
 
 ### Examples
@@ -242,17 +242,17 @@ bb repo ls [path] [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
-| `path` | Directory path relative to the repository root. Omit to list the root. |
+| Argument | Description                                                            |
+| -------- | ---------------------------------------------------------------------- |
+| `path`   | Directory path relative to the repository root. Omit to list the root. |
 
 ### Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--ref <ref>` | Branch, tag, or commit to list | the repository main branch |
-| `--limit <number>` | Maximum number of entries | 25 |
-| `--all` | List every entry (overrides `--limit`) | |
+| Option             | Description                            | Default                    |
+| ------------------ | -------------------------------------- | -------------------------- |
+| `--ref <ref>`      | Branch, tag, or commit to list         | the repository main branch |
+| `--limit <number>` | Maximum number of entries              | 25                         |
+| `--all`            | List every entry (overrides `--limit`) |                            |
 
 ### Examples
 
@@ -289,14 +289,14 @@ bb repo delete <repository> [options]
 
 ### Arguments
 
-| Argument | Description |
-|----------|-------------|
+| Argument     | Description                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `repository` | `workspace/repo`, or a bare repository name when the workspace comes from `-w`, `BB_WORKSPACE` or the `defaultWorkspace` config key |
 
 ### Options
 
-| Option | Description |
-|--------|-------------|
+| Option      | Description                                                                 |
+| ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
 
 ### Examples
@@ -317,128 +317,36 @@ Deletion is permanent. All repository data, including code and pull requests, is
 
 ---
 
-<a id="bb-repo-default-reviewers"></a>
-
 ## `bb repo default-reviewers`
 
-Default reviewers are auto-suggested when someone opens a pull request in Bitbucket's web UI. This group reads and edits that list.
+See [repository default reviewers](/commands/repo/default-reviewers/) for options and examples.
 
 ### `bb repo default-reviewers list`
 
-```bash
-bb repo default-reviewers list [options]
-```
-
-By default the **effective** reviewer list is shown: reviewers configured directly on the repository *and* reviewers inherited from the parent project, matching what Bitbucket's web UI would auto-populate.
-
-| Option | Description |
-|--------|-------------|
-| `--repo-only` | Only show reviewers configured on the repository (exclude project-inherited) |
-
-```bash
-# Effective list (repo + project-inherited)
-bb repo default-reviewers list
-
-# Only repo-level entries
-bb repo default-reviewers list --repo-only
-
-# JSON for scripting
-bb repo default-reviewers list --json
-```
-
-`--json` emits `{ workspace, repoSlug, mode, count, reviewers }`, where `mode` is `effective` or `direct`.
+[`bb repo default-reviewers list`](/commands/repo/default-reviewers/#bb-repo-default-reviewers-list).
 
 ### `bb repo default-reviewers add`
 
-```bash
-bb repo default-reviewers add <user>
-```
-
-Adds a user as a default reviewer on the repository. Requires repository admin permission.
-
-The `<user>` argument accepts either an **account ID** (e.g. `712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f`) or a **UUID** in curly braces (e.g. `{c1cb1bb5-2e32-456e-a373-43978dc12aa1}`). Bitbucket Cloud's GDPR changes retired username lookups, so nicknames like `jdoe` are no longer accepted.
-
-You can find a user's account ID from the Bitbucket web UI under their profile, or by running `bb pr reviewers list <pr-id> --json` on a pull request they have reviewed.
-
-```bash
-bb repo default-reviewers add "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f"
-bb repo default-reviewers add "{c1cb1bb5-2e32-456e-a373-43978dc12aa1}"
-```
+[`bb repo default-reviewers add`](/commands/repo/default-reviewers/#bb-repo-default-reviewers-add).
 
 ### `bb repo default-reviewers remove`
 
-```bash
-bb repo default-reviewers remove <user> --yes
-```
+[`bb repo default-reviewers remove`](/commands/repo/default-reviewers/#bb-repo-default-reviewers-remove).
 
-Removes a user from the repository's default reviewers. Without `--yes` it asks for confirmation in an interactive terminal and fails everywhere else (see [`--no-input`](/reference/global-flags/#--no-input)). Requires repository admin permission.
-
-`<user>` accepts the same identifiers as `add` (account ID or `{uuid}`).
-
-```bash
-bb repo default-reviewers remove "712020:3cfed7e0-0ed6-49fc-bb35-410a00ccee6f" --yes
-```
-
-### Notes
-
-- Project-inherited reviewers can only be removed by editing the parent project, not the repository.
-- Related: [`bb pr create --default-reviewers`](/commands/pr/create-and-edit/) applies these reviewers when opening a pull request.
-
----
-
-<a id="bb-repo-downloads"></a>
+<span id="notes-6"></span>
 
 ## `bb repo downloads`
 
-Manage the files in a repository's **Downloads** section (release archives, installers, and other build artifacts).
-
-:::note
-Bitbucket only offers Downloads on Standard and Premium workspace plans. On a Free plan every `bb repo downloads` command fails with Bitbucket's `A workspace on a Free plan does not support uploading or downloading files.` message.
-:::
+See [repository downloads](/commands/repo/downloads/) for options and examples.
 
 ### `bb repo downloads list`
 
-```bash
-bb repo downloads list [options]
-```
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--limit <number>` | Maximum number of downloads | 25 |
-| `--all` | List every download (overrides `--limit`) | |
-
-```bash
-bb repo downloads list
-bb repo downloads list --json --jq '.downloads[].name'
-```
-
-The table shows name, size in bytes, download count, uploader, and upload date. The `--json` envelope is `{ workspace, repoSlug, count, downloads }`; each download object includes its `links.self.href` URL.
+[`bb repo downloads list`](/commands/repo/downloads/#bb-repo-downloads-list).
 
 ### `bb repo downloads upload`
 
-```bash
-bb repo downloads upload <files...>
-```
-
-Uploads one or more local files in a single request. Each artifact is named after the file's basename, and an existing artifact with the same name is replaced.
-
-```bash
-bb repo downloads upload dist/app-1.0.0.tar.gz
-bb repo downloads upload build/*.zip
-```
-
-`--json` emits `{ success, workspace, repoSlug, uploaded }`, where `uploaded` lists the artifact names. A missing file, a directory, or two files sharing a basename fails before anything is sent.
-
-The upload gets the HTTP timeout (30 seconds by default, see [`BB_HTTP_TIMEOUT`](/reference/environment-variables/)) plus transfer time for the total file size at 32 KiB/s, so large artifacts do not need a raised timeout. `BB_HTTP_TIMEOUT=0` disables it.
+[`bb repo downloads upload`](/commands/repo/downloads/#bb-repo-downloads-upload).
 
 ### `bb repo downloads delete`
 
-```bash
-bb repo downloads delete <filename> --yes
-```
-
-| Option | Description |
-|--------|-------------|
-| `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
-
-`--json` emits `{ success, workspace, repoSlug, filename }`.
+[`bb repo downloads delete`](/commands/repo/downloads/#bb-repo-downloads-delete).

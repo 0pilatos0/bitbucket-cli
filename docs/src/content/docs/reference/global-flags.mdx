@@ -3,28 +3,28 @@ title: Global Flags
 description: Flags accepted by every bb command
 ---
 
-These flags are accepted by every `bb` command — the same set `bb --help`
+These flags are accepted by every `bb` command; the same set `bb --help`
 prints. `--limit` and `--all` look global but are not; see
 [List-command flags](#list-command-flags).
 
 ## Quick reference
 
-| Flag | Type | Default | Description |
-|------|------|---------|-------------|
-| `--json [fields]` | optional CSV | _off_ | Emit machine-readable JSON. Pass a comma-separated field list to project the output. |
-| `--jq <expression>` | string | _off_ | Run the JSON output through an in-process `jq` filter. Requires `--json` everywhere except `bb api`. |
-| `--no-color` | boolean | colors on | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`. |
-| `--no-unicode` | boolean | Unicode on | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`. |
-| `--no-truncate` | boolean | _off_ | Show full values in table output without truncating long cells. |
-| `--no-input` | boolean | _off_ | Never prompt, even in an interactive terminal (except `bb completion install`, see [`--no-input`](#--no-input)). Also honoured: `BB_PROMPT_DISABLED`. |
-| `--locale <locale>` | BCP-47 | system | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`. |
-| `-w, --workspace <workspace>` | string | git remote / env / config | Override the workspace. |
-| `-r, --repo <repo>` | string | git remote | Override the repository. |
-| `-h, --help` | boolean | — | Print help for the command. |
-| `-V, --version` | boolean | — | Print the CLI version. |
+| Flag                          | Type         | Default                   | Description                                                                                                                                           |
+| ----------------------------- | ------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--json [fields]`             | optional CSV | _off_                     | Emit machine-readable JSON. Pass a comma-separated field list to project the output.                                                                  |
+| `--jq <expression>`           | string       | _off_                     | Run the JSON output through an in-process `jq` filter. Requires `--json` everywhere except `bb api`.                                                  |
+| `--no-color`                  | boolean      | colors on                 | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`.                                                                                        |
+| `--no-unicode`                | boolean      | Unicode on                | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`.                                                         |
+| `--no-truncate`               | boolean      | _off_                     | Show full values in table output without truncating long cells.                                                                                       |
+| `--no-input`                  | boolean      | _off_                     | Never prompt, even in an interactive terminal (except `bb completion install`, see [`--no-input`](#--no-input)). Also honoured: `BB_PROMPT_DISABLED`. |
+| `--locale <locale>`           | BCP-47       | system                    | Locale for date/time formatting (e.g. `de-DE`, `ja-JP`). Falls back to `BB_LOCALE`, then `LC_TIME`/`LC_ALL`/`LANG`, then `en-US`.                     |
+| `-w, --workspace <workspace>` | string       | git remote / env / config | Override the workspace.                                                                                                                               |
+| `-r, --repo <repo>`           | string       | git remote                | Override the repository.                                                                                                                              |
+| `-h, --help`                  | boolean      | n/a                       | Print help for the command.                                                                                                                           |
+| `-V, --version`               | boolean      | n/a                       | Print the CLI version.                                                                                                                                |
 
 The positive forms `--color`, `--unicode` and `--truncate` are also accepted,
-even though `bb --help` does not list them. Only `--color` changes anything —
+even though `bb --help` does not list them. Only `--color` changes anything;
 see [Precedence summary](#precedence-summary).
 
 `bb help <command>` is equivalent to `bb <command> --help` and works at every
@@ -51,12 +51,12 @@ token. Put it after the subcommand:
 
 ```bash
 bb pr list --json           # correct
-bb --json=id,title pr list  # correct — the '=' form swallows nothing
+bb --json=id,title pr list  # correct; the '=' form swallows nothing
 bb --json pr list           # error 5002
 ```
 
 The last one fails with `--json consumed 'pr' as its field list, so 'list' was
-parsed as a top-level command.` — rendered as a JSON envelope, since `--json`
+parsed as a top-level command.`; rendered as a JSON envelope, since `--json`
 was set. The other global flags are not position-sensitive in this way.
 
 ### `--jq <expression>`
@@ -79,8 +79,8 @@ bb api /repositories/my-ws --jq '.values[].name'
 Everywhere else, `--jq` without `--json` fails with `--jq requires --json`
 (error 8002), printed as plain text on stderr rather than as a JSON envelope.
 
-Field projection runs *before* jq and drops the wrapper key, so when you
-combine `--json <fields>` with `--jq` the filter sees a flat array — start it
+Field projection runs _before_ jq and drops the wrapper key, so when you
+combine `--json <fields>` with `--jq` the filter sees a flat array; start it
 with `.[]`, not `.pullRequests[]`:
 
 ```bash
@@ -99,13 +99,13 @@ bb pr comments list 42 --no-truncate
 
 The truncation suffix is the three ASCII characters `...` and it counts against
 the column budget, so a 50-character cap yields 47 characters plus `...`.
-`--no-truncate` affects table output only — JSON payloads are never truncated,
+`--no-truncate` affects table output only; JSON payloads are never truncated,
 so passing it alongside `--json` does nothing.
 
 ### `--no-color` and `--no-unicode`
 
 `--no-color` disables ANSI colors. `--no-unicode` swaps Unicode separators
-and status glyphs for plain ASCII equivalents — useful for log aggregators
+and status glyphs for plain ASCII equivalents; useful for log aggregators
 that mangle Unicode, or terminals that don't render the symbols cleanly.
 
 Colors switch off on their own when stdout is not a TTY, so piping to a file
@@ -114,8 +114,8 @@ writes the `─` separator rules, `→` branch arrows and `✓`/`✗`/`○` stat
 glyphs. Pass `--no-unicode` or set `BB_NO_UNICODE` if you need ASCII in a
 redirect.
 
-Tables themselves are already ASCII — the header underline is plain `-`
-characters and there are no vertical bars or outer border — so `--no-unicode`
+Tables themselves are already ASCII; the header underline is plain `-`
+characters and there are no vertical bars or outer border, so `--no-unicode`
 does not change the table frame.
 
 The two environment variables are not symmetric:
@@ -125,7 +125,7 @@ The two environment variables are not symmetric:
   override it.
 - `BB_NO_UNICODE` triggers on any non-empty value and cannot be overridden per
   command. `--unicode` is accepted but has no effect while `BB_NO_UNICODE` is
-  set — unset the variable instead.
+  set; unset the variable instead.
 
 ## Prompt flag
 
@@ -143,7 +143,7 @@ terminal:
 - `bb pr create` asks for the title, and then an optional description, when
   `--title` is missing.
 - `bb auth login` asks whether to use the browser (OAuth) or an API token when
-  no auth flag is given, and asks for a missing username or token.
+  no auth flag is given, and asks for a missing Atlassian account email or token.
 
 Prompts only appear when stdin **and** stdout are both terminals. Piped input,
 redirected output, `--json`, `--no-input` and a non-empty `BB_PROMPT_DISABLED`
@@ -176,16 +176,19 @@ nothing is changed. Ctrl+C exits with status 130, the rest with 1.
 Cap the number of items returned. The default is 25 on every list command.
 
 This caps items, not pages. The CLI fetches up to 50 items per request and
-keeps paging until the cap is met, so `--limit 200` makes four round trips.
+keeps paging until the cap is met or no next page remains. Short pages and
+client-side filtering can require more requests.
 Values below 1 fail with `--limit must be a positive integer`.
 
 ### `--all`
 
 Fetch every page. `--all` overrides `--limit`.
 
-Both flags are available on these eighteen commands:
+Both flags are available on these commands:
 
 - `bb repo list`
+- `bb repo ls`
+- `bb repo downloads list`
 - `bb pr list`
 - `bb pr activity`
 - `bb pr comments list`
@@ -228,7 +231,7 @@ bb pr list -w myworkspace -r myrepo
 ```
 
 Repository-scoped commands fall back to the git remote of the current
-directory. Workspace-only commands never look at git — they resolve
+directory. Workspace-only commands never look at git; they resolve
 `--workspace`, then `BB_WORKSPACE`, then `defaultWorkspace`, and fail with
 `No workspace specified.` if none is set. That covers `bb workspace view`,
 every `bb project` and `bb snippet` command, `bb repo list`, `bb repo create`,
@@ -245,7 +248,7 @@ with worked examples in
 ### `--locale <locale>`
 
 Pin a BCP-47 locale tag for date/time formatting. This affects every
-human-readable date the CLI prints — PR timestamps, activity entries,
+human-readable date the CLI prints; PR timestamps, activity entries,
 comment dates. JSON output is locale-independent.
 
 ```bash
@@ -255,12 +258,12 @@ bb pr view 42 --locale ja-JP
 
 If `--locale` is unset, the CLI walks `BB_LOCALE`, then the POSIX locale
 variables in the order `LC_TIME` → `LC_ALL` → `LANG`, then falls back to
-`en-US`. Note that `LC_TIME` is checked *before* `LC_ALL`, which is the reverse
-of the usual POSIX override order — if you set both, `LC_TIME` wins here.
+`en-US`. Note that `LC_TIME` is checked _before_ `LC_ALL`, which is the reverse
+of the usual POSIX override order; if you set both, `LC_TIME` wins here.
 
 Values are normalised before use: a `.UTF-8` codeset or `@euro` modifier suffix
 is stripped, `_` becomes `-`, and `C` / `POSIX` map to `en-US`. An invalid
-BCP-47 tag never errors — it silently falls back to `en-US`.
+BCP-47 tag never errors; it silently falls back to `en-US`.
 
 ## Precedence summary
 
@@ -275,13 +278,13 @@ Two documented exceptions: `FORCE_COLOR` beats `--no-color`, and `--unicode`
 cannot override `BB_NO_UNICODE`.
 
 Color has one more wrinkle. `--color` is the highest-precedence color input of
-all — ahead of `FORCE_COLOR`, `--no-color` and `NO_COLOR` — and it is matched
+all, ahead of `FORCE_COLOR`, `--no-color` and `NO_COLOR`. It is matched
 by a raw scan of argv. So `bb pr diff 42 --color never` turns global color on
 even though it leaves the diff body uncolored, because `bb pr diff` takes
 `--color <when>` with the choices `auto`, `always` and `never`.
 
 ## See also
 
-- [Environment Variables](/reference/environment-variables/) — env-var equivalents and precedence
-- [JSON Output](/reference/json-output/) — schema, field projection, scripting tips
-- [Configuration File](/reference/configuration/) — persistent settings
+- [Environment Variables](/reference/environment-variables/); env-var equivalents and precedence
+- [JSON Output](/reference/json-output/); schema, field projection, scripting tips
+- [Configuration File](/reference/configuration/); persistent settings
