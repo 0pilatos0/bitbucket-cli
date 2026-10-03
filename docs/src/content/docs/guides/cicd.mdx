@@ -293,7 +293,6 @@ Run this in a branch build after pushing the source branch. It uses external
 
 ```bash
 set -euo pipefail
-export BB_DEBUG=off
 BRANCH=${GITHUB_REF#refs/heads/}
 
 EXISTING=$(bb pr list -w myworkspace -r myrepo --all --json | \
@@ -329,9 +328,9 @@ exit `130`; disable prompts in automation with `--no-input`. Set
 `BB_DETAILED_EXIT_CODES=1` to tell usage (`2`), not found (`3`), authentication
 (`4`) and confirmation required (`5`) apart.
 
-In normal `--json` mode, successful JSON goes to stdout and command errors,
-argument-parsing errors included, go to stderr as JSON. Set `BB_DEBUG=off` when
-parsing JSON, because HTTP traces also write to stdout.
+In `--json` mode, successful JSON goes to stdout and command errors,
+argument-parsing errors included, go to stderr as JSON. HTTP traces from
+`BB_DEBUG` also go to stderr, so stdout stays parseable.
 
 See [Scripting and automation](/guides/scripting/#error-handling) for an error
 handling example and [Error codes](/reference/error-codes/) for numeric codes.

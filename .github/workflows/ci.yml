@@ -1,11 +1,15 @@
 name: CI
 
+# Pushes to main run CI through release.yml, which calls this workflow and
+# publishes only when it passes.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch: {}
+  workflow_call:
+    secrets:
+      CODECOV_TOKEN:
+        required: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
