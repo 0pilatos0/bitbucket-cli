@@ -13,6 +13,8 @@ prints. `--limit` and `--all` look global but are not; see
 | ----------------------------- | ------------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--json [fields]`             | optional CSV | _off_                     | Emit machine-readable JSON. Pass a comma-separated field list to project the output.                                                                  |
 | `--jq <expression>`           | string       | _off_                     | Run the JSON output through an in-process `jq` filter. Requires `--json` everywhere except `bb api`.                                                  |
+| `--raw-output`                | boolean      | _off_                     | Print `--jq` string results without JSON quotes, like `jq -r`. Requires `--jq`.                                                                       |
+| `--lean`                      | boolean      | _off_                     | Trim every `links` map in JSON output to its web URL (`links.html`). Requires `--json` everywhere except `bb api`.                                    |
 | `--no-color`                  | boolean      | colors on                 | Disable ANSI colors. Also honoured: `NO_COLOR`, `FORCE_COLOR`.                                                                                        |
 | `--no-unicode`                | boolean      | Unicode on                | Use ASCII fallbacks for separators, arrows, and status icons. Also honoured: `BB_NO_UNICODE`.                                                         |
 | `--no-truncate`               | boolean      | _off_                     | Print every table cell in full instead of fitting the table to the terminal width.                                                                    |
@@ -45,7 +47,8 @@ bb pr list --json id,title,state
 ```
 
 JSON mode also disables spinners, colors, and progress notes so the output is
-safe to pipe.
+safe to pipe. JSON is pretty-printed on a terminal and compact (one line) when
+stdout is a pipe or a file.
 
 `--json` takes an optional value, so a bare `--json` swallows the next plain
 token. Put it after the subcommand:
@@ -87,6 +90,26 @@ with `.[]`, not `.pullRequests[]`:
 ```bash
 bb pr list --json id,title --jq '.[] | .title'
 ```
+
+### `--raw-output`
+
+Print string results from `--jq` as plain text instead of JSON strings, like
+`jq -r`. Requires `--jq`:
+
+```bash
+bb pr list --json --jq '.pullRequests[].title' --raw-output
+```
+
+### `--lean`
+
+Trim Bitbucket's `links` maps, which make up most of a list payload, down to
+the web URL (`links.html`). Requires `--json`, except in `bb api`:
+
+```bash
+bb pr list --json --lean
+```
+
+See [Lean output](/reference/json-output/#lean-output---lean).
 
 ### `--no-truncate`
 

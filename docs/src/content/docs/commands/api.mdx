@@ -110,8 +110,9 @@ bb api -w my-ws -r my-repo /repositories/{workspace}/{repo}/commits
 
 ### Output
 
-The response body is printed to stdout. JSON responses are pretty-printed and
-respect the global `--json [fields]` projection and `--jq` filtering. Non-JSON
+The response body is printed to stdout. JSON responses are pretty-printed on
+a terminal and compact when piped, and respect the global `--json [fields]`
+projection, `--lean`, and `--jq` filtering. Non-JSON
 responses (e.g. raw diffs) are printed verbatim, and `--json`/`--jq` are inert
 on them. An empty response body (e.g. a `HEAD` or `204`) prints nothing in text
 mode, and `{}` under `--json`, so a downstream `jq` never sees zero bytes.

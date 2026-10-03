@@ -8,6 +8,9 @@ Test conventions. The root `AGENTS.md` still applies.
   end-to-end tests against the mock server live in `tests/integration/`
 - Name files `<name>.test.ts` (or `<name>.expanded.test.ts` for extra cases
   split out of a large file); name tests after behavior, not implementation
+- A command group with many subcommands gets a folder, one file per
+  subcommand (`tests/commands/pr/<sub>.test.ts`) plus a `fakes.ts` for the
+  fakes they share
 - `dist-jq.smoke.test.ts` and `compile.smoke.test.ts` build the CLI and are
   slow
 
@@ -26,14 +29,24 @@ Test conventions. The root `AGENTS.md` still applies.
 
 ## Fakes
 
+- New command tests default to the mock Bitbucket server:
+  `startCommandHarness(routes)` from `tests/helpers/mock-bitbucket.ts` starts
+  a `Bun.serve` fake of the API and returns a recording output service plus
+  `api(SomeApi)`, which builds a real generated client against it. Assert on
+  `server.requests` and the output. It exercises request serialization,
+  pagination and the axios interceptors. Stop every server in `afterAll`. See
+  `tests/integration/admin-commands.test.ts`; the lower-level pieces are
+  `startMockBitbucket`, `buildApiFor` and `paginatedEnvelope`.
+- When a unit test needs a stub at the API-class boundary instead, use
+  `fakeApi<SomeApi>({...})` and `fakeUsersApi()` from
+  `tests/helpers/fake-api.ts`, not `as unknown as SomeApi`, so the
+  type-checker can match method names and parameters against the generated
+  client. `axiosResponse()` and `extractPaginationParams()` live there too.
+- Read what `createMockOutputService()` recorded with `getTableRows()` and
+  `getJsonPayload()` from `tests/helpers/output-logs.ts`.
 - `tests/setup.ts` holds shared mock factories (`createMockConfigService`,
   `createMockOutputService`, `createMockContextService`, axios adapters,
   fixtures like `mockPullRequest`). Reuse them before writing a local one.
-- `tests/helpers/mock-bitbucket.ts` starts a `Bun.serve` fake of the
-  Bitbucket API and builds real generated `*Api` clients against it
-  (`startMockBitbucket`, `buildApiFor`, `paginatedEnvelope`). It exercises
-  request serialization, pagination and the axios interceptors, so prefer it
-  when a test cares about the wire format. Stop every server in `afterAll`.
 
 ## Known issue
 

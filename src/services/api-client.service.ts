@@ -237,10 +237,19 @@ export function createApiClient(
       httpDebug.response(response);
       return response;
     },
-    async (error: AxiosError) => {
+    async (error: AxiosError | BBError | DryRunStop) => {
       // A throwing request interceptor lands here too; dry-run stops are not
       // HTTP failures and must reach BaseCommand.run() untouched.
       if (error instanceof DryRunStop) {
+        throw error;
+      }
+
+      httpDebug.error(error);
+
+      // Request interceptor failures (missing credentials, insecure config,
+      // failed proactive OAuth refresh) are routed here by axios too. They
+      // are already classified; re-wrapping them would hide their code.
+      if (error instanceof BBError) {
         throw error;
       }
 
@@ -249,25 +258,28 @@ export function createApiClient(
       // response is rejected (the success path handles normal responses).
       rateLimiter.onResponse(error.response?.headers);
 
-      httpDebug.error(error);
-
       // Reactive OAuth token refresh on 401
       if (error.response?.status === 401 && oauthService) {
         const config = error.config as RetryableConfig | undefined;
         if (config && !config.__tokenRefreshed) {
           const authMethod = await credentialStore.getAuthMethod();
           if (authMethod === 'oauth') {
+            config.__tokenRefreshed = true;
+            let newToken: string;
             try {
-              config.__tokenRefreshed = true;
-              const newToken = await oauthService.refreshAccessToken();
-              config.headers.Authorization = `Bearer ${newToken}`;
-              return instance(config);
-            } catch {
+              newToken = await oauthService.refreshAccessToken();
+            } catch (refreshError) {
+              if (refreshError instanceof BBError) {
+                throw refreshError;
+              }
               throw new BBError({
                 code: ErrorCode.AUTH_EXPIRED,
                 message: `OAuth token expired. Run 'bb auth login' to re-authenticate.`,
+                cause: refreshError instanceof Error ? refreshError : undefined,
               });
             }
+            config.headers.Authorization = `Bearer ${newToken}`;
+            return instance(config);
           }
         }
       }

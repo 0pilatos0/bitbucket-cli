@@ -13,6 +13,7 @@ import type {
   PaginatedDefaultReviewerAndType,
   PullrequestsApi,
 } from '../../src/generated/api.js';
+import { fakeApi } from '../helpers/fake-api.js';
 
 function axiosOk<T>(data: T): AxiosResponse<T> {
   return {
@@ -130,7 +131,7 @@ function createMockApi(options: MockOptions = {}): PullrequestsApi {
     },
   };
 
-  return api as unknown as PullrequestsApi;
+  return fakeApi<PullrequestsApi>(api);
 }
 
 const repo = { workspace: 'ws', repoSlug: 'repo' };
