@@ -165,39 +165,78 @@ describe('GitService', () => {
     });
   });
 
-  describe('getRemoteUrl', () => {
-    it('should throw error when no remote exists', async () => {
+  describe('getRemotes', () => {
+    it('returns an empty list when no remote exists', async () => {
       await git(['init'], testDir, env);
 
-      await expect(gitService.getRemoteUrl('origin')).rejects.toMatchObject({
-        code: ErrorCode.GIT_REMOTE_NOT_FOUND,
-      });
+      expect(await gitService.getRemotes()).toEqual([]);
     });
 
-    it('should return remote URL when exists', async () => {
+    it('lists every remote with its fetch URL', async () => {
       await git(['init'], testDir, env);
       await git(
         ['remote', 'add', 'origin', 'git@bitbucket.org:workspace/repo.git'],
         testDir,
         env
       );
-
-      const url = await gitService.getRemoteUrl('origin');
-
-      expect(url).toBe('git@bitbucket.org:workspace/repo.git');
-    });
-
-    it('should support different remote names', async () => {
-      await git(['init'], testDir, env);
       await git(
         ['remote', 'add', 'upstream', 'https://bitbucket.org/other/repo.git'],
         testDir,
         env
       );
+      await git(
+        [
+          'remote',
+          'set-url',
+          '--push',
+          'origin',
+          'git@bitbucket.org:push/only.git',
+        ],
+        testDir,
+        env
+      );
 
-      const url = await gitService.getRemoteUrl('upstream');
+      expect(await gitService.getRemotes()).toEqual([
+        { name: 'origin', url: 'git@bitbucket.org:workspace/repo.git' },
+        { name: 'upstream', url: 'https://bitbucket.org/other/repo.git' },
+      ]);
+    });
 
-      expect(url).toBe('https://bitbucket.org/other/repo.git');
+    it('applies url.<base>.insteadOf rewrites', async () => {
+      await git(['init'], testDir, env);
+      await git(
+        ['config', 'url.git@bitbucket.org:.insteadOf', 'bb:'],
+        testDir,
+        env
+      );
+      await git(['remote', 'add', 'origin', 'bb:ws/repo.git'], testDir, env);
+
+      expect(await gitService.getRemotes()).toEqual([
+        { name: 'origin', url: 'git@bitbucket.org:ws/repo.git' },
+      ]);
+    });
+
+    it('throws outside a git repository', async () => {
+      await expect(gitService.getRemotes()).rejects.toMatchObject({
+        code: ErrorCode.GIT_COMMAND_FAILED,
+      });
+    });
+  });
+
+  describe('resolveSshHostname', () => {
+    it.skipIf(!Bun.which('ssh'))(
+      'resolves a host with no ssh config entry to itself',
+      async () => {
+        expect(
+          await gitService.resolveSshHostname('bb-cli-test-unknown-alias')
+        ).toBe('bb-cli-test-unknown-alias');
+      }
+    );
+
+    it('rejects hosts that could be read as ssh options', async () => {
+      expect(
+        await gitService.resolveSshHostname('-oProxyCommand=touch')
+      ).toBeNull();
     });
   });
 

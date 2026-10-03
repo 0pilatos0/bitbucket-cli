@@ -2,8 +2,8 @@
  * Git service implementation
  */
 
-import type { IGitService } from '../core/interfaces/services.js';
-import { GitError, BBError, ErrorCode } from '../types/errors.js';
+import type { GitRemote, IGitService } from '../core/interfaces/services.js';
+import { GitError } from '../types/errors.js';
 
 export interface GitExecResult {
   stdout: string;
@@ -19,6 +19,14 @@ export interface GitExecResult {
  */
 const DEFAULT_GIT_TIMEOUT_MS = 60_000;
 
+/**
+ * `ssh -G` only evaluates local config, so anything slower than this is a
+ * hung `Match exec` rule and not worth waiting for.
+ */
+const SSH_CONFIG_TIMEOUT_MS = 5_000;
+
+const SSH_HOST_ALIAS = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+
 export class GitService implements IGitService {
   private readonly cwd: string;
   private readonly timeoutMs: number;
@@ -33,10 +41,19 @@ export class GitService implements IGitService {
     this.env = options.env;
   }
 
-  private async exec(args: string[], cwd?: string): Promise<GitExecResult> {
-    const proc = Bun.spawn(['git', ...args], {
-      cwd: cwd ?? this.cwd,
+  private exec(args: string[], cwd?: string): Promise<GitExecResult> {
+    return this.spawn(['git', ...args], cwd ?? this.cwd, this.timeoutMs);
+  }
+
+  private async spawn(
+    argv: string[],
+    cwd: string,
+    timeoutMs: number
+  ): Promise<GitExecResult> {
+    const proc = Bun.spawn(argv, {
+      cwd,
       env: this.env,
+      stdin: 'ignore',
       stdout: 'pipe',
       stderr: 'pipe',
     });
@@ -51,7 +68,7 @@ export class GitService implements IGitService {
         // the kill landing; that's fine, we surface the timeout below either
         // way.
       }
-    }, this.timeoutMs);
+    }, timeoutMs);
 
     try {
       const stdout = await new Response(proc.stdout).text();
@@ -60,8 +77,8 @@ export class GitService implements IGitService {
 
       if (timedOut) {
         throw new GitError(
-          `git ${args.join(' ')} timed out after ${this.timeoutMs}ms`,
-          `git ${args.join(' ')}`,
+          `${argv.join(' ')} timed out after ${timeoutMs}ms`,
+          argv.join(' '),
           exitCode
         );
       }
@@ -130,18 +147,44 @@ export class GitService implements IGitService {
     return this.execOrError(['rev-parse', 'HEAD']);
   }
 
-  public async getRemoteUrl(remote: string = 'origin'): Promise<string> {
-    const result = await this.exec(['remote', 'get-url', remote]);
+  /**
+   * Fetch URLs of all remotes, with `url.<base>.insteadOf` rewrites applied.
+   */
+  public async getRemotes(): Promise<GitRemote[]> {
+    const output = await this.execOrError(['remote', '-v']);
+    const remotes: GitRemote[] = [];
+    for (const line of output.split('\n')) {
+      const match = /^(\S+)\t(.+) \(fetch\)$/.exec(line);
+      if (match) {
+        remotes.push({ name: match[1]!, url: match[2]! });
+      }
+    }
+    return remotes;
+  }
 
-    if (result.exitCode !== 0) {
-      throw new BBError({
-        code: ErrorCode.GIT_REMOTE_NOT_FOUND,
-        message: `Remote '${remote}' not found`,
-        context: { remote },
-      });
+  /**
+   * Resolve an SSH host alias (a `Host` entry in `~/.ssh/config`) to the
+   * hostname ssh, and therefore git, actually connects to.
+   */
+  public async resolveSshHostname(host: string): Promise<string | null> {
+    if (!SSH_HOST_ALIAS.test(host)) {
+      return null;
     }
 
-    return result.stdout;
+    try {
+      const result = await this.spawn(
+        ['ssh', '-G', host],
+        this.cwd,
+        SSH_CONFIG_TIMEOUT_MS
+      );
+      if (result.exitCode !== 0) {
+        return null;
+      }
+      return /^hostname\s+(\S+)$/m.exec(result.stdout)?.[1] ?? null;
+    } catch {
+      // ssh is missing or timed out: treat the alias as unresolvable.
+      return null;
+    }
   }
 
   /**

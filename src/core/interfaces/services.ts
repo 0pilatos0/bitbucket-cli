@@ -47,6 +47,11 @@ export interface ICredentialStore {
   isOAuthTokenExpired(): Promise<boolean>;
 }
 
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 /**
  * Git service interface
  */
@@ -58,7 +63,8 @@ export interface IGitService {
   checkoutNewBranch(branch: string, startPoint?: string): Promise<void>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
-  getRemoteUrl(remote?: string): Promise<string>;
+  getRemotes(): Promise<GitRemote[]>;
+  resolveSshHostname(host: string): Promise<string | null>;
 }
 
 /**
