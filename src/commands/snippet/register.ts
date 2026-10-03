@@ -1,6 +1,9 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
-import { withCompletionChoices } from '../../core/command-options.js';
+import {
+  withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
+} from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { SnippetsWorkspaceGetRoleEnum } from '../../generated/api.js';
 import { registerSnippetCommentsCommands } from './comments.register.js';
@@ -89,6 +92,7 @@ export function registerSnippetCommands(
     )
     .option('--private', 'Create a private snippet (default)')
     .option('--public', 'Create a public snippet')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -116,6 +120,7 @@ export function registerSnippetCommands(
       '-f, --file <path...>',
       'Replace/add file(s) (variadic; pass multiple paths or repeat the flag; sends multipart update)'
     )
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -137,6 +142,7 @@ export function registerSnippetCommands(
     .command('delete <id>')
     .description('Delete a snippet')
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -153,6 +159,7 @@ export function registerSnippetCommands(
   snippetCmd
     .command('watch <id>')
     .description('Watch a snippet')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -169,6 +176,7 @@ export function registerSnippetCommands(
   snippetCmd
     .command('unwatch <id>')
     .description('Stop watching a snippet')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

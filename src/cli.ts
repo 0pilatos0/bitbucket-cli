@@ -25,6 +25,7 @@ import type {
   IOutputService,
   IPromptService,
 } from './core/interfaces/services.js';
+import type { DryRunMode } from './services/dry-run.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
@@ -178,6 +179,9 @@ export function createContext(
     });
   }
 
+  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  const interactive = opts.input !== false && prompt.isAvailable();
+
   return {
     globalOptions: {
       json: json || undefined,
@@ -193,13 +197,12 @@ export function createContext(
     },
     validationError,
     commandPath: activeCommandPath || undefined,
-    prompt: json || opts.input === false ? undefined : availablePrompt(),
+    dryRun:
+      container.resolve<DryRunMode>(ServiceTokens.DryRunMode).isEnabled() ||
+      undefined,
+    prompt: interactive && !json ? prompt : undefined,
+    interactive: interactive || undefined,
   };
-}
-
-function availablePrompt(): IPromptService | undefined {
-  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
-  return prompt.isAvailable() ? prompt : undefined;
 }
 
 async function runCommand<TOptions, TResult>(
@@ -428,9 +431,13 @@ cli
 
 // Capture the exact path of the command about to run so `createContext` can
 // stamp it onto the context and `BaseCommand.appendHelpHint()` can build an
-// accurate `bb <path> --help` footer. Inherited by every subcommand.
+// accurate `bb <path> --help` footer. Inherited by every subcommand. Also arm
+// dry-run mode here, so the API client and `context.dryRun` share one switch.
 cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
+  if (actionCommand.opts().dryRun === true) {
+    container.resolve<DryRunMode>(ServiceTokens.DryRunMode).enable();
+  }
   const { account } = cli.opts<{ account?: string }>();
   if (account !== undefined) {
     container

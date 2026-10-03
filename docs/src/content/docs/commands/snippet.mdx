@@ -117,6 +117,7 @@ bb snippet create [options]
 | `-f, --file <path...>` | File path(s) to include (required; variadic, pass several paths or repeat the flag) |
 | `--private`            | Create a private snippet (default)                                                  |
 | `--public`             | Create a public snippet                                                             |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -159,6 +160,7 @@ bb snippet edit <id> [options]
 | `--private`            | Make snippet private                                        |
 | `--public`             | Make snippet public                                         |
 | `-f, --file <path...>` | Replace or add file(s); sends a multipart update (variadic) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -196,6 +198,7 @@ bb snippet delete <id> [options]
 | Option      | Description                                                                 |
 | ----------- | --------------------------------------------------------------------------- |
 | `-y, --yes` | Skip the confirmation prompt (required when not in an interactive terminal) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
@@ -227,6 +230,12 @@ bb snippet unwatch <id> [options]
 | Argument | Description                      |
 | -------- | -------------------------------- |
 | `id`     | Snippet encoded ID (e.g. `kypj`) |
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

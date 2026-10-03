@@ -49,22 +49,18 @@ function createMockGitService(options: {
       return true;
     },
     async getRemotes() {
-      return [];
-    },
-    async getRemoteUrl() {
       if (options.remoteError) {
         throw {
-          code: ErrorCode.GIT_REMOTE_NOT_FOUND,
-          message: 'No remote',
+          code: ErrorCode.GIT_COMMAND_FAILED,
+          message: 'git remote failed',
         } as BBError;
       }
-      if (options.remoteUrl) {
-        return options.remoteUrl;
-      }
-      throw {
-        code: ErrorCode.GIT_REMOTE_NOT_FOUND,
-        message: 'No remote',
-      } as BBError;
+      return options.remoteUrl
+        ? [{ name: 'origin', url: options.remoteUrl }]
+        : [];
+    },
+    async resolveSshHostname() {
+      return null;
     },
   };
 }

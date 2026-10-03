@@ -38,7 +38,8 @@ exports[`command tree snapshot bb auth login 1`] = `
   },
   "help": 
 "
-Interactive: choose OAuth or an API token. Non-interactive default: OAuth.
+Interactive: choose OAuth or an API token. Without a terminal, use an API
+token (BB_API_TOKEN, --with-token, or -u with -p); browser login fails with 1001.
 For CI/CD: API token via --app-password or BB_API_TOKEN env var.
 For headless/secret-safe: pipe the token in with --with-token.
 OAuth needs a loopback browser (http://localhost:19872/callback); there
@@ -253,6 +254,7 @@ exports[`command tree snapshot bb repo create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "name": "name-value",
       "private": true,
       "project": "project-value",
@@ -271,6 +273,7 @@ Options:
   --private                        Create a private repository (default)
   --public                         Create a public repository
   -p, --project <project>          Project key
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Examples:
@@ -354,6 +357,7 @@ exports[`command tree snapshot bb repo delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "repository": "repository-value",
       "yes": true,
     },
@@ -367,6 +371,7 @@ Delete a repository
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -465,7 +470,7 @@ Options:
 
 Commands:
   list [options]           List default reviewers for a repository
-  add <user>               Add a default reviewer to a repository (accepts
+  add [options] <user>     Add a default reviewer to a repository (accepts
                            account ID or {uuid})
   remove [options] <user>  Remove a default reviewer from a repository (accepts
                            account ID or {uuid})
@@ -510,6 +515,7 @@ exports[`command tree snapshot bb repo default-reviewers add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "username": "user-value",
     },
     "token": "AddDefaultReviewerCommand",
@@ -521,6 +527,7 @@ exports[`command tree snapshot bb repo default-reviewers add 1`] = `
 Add a default reviewer to a repository (accepts account ID or {uuid})
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -537,6 +544,7 @@ exports[`command tree snapshot bb repo default-reviewers remove 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "username": "user-value",
       "yes": true,
     },
@@ -550,6 +558,7 @@ Remove a default reviewer from a repository (accepts account ID or {uuid})
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -572,7 +581,7 @@ Options:
 
 Commands:
   list [options]               List download artifacts of a repository
-  upload <files...>            Upload files as download artifacts (replaces
+  upload [options] <files...>  Upload files as download artifacts (replaces
                                artifacts with the same name)
   delete [options] <filename>  Delete a download artifact from a repository
   help [command]               display help for command
@@ -620,6 +629,7 @@ exports[`command tree snapshot bb repo downloads upload 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "files": [
         "files-value",
       ],
@@ -633,6 +643,7 @@ exports[`command tree snapshot bb repo downloads upload 1`] = `
 Upload files as download artifacts (replaces artifacts with the same name)
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -649,6 +660,7 @@ exports[`command tree snapshot bb repo downloads delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "filename": "filename-value",
       "yes": true,
     },
@@ -662,6 +674,7 @@ Delete a download artifact from a repository
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -690,9 +703,9 @@ Commands:
   checks [id]              Show CI/CD checks and build status for a pull request
   edit [options] [id]      Edit a pull request
   merge [options] [id]     Merge a pull request
-  approve [id]             Approve a pull request
-  decline [id]             Decline a pull request
-  ready [id]               Mark a draft pull request as ready for review
+  approve [options] [id]   Approve a pull request
+  decline [options] [id]   Decline a pull request
+  ready [options] [id]     Mark a draft pull request as ready for review
   checkout <id>            Checkout a pull request locally
   diff [options] [id]      View pull request diff
   comments                 Manage pull request comments
@@ -709,10 +722,12 @@ exports[`command tree snapshot bb pr create 1`] = `
     "contextOptions": undefined,
     "options": {
       "body": "body-value",
+      "bodyFile": "bodyFile-value",
       "closeSourceBranch": true,
       "defaultReviewers": true,
       "destination": "destination-value",
       "draft": true,
+      "dryRun": true,
       "reviewer": [
         "reviewer-value",
       ],
@@ -730,8 +745,9 @@ Create a pull request
 Options:
   -t, --title <title>         Pull request title
   -b, --body <body>           Pull request description
+  -F, --body-file <file>      Read description from file (- for stdin)
   -s, --source <branch>       Source branch (default: current branch)
-  -d, --destination <branch>  Destination branch (default: main)
+  -d, --destination <branch>  Destination branch (default: repo's main branch)
   --close-source-branch       Close source branch after merge
   --draft                     Create the pull request as draft
   --reviewer <user>           Add a reviewer by nickname, display name, email,
@@ -740,10 +756,13 @@ Options:
   --default-reviewers         Include the repository's default reviewers
   --no-default-reviewers      Skip the repository's default reviewers even when
                               prCreateIncludeDefaultReviewers is true
+  --dry-run                   Print the write request instead of sending it
   -h, --help                  display help for command
 
 Examples:
   $ bb pr create -t "My PR" -b "Description"
+  $ bb pr create -t "My PR" -F description.md
+  $ git log -1 --format=%b | bb pr create -t "My PR" -F -
   $ bb pr create -t "My PR" --draft
   $ bb pr create -t "My PR" -s feature -d develop
   $ bb pr create -t "My PR" --close-source-branch
@@ -753,7 +772,7 @@ Examples:
 
 Defaults:
   --source  current git branch
-  --destination  main
+  --destination  repository's main branch
   --default-reviewers  false (override with --default-reviewers or config key prCreateIncludeDefaultReviewers)
 
 See also:
@@ -931,6 +950,7 @@ exports[`command tree snapshot bb pr edit 1`] = `
     "options": {
       "body": "body-value",
       "bodyFile": "bodyFile-value",
+      "dryRun": true,
       "id": "id-value",
       "title": "title-value",
     },
@@ -949,7 +969,9 @@ Arguments:
 Options:
   -t, --title <title>     New pull request title
   -b, --body <body>       New pull request description
-  -F, --body-file <file>  Read description from file
+  -F, --body-file <file>  Read description from file (- for stdin; overrides
+                          --body)
+  --dry-run               Print the write request instead of sending it
   -h, --help              display help for command
 
 Examples:
@@ -969,6 +991,7 @@ exports[`command tree snapshot bb pr merge 1`] = `
     "contextOptions": undefined,
     "options": {
       "closeSourceBranch": true,
+      "dryRun": true,
       "id": "id-value",
       "message": "message-value",
       "strategy": "strategy-value",
@@ -991,6 +1014,7 @@ Options:
   --strategy <strategy>    Merge strategy (choices: "merge_commit", "squash",
                            "fast_forward", "squash_fast_forward",
                            "rebase_fast_forward", "rebase_merge")
+  --dry-run                Print the write request instead of sending it
   -h, --help               display help for command
 
 Examples:
@@ -1015,6 +1039,7 @@ exports[`command tree snapshot bb pr approve 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "ApprovePRCommand",
@@ -1029,6 +1054,7 @@ Arguments:
   id          Pull request ID (default: the open PR for the current branch)
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1047,6 +1073,7 @@ exports[`command tree snapshot bb pr decline 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "DeclinePRCommand",
@@ -1061,6 +1088,7 @@ Arguments:
   id          Pull request ID (default: the open PR for the current branch)
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1079,6 +1107,7 @@ exports[`command tree snapshot bb pr ready 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "ReadyPRCommand",
@@ -1093,6 +1122,7 @@ Arguments:
   id          Pull request ID (default: the open PR for the current branch)
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1189,18 +1219,18 @@ exports[`command tree snapshot bb pr comments 1`] = `
 Manage pull request comments
 
 Options:
-  -h, --help                             display help for command
+  -h, --help                                      display help for command
 
 Commands:
-  list [options] [id]                    List comments on a pull request
-  add [options] <id> <message>           Add a comment to a pull request
-  edit <pr-id> <comment-id> <message>    Edit a comment on a pull request
-  delete [options] <pr-id> <comment-id>  Delete a comment on a pull request
-  view <pr-id> <comment-id>              View a single comment on a pull request
-  reply <pr-id> <comment-id> <message>   Reply to a comment on a pull request
-  resolve <pr-id> <comment-id>           Resolve a comment thread on a pull request
-  unresolve <pr-id> <comment-id>         Reopen a resolved comment thread on a pull request
-  help [command]                         display help for command
+  list [options] [id]                             List comments on a pull request
+  add [options] <id> [message]                    Add a comment to a pull request
+  edit [options] <pr-id> <comment-id> <message>   Edit a comment on a pull request
+  delete [options] <pr-id> <comment-id>           Delete a comment on a pull request
+  view <pr-id> <comment-id>                       View a single comment on a pull request
+  reply [options] <pr-id> <comment-id> [message]  Reply to a comment on a pull request
+  resolve [options] <pr-id> <comment-id>          Resolve a comment thread on a pull request
+  unresolve [options] <pr-id> <comment-id>        Reopen a resolved comment thread on a pull request
+  help [command]                                  display help for command
 "
 ,
 }
@@ -1257,6 +1287,8 @@ exports[`command tree snapshot bb pr comments add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
+      "dryRun": true,
       "file": "file-value",
       "id": "id-value",
       "lineFrom": "lineFrom-value",
@@ -1267,19 +1299,22 @@ exports[`command tree snapshot bb pr comments add 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments add [options] <id> <message>
+"Usage: bb pr comments add [options] <id> [message]
 
 Add a comment to a pull request
 
 Options:
-  --file <path>         File path in the diff for inline comment
-  --line-to <number>    Line number in the new file version
-  --line-from <number>  Line number in the old file version
-  -h, --help            display help for command
+  -F, --body-file <file>  Read comment text from file (- for stdin)
+  --file <path>           File path in the diff for inline comment
+  --line-to <number>      Line number in the new file version
+  --line-from <number>    Line number in the old file version
+  --dry-run               Print the write request instead of sending it
+  -h, --help              display help for command
 
 Examples:
   $ bb pr comments add 42 "LGTM"
   $ bb pr comments add 42 "Fix this" --file src/main.ts --line-to 10
+  $ bb pr comments add 42 -F review.md
 
 "
 ,
@@ -1304,6 +1339,7 @@ exports[`command tree snapshot bb pr comments edit 1`] = `
 Edit a comment on a pull request
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1321,6 +1357,7 @@ exports[`command tree snapshot bb pr comments delete 1`] = `
     "contextOptions": undefined,
     "options": {
       "commentId": "comment-id-value",
+      "dryRun": true,
       "prId": "pr-id-value",
       "yes": true,
     },
@@ -1334,6 +1371,7 @@ Delete a comment on a pull request
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1378,7 +1416,9 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "bodyFile": "bodyFile-value",
       "commentId": "comment-id-value",
+      "dryRun": true,
       "message": "message-value",
       "prId": "pr-id-value",
     },
@@ -1386,16 +1426,19 @@ exports[`command tree snapshot bb pr comments reply 1`] = `
     "via": "runWithGlobalOptions",
   },
   "help": 
-"Usage: bb pr comments reply [options] <pr-id> <comment-id> <message>
+"Usage: bb pr comments reply [options] <pr-id> <comment-id> [message]
 
 Reply to a comment on a pull request
 
 Options:
-  -h, --help  display help for command
+  -F, --body-file <file>  Read reply text from file (- for stdin)
+  --dry-run               Print the write request instead of sending it
+  -h, --help              display help for command
 
 Examples:
   $ bb pr comments reply 42 12345 "Good catch, fixed."
   $ bb pr comments reply 42 12345 "Fixed in the latest push" --json
+  $ echo "Fixed, thanks" | bb pr comments reply 42 12345 -F -
 
 "
 ,
@@ -1419,6 +1462,7 @@ exports[`command tree snapshot bb pr comments resolve 1`] = `
 Resolve a comment thread on a pull request
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1447,6 +1491,7 @@ exports[`command tree snapshot bb pr comments unresolve 1`] = `
 Reopen a resolved comment thread on a pull request
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1466,15 +1511,17 @@ exports[`command tree snapshot bb pr reviewers 1`] = `
 Manage pull request reviewers
 
 Options:
-  -h, --help          display help for command
+  -h, --help                    display help for command
 
 Commands:
-  list <id>           List reviewers on a pull request
-  add <id> <user>     Add a reviewer to a pull request (user is a nickname,
-                      display name, email, @me, account ID or {uuid})
-  remove <id> <user>  Remove a reviewer from a pull request (user is a nickname,
-                      display name, email, @me, account ID or {uuid})
-  help [command]      display help for command
+  list <id>                     List reviewers on a pull request
+  add [options] <id> <user>     Add a reviewer to a pull request (user is a
+                                nickname, display name, email, @me, account ID
+                                or {uuid})
+  remove [options] <id> <user>  Remove a reviewer from a pull request (user is a
+                                nickname, display name, email, @me, account ID
+                                or {uuid})
+  help [command]                display help for command
 "
 ,
 }
@@ -1512,6 +1559,7 @@ exports[`command tree snapshot bb pr reviewers add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "username": "user-value",
     },
@@ -1525,6 +1573,7 @@ Add a reviewer to a pull request (user is a nickname, display name, email, @me,
 account ID or {uuid})
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1544,6 +1593,7 @@ exports[`command tree snapshot bb pr reviewers remove 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "username": "user-value",
     },
@@ -1557,6 +1607,7 @@ Remove a reviewer from a pull request (user is a nickname, display name, email,
 @me, account ID or {uuid})
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1577,18 +1628,18 @@ exports[`command tree snapshot bb snippet 1`] = `
 Manage snippets
 
 Options:
-  -h, --help             display help for command
+  -h, --help              display help for command
 
 Commands:
-  list [options]         List snippets in a workspace
-  view [options] <id>    View snippet details
-  create [options]       Create a new snippet
-  edit [options] <id>    Edit a snippet
-  delete [options] <id>  Delete a snippet
-  watch <id>             Watch a snippet
-  unwatch <id>           Stop watching a snippet
-  comments               Manage snippet comments
-  help [command]         display help for command
+  list [options]          List snippets in a workspace
+  view [options] <id>     View snippet details
+  create [options]        Create a new snippet
+  edit [options] <id>     Edit a snippet
+  delete [options] <id>   Delete a snippet
+  watch [options] <id>    Watch a snippet
+  unwatch [options] <id>  Stop watching a snippet
+  comments                Manage snippet comments
+  help [command]          display help for command
 "
 ,
 }
@@ -1673,6 +1724,7 @@ exports[`command tree snapshot bb snippet create 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "file": [
         "file-value",
       ],
@@ -1694,6 +1746,7 @@ Options:
                         repeat the flag)
   --private             Create a private snippet (default)
   --public              Create a public snippet
+  --dry-run             Print the write request instead of sending it
   -h, --help            display help for command
 
 Examples:
@@ -1713,6 +1766,7 @@ exports[`command tree snapshot bb snippet edit 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "file": [
         "file-value",
       ],
@@ -1735,6 +1789,7 @@ Options:
   --public              Make snippet public
   -f, --file <path...>  Replace/add file(s) (variadic; pass multiple paths or
                         repeat the flag; sends multipart update)
+  --dry-run             Print the write request instead of sending it
   -h, --help            display help for command
 
 Examples:
@@ -1752,6 +1807,7 @@ exports[`command tree snapshot bb snippet delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "yes": true,
     },
@@ -1765,6 +1821,7 @@ Delete a snippet
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1781,6 +1838,7 @@ exports[`command tree snapshot bb snippet watch 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "WatchSnippetCommand",
@@ -1792,6 +1850,7 @@ exports[`command tree snapshot bb snippet watch 1`] = `
 Watch a snippet
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1808,6 +1867,7 @@ exports[`command tree snapshot bb snippet unwatch 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "UnwatchSnippetCommand",
@@ -1819,6 +1879,7 @@ exports[`command tree snapshot bb snippet unwatch 1`] = `
 Stop watching a snippet
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1838,14 +1899,14 @@ exports[`command tree snapshot bb snippet comments 1`] = `
 Manage snippet comments
 
 Options:
-  -h, --help                                  display help for command
+  -h, --help                                          display help for command
 
 Commands:
-  list [options] <id>                         List comments on a snippet
-  add [options] <id> [message]                Add a comment to a snippet (message is required)
-  edit <snippet-id> <comment-id> <message>    Edit a comment on a snippet
-  delete [options] <snippet-id> <comment-id>  Delete a comment on a snippet
-  help [command]                              display help for command
+  list [options] <id>                                 List comments on a snippet
+  add [options] <id> [message]                        Add a comment to a snippet (message is required)
+  edit [options] <snippet-id> <comment-id> <message>  Edit a comment on a snippet
+  delete [options] <snippet-id> <comment-id>          Delete a comment on a snippet
+  help [command]                                      display help for command
 "
 ,
 }
@@ -1891,6 +1952,7 @@ exports[`command tree snapshot bb snippet comments add 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
       "message": "message-value",
     },
@@ -1905,6 +1967,7 @@ Add a comment to a snippet (message is required)
 Options:
   -m, --message <text>  Comment message (alternative to the positional [message]
                         argument; one of the two is required)
+  --dry-run             Print the write request instead of sending it
   -h, --help            display help for command
 
 Examples:
@@ -1935,6 +1998,7 @@ exports[`command tree snapshot bb snippet comments edit 1`] = `
 Edit a comment on a snippet
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1952,6 +2016,7 @@ exports[`command tree snapshot bb snippet comments delete 1`] = `
     "contextOptions": undefined,
     "options": {
       "commentId": "comment-id-value",
+      "dryRun": true,
       "snippetId": "snippet-id-value",
       "yes": true,
     },
@@ -1965,6 +2030,7 @@ Delete a comment on a snippet
 
 Options:
   -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -1991,7 +2057,7 @@ Commands:
   view <id>            View pipeline details and step summary (id: build number
                        or UUID)
   run [options]        Trigger a pipeline run
-  stop <id>            Stop a running pipeline (id: build number or UUID)
+  stop [options] <id>  Stop a running pipeline (id: build number or UUID)
   logs [options] <id>  Print the log of a pipeline step (id: build number or
                        UUID)
   help [command]       display help for command
@@ -2087,6 +2153,7 @@ exports[`command tree snapshot bb pipeline run 1`] = `
     "options": {
       "branch": "branch-value",
       "commit": "commit-value",
+      "dryRun": true,
       "pipeline": "pipeline-value",
       "var": [
         "var-value",
@@ -2106,6 +2173,7 @@ Options:
   -p, --pipeline <name>  Custom pipeline definition to run (from
                          bitbucket-pipelines.yml)
   --var <key=value...>   Pipeline variable (repeatable; value may contain =)
+  --dry-run              Print the write request instead of sending it
   -h, --help             display help for command
 
 Examples:
@@ -2127,6 +2195,7 @@ exports[`command tree snapshot bb pipeline stop 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "id": "id-value",
     },
     "token": "StopPipelineCommand",
@@ -2138,6 +2207,7 @@ exports[`command tree snapshot bb pipeline stop 1`] = `
 Stop a running pipeline (id: build number or UUID)
 
 Options:
+  --dry-run   Print the write request instead of sending it
   -h, --help  display help for command
 
 Examples:
@@ -2328,6 +2398,7 @@ exports[`command tree snapshot bb status set 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "key": "key-value",
       "name": "name-value",
       "refname": "refname-value",
@@ -2351,6 +2422,7 @@ Options:
   --name <name>                Build identifier, e.g. BB-DEPLOY-1
   --description <description>  Short build description
   --refname <refname>          Ref the build ran on, e.g. a branch name
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Examples:
@@ -2539,6 +2611,7 @@ exports[`command tree snapshot bb project create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "key": "key-value",
       "name": "name-value",
       "private": true,
@@ -2558,6 +2631,7 @@ Options:
   -d, --description <description>  Project description
   --private                        Create a private project (default)
   --public                         Create a public project
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Examples:
@@ -2739,6 +2813,7 @@ exports[`command tree snapshot bb webhook create 1`] = `
     "contextOptions": undefined,
     "options": {
       "description": "description-value",
+      "dryRun": true,
       "event": [
         "event-value",
       ],
@@ -2785,6 +2860,7 @@ Options:
   --secret <secret>                Secret used to sign deliveries
                                    (X-Hub-Signature)
   --inactive                       Create the webhook disabled
+  --dry-run                        Print the write request instead of sending it
   -h, --help                       display help for command
 
 Examples:
@@ -2811,6 +2887,7 @@ exports[`command tree snapshot bb webhook delete 1`] = `
   "dispatch": {
     "contextOptions": undefined,
     "options": {
+      "dryRun": true,
       "scope": "scope-value",
       "uid": "uid-value",
       "yes": true,
@@ -2827,6 +2904,7 @@ Options:
   --scope <scope>  Webhook scope: repo (current repository) or workspace
                    (choices: "repo", "workspace")
   -y, --yes        Skip confirmation prompt
+  --dry-run        Print the write request instead of sending it
   -h, --help       display help for command
 
 Examples:
@@ -2838,6 +2916,550 @@ Valid scopes:
 
 Defaults:
   --scope  repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction 1`] = `
+{
+  "help": 
+"Usage: bb branch-restriction [options] [command]
+
+Manage branch restrictions (branch protection) on a repository
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  list [options]         List branch restrictions for a repository
+  view <id>              View a branch restriction rule
+  create [options]       Create a branch restriction rule
+  delete [options] <id>  Delete a branch restriction rule
+  help [command]         display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "kind": "kind-value",
+      "limit": "limit-value",
+      "pattern": "pattern-value",
+    },
+    "token": "ListBranchRestrictionsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction list [options]
+
+List branch restrictions for a repository
+
+Options:
+  --kind <kind>     Filter by restriction kind (choices: "push", "delete",
+                    "force", "restrict_merges", "require_tasks_to_be_completed",
+                    "require_approvals_to_merge",
+                    "require_review_group_approvals_to_merge",
+                    "require_default_reviewer_approvals_to_merge",
+                    "require_no_changes_requested",
+                    "require_passing_builds_to_merge", "require_commits_behind",
+                    "reset_pullrequest_approvals_on_change",
+                    "smart_reset_pullrequest_approvals",
+                    "reset_pullrequest_changes_requested_on_change",
+                    "require_all_dependencies_merged", "enforce_merge_checks",
+                    "allow_auto_merge_when_builds_pass",
+                    "require_all_comments_resolved")
+  --pattern <glob>  Filter by branch pattern
+  --limit <number>  Maximum number of restrictions to list (default: "25")
+  --all             List all restrictions (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb branch-restriction list
+  $ bb branch-restriction list --kind push
+  $ bb branch-restriction list --pattern main
+  $ bb branch-restriction list --json --jq '.branchRestrictions[].kind'
+
+Valid kinds:
+  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "id": "id-value",
+    },
+    "token": "ViewBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction view [options] <id>
+
+View a branch restriction rule
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb branch-restriction view 12
+  $ bb branch-restriction view 12 --json --jq '.branchRestriction.kind'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction create 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "branchType": "branchType-value",
+      "dryRun": true,
+      "group": [
+        "group-value",
+      ],
+      "kind": "kind-value",
+      "pattern": "pattern-value",
+      "user": [
+        "user-value",
+      ],
+      "value": "value-value",
+    },
+    "token": "CreateBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction create [options]
+
+Create a branch restriction rule
+
+Options:
+  --kind <kind>         Restriction kind (required) (choices: "push", "delete",
+                        "force", "restrict_merges",
+                        "require_tasks_to_be_completed",
+                        "require_approvals_to_merge",
+                        "require_review_group_approvals_to_merge",
+                        "require_default_reviewer_approvals_to_merge",
+                        "require_no_changes_requested",
+                        "require_passing_builds_to_merge",
+                        "require_commits_behind",
+                        "reset_pullrequest_approvals_on_change",
+                        "smart_reset_pullrequest_approvals",
+                        "reset_pullrequest_changes_requested_on_change",
+                        "require_all_dependencies_merged",
+                        "enforce_merge_checks",
+                        "allow_auto_merge_when_builds_pass",
+                        "require_all_comments_resolved")
+  --pattern <glob>      Branch glob pattern, e.g. main or release/*
+  --branch-type <type>  Branching-model branch type (instead of --pattern)
+                        (choices: "feature", "bugfix", "release", "hotfix",
+                        "development", "production")
+  --value <number>      Kind-specific count, e.g. minimum approvals or passing
+                        builds
+  --user <user>         Exempt a user by account ID or {uuid} (repeatable; push
+                        and restrict_merges only) (default: [])
+  --group <slug>        Exempt a workspace group by slug (repeatable; push and
+                        restrict_merges only) (default: [])
+  --dry-run             Print the write request instead of sending it
+  -h, --help            display help for command
+
+Examples:
+  $ bb branch-restriction create --kind force --pattern main
+  $ bb branch-restriction create --kind require_approvals_to_merge --pattern main --value 2
+  $ bb branch-restriction create --kind push --branch-type production --group release-managers
+  $ bb branch-restriction create --kind delete --pattern 'release/*' --json --jq '.branchRestriction.id'
+
+Valid kinds:
+  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
+
+Valid branch types:
+  feature, bugfix, release, hotfix, development, production
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb branch-restriction delete 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "dryRun": true,
+      "id": "id-value",
+      "yes": true,
+    },
+    "token": "DeleteBranchRestrictionCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb branch-restriction delete [options] <id>
+
+Delete a branch restriction rule
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
+  -h, --help  display help for command
+
+Examples:
+  $ bb branch-restriction delete 12
+  $ bb branch-restriction delete 12 --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key 1`] = `
+{
+  "help": 
+"Usage: bb ssh-key [options] [command]
+
+Manage SSH keys on your Bitbucket account
+
+Options:
+  -h, --help                 display help for command
+
+Commands:
+  list [options]             List SSH keys on your account
+  add [options] <key-file>   Add an SSH public key to your account (- reads
+                             stdin)
+  delete [options] <key-id>  Delete an SSH key from your account (key-id is its
+                             {uuid})
+  help [command]             display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key list 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListSshKeysCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key list [options]
+
+List SSH keys on your account
+
+Options:
+  --limit <number>  Maximum number of keys to list (default: "25")
+  --all             List all keys (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb ssh-key list
+  $ bb ssh-key list --json --jq '.sshKeys[].fingerprint'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key add 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "dryRun": true,
+      "keyFile": "key-file-value",
+      "label": "label-value",
+    },
+    "token": "AddSshKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key add [options] <key-file>
+
+Add an SSH public key to your account (- reads stdin)
+
+Options:
+  --label <label>  Label for the key
+  --dry-run        Print the write request instead of sending it
+  -h, --help       display help for command
+
+Examples:
+  $ bb ssh-key add ~/.ssh/id_ed25519.pub
+  $ bb ssh-key add ~/.ssh/id_ed25519.pub --label laptop
+  $ cat ~/.ssh/id_ed25519.pub | bb ssh-key add -
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb ssh-key delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "dryRun": true,
+      "keyId": "key-id-value",
+      "yes": true,
+    },
+    "token": "DeleteSshKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb ssh-key delete [options] <key-id>
+
+Delete an SSH key from your account (key-id is its {uuid})
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
+  -h, --help  display help for command
+
+Examples:
+  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}"
+  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key 1`] = `
+{
+  "help": 
+"Usage: bb gpg-key [options] [command]
+
+Manage GPG keys on your Bitbucket account
+
+Options:
+  -h, --help                      display help for command
+
+Commands:
+  list [options]                  List GPG keys on your account
+  add [options] <key-file>        Add an ASCII-armored GPG public key to your
+                                  account (- reads stdin)
+  delete [options] <fingerprint>  Delete a GPG key from your account
+  help [command]                  display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key list 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListGpgKeysCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key list [options]
+
+List GPG keys on your account
+
+Options:
+  --limit <number>  Maximum number of keys to list (default: "25")
+  --all             List all keys (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb gpg-key list
+  $ bb gpg-key list --json --jq '.gpgKeys[].fingerprint'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key add 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "keyFile": "key-file-value",
+    },
+    "token": "AddGpgKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key add [options] <key-file>
+
+Add an ASCII-armored GPG public key to your account (- reads stdin)
+
+Options:
+  --dry-run   Print the write request instead of sending it
+  -h, --help  display help for command
+
+Examples:
+  $ bb gpg-key add key.asc
+  $ gpg --armor --export you@example.com | bb gpg-key add -
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb gpg-key delete 1`] = `
+{
+  "dispatch": {
+    "options": {
+      "dryRun": true,
+      "fingerprint": "fingerprint-value",
+      "yes": true,
+    },
+    "token": "DeleteGpgKeyCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb gpg-key delete [options] <fingerprint>
+
+Delete a GPG key from your account
+
+Options:
+  -y, --yes   Skip confirmation prompt
+  --dry-run   Print the write request instead of sending it
+  -h, --help  display help for command
+
+Examples:
+  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B
+  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment 1`] = `
+{
+  "help": 
+"Usage: bb deployment [options] [command]
+
+Inspect Bitbucket Pipelines deployments
+
+Options:
+  -h, --help              display help for command
+
+Commands:
+  list [options]          List deployments for a repository
+  view <uuid>             View deployment details
+  environments [options]  List deployment environments for a repository
+  help [command]          display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListDeploymentsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment list [options]
+
+List deployments for a repository
+
+Options:
+  --limit <number>  Maximum number of deployments to list (default: "25")
+  --all             List all deployments (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb deployment list
+  $ bb deployment list --all
+  $ bb deployment list --json --jq '.deployments[].uuid'
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "uuid": "uuid-value",
+    },
+    "token": "ViewDeploymentCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment view [options] <uuid>
+
+View deployment details
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}"
+  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}" --json --jq '.deployment.state.name'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb deployment environments 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListEnvironmentsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb deployment environments [options]
+
+List deployment environments for a repository
+
+Options:
+  --limit <number>  Maximum number of environments to list (default: "25")
+  --all             List all environments (overrides --limit)
+  -h, --help        display help for command
+
+Examples:
+  $ bb deployment environments
+  $ bb deployment environments --json --jq '.environments[].name'
+
+Defaults:
+  --limit  25
 
 "
 ,
@@ -2915,6 +3537,7 @@ exports[`command tree snapshot bb api 1`] = `
       "outputIsJson": true,
     },
     "options": {
+      "dryRun": true,
       "endpoint": "endpoint-value",
       "field": [
         "field-value",
@@ -2967,6 +3590,7 @@ Options:
   --paginate                   Follow the cursor (next) and merge every page
                                into a single {"values": [...]} result (GET/HEAD
                                only)
+  --dry-run                    Print the write request instead of sending it
   -h, --help                   display help for command
 
 Examples:
@@ -3209,6 +3833,29 @@ Examples:
 }
 `;
 
+exports[`command tree snapshot bb completion 1`] = `
+{
+  "help": 
+"Usage: bb completion [options] [command]
+
+Shell completion utilities
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  install         Install shell completions for bash, zsh, or fish
+  uninstall       Uninstall shell completions
+  bash            Print the completion script for bash
+  zsh             Print the completion script for zsh
+  fish            Print the completion script for fish
+  powershell      Print the completion script for powershell
+  help [command]  display help for command
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb completion install 1`] = `
 {
   "dispatch": {
@@ -3258,562 +3905,6 @@ Examples:
 Supported shells:
   bash, zsh, fish
 
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb branch-restriction 1`] = `
-{
-  "help": 
-"Usage: bb branch-restriction [options] [command]
-
-Manage branch restrictions (branch protection) on a repository
-
-Options:
-  -h, --help             display help for command
-
-Commands:
-  list [options]         List branch restrictions for a repository
-  view <id>              View a branch restriction rule
-  create [options]       Create a branch restriction rule
-  delete [options] <id>  Delete a branch restriction rule
-  help [command]         display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb branch-restriction list 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "all": true,
-      "kind": "kind-value",
-      "limit": "limit-value",
-      "pattern": "pattern-value",
-    },
-    "token": "ListBranchRestrictionsCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb branch-restriction list [options]
-
-List branch restrictions for a repository
-
-Options:
-  --kind <kind>     Filter by restriction kind (choices: "push", "delete",
-                    "force", "restrict_merges", "require_tasks_to_be_completed",
-                    "require_approvals_to_merge",
-                    "require_review_group_approvals_to_merge",
-                    "require_default_reviewer_approvals_to_merge",
-                    "require_no_changes_requested",
-                    "require_passing_builds_to_merge", "require_commits_behind",
-                    "reset_pullrequest_approvals_on_change",
-                    "smart_reset_pullrequest_approvals",
-                    "reset_pullrequest_changes_requested_on_change",
-                    "require_all_dependencies_merged", "enforce_merge_checks",
-                    "allow_auto_merge_when_builds_pass",
-                    "require_all_comments_resolved")
-  --pattern <glob>  Filter by branch pattern
-  --limit <number>  Maximum number of restrictions to list (default: "25")
-  --all             List all restrictions (overrides --limit)
-  -h, --help        display help for command
-
-Examples:
-  $ bb branch-restriction list
-  $ bb branch-restriction list --kind push
-  $ bb branch-restriction list --pattern main
-  $ bb branch-restriction list --json --jq '.branchRestrictions[].kind'
-
-Valid kinds:
-  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
-
-Defaults:
-  --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb branch-restriction view 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "id": "id-value",
-    },
-    "token": "ViewBranchRestrictionCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb branch-restriction view [options] <id>
-
-View a branch restriction rule
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb branch-restriction view 12
-  $ bb branch-restriction view 12 --json --jq '.branchRestriction.kind'
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb branch-restriction create 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "branchType": "branchType-value",
-      "group": [
-        "group-value",
-      ],
-      "kind": "kind-value",
-      "pattern": "pattern-value",
-      "user": [
-        "user-value",
-      ],
-      "value": "value-value",
-    },
-    "token": "CreateBranchRestrictionCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb branch-restriction create [options]
-
-Create a branch restriction rule
-
-Options:
-  --kind <kind>         Restriction kind (required) (choices: "push", "delete",
-                        "force", "restrict_merges",
-                        "require_tasks_to_be_completed",
-                        "require_approvals_to_merge",
-                        "require_review_group_approvals_to_merge",
-                        "require_default_reviewer_approvals_to_merge",
-                        "require_no_changes_requested",
-                        "require_passing_builds_to_merge",
-                        "require_commits_behind",
-                        "reset_pullrequest_approvals_on_change",
-                        "smart_reset_pullrequest_approvals",
-                        "reset_pullrequest_changes_requested_on_change",
-                        "require_all_dependencies_merged",
-                        "enforce_merge_checks",
-                        "allow_auto_merge_when_builds_pass",
-                        "require_all_comments_resolved")
-  --pattern <glob>      Branch glob pattern, e.g. main or release/*
-  --branch-type <type>  Branching-model branch type (instead of --pattern)
-                        (choices: "feature", "bugfix", "release", "hotfix",
-                        "development", "production")
-  --value <number>      Kind-specific count, e.g. minimum approvals or passing
-                        builds
-  --user <user>         Exempt a user by account ID or {uuid} (repeatable; push
-                        and restrict_merges only) (default: [])
-  --group <slug>        Exempt a workspace group by slug (repeatable; push and
-                        restrict_merges only) (default: [])
-  -h, --help            display help for command
-
-Examples:
-  $ bb branch-restriction create --kind force --pattern main
-  $ bb branch-restriction create --kind require_approvals_to_merge --pattern main --value 2
-  $ bb branch-restriction create --kind push --branch-type production --group release-managers
-  $ bb branch-restriction create --kind delete --pattern 'release/*' --json --jq '.branchRestriction.id'
-
-Valid kinds:
-  push, delete, force, restrict_merges, require_tasks_to_be_completed, require_approvals_to_merge, require_review_group_approvals_to_merge, require_default_reviewer_approvals_to_merge, require_no_changes_requested, require_passing_builds_to_merge, require_commits_behind, reset_pullrequest_approvals_on_change, smart_reset_pullrequest_approvals, reset_pullrequest_changes_requested_on_change, require_all_dependencies_merged, enforce_merge_checks, allow_auto_merge_when_builds_pass, require_all_comments_resolved
-
-Valid branch types:
-  feature, bugfix, release, hotfix, development, production
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb branch-restriction delete 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "id": "id-value",
-      "yes": true,
-    },
-    "token": "DeleteBranchRestrictionCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb branch-restriction delete [options] <id>
-
-Delete a branch restriction rule
-
-Options:
-  -y, --yes   Skip confirmation prompt
-  -h, --help  display help for command
-
-Examples:
-  $ bb branch-restriction delete 12
-  $ bb branch-restriction delete 12 --yes
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb ssh-key 1`] = `
-{
-  "help": 
-"Usage: bb ssh-key [options] [command]
-
-Manage SSH keys on your Bitbucket account
-
-Options:
-  -h, --help                 display help for command
-
-Commands:
-  list [options]             List SSH keys on your account
-  add [options] <key-file>   Add an SSH public key to your account (- reads
-                             stdin)
-  delete [options] <key-id>  Delete an SSH key from your account (key-id is its
-                             {uuid})
-  help [command]             display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb ssh-key list 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "all": true,
-      "limit": "limit-value",
-    },
-    "token": "ListSshKeysCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb ssh-key list [options]
-
-List SSH keys on your account
-
-Options:
-  --limit <number>  Maximum number of keys to list (default: "25")
-  --all             List all keys (overrides --limit)
-  -h, --help        display help for command
-
-Examples:
-  $ bb ssh-key list
-  $ bb ssh-key list --json --jq '.sshKeys[].fingerprint'
-
-Defaults:
-  --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb ssh-key add 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "keyFile": "key-file-value",
-      "label": "label-value",
-    },
-    "token": "AddSshKeyCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb ssh-key add [options] <key-file>
-
-Add an SSH public key to your account (- reads stdin)
-
-Options:
-  --label <label>  Label for the key
-  -h, --help       display help for command
-
-Examples:
-  $ bb ssh-key add ~/.ssh/id_ed25519.pub
-  $ bb ssh-key add ~/.ssh/id_ed25519.pub --label laptop
-  $ cat ~/.ssh/id_ed25519.pub | bb ssh-key add -
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb ssh-key delete 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "keyId": "key-id-value",
-      "yes": true,
-    },
-    "token": "DeleteSshKeyCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb ssh-key delete [options] <key-id>
-
-Delete an SSH key from your account (key-id is its {uuid})
-
-Options:
-  -y, --yes   Skip confirmation prompt
-  -h, --help  display help for command
-
-Examples:
-  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}"
-  $ bb ssh-key delete "{b15b6026-9c02-4626-b4ad-b905f99f763a}" --yes
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb gpg-key 1`] = `
-{
-  "help": 
-"Usage: bb gpg-key [options] [command]
-
-Manage GPG keys on your Bitbucket account
-
-Options:
-  -h, --help                      display help for command
-
-Commands:
-  list [options]                  List GPG keys on your account
-  add <key-file>                  Add an ASCII-armored GPG public key to your
-                                  account (- reads stdin)
-  delete [options] <fingerprint>  Delete a GPG key from your account
-  help [command]                  display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb gpg-key list 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "all": true,
-      "limit": "limit-value",
-    },
-    "token": "ListGpgKeysCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb gpg-key list [options]
-
-List GPG keys on your account
-
-Options:
-  --limit <number>  Maximum number of keys to list (default: "25")
-  --all             List all keys (overrides --limit)
-  -h, --help        display help for command
-
-Examples:
-  $ bb gpg-key list
-  $ bb gpg-key list --json --jq '.gpgKeys[].fingerprint'
-
-Defaults:
-  --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb gpg-key add 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "keyFile": "key-file-value",
-    },
-    "token": "AddGpgKeyCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb gpg-key add [options] <key-file>
-
-Add an ASCII-armored GPG public key to your account (- reads stdin)
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb gpg-key add key.asc
-  $ gpg --armor --export you@example.com | bb gpg-key add -
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb gpg-key delete 1`] = `
-{
-  "dispatch": {
-    "options": {
-      "fingerprint": "fingerprint-value",
-      "yes": true,
-    },
-    "token": "DeleteGpgKeyCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb gpg-key delete [options] <fingerprint>
-
-Delete a GPG key from your account
-
-Options:
-  -y, --yes   Skip confirmation prompt
-  -h, --help  display help for command
-
-Examples:
-  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B
-  $ bb gpg-key delete 3F2A9C1B7E5D4A60B8C2E1F09D7A6B5C4E3F2A1B --yes
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb deployment 1`] = `
-{
-  "help": 
-"Usage: bb deployment [options] [command]
-
-Inspect Bitbucket Pipelines deployments
-
-Options:
-  -h, --help              display help for command
-
-Commands:
-  list [options]          List deployments for a repository
-  view <uuid>             View deployment details
-  environments [options]  List deployment environments for a repository
-  help [command]          display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb deployment list 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "all": true,
-      "limit": "limit-value",
-    },
-    "token": "ListDeploymentsCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb deployment list [options]
-
-List deployments for a repository
-
-Options:
-  --limit <number>  Maximum number of deployments to list (default: "25")
-  --all             List all deployments (overrides --limit)
-  -h, --help        display help for command
-
-Examples:
-  $ bb deployment list
-  $ bb deployment list --all
-  $ bb deployment list --json --jq '.deployments[].uuid'
-
-Defaults:
-  --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb deployment view 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "uuid": "uuid-value",
-    },
-    "token": "ViewDeploymentCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb deployment view [options] <uuid>
-
-View deployment details
-
-Options:
-  -h, --help  display help for command
-
-Examples:
-  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}"
-  $ bb deployment view "{a1b2c3d4-0000-0000-0000-000000000000}" --json --jq '.deployment.state.name'
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb deployment environments 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "all": true,
-      "limit": "limit-value",
-    },
-    "token": "ListEnvironmentsCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb deployment environments [options]
-
-List deployment environments for a repository
-
-Options:
-  --limit <number>  Maximum number of environments to list (default: "25")
-  --all             List all environments (overrides --limit)
-  -h, --help        display help for command
-
-Examples:
-  $ bb deployment environments
-  $ bb deployment environments --json --jq '.environments[].name'
-
-Defaults:
-  --limit  25
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb completion 1`] = `
-{
-  "help": 
-"Usage: bb completion [options] [command]
-
-Shell completion utilities
-
-Options:
-  -h, --help      display help for command
-
-Commands:
-  install         Install shell completions for bash, zsh, or fish
-  uninstall       Uninstall shell completions
-  bash            Print the completion script for bash
-  zsh             Print the completion script for zsh
-  fish            Print the completion script for fish
-  powershell      Print the completion script for powershell
-  help [command]  display help for command
 "
 ,
 }

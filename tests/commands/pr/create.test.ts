@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { AxiosResponse } from 'axios';
 import { CreatePRCommand } from '../../../src/commands/pr/create.command.js';
 import type { IConfigService } from '../../../src/core/interfaces/services.js';
@@ -7,7 +10,9 @@ import type {
   DefaultReviewerEntry,
   DefaultReviewerService,
 } from '../../../src/services/default-reviewer.service.js';
+import { BBError, ErrorCode } from '../../../src/types/errors.js';
 import { fakeApi, fakeUsersApi } from '../../helpers/fake-api.js';
+import { getJsonPayload } from '../../helpers/output-logs.js';
 import {
   createMockConfigService,
   createMockContextService,
@@ -45,6 +50,8 @@ function createMockDefaultReviewerService(
   return fakeApi<DefaultReviewerService>(svc);
 }
 
+type BranchEndpoint = { branch?: { name?: string } };
+
 interface CreatePRHarnessOptions {
   currentBranch?: string;
   defaultReviewers?: DefaultReviewerEntry[];
@@ -55,6 +62,10 @@ interface CreatePRHarnessOptions {
   createPRThrows?: boolean;
   /** Resolve `--reviewer` names against these workspace members. */
   members?: Account[];
+  stdin?: string;
+  noRepoContext?: boolean;
+  /** The branch the mock API targets when the request has no destination. */
+  mainBranch?: string;
 }
 
 function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
@@ -67,7 +78,9 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     body?: Pullrequest;
   } = options.capturedBodyRef ?? {};
 
-  const basePullrequestsApi = createMockPullrequestsApi();
+  const basePullrequestsApi = createMockPullrequestsApi({
+    mainBranch: options.mainBranch,
+  });
   // Wrap POST so we can inspect the body on assertions.
   const originalPost =
     basePullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPost.bind(
@@ -95,10 +108,9 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     currentUser: { ...mockUser, uuid: authorUuid },
   });
 
-  const contextService = createMockContextService({
-    workspace: 'workspace',
-    repoSlug: 'repo',
-  });
+  const contextService = options.noRepoContext
+    ? createMockContextService()
+    : createMockContextService({ workspace: 'workspace', repoSlug: 'repo' });
 
   const gitService = createMockGitService({
     currentBranch: options.currentBranch ?? 'feature-branch',
@@ -119,7 +131,16 @@ function buildCreatePRCommand(options: CreatePRHarnessOptions = {}): {
     ? createMembersResolver(usersApi, options.members)
     : undefined;
 
-  const command = new CreatePRCommand(
+  class StdinCreatePRCommand extends CreatePRCommand {
+    protected override async readStdin(): Promise<string> {
+      if (options.stdin === undefined) {
+        throw new Error('stdin should not be read');
+      }
+      return options.stdin;
+    }
+  }
+
+  const command = new StdinCreatePRCommand(
     pullrequestsApi,
     membersResolver?.resolver ?? createUserResolverStub(usersApi),
     contextService,
@@ -152,6 +173,95 @@ describe('CreatePRCommand', () => {
     const { command, output } = buildCreatePRCommand();
     await expect(command.run({}, { globalOptions: {} })).rejects.toThrow();
     expect(output.logs.some((log) => log.includes('title'))).toBe(true);
+  });
+
+  describe('--body-file', () => {
+    const markdown = '## Summary\n\nRun `bun test` before merging.\n';
+
+    it('sends the file content as the description', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'bb-pr-create-'));
+      const path = join(dir, 'body.md');
+      writeFileSync(path, markdown);
+      try {
+        const { command, captured } = buildCreatePRCommand();
+        await command.execute(
+          { title: 'My PR', bodyFile: path },
+          { globalOptions: {} }
+        );
+        expect(captured.body?.description).toBe(markdown);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('reads the description from stdin for -', async () => {
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+      await command.execute(
+        { title: 'My PR', bodyFile: '-' },
+        { globalOptions: {} }
+      );
+      expect(captured.body?.description).toBe(markdown);
+    });
+
+    it('rejects --body together with --body-file before creating', async () => {
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+      const error = await command
+        .execute(
+          { title: 'My PR', body: 'inline', bodyFile: '-' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(BBError);
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+      expect(captured.body).toBeUndefined();
+    });
+
+    it('only asks for the title when --body-file is given', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'bb-pr-create-'));
+      const path = join(dir, 'body.md');
+      writeFileSync(path, markdown);
+      try {
+        const prompt = createMockPromptService(['Prompted title']);
+        const { command, captured } = buildCreatePRCommand();
+
+        await command.execute(
+          { bodyFile: path },
+          { globalOptions: {}, prompt }
+        );
+
+        expect(prompt.calls).toEqual(['text:Title']);
+        expect(captured.body?.description).toBe(markdown);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('requires --title with -F - instead of prompting', async () => {
+      const prompt = createMockPromptService();
+      const { command, captured } = buildCreatePRCommand({ stdin: markdown });
+
+      const error = await command
+        .execute({ bodyFile: '-' }, { globalOptions: {}, prompt })
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_REQUIRED);
+      expect(prompt.calls).toEqual([]);
+      expect(captured.body).toBeUndefined();
+    });
+
+    it('rejects --body with --body-file before resolving the repository', async () => {
+      const { command } = buildCreatePRCommand({ noRepoContext: true });
+
+      const error = await command
+        .execute(
+          { title: 'My PR', body: 'inline', bodyFile: 'body.md' },
+          { globalOptions: {} }
+        )
+        .catch((e: unknown) => e);
+
+      expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    });
   });
 
   describe('interactive prompts', () => {
@@ -227,23 +337,46 @@ describe('CreatePRCommand', () => {
     expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
   });
 
-  it('should use main as default destination', async () => {
-    const { command, output } = buildCreatePRCommand({
+  it("leaves the destination to Bitbucket so it targets the repository's main branch", async () => {
+    const { command, captured, output } = buildCreatePRCommand({
       currentBranch: 'feature',
+      mainBranch: 'master',
     });
     await command.execute({ title: 'My PR' }, { globalOptions: {} });
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+
+    expect(captured.body?.destination).toBeUndefined();
+    expect(output.logs).toContain('text:  Destination: master');
   });
 
-  it('should use explicit destination branch', async () => {
-    const { command, output } = buildCreatePRCommand({
-      currentBranch: 'feature',
+  it('shows the resolved destination in JSON output', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      mainBranch: 'develop',
     });
     await command.execute(
-      { title: 'My PR', destination: 'develop' },
+      { title: 'My PR' },
+      { globalOptions: { json: true } }
+    );
+
+    expect(captured.body?.destination).toBeUndefined();
+    const pr = getJsonPayload(output.logs) as Pullrequest;
+    const destination = pr.destination as BranchEndpoint | undefined;
+    expect(destination?.branch?.name).toBe('develop');
+  });
+
+  it('sends an explicit --destination', async () => {
+    const { command, captured, output } = buildCreatePRCommand({
+      currentBranch: 'feature',
+      mainBranch: 'master',
+    });
+    await command.execute(
+      { title: 'My PR', destination: 'release' },
       { globalOptions: {} }
     );
-    expect(output.logs.some((log) => log.includes('success:'))).toBe(true);
+
+    const destination = captured.body?.destination as
+      BranchEndpoint | undefined;
+    expect(destination?.branch?.name).toBe('release');
+    expect(output.logs).toContain('text:  Destination: release');
   });
 
   it('should create draft pull request when flag is set', async () => {

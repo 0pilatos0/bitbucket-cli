@@ -134,6 +134,7 @@ export const ServiceTokens = {
   PromptService: 'PromptService',
   OAuthService: 'OAuthService',
   VersionService: 'VersionService',
+  DryRunMode: 'DryRunMode',
 
   // API Clients
   SharedApiAxios: 'SharedApiAxios',
