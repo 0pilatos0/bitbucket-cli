@@ -32,47 +32,78 @@ the commands that read and write it, see the [Config command reference](/command
 
 ## Configuration schema
 
-| Key                               | Type                   | Description                                                                    | Set by                           |
-| --------------------------------- | ---------------------- | ------------------------------------------------------------------------------ | -------------------------------- |
-| `authMethod`                      | `"basic"` \| `"oauth"` | Active authentication method                                                   | `bb auth login`                  |
-| `username`                        | string                 | Your Atlassian account email (API token auth)                                  | `bb auth login -u`               |
-| `apiToken`                        | string                 | Your API token (API token auth)                                                | `bb auth login --with-token`     |
-| `oauthAccessToken`                | string                 | OAuth access token                                                             | `bb auth login` (OAuth)          |
-| `oauthRefreshToken`               | string                 | OAuth refresh token                                                            | `bb auth login` (OAuth)          |
-| `oauthExpiresAt`                  | number                 | OAuth token expiry (Unix timestamp)                                            | `bb auth login` (OAuth)          |
-| `oauthClientId`                   | string                 | Custom OAuth consumer client ID                                                | `bb auth login --client-id`      |
-| `oauthClientSecret`               | string                 | Custom OAuth consumer client secret                                            | `bb auth login --client-secret`  |
-| `defaultWorkspace`                | string                 | Default workspace                                                              | `bb config set defaultWorkspace` |
-| `skipVersionCheck`                | boolean                | Disable update notifications                                                   | `bb config set`                  |
-| `versionCheckInterval`            | number                 | Days between update checks (default: 1)                                        | `bb config set`                  |
-| `prCreateIncludeDefaultReviewers` | boolean                | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set`                  |
-| `aliases`                         | object                 | User-defined command aliases                                                   | `bb alias set`                   |
-| `lastVersionCheck`                | string                 | Timestamp of last update check                                                 | Automatic                        |
+| Key                               | Type                     | Description                                                                    | Set by                            |
+| --------------------------------- | ------------------------ | ------------------------------------------------------------------------------ | --------------------------------- |
+| `accounts`                        | object                   | Saved accounts by name, see [Account fields](#account-fields)                  | `bb auth login`                   |
+| `activeAccount`                   | string                   | Account used when neither `--account` nor `BB_ACCOUNT` is given                | `bb auth login`, `bb auth switch` |
+| `credentialStorage`               | `"file"` \| `"keychain"` | Where account secrets live (default: `file`)                                   | `bb config set`                   |
+| `defaultWorkspace`                | string                   | Default workspace                                                              | `bb config set defaultWorkspace`  |
+| `skipVersionCheck`                | boolean                  | Disable update notifications                                                   | `bb config set`                   |
+| `versionCheckInterval`            | number                   | Days between update checks (default: 1)                                        | `bb config set`                   |
+| `prCreateIncludeDefaultReviewers` | boolean                  | Auto-add the repository's default reviewers on `bb pr create` (default: false) | `bb config set`                   |
+| `aliases`                         | object                   | User-defined command aliases                                                   | `bb alias set`                    |
+| `lastVersionCheck`                | string                   | Timestamp of last update check                                                 | Automatic                         |
 
-### Example configuration (OAuth)
+### Account fields
+
+| Key                 | Type                   | Description                                                      | Set by                          |
+| ------------------- | ---------------------- | ---------------------------------------------------------------- | ------------------------------- |
+| `authMethod`        | `"basic"` \| `"oauth"` | Authentication method of the account                             | `bb auth login`                 |
+| `username`          | string                 | Your Atlassian account email (API token auth)                    | `bb auth login -u`              |
+| `apiToken`          | string                 | Your API token (API token auth); secret                          | `bb auth login --with-token`    |
+| `oauthAccessToken`  | string                 | OAuth access token; secret                                       | `bb auth login` (OAuth)         |
+| `oauthRefreshToken` | string                 | OAuth refresh token; secret                                      | `bb auth login` (OAuth)         |
+| `oauthExpiresAt`    | number                 | OAuth token expiry (Unix timestamp)                              | `bb auth login` (OAuth)         |
+| `oauthClientId`     | string                 | Custom OAuth consumer client ID                                  | `bb auth login --client-id`     |
+| `oauthClientSecret` | string                 | Custom OAuth consumer client secret; secret                      | `bb auth login --client-secret` |
+| `storage`           | `"keychain"`           | Present when the secret fields live in the OS keychain instead   | `bb config set`                 |
+
+Older versions of bb kept one account's fields at the top level of the file.
+bb still reads those as the `default` account and moves them under `accounts`
+the first time it writes credentials, so upgrading needs no action.
+
+### Example configuration (two accounts)
 
 ```json
 {
-  "authMethod": "oauth",
-  "oauthAccessToken": "xxxxxxxxxxxxxxxx",
-  "oauthRefreshToken": "xxxxxxxxxxxxxxxx",
-  "oauthExpiresAt": 1711036800,
-  "defaultWorkspace": "myworkspace"
-}
-```
-
-### Example configuration (API token)
-
-```json
-{
-  "authMethod": "basic",
-  "username": "you@example.com",
-  "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx",
+  "accounts": {
+    "default": {
+      "authMethod": "basic",
+      "username": "you@example.com",
+      "apiToken": "ATBB_xxxxxxxxxxxxxxxxxxxx"
+    },
+    "personal": {
+      "authMethod": "oauth",
+      "oauthAccessToken": "xxxxxxxxxxxxxxxx",
+      "oauthRefreshToken": "xxxxxxxxxxxxxxxx",
+      "oauthExpiresAt": 1711036800
+    }
+  },
+  "activeAccount": "default",
   "defaultWorkspace": "myworkspace",
-  "skipVersionCheck": false,
   "versionCheckInterval": 7
 }
 ```
+
+### Example configuration (keychain storage)
+
+```json
+{
+  "accounts": {
+    "default": {
+      "authMethod": "oauth",
+      "oauthExpiresAt": 1711036800,
+      "storage": "keychain"
+    }
+  },
+  "activeAccount": "default",
+  "credentialStorage": "keychain"
+}
+```
+
+The tokens sit in the OS keychain under the service `bitbucket-cli`, one entry
+per account name. See
+[Configuration storage](/getting-started/authentication/#configuration-storage).
 
 ---
 
@@ -96,7 +127,7 @@ defaultWorkspace  myworkspace
 apiToken          ********
 skipVersionCheck  false
 
-Settable keys: defaultWorkspace, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
+Settable keys: defaultWorkspace, credentialStorage, skipVersionCheck, versionCheckInterval, prCreateIncludeDefaultReviewers. Run 'bb config set --help' for details.
 ```
 
 The API token is masked. Use `bb auth token` to see the real value.
@@ -250,7 +281,8 @@ keys; `BB_HTTP_TIMEOUT` for the API request timeout, for example.
 
 ## File permissions
 
-The config file holds your API token, so the CLI creates the directory `0700`
+The config file holds your tokens (unless `credentialStorage` is `keychain`),
+so the CLI creates the directory `0700`
 and the file `0600`, and writes atomically (temp file, then rename).
 
 | Platform    | Directory                         | File                              |
@@ -284,13 +316,15 @@ a fresh install never hits this.
 bb auth logout
 ```
 
-This removes authentication credentials (OAuth tokens or API token) but keeps
-`defaultWorkspace` and other settings. For OAuth, it also attempts to revoke the token on
+This removes the current account's credentials (OAuth tokens or API token) but
+keeps other accounts, `defaultWorkspace` and other settings. For OAuth, it also attempts to revoke the token on
 Bitbucket's side.
 
 ### Full reset
 
-Delete the config file entirely:
+With keychain storage, run `bb auth logout` for each account first (or
+`bb config set credentialStorage file`), otherwise the keychain entries stay
+behind. Then delete the config file entirely:
 
 <Tabs>
   <TabItem label="macOS / Linux">
