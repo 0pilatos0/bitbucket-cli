@@ -3833,6 +3833,34 @@ Examples:
 }
 `;
 
+exports[`command tree snapshot bb doctor 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "DoctorCommand",
+    "via": "run",
+  },
+  "help": 
+"
+Each check reports pass, warn or fail. Exits 1 when any check fails.
+
+Usage: bb doctor [options]
+
+Check auth, token scopes, network, config, git remote and Bun runtime
+
+Options:
+  -h, --help  display help for command
+
+Examples:
+  $ bb doctor
+  $ bb doctor --json
+  $ bb doctor --json --jq '.checks[] | select(.status != "pass")'
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb completion 1`] = `
 {
   "help": 

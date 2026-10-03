@@ -48,6 +48,7 @@ export const RESERVED_COMMAND_NAMES = [
   'browse',
   'api',
   'config',
+  'doctor',
   'completion',
   'alias',
   'help',

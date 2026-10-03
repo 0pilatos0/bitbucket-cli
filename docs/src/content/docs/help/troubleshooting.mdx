@@ -5,7 +5,9 @@ banner:
   content: 'Bitbucket app passwords stopped working on July 28, 2026. Use OAuth or an API token instead. <a href="https://bitbucket.org/account/settings/api-tokens/">Create an API token</a>.'
 ---
 
-Find your error message below. Command errors go to stderr and exit 1, with a
+Start with [`bb doctor`](/commands/doctor/). It checks Bun, the config file,
+network access, authentication, token scopes, and git remote detection, and
+points at the failing piece. Then find your error message below. Command errors go to stderr and exit 1, with a
 `✗` prefix, or `ERR` under `--no-unicode` or `BB_NO_UNICODE`.
 Under `--json`, command failures become a single-line JSON object on stderr.
 Argument-parser errors, such as an unknown option or subcommand, remain plain
