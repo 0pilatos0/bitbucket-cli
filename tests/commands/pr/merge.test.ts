@@ -2,6 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { MergePRCommand } from '../../../src/commands/pr/merge.command.js';
 import {
   createMockContextService,
+  createMockGitService,
   createMockOutputService,
 } from '../../setup.js';
 import { createMockPullrequestsApi } from './fakes.js';
@@ -15,7 +16,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(pullrequestsApi.lastMergeBody).toEqual({
@@ -33,7 +39,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '999' }, { globalOptions: {} })
@@ -48,7 +59,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: '1', strategy: 'bogus' }, { globalOptions: {} })
@@ -63,7 +79,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute(
       {
         id: '1',
@@ -91,7 +112,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
@@ -106,7 +132,12 @@ describe('MergePRCommand', () => {
     });
     const output = createMockOutputService();
 
-    const command = new MergePRCommand(pullrequestsApi, contextService, output);
+    const command = new MergePRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
     await command.execute({ id: '1' }, { globalOptions: {} });
 
     expect(
