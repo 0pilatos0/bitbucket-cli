@@ -19,45 +19,8 @@ import {
 import { BBError, ErrorCode } from '../../src/types/errors.js';
 import type { RepositoriesApi } from '../../src/generated/api.js';
 import type { BBConfig } from '../../src/types/config.js';
-
-function extractPaginationParams(axiosOptions: unknown): {
-  page: number;
-  pagelen: number;
-} {
-  if (!axiosOptions || typeof axiosOptions !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-
-  const params = (axiosOptions as { params?: unknown }).params;
-  if (!params || typeof params !== 'object') {
-    return { page: 1, pagelen: 25 };
-  }
-
-  const pageValue = (params as { page?: unknown }).page;
-  const pagelenValue = (params as { pagelen?: unknown }).pagelen;
-
-  const page =
-    typeof pageValue === 'number' && Number.isFinite(pageValue) && pageValue > 0
-      ? pageValue
-      : 1;
-  const pagelen =
-    typeof pagelenValue === 'number' &&
-    Number.isFinite(pagelenValue) &&
-    pagelenValue > 0
-      ? pagelenValue
-      : 25;
-
-  return { page, pagelen };
-}
-
-function getTableRows(logs: string[]): string[][] {
-  const rowsLog = logs.find((log) => log.startsWith('table-rows:'));
-  if (!rowsLog) {
-    return [];
-  }
-
-  return JSON.parse(rowsLog.substring('table-rows:'.length)) as string[][];
-}
+import { getTableRows } from '../helpers/output-logs.js';
+import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
 
 // Helper to create mock RepositoriesApi
 function createMockRepositoriesApi(
@@ -67,7 +30,7 @@ function createMockRepositoriesApi(
     onCreateCall?: (request: unknown) => void;
   } = {}
 ): RepositoriesApi {
-  return {
+  return fakeApi<RepositoriesApi>({
     repositoriesWorkspaceGet: async (
       request: unknown,
       axiosOptions?: unknown
@@ -112,7 +75,7 @@ function createMockRepositoriesApi(
     repositoriesWorkspaceRepoSlugDelete: async () => ({
       data: undefined,
     }),
-  } as unknown as RepositoriesApi;
+  });
 }
 
 describe('ListReposCommand', () => {
@@ -715,12 +678,12 @@ describe('DeleteRepoCommand', () => {
 describe('DeleteRepoCommand confirmation prompt', () => {
   function buildDelete() {
     const deleted: unknown[] = [];
-    const repositoriesApi = {
+    const repositoriesApi = fakeApi<RepositoriesApi>({
       repositoriesWorkspaceRepoSlugDelete: async (request: unknown) => {
         deleted.push(request);
         return { data: undefined };
       },
-    } as unknown as RepositoriesApi;
+    });
     const command = new DeleteRepoCommand(
       repositoriesApi,
       createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),

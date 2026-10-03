@@ -118,8 +118,12 @@ describe('OutputService', () => {
   });
 
   describe('json', () => {
+    const setStdoutTTY = (value: boolean): void => {
+      terminal.isTTY = value;
+    };
+
     beforeEach(() => {
-      terminal.isTTY = false;
+      setStdoutTTY(false);
     });
 
     it('pretty-prints JSON when stdout is a terminal', async () => {

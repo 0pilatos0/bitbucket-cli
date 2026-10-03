@@ -1,9 +1,10 @@
 /**
  * Mock Bitbucket Cloud HTTP server for integration tests (issue #264).
  *
- * Existing command tests inject `as unknown as SomeApi` stubs, so the real
- * generated client, request serialization, and the shared axios interceptor
- * stack are never exercised. This module fills that gap: a local `Bun.serve`
+ * The default for new command tests (see AGENTS.md → Testing). Stub-based
+ * tests (`tests/helpers/fake-api.ts`) never exercise the real generated
+ * client, request serialization, or the shared axios interceptor stack. This
+ * module does: a local `Bun.serve`
  * fixture that speaks enough of the Bitbucket wire protocol (paginated list
  * envelopes with `size`/`next`, Basic-auth enforcement, Bitbucket-shaped
  * error bodies) to drive REAL commands end-to-end:
@@ -16,8 +17,13 @@
  * the pagination fast path.
  */
 
-import { createApiClient } from '../../src/services/api-client.service.js';
 import type { AxiosInstance } from 'axios';
+import type { IOutputService } from '../../src/core/interfaces/services.js';
+import { createApiClient } from '../../src/services/api-client.service.js';
+import {
+  createMockCredentialStoreOnly,
+  createMockOutputService,
+} from '../setup.js';
 
 export interface RecordedRequest {
   method: string;
@@ -251,6 +257,12 @@ export async function startMockBitbucket(
   };
 }
 
+export type GeneratedApiClass<T> = new (
+  configuration: undefined,
+  basePath: undefined,
+  axios: AxiosInstance
+) => T;
+
 /**
  * Bootstrap-style wiring for integration tests: build the REAL axios instance
  * via `createApiClient` pointed at the fixture server, then construct real
@@ -266,11 +278,7 @@ export function buildApiFor<T>(
   serverUrl: string,
   credentialStore: Parameters<typeof createApiClient>[0],
   output: Parameters<typeof createApiClient>[1],
-  ApiClass: new (
-    configuration: undefined,
-    basePath: undefined,
-    axios: AxiosInstance
-  ) => T
+  ApiClass: GeneratedApiClass<T>
 ): T {
   const previous = process.env.BB_API_BASE_URL;
   process.env.BB_API_BASE_URL = serverUrl;
@@ -284,4 +292,34 @@ export function buildApiFor<T>(
       process.env.BB_API_BASE_URL = previous;
     }
   }
+}
+
+export interface CommandHarness {
+  server: MockBitbucketServer;
+  output: IOutputService & { logs: string[] };
+  /** A real generated API class wired to `server` with test credentials. */
+  api<T>(ApiClass: GeneratedApiClass<T>): T;
+}
+
+/**
+ * The usual setup for a command test: a fixture server with no added latency,
+ * a recording output service, and real API classes pointed at the server.
+ * The caller owns `server.stop()`.
+ */
+export async function startCommandHarness(
+  routes: MockRoute[],
+  options: Omit<StartMockBitbucketOptions, 'routes'> = {}
+): Promise<CommandHarness> {
+  const server = await startMockBitbucket({ latencyMs: 0, ...options, routes });
+  const credentialStore = createMockCredentialStoreOnly({
+    username: 'tester',
+    apiToken: 'test-token',
+  });
+  const output = createMockOutputService();
+  return {
+    server,
+    output,
+    api: (ApiClass) =>
+      buildApiFor(server.url, credentialStore, output, ApiClass),
+  };
 }
