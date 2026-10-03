@@ -13,12 +13,19 @@ import { fakeApi } from '../helpers/fake-api.js';
 
 const ENV_KEYS = ['BB_USERNAME', 'BB_API_TOKEN'] as const;
 
+const MOCK_OAUTH_TOKENS = {
+  accessToken: 'access',
+  refreshToken: 'refresh',
+  expiresAt: 9999999999,
+};
+
 function buildLogin() {
   const configService = createMockConfigService();
   let oauthCalls = 0;
   const oauthService = {
     authorize: async () => {
       oauthCalls++;
+      await configService.setOAuthCredentials(MOCK_OAUTH_TOKENS);
       return {
         username: 'oauthuser',
         displayName: 'OAuth User',

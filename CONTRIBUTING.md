@@ -135,6 +135,12 @@ Releases are automated via Changesets:
 3. Merging that PR publishes to npm + GitHub Packages and cuts a GitHub
    Release.
 
+On every push to `main`, the Release workflow first runs the full CI matrix
+(`ci.yml`, called as a reusable workflow) on that commit. Nothing is
+versioned, tagged or published unless it passes, including the manual
+`publish_only` re-publish. CI has no push trigger of its own; on `main` it
+runs inside the Release run.
+
 You don't need to bump versions or update the changelog manually; the
 changeset you committed is enough.
 
