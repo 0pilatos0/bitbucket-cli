@@ -12,18 +12,14 @@ import { registerCommands } from './commands/register.js';
 import { generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { ServiceTokens } from './core/container.js';
-import type { ServiceToken } from './core/container.js';
-import type { BaseCommand } from './core/base-command.js';
+import type { CommandToken } from './core/container.js';
 import type {
   CommandRegistrar,
   ContextOptions,
+  RepoOptions,
 } from './core/command-registrar.js';
 import type { CommandContext } from './core/interfaces/commands.js';
-import type {
-  IConfigService,
-  IOutputService,
-  IPromptService,
-} from './core/interfaces/services.js';
+import type { IPromptService } from './core/interfaces/services.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
@@ -184,21 +180,21 @@ export function createContext(
 }
 
 function availablePrompt(): IPromptService | undefined {
-  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  const prompt = container.resolve(ServiceTokens.PromptService);
   return prompt.isAvailable() ? prompt : undefined;
 }
 
-async function runCommand<TOptions, TResult>(
-  token: ServiceToken,
-  options: TOptions,
+async function runCommand(
+  token: CommandToken,
+  options: unknown,
   program: Command,
   context?: CommandContext
-): Promise<TResult | undefined> {
+): Promise<void> {
   try {
-    const cmd = container.resolve<BaseCommand<TOptions, TResult>>(token);
+    const cmd = container.resolve(token);
     const resolvedContext = context ?? createContext(program);
 
-    return await cmd.run(options, resolvedContext);
+    await cmd.run(options, resolvedContext);
   } catch (error) {
     // BaseCommand.run() already calls handleError() which outputs the error
     // and sets process.exitCode before re-throwing. We only need to handle
@@ -213,23 +209,19 @@ async function runCommand<TOptions, TResult>(
     if (!process.exitCode) {
       process.exitCode = 1;
     }
-
-    return undefined;
   }
 }
 
 // Helper to merge global options with local options
-export function withGlobalOptions<T extends Record<string, unknown>>(
+export function withGlobalOptions<T extends RepoOptions>(
   options: T,
   context: CommandContext
-): T & { workspace?: string; repo?: string } {
+): Omit<T, keyof RepoOptions> & RepoOptions {
   return {
     ...options,
-    workspace:
-      (options.workspace as string | undefined) ??
-      context.globalOptions.workspace,
-    repo: (options.repo as string | undefined) ?? context.globalOptions.repo,
-  } as T & { workspace?: string; repo?: string };
+    workspace: options.workspace ?? context.globalOptions.workspace,
+    repo: options.repo ?? context.globalOptions.repo,
+  };
 }
 
 // Build the update-available banner. Pure string-building so it is trivially
@@ -355,9 +347,7 @@ cli
   .action(async () => {
     // The update-available check runs in the root `postAction` hook so it fires
     // after every command, not just the bare `bb` invocation handled here.
-    const output = container.resolve<IOutputService>(
-      ServiceTokens.OutputService
-    );
+    const output = container.resolve(ServiceTokens.OutputService);
 
     const jsonOption = cli.opts().json;
     const invocation = resolveRootInvocation(cli, {
@@ -384,9 +374,7 @@ cli
     // this path immediately after install, so it's the right moment to point
     // at the next step.
     try {
-      const configService = container.resolve<IConfigService>(
-        ServiceTokens.ConfigService
-      );
+      const configService = container.resolve(ServiceTokens.ConfigService);
       const config = await configService.getConfig();
       const hasBasicAuth = Boolean(config.username && config.apiToken);
       const hasOAuth = Boolean(
@@ -416,9 +404,7 @@ cli.hook('preAction', (_thisCommand, actionCommand) => {
 // runCommand() and the root action swallow all errors, so no action ever throws
 // out to Commander and skips its postAction hooks.
 cli.hook('postAction', async (thisCommand) => {
-  const versionService = container.resolve<VersionService>(
-    ServiceTokens.VersionService
-  );
+  const versionService = container.resolve(ServiceTokens.VersionService);
   const jsonOpt = thisCommand.opts().json;
   const json = jsonOpt !== undefined && jsonOpt !== false;
   await maybePrintUpdateNotice(versionService, { json, noUnicode });
@@ -426,7 +412,7 @@ cli.hook('postAction', async (thisCommand) => {
 
 const registrar: CommandRegistrar = {
   buildHelpText,
-  run: async (token, options) => {
+  run: async (token, ...[options]) => {
     await runCommand(token, options, cli);
   },
   runWithGlobalOptions: async (token, options, contextOptions) => {

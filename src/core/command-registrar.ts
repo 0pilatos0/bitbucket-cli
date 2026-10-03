@@ -10,8 +10,12 @@
  */
 
 import type { Command } from 'commander';
-import type { ServiceToken } from './container.js';
+import type { CommandOptions, CommandToken } from './container.js';
 import type { HelpTextBuilder } from '../help-text.js';
+import type { GlobalOptions } from '../types/config.js';
+
+/** The per-command `--workspace` / `--repo` the root's globals fill in. */
+export type RepoOptions = Pick<GlobalOptions, 'workspace' | 'repo'>;
 
 export interface ContextOptions {
   /**
@@ -21,17 +25,24 @@ export interface ContextOptions {
   allowJqWithoutJson?: boolean;
 }
 
+/** Commands whose options type is `void` are run without an options object. */
+type RunOptions<K extends CommandToken> =
+  CommandOptions<K> extends void ? [] : [options: CommandOptions<K>];
+
 export interface CommandRegistrar {
   readonly buildHelpText: HelpTextBuilder;
   /** Run the command registered under `token` with `options` as given. */
-  run(token: ServiceToken, options?: unknown): Promise<void>;
+  run<K extends CommandToken>(
+    token: K,
+    ...options: RunOptions<K>
+  ): Promise<void>;
   /**
    * Run the command registered under `token` with the root's `--workspace` /
    * `--repo` merged into `options` (explicit per-command values win).
    */
-  runWithGlobalOptions(
-    token: ServiceToken,
-    options: Record<string, unknown>,
+  runWithGlobalOptions<K extends CommandToken>(
+    token: K,
+    options: CommandOptions<K> & RepoOptions,
     contextOptions?: ContextOptions
   ): Promise<void>;
 }

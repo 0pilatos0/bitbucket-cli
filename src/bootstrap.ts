@@ -3,6 +3,7 @@
  */
 
 import { Container, ServiceTokens } from './core/container.js';
+import type { DependencyTokens, Token } from './core/container.js';
 import {
   ConfigService,
   GitService,
@@ -175,8 +176,6 @@ export interface BootstrapOptions {
   locale?: string;
 }
 
-type Ctor<T> = new (...args: never[]) => T;
-
 type ApiClientCtor<T> = new (
   cfg: undefined,
   basePath: undefined,
@@ -184,56 +183,33 @@ type ApiClientCtor<T> = new (
 ) => T;
 
 /**
- * One `registerCommand` row, exported for the bootstrap tests to assert the
- * positional `deps` array matches the constructor's parameter count exactly.
- * `as never[]` (see {@link registerCommand}) makes a wrong-length or
- * wrong-order wiring compile fine, so the tests pin the real contract here
- * rather than reflecting over resolved instances.
- */
-export interface CommandRegistration {
-  token: string;
-  ctor: Ctor<unknown>;
-  deps: readonly string[];
-}
-
-export const commandRegistrations: CommandRegistration[] = [];
-
-/**
  * Register a generated OpenAPI client. Each client resolves the shared axios
  * instance lazily and is constructed with `new Ctor(undefined, undefined, axios)`.
  */
 function registerApiClient<T>(
   container: Container,
-  token: string,
+  token: Token<T>,
   ctor: ApiClientCtor<T>
 ): void {
   container.register(token, () => {
-    const axiosInstance = container.resolve<AxiosInstance>(
-      ServiceTokens.SharedApiAxios
-    );
+    const axiosInstance = container.resolve(ServiceTokens.SharedApiAxios);
     return new ctor(undefined, undefined, axiosInstance);
   });
 }
 
 /**
  * Register a command (or any class) that is constructed by resolving a list
- * of service tokens and passing them positionally to its constructor.
+ * of service tokens and passing them positionally to its constructor. `deps`
+ * is typed against the constructor's parameters, so a missing, extra, or
+ * swapped dependency fails to compile.
  */
-function registerCommand<T>(
+function registerCommand<TArgs extends readonly unknown[], T>(
   container: Container,
-  token: string,
-  ctor: Ctor<T>,
-  deps: readonly string[]
+  token: Token<T>,
+  ctor: new (...args: TArgs) => T,
+  deps: DependencyTokens<TArgs>
 ): void {
-  commandRegistrations.push({
-    token,
-    ctor: ctor as Ctor<unknown>,
-    deps,
-  });
-  container.register(token, () => {
-    const resolved = deps.map((dep) => container.resolve(dep)) as never[];
-    return new ctor(...resolved);
-  });
+  container.register(token, () => new ctor(...container.resolveAll(deps)));
 }
 
 export function bootstrap(options: BootstrapOptions = {}): Container {
@@ -245,7 +221,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // consumers depend on narrower interfaces.
   container.register(ServiceTokens.ConfigService, () => new ConfigService());
   container.register(ServiceTokens.CredentialStore, () =>
-    container.resolve<ConfigService>(ServiceTokens.ConfigService)
+    container.resolve(ServiceTokens.ConfigService)
   );
   container.register(ServiceTokens.GitService, () => new GitService());
   container.register(
@@ -274,15 +250,9 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   // state (__retryCount / __tokenRefreshed) lives on each request's config
   // object, never on the instance itself.
   container.register(ServiceTokens.SharedApiAxios, () => {
-    const credentialStore = container.resolve<ConfigService>(
-      ServiceTokens.CredentialStore
-    );
-    const oauthService = container.resolve<OAuthService>(
-      ServiceTokens.OAuthService
-    );
-    const outputService = container.resolve<OutputService>(
-      ServiceTokens.OutputService
-    );
+    const credentialStore = container.resolve(ServiceTokens.CredentialStore);
+    const oauthService = container.resolve(ServiceTokens.OAuthService);
+    const outputService = container.resolve(ServiceTokens.OutputService);
     return createApiClient(credentialStore, outputService, oauthService);
   });
 
@@ -1160,9 +1130,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
 
   // Version service (needs package version)
   container.register(ServiceTokens.VersionService, () => {
-    const configService = container.resolve<ConfigService>(
-      ServiceTokens.ConfigService
-    );
+    const configService = container.resolve(ServiceTokens.ConfigService);
     return new VersionService(configService, pkg.version);
   });
 
