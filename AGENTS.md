@@ -221,3 +221,5 @@ bun run changeset    # Add a changeset (see Changesets below)
 
 - Git hook: `simple-git-hooks` runs `bun run format:check` on pre-commit
 - Runtime: Bun only (`src/index.ts` guards against non-Bun runtimes)
+- CI's Bun version lives in `.bun-version`; dependency and Bun bumps follow
+  [CONTRIBUTING.md → Dependency Updates](CONTRIBUTING.md#dependency-updates)
