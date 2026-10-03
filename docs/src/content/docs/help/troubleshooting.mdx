@@ -133,6 +133,9 @@ lsof -i :19872   # macOS/Linux
 ```
 
 Close the other `bb auth login` (or whatever holds the port) and retry.
+There is no fallback port: Bitbucket only accepts a `redirect_uri` that matches
+the OAuth consumer's registered callback URL, which pins port 19872. If you
+can't free the port, use an API token instead.
 
 ---
 
