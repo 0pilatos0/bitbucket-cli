@@ -7,9 +7,11 @@ import { didYouMeanSuffix } from '../../core/suggest.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IConfigService,
+  ICredentialStore,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import {
+  type CredentialStorage,
   isSettableConfigKey,
   parseSettableConfigValue,
   SETTABLE_CONFIG_KEYS,
@@ -27,6 +29,7 @@ export class SetConfigCommand extends BaseCommand<
 
   constructor(
     private readonly configService: IConfigService,
+    private readonly credentialStore: ICredentialStore,
     output: IOutputService
   ) {
     super(output);
@@ -60,17 +63,32 @@ export class SetConfigCommand extends BaseCommand<
 
     const parsedValue = parseSettableConfigValue(key, value);
 
-    await this.configService.setValue(key, parsedValue);
+    // Switching storage moves the saved secrets right away, so the setting
+    // never claims a location the tokens are not in.
+    let movedAccounts: number | undefined;
+    if (key === 'credentialStorage') {
+      movedAccounts = await this.credentialStore.setStorage(
+        parsedValue as CredentialStorage
+      );
+    } else {
+      await this.configService.setValue(key, parsedValue);
+    }
 
     if (context.globalOptions.json) {
       await this.output.json({
         success: true,
         key,
         value: parsedValue,
+        movedAccounts,
       });
       return;
     }
 
     this.output.success(`Set ${key} = ${parsedValue}`);
+    if (movedAccounts) {
+      this.output.text(
+        `  Moved ${movedAccounts} saved account${movedAccounts === 1 ? '' : 's'} to ${parsedValue === 'keychain' ? 'the OS keychain' : 'the config file'}`
+      );
+    }
   }
 }

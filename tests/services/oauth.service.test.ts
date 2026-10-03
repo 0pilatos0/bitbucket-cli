@@ -136,7 +136,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const token = await service.getValidAccessToken();
 
@@ -150,7 +150,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100, // expired
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -184,7 +184,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'my-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 30, // 30 seconds from now (within 60s buffer)
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -214,7 +214,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -255,7 +255,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -281,7 +281,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       // A hostile token endpoint can return any string here — verify it
       // doesn't get persisted into the structured --json error contract.
@@ -312,7 +312,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -342,7 +342,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'bad-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const longDescription = 'X'.repeat(1000);
       mockFetch([
@@ -377,7 +377,7 @@ describe('OAuthService', () => {
         oauthClientId: 'custom-id',
         oauthClientSecret: 'custom-secret',
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -413,7 +413,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -455,7 +455,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100, // expired
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -492,7 +492,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'the-refresh-token',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([
         {
@@ -539,7 +539,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'rt',
         oauthExpiresAt: Math.floor(Date.now() / 1000) - 100,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([
         {
@@ -573,7 +573,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const fetchMock = mockFetch([{ ok: true, status: 200 }]);
 
@@ -593,7 +593,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       mockFetch([{ ok: false, status: 500, text: async () => 'oops' }]);
 
@@ -606,7 +606,7 @@ describe('OAuthService', () => {
 
     it('should throw when no credentials exist', async () => {
       const configService = createMockConfigService({});
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       const result = await outcome(service.revokeToken());
       expect(result.error).toBeDefined();
@@ -619,7 +619,7 @@ describe('OAuthService', () => {
         oauthRefreshToken: 'refresh',
         oauthExpiresAt: Math.floor(Date.now() / 1000) + 3600,
       });
-      const service = new OAuthService(configService, configService);
+      const service = new OAuthService(configService);
 
       globalThis.fetch = (async () => {
         throw new Error('network down');
@@ -641,7 +641,7 @@ describe('OAuthService', () => {
     function createService(
       configService: ReturnType<typeof createMockConfigService>
     ): OAuthService {
-      return new OAuthService(configService, configService, EPHEMERAL_PORT);
+      return new OAuthService(configService, EPHEMERAL_PORT);
     }
 
     function tokenResponse(
@@ -762,12 +762,10 @@ describe('OAuthService', () => {
       await originalFetch(`${callbackUrl(authUrl)}?code=c&state=${state}`);
       await authorizePromise;
 
-      expect(await configService.getValue('oauthClientId')).toBe(
-        'custom-client-id'
-      );
-      expect(await configService.getValue('oauthClientSecret')).toBe(
-        'custom-client-secret'
-      );
+      expect(await configService.getOAuthClient()).toEqual({
+        clientId: 'custom-client-id',
+        clientSecret: 'custom-client-secret',
+      });
     });
 
     it('should use the stored custom client id when no override is given', async () => {
@@ -1002,7 +1000,7 @@ describe('OAuthService', () => {
 
       try {
         const configService = createMockConfigService({});
-        const service = new OAuthService(configService, configService, port);
+        const service = new OAuthService(configService, port);
 
         mockFetch([]);
 
