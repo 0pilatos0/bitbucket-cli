@@ -18,6 +18,7 @@ import type { IUrlBuilderService } from '../services/url-builder.service.js';
 import type { ConfigService } from '../services/config.service.js';
 import type { OAuthService } from '../services/oauth.service.js';
 import type { VersionService } from '../services/version.service.js';
+import type { DryRunMode } from '../services/dry-run.js';
 import type { DefaultReviewerService } from '../services/default-reviewer.service.js';
 import type { UserResolverService } from '../services/user-resolver.service.js';
 import type {
@@ -149,6 +150,7 @@ export const ServiceTokens = {
   PromptService: token<IPromptService>('PromptService'),
   OAuthService: token<OAuthService>('OAuthService'),
   VersionService: token<VersionService>('VersionService'),
+  DryRunMode: token<DryRunMode>('DryRunMode'),
 
   // API Clients
   SharedApiAxios: token<AxiosInstance>('SharedApiAxios'),

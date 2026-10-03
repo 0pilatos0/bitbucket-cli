@@ -70,7 +70,7 @@ describe('LoginCommand interactive prompts', () => {
     const prompt = createMockPromptService(['oauth']);
     const { command, oauthCalls } = buildLogin();
 
-    await command.execute({}, { globalOptions: {}, prompt });
+    await command.execute({}, { globalOptions: {}, interactive: true, prompt });
 
     expect(prompt.calls).toEqual([
       'select:How would you like to authenticate?',
@@ -86,7 +86,7 @@ describe('LoginCommand interactive prompts', () => {
     ]);
     const { command, configService, oauthCalls } = buildLogin();
 
-    await command.execute({}, { globalOptions: {}, prompt });
+    await command.execute({}, { globalOptions: {}, interactive: true, prompt });
 
     expect(prompt.calls).toEqual([
       'select:How would you like to authenticate?',
@@ -138,7 +138,7 @@ describe('LoginCommand interactive prompts', () => {
 
     await command.execute(
       { username: 'flag@example.com' },
-      { globalOptions: {}, prompt }
+      { globalOptions: {}, interactive: true, prompt }
     );
 
     expect(prompt.calls).toEqual(['secret:API token']);
@@ -155,7 +155,7 @@ describe('LoginCommand interactive prompts', () => {
     await expect(
       command.execute(
         { username: 'flag@example.com' },
-        { globalOptions: {}, prompt }
+        { globalOptions: {}, interactive: true, prompt }
       )
     ).rejects.toThrow('API token is required.');
   });
@@ -166,7 +166,7 @@ describe('LoginCommand interactive prompts', () => {
 
     await command.execute(
       { clientId: 'my-client' },
-      { globalOptions: {}, prompt }
+      { globalOptions: {}, interactive: true, prompt }
     );
 
     expect(prompt.calls).toEqual([]);
@@ -179,7 +179,7 @@ describe('LoginCommand interactive prompts', () => {
 
     await command.execute(
       { username: 'flag@example.com', password: 'flagtoken' },
-      { globalOptions: {}, prompt }
+      { globalOptions: {}, interactive: true, prompt }
     );
 
     expect(prompt.calls).toEqual([]);
@@ -188,11 +188,45 @@ describe('LoginCommand interactive prompts', () => {
   it('keeps the flag-only behavior without a prompt', async () => {
     const { command, oauthCalls } = buildLogin();
 
-    await command.execute({}, { globalOptions: {} });
+    await command.execute({}, { globalOptions: {}, interactive: true });
     await expect(
       command.execute({ username: 'flag@example.com' }, { globalOptions: {} })
     ).rejects.toThrow('API token is required.');
 
     expect(oauthCalls()).toBe(1);
+  });
+
+  it.each([
+    ['no flags', {}],
+    ['OAuth client flags', { clientId: 'id', clientSecret: 'secret' }],
+  ])(
+    'fails fast instead of opening a browser outside an interactive terminal (%s)',
+    async (_label, options) => {
+      const { command, oauthCalls } = buildLogin();
+
+      const error = await command
+        .execute(options, { globalOptions: { json: true } })
+        .catch((e: unknown) => e);
+
+      expect(error).toMatchObject({
+        code: ErrorCode.AUTH_REQUIRED,
+        message: expect.stringContaining('BB_API_TOKEN'),
+      });
+      expect(oauthCalls()).toBe(0);
+    }
+  );
+
+  it('uses BB_API_TOKEN outside an interactive terminal', async () => {
+    process.env.BB_USERNAME = 'env@example.com';
+    process.env.BB_API_TOKEN = 'envtoken';
+    const { command, configService, oauthCalls } = buildLogin();
+
+    await command.execute({}, { globalOptions: {} });
+
+    expect(oauthCalls()).toBe(0);
+    expect(await configService.getCredentials()).toEqual({
+      username: 'env@example.com',
+      apiToken: 'envtoken',
+    });
   });
 });

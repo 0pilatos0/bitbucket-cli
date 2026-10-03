@@ -14,6 +14,7 @@ import {
   PromptService,
   VersionService,
   OAuthService,
+  DryRunMode,
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
@@ -244,6 +245,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       })
   );
   container.register(ServiceTokens.PromptService, () => new PromptService());
+  container.register(ServiceTokens.DryRunMode, () => new DryRunMode());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.CredentialStore,
   ]);
@@ -262,7 +264,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const credentialStore = container.resolve(ServiceTokens.CredentialStore);
     const oauthService = container.resolve(ServiceTokens.OAuthService);
     const outputService = container.resolve(ServiceTokens.OutputService);
-    return createApiClient(credentialStore, outputService, oauthService);
+    return createApiClient(
+      credentialStore,
+      outputService,
+      oauthService,
+      undefined,
+      container.resolve(ServiceTokens.DryRunMode)
+    );
   });
 
   // Generated API clients, all constructed on the shared axios instance
