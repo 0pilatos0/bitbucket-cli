@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
+import { DRY_RUN_DESCRIPTION } from '../../core/command-options.js';
 
 export function registerProjectCommands(
   parent: Command,
@@ -63,6 +64,7 @@ export function registerProjectCommands(
     .option('-d, --description <description>', 'Project description')
     .option('--private', 'Create a private project (default)')
     .option('--public', 'Create a public project')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

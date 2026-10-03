@@ -116,6 +116,7 @@ bb webhook create --url <url> --event <event...> [options]
 | `-d, --description <description>` | Webhook description                                                         |
 | `--secret <secret>`               | Secret Bitbucket uses to sign each delivery in the `X-Hub-Signature` header |
 | `--inactive`                      | Create the webhook disabled                                                 |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 Events are checked against the list Bitbucket publishes (for example
 `repo:push`, `pullrequest:created`, `pullrequest:fulfilled`,
@@ -161,6 +162,7 @@ bb webhook delete <uid> --yes [options]
 | ----------------- | --------------------------------------------------------------------------- |
 | `--scope <scope>` | `repo` (default) or `workspace`                                             |
 | `-y, --yes`       | Skip the confirmation prompt (required when not in an interactive terminal) |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

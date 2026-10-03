@@ -532,6 +532,14 @@ describe('OutputService', () => {
       expect(consoleLogs[0]).toContain('ℹ');
       expect(consoleLogs[0]).toContain('Here is some info');
     });
+
+    it('writes to stderr in JSON mode so stdout stays parseable', () => {
+      output.setJsonFormatOptions({ json: true });
+      output.info('Opening browser...');
+
+      expect(consoleLogs).toEqual([]);
+      expect(consoleErrors[0]).toContain('Opening browser...');
+    });
   });
 
   describe('text', () => {

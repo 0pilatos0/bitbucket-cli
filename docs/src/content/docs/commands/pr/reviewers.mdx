@@ -112,6 +112,12 @@ Add a reviewer by [nickname, display name, email, `@me`, account ID or UUID](#id
 bb pr reviewers add <id> <user>
 ```
 
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ```bash
 # By nickname or display name
 bb pr reviewers add 42 jdoe
@@ -138,6 +144,12 @@ Remove a reviewer. Same `<user>` rules as `add`.
 ```bash
 bb pr reviewers remove <id> <user>
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ```bash
 # By nickname
