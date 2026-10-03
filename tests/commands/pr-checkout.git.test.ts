@@ -98,14 +98,16 @@ describe('CheckoutPRCommand with real git', () => {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), 'bb-checkout-'));
     const fakeSsh = join(root, 'fake-ssh');
-    // git runs `<ssh> git@bitbucket.org "git-upload-pack 'team/app.git'"`.
+    // git runs `<ssh> git@bitbucket.org "git-upload-pack 'team/app.git'"`
+    // through `sh`, which would eat the backslashes of a Windows path.
+    const shellPath = (path: string) => `'${path.replaceAll('\\', '/')}'`;
     await writeFile(
       fakeSsh,
-      `#!/bin/sh\nfor command; do :; done\ncd '${root}' && eval "$command"\n`
+      `#!/bin/sh\nfor command; do :; done\ncd ${shellPath(root)} && eval "$command"\n`
     );
     await chmod(fakeSsh, 0o755);
     env = {
-      GIT_SSH_COMMAND: fakeSsh,
+      GIT_SSH_COMMAND: shellPath(fakeSsh),
       GIT_SSH_VARIANT: 'simple',
       PATH: process.env.PATH ?? '',
       HOME: root,
