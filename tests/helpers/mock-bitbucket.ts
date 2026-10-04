@@ -196,7 +196,7 @@ export async function startMockBitbucket(
 
         const commonHeaders: Record<string, string> = {
           'content-type': 'application/json',
-          ...(options.rateLimitHeaders ?? {}),
+          ...options.rateLimitHeaders,
         };
 
         if (requireAuth && !headers.authorization?.startsWith('Basic ')) {
@@ -225,7 +225,7 @@ export async function startMockBitbucket(
           });
           const init = {
             status: result.status ?? 200,
-            headers: { ...commonHeaders, ...(result.headers ?? {}) },
+            headers: { ...commonHeaders, ...result.headers },
           };
           return result.body instanceof Uint8Array
             ? new Response(result.body, init)
@@ -250,7 +250,7 @@ export async function startMockBitbucket(
 
   return {
     url: server.url.origin,
-    port: server.port,
+    port: server.port!,
     requests,
     peakInFlight,
     stop: () => server.stop(true),

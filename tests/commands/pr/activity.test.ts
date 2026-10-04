@@ -320,7 +320,7 @@ describe('ActivityPRCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows).toHaveLength(1);
-    expect(rows[0][1]).toBe('CR User');
-    expect(rows[0][2]).toContain('2024-03-01');
+    expect(rows[0]![1]).toBe('CR User');
+    expect(rows[0]![2]).toContain('2024-03-01');
   });
 });

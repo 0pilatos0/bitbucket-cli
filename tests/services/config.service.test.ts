@@ -14,9 +14,9 @@ import {
   stat,
   symlink,
   chmod,
-} from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
+} from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 describe('ConfigService', () => {
   const testConfigDir = join(tmpdir(), `bb-test-${Date.now()}`);

@@ -128,21 +128,21 @@ describe('OutputService', () => {
     });
 
     it('pretty-prints JSON when stdout is a terminal', async () => {
-      setStdoutTTY(true);
+      terminal.isTTY = true;
       await output.json({ name: 'test', value: 42 });
 
       expect(stdoutLines).toEqual(['{\n  "name": "test",\n  "value": 42\n}']);
     });
 
     it('prints compact JSON when stdout is piped', async () => {
-      setStdoutTTY(false);
+      terminal.isTTY = false;
       await output.json({ name: 'test', nested: { value: 42 } });
 
       expect(stdoutLines).toEqual(['{"name":"test","nested":{"value":42}}']);
     });
 
     it('prints compact --jq results when stdout is piped', async () => {
-      setStdoutTTY(false);
+      terminal.isTTY = false;
       output.setJsonFormatOptions({ jq: '.items[]' });
       await output.json({ items: [{ id: 1 }, { id: 2 }] });
 
@@ -150,7 +150,7 @@ describe('OutputService', () => {
     });
 
     it('pretty-prints --jq results when stdout is a terminal', async () => {
-      setStdoutTTY(true);
+      terminal.isTTY = true;
       output.setJsonFormatOptions({ jq: '.items[0]' });
       await output.json({ items: [{ id: 1 }] });
 
@@ -895,7 +895,7 @@ describe('OutputService', () => {
       (helper, code) => {
         const result = (
           colorOutput as unknown as Record<string, (t: string) => string>
-        )[helper]('hello');
+        )[helper]!('hello');
         expect(result).toContain('hello');
         expect(result).toContain(`\u001b[${code}m`);
         expect(result).toContain('\u001b[39m'); // color reset
@@ -965,7 +965,7 @@ describe('OutputService', () => {
       expect(headerLine).toContain('BBBB');
       expect(separator).toMatch(/^-+  -+$/);
       // The second column starts at the same offset on every row.
-      expect(row1.indexOf('x')).toBe(row2.indexOf('yy'));
+      expect(row1!.indexOf('x')).toBe(row2!.indexOf('yy'));
     });
   });
 
@@ -1000,7 +1000,7 @@ describe('OutputService', () => {
           stdoutLines.length = 0;
           stderrLines.length = 0;
 
-          (output as unknown as Record<string, (m: string) => void>)[method](
+          (output as unknown as Record<string, (m: string) => void>)[method]!(
             payload
           );
 
@@ -1079,7 +1079,9 @@ describe('OutputService', () => {
       }
 
       // The description tail must not start a new line at column 0.
-      expect(stdoutLines.some((line) => /^To connect/.test(line))).toBe(false);
+      expect(stdoutLines.some((line) => line.startsWith('To connect'))).toBe(
+        false
+      );
 
       // Visible words survive — only the control chars are removed/collapsed.
       const printed = stdoutLines.join('\n');

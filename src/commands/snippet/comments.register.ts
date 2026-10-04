@@ -74,7 +74,7 @@ export function registerSnippetCommentsCommands(
         ],
       })
     )
-    .action(async (snippetId, commentId, message, options) => {
+    .action(async (snippetId, commentId, message) => {
       await registrar.runWithGlobalOptions(
         ServiceTokens.EditSnippetCommentCommand,
         { snippetId, commentId, message }

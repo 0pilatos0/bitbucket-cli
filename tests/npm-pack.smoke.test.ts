@@ -8,7 +8,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { spawnSync } from 'node:child_process';
-import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -25,9 +25,16 @@ let packed: PackResult;
 
 beforeAll(async () => {
   pkgDir = await mkdtemp(join(tmpdir(), 'bb-npm-pack-'));
-  for (const file of ['package.json', 'README.md', 'LICENSE', '.npmignore']) {
+  for (const file of ['README.md', 'LICENSE', '.npmignore']) {
     await cp(join(REPO_ROOT, file), join(pkgDir, file));
   }
+  // npm pack runs `prepare` even with --ignore-scripts, and its hook
+  // installer is a devDependency this copy doesn't have.
+  const pkg = JSON.parse(
+    await readFile(join(REPO_ROOT, 'package.json'), 'utf8')
+  );
+  delete pkg.scripts.prepare;
+  await writeFile(join(pkgDir, 'package.json'), JSON.stringify(pkg, null, 2));
   // A map left behind by an older build must not ship either.
   await mkdir(join(pkgDir, 'dist'));
   await writeFile(join(pkgDir, 'dist', 'index.js.map'), '{}');
@@ -62,7 +69,7 @@ beforeAll(async () => {
   if (pack.status !== 0) {
     throw new Error(`npm pack failed (${pack.status}): ${pack.stderr}`);
   }
-  [packed] = JSON.parse(pack.stdout) as PackResult[];
+  packed = (JSON.parse(pack.stdout) as PackResult[])[0]!;
 }, BUILD_TIMEOUT_MS + PACK_TIMEOUT_MS);
 
 afterAll(async () => {

@@ -237,6 +237,7 @@ async function runCommand(
       error instanceof Error &&
       error.message.startsWith('Service not registered')
     ) {
+      // eslint-disable-next-line no-console -- the container failed, so OutputService may be unavailable
       console.error(`Internal error: ${error.message}`);
     }
 

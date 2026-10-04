@@ -20,7 +20,7 @@ describe('RemoveReviewerPRCommand', () => {
       reviewers: new Set([
         { uuid: '{remove-uuid}', display_name: 'Remove Me' },
         { uuid: '{keep-uuid}', display_name: 'Keep Me' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -56,7 +56,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{only-uuid}', display_name: 'Only Reviewer' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithOneReviewer],
@@ -92,7 +92,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{other-uuid}', display_name: 'Other' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -128,7 +128,7 @@ describe('RemoveReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{remove-uuid}', display_name: 'Remove Me' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],

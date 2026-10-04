@@ -7,14 +7,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import {
   cpSync,
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dir, '../..');
 const script = join(repoRoot, 'scripts/new-command.ts');
@@ -43,24 +42,18 @@ const read = (path: string): string => readFileSync(join(root, path), 'utf8');
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'bb-new-command-'));
-  for (const entry of [
-    'src',
-    'tests',
-    'tsconfig.json',
-    'package.json',
-    'bunfig.toml',
-    '.prettierrc',
-  ]) {
-    cpSync(join(repoRoot, entry), join(root, entry), { recursive: true });
-  }
-  mkdirSync(join(root, 'docs/src/content/docs'), { recursive: true });
-  for (const entry of [
-    'docs/src/content/docs/commands',
-    'docs/src/content/docs/reference',
-    'scripts/check-command-docs.ts',
-  ]) {
-    cpSync(join(repoRoot, entry), join(root, entry), { recursive: true });
-  }
+  // The whole repo, because lint type-checks src, tests and scripts together.
+  const skipped = new Set([
+    'node_modules',
+    '.git',
+    'dist',
+    'dist-bin',
+    'coverage',
+  ]);
+  cpSync(repoRoot, root, {
+    recursive: true,
+    filter: (source) => !skipped.has(basename(source)),
+  });
   symlinkSync(
     join(repoRoot, 'node_modules'),
     join(root, 'node_modules'),

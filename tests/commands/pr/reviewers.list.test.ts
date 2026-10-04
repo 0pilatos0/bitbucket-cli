@@ -17,7 +17,7 @@ describe('ListReviewersPRCommand', () => {
       reviewers: new Set([
         { display_name: 'Alice', account_id: 'acc-1' },
         { display_name: 'Bob', account_id: 'acc-2' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -44,7 +44,7 @@ describe('ListReviewersPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -75,7 +75,7 @@ describe('ListReviewersPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { display_name: 'Alice', account_id: 'acc-1' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -105,7 +105,7 @@ describe('ListReviewersPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -135,7 +135,9 @@ describe('ListReviewersPRCommand', () => {
     const prWithPartialReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set([{ type: 'user' }]) as Pullrequest['reviewers'],
+      reviewers: new Set([
+        { type: 'user' },
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithPartialReviewers],
@@ -155,7 +157,7 @@ describe('ListReviewersPRCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows.length).toBe(1);
-    expect(rows[0][0]).toBe('Unknown');
-    expect(rows[0][1]).toBe('');
+    expect(rows[0]![0]).toBe('Unknown');
+    expect(rows[0]![1]).toBe('');
   });
 });

@@ -473,7 +473,7 @@ export abstract class BaseCommand<
 
     if (context.globalOptions.json) {
       await this.output.json({
-        ...(spec.jsonMetadata ?? {}),
+        ...spec.jsonMetadata,
         count: items.length,
         hasMore,
         limit: Number.isFinite(limit) ? limit : null,

@@ -54,7 +54,8 @@ const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ['second', 1],
 ];
 
-type TerminalState = Pick<NodeJS.WriteStream, 'isTTY' | 'columns'>;
+// `columns` is undefined when stdout is not a terminal (e.g. piped).
+type TerminalState = { isTTY: boolean; columns?: number };
 
 function stripControl(value: string): string {
   return value.replace(

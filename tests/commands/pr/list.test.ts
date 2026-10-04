@@ -170,7 +170,7 @@ describe('ListPRsCommand', () => {
     const output = createMockOutputService();
     const command = new ListPRsCommand(
       pullrequestsApi,
-      createMockUsersApi({ uuid: '{user-uuid}' }),
+      createUserResolverStub(createMockUsersApi({ uuid: '{user-uuid}' })),
       createMockContextService({ workspace: 'workspace', repoSlug: 'repo' }),
       output
     );
@@ -264,10 +264,10 @@ describe('ListPRsCommand', () => {
         id: 1,
         source: {
           branch: { name: 'feature' },
-        } as unknown as import('../../../src/generated/api.js').PullrequestSource,
+        },
         destination: {
           branch: { name: 'main' },
-        } as unknown as import('../../../src/generated/api.js').PullrequestDestination,
+        },
       },
     ];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });
@@ -297,10 +297,10 @@ describe('ListPRsCommand', () => {
         id: 1,
         source: {
           branch: { name: 'feature' },
-        } as unknown as import('../../../src/generated/api.js').PullrequestSource,
+        },
         destination: {
           branch: { name: 'main' },
-        } as unknown as import('../../../src/generated/api.js').PullrequestDestination,
+        },
       },
     ];
     const pullrequestsApi = createMockPullrequestsApi({ pullRequests: prs });

@@ -28,7 +28,7 @@ function parseOutDir(): string {
   const args = process.argv.slice(2);
   let outDir = resolve(repoRoot, 'dist');
   for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
+    const arg = args[i]!;
     if (arg === '--outdir') {
       const value = args[i + 1];
       if (value === undefined) {

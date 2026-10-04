@@ -42,7 +42,7 @@ const usagesByVar = new Map<string, Set<string>>();
 for (const file of walk(srcDir)) {
   const src = readFileSync(file, 'utf8');
   for (const m of src.matchAll(envRe)) {
-    const name = m[1];
+    const name = m[1]!;
     if (ALLOWLIST.has(name)) continue;
     const rel = relative(repoRoot, file);
     if (!usagesByVar.has(name)) usagesByVar.set(name, new Set());
@@ -54,7 +54,7 @@ const docsSrc = readFileSync(docsPath, 'utf8');
 const documented = new Set<string>();
 // Variables in the reference are listed as `| \`NAME\` |` table rows.
 for (const m of docsSrc.matchAll(/\|\s*`([A-Z][A-Z0-9_]*)`\s*\|/g)) {
-  documented.add(m[1]);
+  documented.add(m[1]!);
 }
 
 const missing: Array<{ name: string; files: string[] }> = [];

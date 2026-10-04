@@ -216,7 +216,7 @@ describe('ListSnippetsCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows.length).toBe(1);
-    expect(rows[0][1]).toBe('Test snippet');
+    expect(rows[0]![1]).toBe('Test snippet');
   });
 
   it('should list snippets as JSON', async () => {
