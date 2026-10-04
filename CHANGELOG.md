@@ -1,5 +1,53 @@
 # Changelog
 
+## 2.4.0
+
+### Minor Changes
+
+- [#424](https://github.com/0pilatos0/bitbucket-cli/pull/424) [`361b0c9`](https://github.com/0pilatos0/bitbucket-cli/commit/361b0c94bd3ca3510caeb09e723729225e7b4814) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Make `bb` easier for scripts and AI agents to discover. `bb help --json` (and `bb help <command> --json`) prints the command tree with arguments, flags, choices, defaults and examples. `bb context` shows the workspace, repository, remote and branch `bb` would use, and where each came from, without a network call. `bb agent-instructions` prints the agent instructions that ship with the installed version, the same text the AI agents guide shows. A user alias named `context` or `agent-instructions` is now shadowed by the new command.
+
+- [#410](https://github.com/0pilatos0/bitbucket-cli/pull/410) [`4f95e62`](https://github.com/0pilatos0/bitbucket-cli/commit/4f95e623cb853c83df457334c55b94fd65a17384) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb doctor`, which checks the Bun runtime, config file, network access, authentication, token scopes and git remote detection, prints a pass/warn/fail row for each (`--json` supported), and exits 1 when a check fails.
+
+  `bb auth status` now exits 1 when you are not logged in, matching `gh auth status` and its existing exit 1 for invalid credentials. Its output is unchanged. Scripts that ran it only to print status should append `|| true`.
+
+- [#419](https://github.com/0pilatos0/bitbucket-cli/pull/419) [`7dc7c8c`](https://github.com/0pilatos0/bitbucket-cli/commit/7dc7c8ce15f85b62e1e683f6935c8d260181dcd4) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Make failures machine-readable for scripts and agents.
+
+  - Argument-parsing errors (unknown option or subcommand, missing or extra arguments, a command group run without a subcommand) now come back as a JSON envelope on stderr whenever `--json` or `--jq` is on the command line, with `context.parseError`, `context.commandPath` and a `hint`. `--jq` without `--json` also reports its error as JSON.
+  - A destructive command run without `--yes` where it can't ask now fails with the new code `5005 CONFIRMATION_REQUIRED` (previously `5001`), and `context.retry` holds the exact command to rerun with `--yes`.
+  - Paginated list envelopes now include `hasMore` and `limit` (`null` under `--all`), so you can tell when `--limit` cut the results short.
+  - Opt-in `BB_DETAILED_EXIT_CODES=1` exits `2` for usage errors, `3` for not found, `4` for authentication and `5` for confirmation required. Without it every failure still exits `1`.
+
+- [#422](https://github.com/0pilatos0/bitbucket-cli/pull/422) [`2093588`](https://github.com/0pilatos0/bitbucket-cli/commit/209358848e3b4e9eee1a7d0030eeec860fce4360) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Safer non-interactive runs. `bb auth login` without a terminal and without an API token now fails fast with error 1001 instead of opening a browser and waiting five minutes. `bb browse` and `bb pr diff --web` print the URL instead of opening a browser when stdout is not a terminal. Every write command and `bb api` accept `--dry-run`, which prints the write request (method, URL, body) and exits 0 without sending it. Under `--json`, info lines go to stderr so stdout stays valid JSON.
+
+- [#405](https://github.com/0pilatos0/bitbucket-cli/pull/405) [`577c166`](https://github.com/0pilatos0/bitbucket-cli/commit/577c166ccb1cf37537025b19aa365b8b79b70f2e) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `-F/--body-file <file>` to `bb pr create`, `bb pr comments add` and `bb pr comments reply`, and let `bb pr edit --body-file` read stdin. Pass a file path, or `-` to read stdin, so multi-line markdown with backticks, quotes or `$` reaches Bitbucket as written without shell escaping. On the comment commands the `<message>` argument becomes optional when `--body-file` is given. Passing both inline text and `--body-file` is rejected on the new flags; `bb pr edit` keeps letting the file override `--body`. `bb pr create -F -` needs `--title`, since stdin can't also answer the title prompt. `bb pr comments add/reply` now reject blank comment text locally instead of sending it to Bitbucket.
+
+- [#412](https://github.com/0pilatos0/bitbucket-cli/pull/412) [`5c5ca8d`](https://github.com/0pilatos0/bitbucket-cli/commit/5c5ca8d25b6852c97a5ef872ef70ca08b954ec7f) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr view`, `activity`, `checks`, `merge`, `approve`, `decline`, `ready` and `comments list` no longer need a PR ID: leave it out to act on the open pull request for your current git branch, as `bb pr diff` and `bb pr edit` already did. The lookup now filters on the server in one request instead of paging through every open PR, ignores pull requests opened from other repositories (forks) with the same branch name, and stops with an error when several pull requests still match instead of picking one.
+
+- [#408](https://github.com/0pilatos0/bitbucket-cli/pull/408) [`90d001b`](https://github.com/0pilatos0/bitbucket-cli/commit/90d001b1791d24e0e8a715a753d7739e972424b2) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add gh-style pull request workflow commands. `bb pr list` gains `--author`, `--reviewer` (both take the same user forms as `bb pr create --reviewer`, including `@me`), `--source`, `--destination` and a raw `--query`, all filtered server-side; `--mine` stays as shorthand for `--reviewer @me`. New `bb pr status` shows the PR for the current branch, your open PRs and PRs awaiting your review. New `bb pr unapprove [id]` and `bb pr request-changes [id] [--undo]` complete the review actions (without an ID they use the open PR for the current branch).
+
+  `bb pr list --mine` now fails with an error if your account UUID can't be read from `GET /user`, instead of warning and listing every PR unfiltered.
+
+- [#425](https://github.com/0pilatos0/bitbucket-cli/pull/425) [`6bd2a81`](https://github.com/0pilatos0/bitbucket-cli/commit/6bd2a81f52ea09d362c3998f613fae317e2cabc9) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Follow CI from the terminal. `bb pipeline watch [id]` waits for a run to finish and exits non-zero unless it passes, `bb pipeline logs --follow` streams step logs as they are written, and `bb pr checks --watch` waits until no check is running and exits non-zero if one failed or stopped. `bb pipeline view` and `bb pipeline logs` now default to the newest run on the current branch when no id is given. `bb pr checks` reads every page of statuses instead of only the first. A failed watch reports the new error code `10001` (`CI_FAILED`).
+
+### Patch Changes
+
+- [#406](https://github.com/0pilatos0/bitbucket-cli/pull/406) [`2c6a7a9`](https://github.com/0pilatos0/bitbucket-cli/commit/2c6a7a907313ec3467ed3319f59caa7304bc90d6) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Stop cutting piped output off at 64 KB. Large `--json` and table output now reaches `| jq`, `| wc` and other pipes in full instead of ending mid-document with exit code 0. Shell completion code now loads only when completion runs, which also makes every other command start faster.
+
+- [#414](https://github.com/0pilatos0/bitbucket-cli/pull/414) [`44bd487`](https://github.com/0pilatos0/bitbucket-cli/commit/44bd48792533f7cb42469d930afbc0dffe1fa622) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Polish help and argument parsing. Subcommand help now lists the global flags (`-w`, `-r`, `--json`, `--jq`, `--no-input`, ...) under "Global Options". Enum option values ignore case, so `bb pr list -s open` works. Text-mode parse errors from the argument parser use the same `✗` prefix as every other error, alias errors no longer print a doubled `Error:`, and a bad positional ID names the argument (`<id> must be a positive integer`) instead of a `--id` flag that doesn't exist. Running a command group without a subcommand (`bb status`) prints its help and exits 0 (with `--json` it still reports a `missingSubcommand` error).
+
+- [#416](https://github.com/0pilatos0/bitbucket-cli/pull/416) [`70e452c`](https://github.com/0pilatos0/bitbucket-cli/commit/70e452cdf05fc3803277bd327bd0a3afb70aa8a4) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Enforce code conventions with oxlint, check changesets on pull requests, and
+  install the pre-commit hook on `bun install`. No change to CLI behavior.
+
+- [#426](https://github.com/0pilatos0/bitbucket-cli/pull/426) [`18488bd`](https://github.com/0pilatos0/bitbucket-cli/commit/18488bda1d8424def786151ce3be0c06028afd85) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Contributor tooling: `bun run new:command <group> <verb>` scaffolds a new command (code, test, DI wiring, Commander registration and docs stubs), with the full checklist in `src/commands/AGENTS.md`. No change to the published CLI.
+
+- [#403](https://github.com/0pilatos0/bitbucket-cli/pull/403) [`8e58f46`](https://github.com/0pilatos0/bitbucket-cli/commit/8e58f46baa32a9c8e884b4c075b5b4e3a04a9856) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr create` without `--destination` now targets the repository's main branch (for example `master` or `develop`) instead of always `main`. The text output shows the destination branch.
+
+- [#409](https://github.com/0pilatos0/bitbucket-cli/pull/409) [`abd8e7e`](https://github.com/0pilatos0/bitbucket-cli/commit/abd8e7e1cb41049e6fc1a48449601d26a2e565b9) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Detect the repository from more git remote shapes: dotted repository names, `ssh://` URLs, trailing slashes, SSH host aliases from `~/.ssh/config`, and Bitbucket remotes not named `origin`. When several remotes point to different Bitbucket repositories, the CLI now prefers `upstream` and otherwise asks for `--workspace`/`--repo`. Passwords embedded in a reported remote URL are masked.
+
+- [#407](https://github.com/0pilatos0/bitbucket-cli/pull/407) [`b9168cd`](https://github.com/0pilatos0/bitbucket-cli/commit/b9168cdb225e6b2912c421e4657ac2ae3666b3dd) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Type-check tests and build scripts in `bun run lint`, and fix the drift it surfaced.
+
+- [#423](https://github.com/0pilatos0/bitbucket-cli/pull/423) [`2e0c818`](https://github.com/0pilatos0/bitbucket-cli/commit/2e0c8184f19acbb1e47f8ec40a80486dd562f0f0) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Type-check dependency injection wiring: service tokens now carry the type they resolve to, so a swapped or missing constructor dependency or a mistyped command option fails the build instead of surfacing at runtime. No change to CLI behavior.
+
 ## 2.3.0
 
 ### Minor Changes
