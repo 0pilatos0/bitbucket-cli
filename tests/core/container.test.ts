@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { Container } from '../../src/core/container.js';
+import { Container, token } from '../../src/core/container.js';
 
 describe('Container', () => {
   let container: Container;
@@ -32,22 +32,24 @@ describe('Container', () => {
 
   describe('register', () => {
     it('should register and resolve a service', () => {
-      container.register('TestService', () => ({ value: 42 }));
+      container.register(token('TestService'), () => ({ value: 42 }));
 
-      const service = container.resolve<{ value: number }>('TestService');
+      const service = container.resolve<{ value: number }>(
+        token('TestService')
+      );
 
       expect(service.value).toBe(42);
     });
 
     it('should return same instance for singleton (default)', () => {
       let callCount = 0;
-      container.register('TestService', () => {
+      container.register(token('TestService'), () => {
         callCount++;
         return { id: callCount };
       });
 
-      const service1 = container.resolve<{ id: number }>('TestService');
-      const service2 = container.resolve<{ id: number }>('TestService');
+      const service1 = container.resolve<{ id: number }>(token('TestService'));
+      const service2 = container.resolve<{ id: number }>(token('TestService'));
 
       expect(service1).toBe(service2);
       expect(service1.id).toBe(1);
@@ -57,7 +59,7 @@ describe('Container', () => {
     it('should return new instance when singleton is false', () => {
       let callCount = 0;
       container.register(
-        'TestService',
+        token('TestService'),
         () => {
           callCount++;
           return { id: callCount };
@@ -65,8 +67,8 @@ describe('Container', () => {
         { singleton: false }
       );
 
-      const service1 = container.resolve<{ id: number }>('TestService');
-      const service2 = container.resolve<{ id: number }>('TestService');
+      const service1 = container.resolve<{ id: number }>(token('TestService'));
+      const service2 = container.resolve<{ id: number }>(token('TestService'));
 
       expect(service1).not.toBe(service2);
       expect(service1.id).toBe(1);
@@ -77,16 +79,18 @@ describe('Container', () => {
   describe('registerInstance', () => {
     it('should register an existing instance', () => {
       const instance = { value: 'test' };
-      container.registerInstance('TestService', instance);
+      container.registerInstance(token('TestService'), instance);
 
-      const resolved = container.resolve<{ value: string }>('TestService');
+      const resolved = container.resolve<{ value: string }>(
+        token('TestService')
+      );
 
       expect(resolved).toBe(instance);
     });
   });
 
-  describe('registerClass', () => {
-    it('should instantiate class with dependencies', () => {
+  describe('resolveAll', () => {
+    it('should resolve tokens positionally for constructor injection', () => {
       class Dependency {
         getValue() {
           return 42;
@@ -94,64 +98,58 @@ describe('Container', () => {
       }
 
       class Service {
-        constructor(public dep: Dependency) {}
+        constructor(
+          public dep: Dependency,
+          public label: string
+        ) {}
       }
 
-      container.register('Dependency', () => new Dependency());
-      container.registerClass('Service', Service, ['Dependency']);
+      const DependencyToken = token<Dependency>('Dependency');
+      const LabelToken = token<string>('Label');
+      container.register(DependencyToken, () => new Dependency());
+      container.registerInstance(LabelToken, 'svc');
 
-      const service = container.resolve<Service>('Service');
+      const service = new Service(
+        ...container.resolveAll<ConstructorParameters<typeof Service>>([
+          DependencyToken,
+          LabelToken,
+        ])
+      );
 
       expect(service.dep.getValue()).toBe(42);
+      expect(service.label).toBe('svc');
     });
   });
 
   describe('resolve', () => {
     it('should throw for unregistered service', () => {
       expect(() => {
-        container.resolve('NonExistent');
+        container.resolve(token('NonExistent'));
       }).toThrow('Service not registered: NonExistent');
     });
   });
 
   describe('has', () => {
     it('should return true for registered service', () => {
-      container.register('TestService', () => ({}));
+      container.register(token('TestService'), () => ({}));
 
-      expect(container.has('TestService')).toBe(true);
+      expect(container.has(token('TestService'))).toBe(true);
     });
 
     it('should return false for unregistered service', () => {
-      expect(container.has('NonExistent')).toBe(false);
-    });
-  });
-
-  describe('unregister', () => {
-    it('should remove a registered service', () => {
-      container.register('TestService', () => ({}));
-      expect(container.has('TestService')).toBe(true);
-
-      container.unregister('TestService');
-
-      expect(container.has('TestService')).toBe(false);
-    });
-
-    it('should return false for non-existent service', () => {
-      const result = container.unregister('NonExistent');
-
-      expect(result).toBe(false);
+      expect(container.has(token('NonExistent'))).toBe(false);
     });
   });
 
   describe('clear', () => {
     it('should remove all services', () => {
-      container.register('Service1', () => ({}));
-      container.register('Service2', () => ({}));
+      container.register(token('Service1'), () => ({}));
+      container.register(token('Service2'), () => ({}));
 
       container.clear();
 
-      expect(container.has('Service1')).toBe(false);
-      expect(container.has('Service2')).toBe(false);
+      expect(container.has(token('Service1'))).toBe(false);
+      expect(container.has(token('Service2'))).toBe(false);
     });
   });
 });

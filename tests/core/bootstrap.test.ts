@@ -7,16 +7,13 @@
  * registered token and verify each command can be instantiated, so a
  * broken wiring fails in CI instead of production.
  *
- * Positional dep wiring is pinned against the exported registration table:
- * `deps.length` must equal the constructor's arity exactly. Note the table
- * cannot catch a *swapped* pair of same-arity, same-shape deps (tokens are
- * plain strings) — the named identity checks below close that hole for the
- * non-trivial registerCommand-wired services, and the shared-axios test
- * covers every generated client.
+ * Positional dep order and arity are enforced at compile time by the typed
+ * tokens (see tests/typecheck/di-tokens.ts); the identity checks below pin
+ * the runtime wiring of the non-trivial services.
  */
 
 import { describe, it, expect } from 'bun:test';
-import { bootstrap, commandRegistrations } from '../../src/bootstrap.js';
+import { bootstrap } from '../../src/bootstrap.js';
 import { Container, ServiceTokens } from '../../src/core/container.js';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
@@ -37,7 +34,7 @@ describe('bootstrap()', () => {
     const container = bootstrap();
 
     for (const token of Object.values(ServiceTokens)) {
-      expect(() => container.resolve(token)).not.toThrow();
+      expect(() => container.resolve<unknown>(token)).not.toThrow();
     }
   });
 
@@ -52,7 +49,7 @@ describe('bootstrap()', () => {
     expect(commandTokens.length).toBeGreaterThanOrEqual(40);
 
     for (const token of commandTokens) {
-      const resolved = container.resolve(token);
+      const resolved = container.resolve<unknown>(token);
       expect(resolved).toBeInstanceOf(BaseCommand);
     }
   });
@@ -73,9 +70,9 @@ describe('bootstrap()', () => {
     Container.reset();
     const container = bootstrap({ noColor: true });
 
-    const output = container.resolve<OutputService>(
+    const output = container.resolve(
       ServiceTokens.OutputService
-    );
+    ) as OutputService;
 
     // With noColor, color helpers should pass through.
     expect(output.red('x')).toBe('x');
@@ -86,9 +83,9 @@ describe('bootstrap()', () => {
   it('defaults to colorized output when noColor is unset', () => {
     Container.reset();
     const container = bootstrap({});
-    const output = container.resolve<OutputService>(
+    const output = container.resolve(
       ServiceTokens.OutputService
-    );
+    ) as OutputService;
 
     // Without noColor the format() helper uses the provided formatter.
     expect(output.format('ping', (t) => `<${t}>`)).toBe('<ping>');
@@ -127,30 +124,12 @@ describe('bootstrap()', () => {
     expect((createPR as unknown as { output: unknown }).output).toBe(output);
   });
 
-  it('matches each registerCommand deps array to its constructor arity', () => {
-    const container = bootstrap();
-
-    for (const registration of commandRegistrations) {
-      const paramCount = (registration.ctor as { length: number }).length;
-      expect(
-        paramCount,
-        `${registration.token} deps length must equal constructor arity`
-      ).toBe(registration.deps.length);
-      for (const dep of registration.deps) {
-        expect(container.has(dep), `${registration.token} dep ${dep}`).toBe(
-          true
-        );
-      }
-    }
-  });
-
   it('wires the registerCommand-wired services in constructor order', () => {
     const container = bootstrap();
 
-    const context = container.resolve<{
-      gitService: unknown;
-      configService: unknown;
-    }>(ServiceTokens.ContextService);
+    const context = container.resolve(
+      ServiceTokens.ContextService
+    ) as unknown as { gitService: unknown; configService: unknown };
     expect(context.gitService).toBe(
       container.resolve(ServiceTokens.GitService)
     );
@@ -158,16 +137,16 @@ describe('bootstrap()', () => {
       container.resolve(ServiceTokens.ConfigService)
     );
 
-    const snippetFiles = container.resolve<{ axios: unknown }>(
+    const snippetFiles = container.resolve(
       ServiceTokens.SnippetFilesService
-    );
+    ) as unknown as { axios: unknown };
     expect(snippetFiles.axios).toBe(
       container.resolve(ServiceTokens.SharedApiAxios)
     );
 
-    const defaultReviewer = container.resolve<{ pullrequestsApi: unknown }>(
+    const defaultReviewer = container.resolve(
       ServiceTokens.DefaultReviewerService
-    );
+    ) as unknown as { pullrequestsApi: unknown };
     expect(defaultReviewer.pullrequestsApi).toBe(
       container.resolve(ServiceTokens.PullrequestsApi)
     );
@@ -207,19 +186,21 @@ describe('bootstrap()', () => {
       ServiceTokens.DeploymentsApi,
     ];
     for (const token of generatedClientTokens) {
-      const client = container.resolve<{ axios: AxiosInstance }>(token);
+      const client = container.resolve<unknown>(token) as {
+        axios: AxiosInstance;
+      };
       expect(client.axios).toBe(shared);
     }
 
     // Non-generated consumers of the raw axios instance share it too.
-    const snippetFiles = container.resolve<{ axios: AxiosInstance }>(
+    const snippetFiles = container.resolve(
       ServiceTokens.SnippetFilesService
-    );
+    ) as unknown as { axios: AxiosInstance };
     expect(snippetFiles.axios).toBe(shared);
 
-    const apiCommand = container.resolve<{ axios: AxiosInstance }>(
+    const apiCommand = container.resolve(
       ServiceTokens.ApiCommand
-    );
+    ) as unknown as { axios: AxiosInstance };
     expect(apiCommand.axios).toBe(shared);
   });
 
@@ -230,7 +211,10 @@ describe('bootstrap()', () => {
       .map(([, token]) => token);
 
     for (const token of commandTokens) {
-      const command = container.resolve<BaseCommand<unknown, unknown>>(token);
+      const command = container.resolve<unknown>(token) as BaseCommand<
+        unknown,
+        unknown
+      >;
       expect(typeof command.name).toBe('string');
       expect(command.name.length).toBeGreaterThan(0);
       expect(typeof command.description).toBe('string');

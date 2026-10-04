@@ -24,6 +24,6 @@ export function registerContextCommand(
       })
     )
     .action(async () => {
-      await registrar.runWithGlobalOptions(ServiceTokens.ContextCommand, {});
+      await registrar.run(ServiceTokens.ContextCommand);
     });
 }

@@ -19,6 +19,7 @@ import { cli } from '../src/cli.js';
 import { Container, ServiceTokens } from '../src/core/container.js';
 import { PromptService } from '../src/services/prompt.service.js';
 import { createMockPromptService } from './setup.js';
+import type { RepoOptions } from '../src/core/command-registrar.js';
 import type { CommandContext } from '../src/core/interfaces/commands.js';
 import type { VersionService } from '../src/services/version.service.js';
 import type { VersionCheckResult } from '../src/types/version.js';
@@ -118,7 +119,7 @@ describe('createContext prompt gating', () => {
 
 describe('withGlobalOptions', () => {
   it('should use global workspace when local is not provided', () => {
-    const options = { limit: '10' };
+    const options: RepoOptions & { limit: string } = { limit: '10' };
     const context: CommandContext = {
       globalOptions: { workspace: 'global-workspace' },
     };
@@ -130,7 +131,7 @@ describe('withGlobalOptions', () => {
   });
 
   it('should use global repo when local is not provided', () => {
-    const options = { limit: '10' };
+    const options: RepoOptions & { limit: string } = { limit: '10' };
     const context: CommandContext = {
       globalOptions: { repo: 'global-repo' },
     };
@@ -164,7 +165,7 @@ describe('withGlobalOptions', () => {
   });
 
   it('should merge both workspace and repo from global options', () => {
-    const options = { state: 'OPEN' };
+    const options: RepoOptions & { state: string } = { state: 'OPEN' };
     const context: CommandContext = {
       globalOptions: { workspace: 'test-workspace', repo: 'test-repo' },
     };
@@ -177,7 +178,7 @@ describe('withGlobalOptions', () => {
   });
 
   it('should handle empty global options', () => {
-    const options = { limit: '25' };
+    const options: RepoOptions & { limit: string } = { limit: '25' };
     const context: CommandContext = {
       globalOptions: {},
     };
@@ -207,7 +208,12 @@ describe('withGlobalOptions', () => {
   });
 
   it('should preserve all other options', () => {
-    const options = {
+    const options: RepoOptions & {
+      title: string;
+      body: string;
+      source: string;
+      destination: string;
+    } = {
       title: 'My PR',
       body: 'Description',
       source: 'feature-branch',
@@ -228,7 +234,7 @@ describe('withGlobalOptions', () => {
   });
 
   it('should handle json global option (not merged into options)', () => {
-    const options = { limit: '10' };
+    const options: RepoOptions & { limit: string } = { limit: '10' };
     const context: CommandContext = {
       globalOptions: { json: true, workspace: 'ws' },
     };
