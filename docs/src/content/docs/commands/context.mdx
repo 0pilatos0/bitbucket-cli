@@ -1,0 +1,65 @@
+---
+title: Context command - See what bb infers
+description: Show the workspace, repository, git remote and branch bb would use in the current directory, and where each value came from, without a network call.
+---
+
+`bb context` shows which workspace and repository a repository command (such
+as `bb pr list`) would use if you ran it here, and where each value came from. It reads git and the config file
+only; it never calls the Bitbucket API, so it works offline and without
+credentials.
+
+It accepts the [global flags](/reference/global-flags/), including `--json`,
+`--jq`, `-w, --workspace`, and `-r, --repo`. See
+[Repository Context](/guides/repository-context/) for the resolution rules.
+
+## `bb context`
+
+```bash
+bb context [options]
+```
+
+### Examples
+
+```bash
+bb context
+# Workspace:   my-team (git remote)
+# Repository:  api (git remote)
+# Remote:      git@bitbucket.org:my-team/api.git
+# Branch:      feat/login
+
+bb context --json
+bb context -w other-team -r web --json
+```
+
+### JSON output
+
+```json
+{
+  "workspace": "my-team",
+  "repo": "api",
+  "source": { "workspace": "remote", "repo": "remote" },
+  "remote": "git@bitbucket.org:my-team/api.git",
+  "branch": "feat/login"
+}
+```
+
+| Field              | Description                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| `workspace`        | Resolved workspace, or `null`                                                                     |
+| `repo`             | Resolved repository slug, or `null`                                                               |
+| `source.workspace` | `flag` (`-w`), `remote` (the git remote), `env` (`BB_WORKSPACE`), `config` (`defaultWorkspace`), or `null` |
+| `source.repo`      | `flag` (`-r`), `remote`, or `null`                                                                |
+| `remote`           | URL of the git remote the repository was read from, or the only remote when it is not a Bitbucket URL; any password is masked. `null` outside a repository |
+| `branch`           | Current branch; `null` outside a repository or on a detached HEAD                                 |
+
+### Notes
+
+- Workspace-only commands (`bb repo list`, `bb repo create`, `bb repo clone`,
+  `bb project`, `bb snippet`, `bb api`) skip the git remote: they use `-w`,
+  then `BB_WORKSPACE`, then `defaultWorkspace`. Inside a checkout they can
+  pick a different workspace than `bb context` reports.
+
+- A missing workspace or repository is reported as `null`, not as an error,
+  so `bb context` exits 0 outside a repository.
+- When `repo` is `null` but `remote` is set, the remote is not a URL `bb`
+  recognizes as Bitbucket. Pass `-w` and `-r` explicitly.

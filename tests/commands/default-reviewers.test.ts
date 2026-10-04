@@ -72,6 +72,14 @@ function createContextService(): IContextService {
     async resolveWorkspaceFor() {
       return 'ws';
     },
+    async inspectContext() {
+      return {
+        workspace: 'ws',
+        repo: 'repo',
+        source: { workspace: 'remote', repo: 'remote' },
+        remote: null,
+      };
+    },
   };
 }
 

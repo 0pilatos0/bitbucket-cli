@@ -4,7 +4,7 @@ description: Reference for Bitbucket CLI pipeline commands. List, view, trigger,
 ---
 
 Manage Bitbucket Pipelines (CI/CD), list runs, inspect a run and its steps,
-trigger and stop runs, and read step logs.
+trigger and stop runs, wait for a run to finish, and read or follow step logs.
 
 Pipeline commands operate at **repository** scope. Run them inside a cloned
 Bitbucket repository, or pass `-w, --workspace <workspace>` and
@@ -13,7 +13,9 @@ Bitbucket repository, or pass `-w, --workspace <workspace>` and
 See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
 An `<id>` is either the build number from the UI (`42`) or the pipeline UUID
-with braces (`{a1b2c3d4-...}`). `--json` output is wrapped in an envelope keyed
+with braces (`{a1b2c3d4-...}`). `view`, `watch` and `logs` take an optional
+`[id]`: without one they use the newest run on the current git branch, and ask
+for an id outside a git checkout or on a detached `HEAD`. `--json` output is wrapped in an envelope keyed
 by `workspace` and `repoSlug`; the `# →` comments below show each shape.
 
 ---
@@ -58,8 +60,7 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
 - `--limit` is enforced across paginated responses. When results are capped the
   CLI prints `Showing 25 pipelines. Use --limit <n> or --all to see more.`
   (suppressed with `--json`).
-- `--status` is upper-cased before validation, so `failed` and `FAILED` both
-  work. `--sort` is matched case-sensitively.
+- `--status` and `--sort` ignore case, so `failed` and `FAILED` both work.
 - An invalid value lists the allowed ones and, when the input is close to a
   valid one, suggests it:
 
@@ -68,22 +69,23 @@ bb pipeline list --status FAILED --json --jq '.pipelines[].build_number'
   (Did you mean FAILED?)
   ```
 
-  A `--sort` value that differs only in case gets
-  `(Values are case-sensitive, use created_on.)` instead of a suggestion.
-
 ---
 
 ## `bb pipeline view`
 
-View run details and a per-step summary. `<id>` is a build number or UUID.
+View run details and a per-step summary. `[id]` is a build number or UUID
+(default: the newest run on the current branch).
 
 ```bash
-bb pipeline view <id> [options]
+bb pipeline view [id] [options]
 ```
 
 ### Examples
 
 ```bash
+# Newest run on the current branch
+bb pipeline view
+
 bb pipeline view 42
 bb pipeline view {a1b2c3d4-0000-0000-0000-000000000000}
 
@@ -180,19 +182,80 @@ bb pipeline stop 42 --json --jq '.stopped'
 
 ---
 
-## `bb pipeline logs`
+## `bb pipeline watch`
 
-Print the raw log of a pipeline step. `<id>` is a build number or UUID.
+Wait for a run to finish, printing each step's status as it changes. Exits
+non-zero unless the run passes. `[id]` is a build number or UUID (default: the
+newest run on the current branch).
 
 ```bash
-bb pipeline logs <id> [options]
+bb pipeline watch [id] [options]
 ```
 
 ### Options
 
-| Option                       | Description                                                     |
-| ---------------------------- | --------------------------------------------------------------- |
-| `-s, --step <uuid-or-index>` | Step to fetch: a step UUID (braces optional) or a 1-based index |
+| Option                 | Description                                       |
+| ---------------------- | ------------------------------------------------- |
+| `--interval <seconds>` | Seconds between status checks (default: `10`)     |
+
+### Examples
+
+```bash
+# Newest run on the current branch
+bb pipeline watch
+
+# Trigger, then block until the run passes
+bb pipeline run && bb pipeline watch
+
+# → { workspace, repoSlug, pipeline, steps }, same as `pipeline view`
+bb pipeline watch 42 --json --jq '.pipeline.state.result.name'
+```
+
+Output:
+
+```text
+Watching pipeline #42 on main
+  1. Build: PENDING
+  1. Build: IN_PROGRESS
+  2. Test: PENDING
+  1. Build: SUCCESSFUL
+  2. Test: IN_PROGRESS
+  2. Test: SUCCESSFUL
+✓ Pipeline #42 SUCCESSFUL in 3m 12s
+```
+
+### Notes
+
+- A failed, stopped, errored or expired run exits `1` with error code
+  [`10001` CI_FAILED](/reference/error-codes/#10001---ci_failed), after the
+  final state is printed.
+- A run paused on a manual step also ends the watch with `10001`
+  (`Pipeline #42 is paused, waiting for a manual step.`): it has not passed,
+  and it will not move until someone triggers the step.
+- `--json` prints nothing while waiting, then the final
+  `{ workspace, repoSlug, pipeline, steps }` envelope. A failed run still exits
+  `1`, with the error envelope on stderr.
+- Each poll makes at least two API calls (more for runs with over 10 steps). The 10 second default keeps a long watch well
+  inside Bitbucket's hourly rate limit.
+
+---
+
+## `bb pipeline logs`
+
+Print the raw log of a pipeline step. `[id]` is a build number or UUID
+(default: the newest run on the current branch).
+
+```bash
+bb pipeline logs [id] [options]
+```
+
+### Options
+
+| Option                       | Description                                                          |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `-s, --step <uuid-or-index>` | Step to fetch: a step UUID (braces optional) or a 1-based index      |
+| `-f, --follow`               | Stream new output until the run finishes (every step unless `--step`) |
+| `--interval <seconds>`       | Seconds between log checks with `--follow` (default: `10`)           |
 
 ### Examples
 
@@ -206,6 +269,12 @@ bb pipeline logs 42 --step a1b2c3d4-0000-0000-0000-000000000000
 
 # → { workspace, repoSlug, pipelineId, stepUuid, log }
 bb pipeline logs 42 --json --jq '.log'
+
+# Stream every step of the newest run on this branch as it runs
+bb pipeline logs --follow
+
+# Stream one step; stops when that step finishes
+bb pipeline logs 42 --follow --step 2
 ```
 
 ### Notes
@@ -222,6 +291,15 @@ bb pipeline logs 42 --json --jq '.log'
   file. On a terminal it opens in your pager (`less -FRX` unless
   [`BB_PAGER` or `PAGER`](/reference/environment-variables/#pager) says
   otherwise).
+- `--follow` waits for a queued run to get steps, then prints each step's log
+  in order, fetching only new bytes on each poll. With several steps, each one
+  starts with a `==> Step 2: Test` header; parallel steps are printed one after
+  another, not interleaved. It stops when the run finishes or pauses on a
+  manual step, or, with `--step`, when that step finishes. It never opens the
+  pager, so output appears as it is written. Use `bb pipeline watch` for the
+  exit status.
+- `--follow` cannot be combined with `--json`; use `bb pipeline watch --json`
+  for the final state.
 - Four failure modes, a queued run with no steps yet, an out-of-range `--step`
   index, a `--step` UUID that matches nothing, and a step that has produced no
   log yet, each get their own message, in that order:

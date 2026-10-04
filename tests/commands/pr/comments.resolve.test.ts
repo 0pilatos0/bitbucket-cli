@@ -78,7 +78,7 @@ describe('ResolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -94,7 +94,7 @@ describe('ResolveCommentPRCommand', () => {
       expect(error).toBeInstanceOf(BBError);
       expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
       expect((error as BBError).message).toContain(
-        '--comment-id must be a positive integer.'
+        '<comment-id> must be a positive integer.'
       );
     }
   });

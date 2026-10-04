@@ -244,6 +244,10 @@ describe('ErrorCode', () => {
     expect(ErrorCode.COMPLETION_UNINSTALL_FAILED).toBe(9002);
   });
 
+  it('should have CI outcome errors in 10xxx range', () => {
+    expect(ErrorCode.CI_FAILED).toBe(10001);
+  });
+
   it('should have unknown error as 9999', () => {
     expect(ErrorCode.UNKNOWN).toBe(9999);
   });

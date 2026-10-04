@@ -104,7 +104,7 @@ describe('MergePRCommand', () => {
     expect(output.logs.some((log) => log.includes('Merged'))).toBe(true);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -121,7 +121,7 @@ describe('MergePRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should run a spinner labeled with the PR id', async () => {

@@ -64,7 +64,7 @@ describe('UnresolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: 'abc', commentId: '7' }, { globalOptions: {} })
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -72,7 +72,7 @@ describe('UnresolveCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should throw when no repo context available', async () => {

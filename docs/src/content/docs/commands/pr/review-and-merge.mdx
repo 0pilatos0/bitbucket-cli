@@ -1,15 +1,15 @@
 ---
 title: Review and Merge
-description: Approve, decline, mark ready, and merge pull requests
+description: Approve, request changes, decline, mark ready, and merge pull requests
 sidebar:
   order: 5
 ---
 
-The four commands that change a pull request's state: `bb pr approve`, `bb pr decline`, `bb pr ready`, `bb pr merge`.
+The commands that review a pull request or change its state: `bb pr approve`, `bb pr unapprove`, `bb pr request-changes`, `bb pr decline`, `bb pr ready`, `bb pr merge`.
 
 See [Global flags](/reference/global-flags/) for JSON output, workspace/repository selection, and display options.
 
-On these four commands the field list is matched against the result envelope shown under [JSON output](#json-output), not against the PR, so `--json title` returns `{"title": null}`. Use a dotted path (`--json pullRequest.state`) or `--jq` instead.
+On these commands the field list is matched against the result envelope shown under [JSON output](#json-output), not against the PR, so `--json title` returns `{"title": null}`. Use a dotted path (`--json pullRequest.state`) or `--jq` instead.
 
 ## `bb pr merge`
 
@@ -41,7 +41,7 @@ bb pr merge [id] [options]
 
 Omitting `--strategy` uses the repository's configured merge strategy (typically `merge_commit`), not a CLI default. The CLI sends no strategy at all unless you pass one.
 
-Strategy names are checked when the command runs, not by the argument parser. An unknown value fails with [`5002` VALIDATION_INVALID](/reference/error-codes/#5002---validation_invalid) and the message `--strategy must be one of: merge_commit, squash, …`. A wrong-case value such as `SQUASH` gets a case-sensitivity note; a typo such as `sqush` gets a "did you mean" suggestion. Under `--json` that failure comes back as a JSON error envelope.
+Strategy names are checked when the command runs, not by the argument parser. An unknown value fails with [`5002` VALIDATION_INVALID](/reference/error-codes/#5002---validation_invalid) and the message `--strategy must be one of: merge_commit, squash, …`. Case doesn't matter (`SQUASH` works); a typo such as `sqush` gets a "did you mean" suggestion. Under `--json` that failure comes back as a JSON error envelope.
 
 ### Examples
 
@@ -64,15 +64,16 @@ bb pr merge 42 --json --jq '.pullRequest.merge_commit.hash' | tr -d '"'
 
 ---
 
-## `bb pr approve`, `bb pr decline`, `bb pr ready`
+## `bb pr approve`, `bb pr unapprove`, `bb pr decline`, `bb pr ready`
 
 Each takes an optional pull request ID; without one they act on the open PR for your current branch. The only command-specific option is `--dry-run`, which prints the write request instead of sending it ([details](/reference/global-flags/#--dry-run)).
 
 ```bash
-bb pr approve 42   # Approve
-bb pr decline 42   # Decline
-bb pr ready 42     # Clear the draft flag, marking the PR ready for review
-bb pr approve      # Approve the open PR for the current branch
+bb pr approve 42     # Approve
+bb pr unapprove 42   # Withdraw your approval
+bb pr decline 42     # Decline
+bb pr ready 42       # Clear the draft flag, marking the PR ready for review
+bb pr approve        # Approve the open PR for the current branch
 
 # Any of them against an explicit repository
 bb pr approve 42 -w myworkspace -r myrepo
@@ -80,9 +81,25 @@ bb pr approve 42 -w myworkspace -r myrepo
 
 `bb pr ready` is a pull request update that sets `draft: false`. It sends no other fields.
 
+Bitbucket Cloud has no API to reopen a declined pull request, so there is no `bb pr reopen`. Open a new one with `bb pr create` instead.
+
+## `bb pr request-changes`
+
+```bash
+bb pr request-changes [id] [--undo] [--dry-run]
+```
+
+Marks the PR as "changes requested" by you, the counterpart of `bb pr approve`. `--undo` removes your change request again. Without an ID it acts on the open PR for your current branch.
+
+```bash
+bb pr request-changes 42
+bb pr request-changes 42 --undo
+bb pr request-changes        # the open PR for the current branch
+```
+
 ## JSON output
 
-The four commands on this page do not return the same shape. `bb pr approve` returns only the identifiers:
+The commands on this page do not return the same shape. `bb pr approve` and `bb pr unapprove` return only the identifiers:
 
 ```json
 {
@@ -90,6 +107,8 @@ The four commands on this page do not return the same shape. `bb pr approve` ret
   "pullRequestId": 42
 }
 ```
+
+`bb pr request-changes` adds `"changesRequested": true` (`false` with `--undo`).
 
 `bb pr decline`, `bb pr ready`, and `bb pr merge` add the pull request exactly as the API returned it, `decline` and `merge` change the state, while `ready` clears `draft` without requesting a state change. Abridged, for `bb pr merge`:
 

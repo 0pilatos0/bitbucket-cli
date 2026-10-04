@@ -49,7 +49,7 @@ export class CheckoutPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.id, 'id');
+    const prId = this.parsePositiveIntArg(options.id, 'id');
 
     const prResponse =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(

@@ -6,6 +6,7 @@ import { BaseCommand } from '../../core/base-command.js';
 import type { CommandContext } from '../../core/interfaces/commands.js';
 import type {
   IContextService,
+  IGitService,
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { PipelinesApi } from '../../generated/api.js';
@@ -20,10 +21,11 @@ import {
   getPipelineStatus,
   getPipelineTrigger,
   getStepDurationSeconds,
+  resolvePipelineId,
 } from './shared.js';
 
 export interface ViewPipelineOptions extends GlobalOptions {
-  id: string;
+  id?: string;
 }
 
 export class ViewPipelineCommand extends BaseCommand<
@@ -36,6 +38,7 @@ export class ViewPipelineCommand extends BaseCommand<
   constructor(
     private readonly pipelinesApi: PipelinesApi,
     private readonly contextService: IContextService,
+    private readonly gitService: IGitService,
     output: IOutputService
   ) {
     super(output);
@@ -49,7 +52,11 @@ export class ViewPipelineCommand extends BaseCommand<
       options,
       context
     );
-    const id = this.requireOption(options.id, 'id');
+    const id = await resolvePipelineId(options.id, {
+      pipelinesApi: this.pipelinesApi,
+      gitService: this.gitService,
+      ...repoContext,
+    });
 
     // The REST endpoint accepts either a pipeline UUID (curly braces
     // included) or a plain build number, so the user's value passes through

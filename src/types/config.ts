@@ -67,6 +67,17 @@ export interface RepoContext {
   repoSlug: string;
 }
 
+/** Where a resolved workspace or repository came from. */
+export type ContextSource = 'flag' | 'remote' | 'env' | 'config';
+
+export interface ResolvedContext {
+  workspace: string | null;
+  repo: string | null;
+  source: { workspace: ContextSource | null; repo: ContextSource | null };
+  /** The git remote URL, even when it is not a Bitbucket URL. */
+  remote: string | null;
+}
+
 export interface GlobalOptions {
   json?: boolean;
   jsonFields?: string[];

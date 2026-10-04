@@ -22,6 +22,16 @@ export interface HelpTextConfig {
 
 export type HelpTextBuilder = (config: HelpTextConfig) => string;
 
+// Commander keeps `addHelpText` content only as a rendered string inside an
+// event listener, so the structured config is remembered against that string
+// for `helpTextConfigFor()` (used by `bb help --json`).
+const configsByText = new Map<string, HelpTextConfig>();
+
+/** The config a builder rendered `text` from, if it came from one. */
+export function helpTextConfigFor(text: string): HelpTextConfig | undefined {
+  return configsByText.get(text);
+}
+
 interface ColorFns {
   bold: (text: string) => string;
   dim: (text: string) => string;
@@ -81,6 +91,8 @@ export function createHelpTextBuilder(noColor: boolean): HelpTextBuilder {
       }
     }
 
-    return '\n' + sections.join('\n') + '\n';
+    const text = '\n' + sections.join('\n') + '\n';
+    configsByText.set(text, config);
+    return text;
   };
 }

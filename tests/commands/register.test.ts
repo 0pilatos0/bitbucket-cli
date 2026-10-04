@@ -8,6 +8,7 @@ import type {
   ContextOptions,
 } from '../../src/core/command-registrar.js';
 import { createHelpTextBuilder } from '../../src/help-text.js';
+import { addGlobalOptions } from '../../src/global-options.js';
 
 interface Dispatch {
   via: 'run' | 'runWithGlobalOptions';
@@ -32,7 +33,7 @@ function buildProgram(): { program: Command; dispatches: Dispatch[] } {
       });
     },
   };
-  const program = new Command('bb').exitOverride();
+  const program = addGlobalOptions(new Command('bb')).exitOverride();
   registerCommands(program, registrar);
   return { program, dispatches };
 }
@@ -84,7 +85,10 @@ describe('registerCommands', () => {
       'api',
       'alias',
       'config',
+      'context',
+      'doctor',
       'completion',
+      'agent-instructions',
     ]);
   });
 
@@ -105,8 +109,10 @@ describe('registerCommands', () => {
     const unshared = dispatched.filter(
       (token) => token !== ServiceTokens.PrintCompletionCommand
     );
-    const commandTokens = Object.values(ServiceTokens).filter((token) =>
-      token.endsWith('Command')
+    // `bb help --json` is dispatched by the root action, not a subcommand.
+    const commandTokens = Object.values(ServiceTokens).filter(
+      (token) =>
+        token.endsWith('Command') && token !== ServiceTokens.HelpCommand
     );
     expect(new Set(unshared).size).toBe(unshared.length);
     expect([...new Set(dispatched)].sort()).toEqual([...commandTokens].sort());
