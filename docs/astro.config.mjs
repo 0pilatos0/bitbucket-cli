@@ -95,6 +95,7 @@ const sidebar = [
       { label: "Alias Commands", slug: "commands/alias" },
       { label: "Config Commands", slug: "commands/config" },
       { label: "Context", slug: "commands/context" },
+      { label: "Doctor", slug: "commands/doctor" },
       { label: "Completion", slug: "commands/completion" },
       { label: "Agent Instructions", slug: "commands/agent-instructions" },
     ],

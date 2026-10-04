@@ -417,10 +417,62 @@ describe('DiffPRCommand', () => {
       gitService,
       output
     );
-    await command.execute({ id: '1', web: true }, { globalOptions: {} });
+    const originalIsTTY = process.stdout.isTTY;
+    Object.defineProperty(process.stdout, 'isTTY', {
+      value: true,
+      configurable: true,
+    });
+    try {
+      await command.execute({ id: '1', web: true }, { globalOptions: {} });
+    } finally {
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value: originalIsTTY,
+        configurable: true,
+      });
+    }
 
     expect(openCalls).toHaveLength(1);
     expect(openCalls[0]).toBe(`${maliciousUrl}/diff`);
+  });
+
+  it('should print the --web URL instead of opening a browser when stdout is not a terminal', async () => {
+    const openCalls: string[] = [];
+    mock.module('open', () => ({
+      default: async (url: string) => {
+        openCalls.push(url);
+      },
+    }));
+
+    const pullrequestsApi = createMockPullrequestsApi();
+    const contextService = createMockContextService({
+      workspace: 'workspace',
+      repoSlug: 'repo',
+    });
+    const output = createMockOutputService();
+    const command = new DiffPRCommand(
+      pullrequestsApi,
+      contextService,
+      createMockGitService(),
+      output
+    );
+
+    const originalIsTTY = process.stdout.isTTY;
+    Object.defineProperty(process.stdout, 'isTTY', {
+      value: undefined,
+      configurable: true,
+    });
+    try {
+      await command.execute({ id: '1', web: true }, { globalOptions: {} });
+    } finally {
+      Object.defineProperty(process.stdout, 'isTTY', {
+        value: originalIsTTY,
+        configurable: true,
+      });
+    }
+
+    expect(openCalls).toEqual([]);
+    expect(output.logs).toHaveLength(1);
+    expect(output.logs[0]).toMatch(/^text:https:\/\/.+\/diff$/);
   });
 
   it('should use the PR html link when building a --web URL', async () => {

@@ -1,7 +1,10 @@
 import { Command, Option } from 'commander';
 import { ServiceTokens } from '../../core/container.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
-import { withCompletionChoices } from '../../core/command-options.js';
+import {
+  withCompletionChoices,
+  DRY_RUN_DESCRIPTION,
+} from '../../core/command-options.js';
 import {
   DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_EVENTS,
@@ -95,6 +98,7 @@ export function registerWebhookCommands(
       'Secret used to sign deliveries (X-Hub-Signature)'
     )
     .option('--inactive', 'Create the webhook disabled')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({
@@ -122,6 +126,7 @@ export function registerWebhookCommands(
     .description('Delete a webhook (uid: webhook UUID)')
     .addOption(webhookScopeOption())
     .option('-y, --yes', 'Skip confirmation prompt')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
     .addHelpText(
       'after',
       buildHelpText({

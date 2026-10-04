@@ -15,7 +15,11 @@ Install `bb` and authenticate yourself first. A [standalone binary](/getting-sta
 ```bash
 bb auth login
 bb auth status
+bb doctor
 ```
+
+`bb doctor --json` gives an agent a pass/warn/fail row per check and exits 1
+when something is broken.
 
 Ask your assistant to run `bb help --json`, then `bb pr list --all --json`.
 For repeated use, put these instructions in its project rules or skill file.
@@ -116,6 +120,16 @@ bb pr comments reply 45 109820 "Capped retries at 3 attempts in a1b2c3d."
 bb pr comments resolve 45 109820
 ```
 
+For multi-line markdown, pass the text on stdin with `-F -` and a quoted
+heredoc, so backticks and `$` reach Bitbucket as written. The same flag works on
+`bb pr create`, `bb pr edit` and `bb pr comments add`:
+
+```bash
+bb pr comments reply 45 109820 -F - <<'EOF'
+Capped retries at 3 attempts in `a1b2c3d`.
+EOF
+```
+
 ### Draft PR workflow
 
 ```bash
@@ -168,6 +182,7 @@ scopes or configure a custom consumer with those scopes. See
 | Issue                         | Solution                                                                                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | "Not authenticated"           | Run `bb auth login`; for tokens, set `BB_USERNAME` to your account email and `BB_API_TOKEN` before login                        |
+| "Browser login needs an interactive terminal" | The agent has no terminal, so OAuth can't finish. Set `BB_USERNAME` and `BB_API_TOKEN`, or run `bb auth login` yourself |
 | Claude doesn't use `bb`       | Restart Claude Code after creating the skill file. Check `/bb-cli` shows in the slash menu                                      |
 | "Could not determine repo"    | Run from a git repo with a Bitbucket remote, or pass `-w`/`-r` flags explicitly                                                 |
 | Skill not auto-activating     | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md                                                    |

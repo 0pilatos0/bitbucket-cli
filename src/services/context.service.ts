@@ -3,6 +3,7 @@
  */
 
 import type {
+  GitRemote,
   IContextService,
   IGitService,
   IConfigService,
@@ -17,12 +18,82 @@ import type {
 } from '../types/config.js';
 
 type RepoContextFailureReason =
-  'not_a_git_repo' | 'no_remote' | 'remote_not_bitbucket';
+  'not_a_git_repo' | 'no_remote' | 'remote_not_bitbucket' | 'ambiguous_remote';
 
 interface GitRepoContextResult {
   context: RepoContext | null;
   reason: RepoContextFailureReason | null;
-  remoteUrl: string | null;
+  /** Remotes behind the failure: all of them, or the competing Bitbucket ones */
+  remotes: GitRemote[];
+  /** The remote the context was read from, on success */
+  remote?: GitRemote;
+}
+
+interface ParsedGitUrl {
+  host: string;
+  path: string;
+  overSsh: boolean;
+}
+
+const BITBUCKET_HOSTS = new Set([
+  'bitbucket.org',
+  'www.bitbucket.org',
+  'altssh.bitbucket.org',
+]);
+
+// Braces admit the `{uuid}` form Bitbucket accepts in place of either slug.
+const PATH_SEGMENT = /^(?!\.+$)[A-Za-z0-9_.{}-]+$/;
+
+/**
+ * Split a git remote URL into host and path. Covers `scheme://[user@]host
+ * [:port]/path` and the scp-like `[user@]host:path` git also accepts. Like
+ * git, a one-letter scp host is a Windows drive, not a remote.
+ */
+function parseGitUrl(url: string): ParsedGitUrl | null {
+  const urlMatch =
+    /^(ssh|git\+ssh|ssh\+git|https?|git):\/\/(?:[^@/\s]+@)?([^/:\s]+)(?::\d+)?\/(\S+)$/i.exec(
+      url
+    );
+  if (urlMatch) {
+    return {
+      host: urlMatch[2]!.toLowerCase(),
+      path: urlMatch[3]!,
+      overSsh: urlMatch[1]!.toLowerCase().includes('ssh'),
+    };
+  }
+
+  const scpMatch = /^(?:[^@/\s]+@)?([^/:\s]{2,}):(?!\/)(\S+)$/.exec(url);
+  if (scpMatch) {
+    return {
+      host: scpMatch[1]!.toLowerCase(),
+      path: scpMatch[2]!,
+      overSsh: true,
+    };
+  }
+
+  return null;
+}
+
+function parseRepoPath(path: string): RepoContext | null {
+  const segments = path
+    .replace(/\/$/, '')
+    .replace(/\.git$/, '')
+    .split('/');
+  if (segments.length !== 2 || !segments.every((s) => PATH_SEGMENT.test(s))) {
+    return null;
+  }
+  return { workspace: segments[0]!, repoSlug: segments[1]! };
+}
+
+function redactUrl(url: string): string {
+  return url.replace(/^([a-z+]+:\/\/[^:@/\s]+):[^@/\s]*@/i, '$1:***@');
+}
+
+function sameRepo(a: RepoContext, b: RepoContext): boolean {
+  return (
+    a.workspace.toLowerCase() === b.workspace.toLowerCase() &&
+    a.repoSlug.toLowerCase() === b.repoSlug.toLowerCase()
+  );
 }
 
 interface SourcedValue {
@@ -37,34 +108,35 @@ export class ContextService implements IContextService {
   ) {}
 
   /**
-   * Parse Bitbucket repository URL to extract workspace and repo slug
-   * Supports both SSH and HTTPS formats
+   * Parse a Bitbucket remote URL (SSH, scp-like or HTTPS) into workspace and
+   * repo slug. Returns null for other hosts; SSH host aliases are resolved
+   * only by the git-backed lookups.
    */
   public parseRemoteUrl(url: string): RepoContext | null {
-    // SSH format: git@bitbucket.org:workspace/repo.git
-    const sshMatch =
-      /^git@bitbucket\.org:([^/\s]+)\/([^/\s.]+)(?:\.git)?$/.exec(url);
-    if (sshMatch) {
-      return {
-        workspace: sshMatch[1]!,
-        repoSlug: sshMatch[2]!,
-      };
+    const parsed = parseGitUrl(url);
+    if (!parsed || !BITBUCKET_HOSTS.has(parsed.host)) {
+      return null;
     }
+    return parseRepoPath(parsed.path);
+  }
 
-    // HTTPS format: https://bitbucket.org/workspace/repo.git
-    // or: https://username@bitbucket.org/workspace/repo.git
-    const httpsMatch =
-      /^https?:\/\/(?:[^@\s]+@)?bitbucket\.org\/([^/\s]+)\/([^/\s.]+)(?:\.git)?$/.exec(
-        url
-      );
-    if (httpsMatch) {
-      return {
-        workspace: httpsMatch[1]!,
-        repoSlug: httpsMatch[2]!,
-      };
+  /**
+   * The repository path of a remote whose host is Bitbucket, directly or via
+   * an SSH host alias; null for any other host.
+   */
+  private async bitbucketPath(url: string): Promise<string | null> {
+    const parsed = parseGitUrl(url);
+    if (!parsed) {
+      return null;
     }
-
-    return null;
+    if (BITBUCKET_HOSTS.has(parsed.host)) {
+      return parsed.path;
+    }
+    if (!parsed.overSsh) {
+      return null;
+    }
+    const host = await this.gitService.resolveSshHostname(parsed.host);
+    return host && BITBUCKET_HOSTS.has(host.toLowerCase()) ? parsed.path : null;
   }
 
   /**
@@ -75,24 +147,77 @@ export class ContextService implements IContextService {
     return result.context;
   }
 
+  /**
+   * `origin` wins when it points at Bitbucket. Otherwise use the only
+   * Bitbucket repository among the other remotes, preferring `upstream` when
+   * they disagree.
+   */
   private async inspectGitRepoContext(): Promise<GitRepoContextResult> {
     const isRepo = await this.gitService.isRepository();
     if (!isRepo) {
-      return { context: null, reason: 'not_a_git_repo', remoteUrl: null };
+      return { context: null, reason: 'not_a_git_repo', remotes: [] };
     }
 
-    let remoteUrl: string;
+    let remotes: GitRemote[];
     try {
-      remoteUrl = await this.gitService.getRemoteUrl();
+      remotes = await this.gitService.getRemotes();
     } catch {
-      return { context: null, reason: 'no_remote', remoteUrl: null };
+      remotes = [];
+    }
+    if (remotes.length === 0) {
+      return { context: null, reason: 'no_remote', remotes: [] };
     }
 
-    const context = this.parseRemoteUrl(remoteUrl);
-    if (!context) {
-      return { context: null, reason: 'remote_not_bitbucket', remoteUrl };
+    const origin = remotes.find((r) => r.name === 'origin');
+    const originPath = origin ? await this.bitbucketPath(origin.url) : null;
+    if (origin && originPath !== null) {
+      const context = parseRepoPath(originPath);
+      return context
+        ? { context, reason: null, remotes: [], remote: origin }
+        : { context: null, reason: 'remote_not_bitbucket', remotes: [origin] };
     }
-    return { context, reason: null, remoteUrl };
+
+    const resolved = await Promise.all(
+      remotes
+        .filter((remote) => remote !== origin)
+        .map(async (remote) => {
+          const path = await this.bitbucketPath(remote.url);
+          return {
+            remote,
+            context: path === null ? null : parseRepoPath(path),
+          };
+        })
+    );
+    const candidates = resolved.filter(
+      (c): c is { remote: GitRemote; context: RepoContext } => !!c.context
+    );
+
+    const first = candidates[0];
+    if (!first) {
+      return { context: null, reason: 'remote_not_bitbucket', remotes };
+    }
+    if (candidates.every((c) => sameRepo(c.context, first.context))) {
+      return {
+        context: first.context,
+        reason: null,
+        remotes: [],
+        remote: first.remote,
+      };
+    }
+    const upstream = candidates.find((c) => c.remote.name === 'upstream');
+    if (upstream) {
+      return {
+        context: upstream.context,
+        reason: null,
+        remotes: [],
+        remote: upstream.remote,
+      };
+    }
+    return {
+      context: null,
+      reason: 'ambiguous_remote',
+      remotes: candidates.map((c) => c.remote),
+    };
   }
 
   /**
@@ -117,7 +242,7 @@ export class ContextService implements IContextService {
       return {
         context: { workspace: options.workspace, repoSlug: options.repo },
         reason: null,
-        remoteUrl: null,
+        remotes: [],
       };
     }
 
@@ -133,7 +258,7 @@ export class ContextService implements IContextService {
     return {
       context: { workspace: workspace.value, repoSlug: repo.value },
       reason: null,
-      remoteUrl: gitResult.remoteUrl,
+      remotes: [],
     };
   }
 
@@ -148,6 +273,10 @@ export class ContextService implements IContextService {
     const gitResult = await this.inspectGitRepoContext();
     const repo = this.pickRepo(options, gitResult.context);
     const workspace = await this.pickWorkspace(options, gitResult.context);
+    // On failure, a lone remote shows why nothing was detected.
+    const remote =
+      gitResult.remote ??
+      (gitResult.remotes.length === 1 ? gitResult.remotes[0] : undefined);
     return {
       workspace: workspace?.value ?? null,
       repo: repo?.value ?? null,
@@ -155,7 +284,7 @@ export class ContextService implements IContextService {
         workspace: workspace?.source ?? null,
         repo: repo?.source ?? null,
       },
-      remote: gitResult.remoteUrl && redactRemoteUrl(gitResult.remoteUrl),
+      remote: remote ? redactUrl(remote.url) : null,
     };
   }
 
@@ -214,10 +343,10 @@ export class ContextService implements IContextService {
     if (!result.context) {
       throw new BBError({
         code: ErrorCode.CONTEXT_REPO_NOT_FOUND,
-        message: this.buildRepoNotFoundMessage(result.reason, result.remoteUrl),
+        message: this.buildRepoNotFoundMessage(result.reason, result.remotes),
         context: {
           reason: result.reason ?? 'unknown',
-          ...(result.remoteUrl ? { remoteUrl: result.remoteUrl } : {}),
+          ...this.describeRemotes(result.remotes),
         },
       });
     }
@@ -235,19 +364,40 @@ export class ContextService implements IContextService {
     });
   }
 
+  /**
+   * A lone remote is reported by URL, as before. Several are reported by name
+   * only, which keeps the message short and avoids repeating every URL.
+   */
+  private describeRemotes(
+    remotes: GitRemote[]
+  ): { remoteUrl: string } | { remotes: string[] } | Record<string, never> {
+    if (remotes.length === 1) {
+      return { remoteUrl: redactUrl(remotes[0]!.url) };
+    }
+    if (remotes.length > 1) {
+      return { remotes: remotes.map((r) => r.name) };
+    }
+    return {};
+  }
+
   private buildRepoNotFoundMessage(
     reason: RepoContextFailureReason | null,
-    remoteUrl: string | null
+    remotes: GitRemote[]
   ): string {
     const fallback =
       'Use --workspace and --repo options, or run this command from within a Bitbucket repository.';
+    const names = remotes.map((r) => r.name).join(', ');
     switch (reason) {
       case 'not_a_git_repo':
         return `Not in a git repository. ${fallback}`;
       case 'no_remote':
         return `Git repository has no remote configured. Add a Bitbucket remote with \`git remote add origin <url>\`, or ${fallback.charAt(0).toLowerCase()}${fallback.slice(1)}`;
       case 'remote_not_bitbucket':
-        return `Remote ${remoteUrl ? `'${remoteUrl}' ` : ''}is not a Bitbucket URL. ${fallback}`;
+        return remotes.length === 1
+          ? `Remote '${redactUrl(remotes[0]!.url)}' is not a Bitbucket URL. ${fallback}`
+          : `None of the git remotes (${names}) is a Bitbucket URL. ${fallback}`;
+      case 'ambiguous_remote':
+        return `Git remotes ${names} point to different Bitbucket repositories and neither origin nor upstream is one of them. Use --workspace and --repo options to pick one.`;
       default:
         return `Could not determine repository. ${fallback}`;
     }
@@ -285,21 +435,5 @@ export class ContextService implements IContextService {
       (await this.getRepoContextFromGit())?.workspace ??
       (await this.requireWorkspace())
     );
-  }
-}
-
-/**
- * Drop credentials from an HTTP(S) remote (`https://user:token@host/...`) so
- * they never reach output. SCP-style SSH remotes are not URLs and pass through.
- */
-function redactRemoteUrl(remote: string): string {
-  if (!/^https?:\/\//i.test(remote)) return remote;
-  try {
-    const url = new URL(remote);
-    url.username = '';
-    url.password = '';
-    return url.toString();
-  } catch {
-    return remote;
   }
 }

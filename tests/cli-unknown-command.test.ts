@@ -28,10 +28,10 @@ import { ErrorCode } from '../src/types/errors.js';
 
 let stderr: string[] = [];
 let stdout: string[] = [];
-const originalConsoleError = console.error;
+const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
 afterAll(() => {
-  console.error = originalConsoleError;
+  process.stderr.write = originalStderrWrite;
 });
 
 // Cases here deliberately set process.exitCode = 1 in-process. Reset after each
@@ -49,9 +49,10 @@ beforeEach(() => {
   // does not apply here — do it ourselves or a failing case leaks into the
   // next one's assertion.
   process.exitCode = 0;
-  console.error = (...args: unknown[]) => {
-    stderr.push(args.map(String).join(' '));
-  };
+  process.stderr.write = ((chunk: unknown) => {
+    stderr.push(String(chunk).replace(/\n$/, ''));
+    return true;
+  }) as typeof process.stderr.write;
   // `outputHelp()` writes through the OWN output configuration of whichever
   // command is printing, and children get theirs at creation time — so
   // configuring only the root would let `bb help pr` escape to real stdout.
@@ -124,6 +125,61 @@ describe('unknown top-level command', () => {
     expect(payload.message).toContain('(Did you mean pr?)');
     expect(payload.context).toEqual({ command: 'prr' });
     expect(result.exitCode).toBe(1);
+  });
+});
+
+describe('group without a subcommand', () => {
+  it('prints the group help and exits 0', async () => {
+    const result = await run(['status']);
+
+    expect(result.stdout).toContain('Usage: bb status');
+    expect(result.stdout).toContain('Commands:');
+    expect(result.stderr).toBe('');
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  // The cases below run out-of-process: Commander exits the process itself.
+  async function runCli(
+    argv: string[]
+  ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+    const proc = Bun.spawn(['bun', 'run', 'src/index.ts', ...argv], {
+      cwd: fileURLToPath(new URL('..', import.meta.url)),
+      env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const [exitCode, stdout, stderr] = await Promise.all([
+      proc.exited,
+      new Response(proc.stdout).text(),
+      new Response(proc.stderr).text(),
+    ]);
+    return { exitCode, stdout, stderr };
+  }
+
+  it('suggests the closest subcommand for a typo and exits 1', async () => {
+    const result = await runCli(['pr', 'lsit', '--no-color']);
+
+    expect(result.stderr).toStartWith("✗ unknown command 'lsit'");
+    expect(result.stderr).toContain('(Did you mean list?)');
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('reports a missing subcommand under --json instead of printing help', async () => {
+    const result = await runCli(['pr', '--json']);
+
+    expect(result.stdout).toBe('');
+    expect(JSON.parse(result.stderr)).toMatchObject({
+      code: ErrorCode.VALIDATION_REQUIRED,
+      context: { parseError: 'missingSubcommand', commandPath: 'pr' },
+    });
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('keeps the `help` subcommand', async () => {
+    const result = await runCli(['pr', 'help', 'list']);
+
+    expect(result.stdout).toContain('Usage: bb pr list');
+    expect(result.exitCode).toBe(0);
   });
 });
 
@@ -212,23 +268,26 @@ describe('bb help <command>', () => {
 });
 
 describe('bb help --json', () => {
-  const originalConsoleLog = console.log;
-  let logged: string[] = [];
+  // OutputService writes straight to process.stdout, not via console.log.
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  let written = '';
 
   beforeEach(() => {
-    logged = [];
-    console.log = (...args: unknown[]) => {
-      logged.push(args.map(String).join(' '));
-    };
+    written = '';
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      written +=
+        typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+      return true;
+    }) as typeof process.stdout.write;
   });
 
   afterEach(() => {
-    console.log = originalConsoleLog;
+    process.stdout.write = originalWrite;
   });
 
   it('prints the whole command tree as JSON', async () => {
     const result = await run(['help', '--json']);
-    const manifest = JSON.parse(logged.join('\n')) as {
+    const manifest = JSON.parse(written) as {
       version: string;
       globalOptions: Array<{ long: string }>;
       commands: Array<{ path: string }>;
@@ -250,7 +309,7 @@ describe('bb help --json', () => {
       '--jq',
       '[.commands[].path]',
     ]);
-    const paths = JSON.parse(logged.join('\n')) as string[];
+    const paths = JSON.parse(written) as string[];
 
     expect(paths[0]).toBe('pr comments');
     expect(paths.every((path) => path.startsWith('pr comments'))).toBe(true);
@@ -262,7 +321,7 @@ describe('bb help --json', () => {
 
     const payload = JSON.parse(result.stderr) as Record<string, unknown>;
     expect(payload.code).toBe(ErrorCode.VALIDATION_INVALID);
-    expect(logged).toEqual([]);
+    expect(written).toBe('');
     expect(result.exitCode).toBe(1);
   });
 
@@ -270,8 +329,8 @@ describe('bb help --json', () => {
     const result = await run(['--json']);
 
     expect(result.stdout).toContain('Usage: bb');
-    // The welcome tip may follow on console.log; no JSON must.
-    expect(logged.some((line) => line.trimStart().startsWith('{'))).toBe(false);
+    // The welcome tip may follow on stdout; no JSON must.
+    expect(written.trimStart().startsWith('{')).toBe(false);
   });
 });
 
@@ -286,17 +345,23 @@ describe('bare bb', () => {
 });
 
 describe('allowExcessArguments placement', () => {
-  it('applies to the root only, so subcommand arity checks survive', () => {
+  it('applies to the root and groups only, so leaf arity checks survive', () => {
     // `copyInheritedSettings()` would propagate this to commands created with
     // `.command()` if it were called before the tree was built, silently
-    // disabling arity checking on `browse`/`api`. Reaching into a Commander
-    // private is precedented elsewhere in the suite.
-    expect(
-      (cli as unknown as { _allowExcessArguments: boolean })
-        ._allowExcessArguments
-    ).toBe(true);
+    // disabling arity checking on `browse`/`api`. Groups opt in themselves to
+    // report unknown subcommands. Reaching into a Commander private is
+    // precedented elsewhere in the suite.
+    for (const command of [
+      cli,
+      ...cli.commands.filter((c) => c.commands.length),
+    ]) {
+      expect(
+        (command as unknown as { _allowExcessArguments: boolean })
+          ._allowExcessArguments
+      ).toBe(true);
+    }
 
-    for (const name of ['browse', 'api', 'pr', 'auth']) {
+    for (const name of ['browse', 'api']) {
       const command = cli.commands.find((c) => c.name() === name);
       expect(command).toBeDefined();
       expect(
@@ -324,6 +389,28 @@ describe('allowExcessArguments placement', () => {
     ]);
 
     expect(errorOutput).toContain('too many arguments');
+    expect(exitCode).toBe(1);
+  });
+});
+
+describe('Commander parse errors', () => {
+  it('use the same prefix as every other error', async () => {
+    // Out-of-process for the same reason as the arity check above.
+    const proc = Bun.spawn(
+      ['bun', 'run', 'src/index.ts', 'pr', 'list', '--bogus', '--no-color'],
+      {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
+        env: { ...process.env, CI: 'true', BB_NO_UNICODE: '' },
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
+    const [exitCode, errorOutput] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
+
+    expect(errorOutput).toStartWith("✗ unknown option '--bogus'");
     expect(exitCode).toBe(1);
   });
 });

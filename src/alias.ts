@@ -49,6 +49,7 @@ export const RESERVED_COMMAND_NAMES = [
   'api',
   'config',
   'context',
+  'doctor',
   'completion',
   'agent-instructions',
   'alias',
@@ -201,7 +202,7 @@ export function substitutePlaceholders(
 }
 
 /** A PowerShell single-quoted literal; `'` and its smart variants double. */
-function quotePowerShell(value: string): string {
+export function quotePowerShell(value: string): string {
   return `'${value.replace(/['\u2018\u2019\u201A\u201B]/g, '$&$&')}'`;
 }
 

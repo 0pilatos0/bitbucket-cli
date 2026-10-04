@@ -8,7 +8,7 @@ Most commands need a workspace and a repository. If you don't pass `-w`/`-r`, th
 ## Context resolution order
 
 1. **`-w/--workspace` and `-r/--repo`** on the command line
-2. **The `origin` git remote** of the current repository
+2. **A Bitbucket git remote** of the current repository (see [Which remote is used](#which-remote-is-used))
 3. **The `BB_WORKSPACE` environment variable**
 4. **`defaultWorkspace`** in the config file
 
@@ -21,14 +21,14 @@ or credentials.
 ### Typical local layout
 
 Run `bb` from the clone or one of its subdirectories. It reads that repository's
-`origin` remote to resolve the workspace and repository.
+git remotes to resolve the workspace and repository.
 
 ### Examples
 
 #### Scenario 1: inside a git repository
 
 ```bash
-# /projects/myrepo has a Bitbucket origin remote
+# /projects/myrepo has a Bitbucket remote
 cd /projects/myrepo
 bb pr list  # workspace and repository come from the remote
 ```
@@ -124,6 +124,8 @@ The git remote wins over your config. Running `bb repo view myrepo` inside a clo
 ```text
 git@bitbucket.org:workspace/repo.git
 git@bitbucket.org:workspace/repo
+ssh://git@bitbucket.org/workspace/repo.git
+ssh://git@altssh.bitbucket.org:443/workspace/repo.git
 ```
 
 ### HTTPS format
@@ -131,22 +133,34 @@ git@bitbucket.org:workspace/repo
 ```text
 https://bitbucket.org/workspace/repo.git
 https://bitbucket.org/workspace/repo
+https://bitbucket.org/workspace/repo/
 https://username@bitbucket.org/workspace/repo.git
 ```
 
-### Limitations
+Repository names may contain dots (`my.repo`, `docs.example.com`). Only a trailing `.git` is stripped.
 
-- Only the remote named `origin` is inspected. If your Bitbucket remote has another name, pass `-w`/`-r`.
-- Repository names containing a dot (`docs.example.com`, `my.repo`) are not parsed.
-- `ssh://git@bitbucket.org/workspace/repo.git` is not recognised. Use the `git@bitbucket.org:workspace/repo` form.
+### SSH host aliases
 
-A dotted repository name or an `ssh://` URL fails with `Remote '<url>' is not a Bitbucket URL.` A differently-named remote fails with `Git repository has no remote configured.`
+A remote like `git@bitbucket-work:workspace/repo.git` works when `bitbucket-work` is a `Host` entry in your SSH config whose `HostName` is `bitbucket.org`. The CLI asks `ssh -G` for the real hostname, the same lookup git does when it connects.
+
+### URL rewrites
+
+`url.<base>.insteadOf` rules in your git config are applied before the URL is parsed, so a remote such as `bb:workspace/repo` works if it rewrites to a Bitbucket URL.
+
+## Which remote is used
+
+1. `origin`, if it points to Bitbucket
+2. Otherwise the Bitbucket remote, if all Bitbucket remotes point to the same repository
+3. Otherwise `upstream`, if it is one of them
+4. Otherwise the CLI stops with an error and asks for `-w`/`-r`
+
+A fork clone with `origin` (your fork) and `upstream` (the parent) both on Bitbucket resolves to your fork.
 
 ## Error messages
 
 ### Repository could not be resolved
 
-Three distinct messages, all error code `6001 CONTEXT_REPO_NOT_FOUND`. Under `--json` each sets a different `context.reason`.
+Four distinct reasons, all error code `6001 CONTEXT_REPO_NOT_FOUND`. Under `--json` each sets a different `context.reason`.
 
 The working directory is not a git repository, `reason: not_a_git_repo`:
 
@@ -154,16 +168,23 @@ The working directory is not a git repository, `reason: not_a_git_repo`:
 ✗ Not in a git repository. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-There is no `origin` remote, `reason: no_remote`:
+The repository has no remotes, `reason: no_remote`:
 
 ```text
 ✗ Git repository has no remote configured. Add a Bitbucket remote with `git remote add origin <url>`, or use --workspace and --repo options, or run this command from within a Bitbucket repository.
 ```
 
-`origin` points somewhere other than Bitbucket, or the repository name contains a dot, `reason: remote_not_bitbucket`:
+No remote points to Bitbucket, or `origin` does but its path isn't `workspace/repo`, `reason: remote_not_bitbucket`. With a single remote the message shows its URL (a password in it is shown as `***`), with several it lists their names:
 
 ```text
 ✗ Remote 'git@github.com:acme/tool.git' is not a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+✗ None of the git remotes (origin, gitlab) is a Bitbucket URL. Use --workspace and --repo options, or run this command from within a Bitbucket repository.
+```
+
+Several remotes point to different Bitbucket repositories and neither `origin` nor `upstream` is one of them, `reason: ambiguous_remote`:
+
+```text
+✗ Git remotes fork, mirror point to different Bitbucket repositories and neither origin nor upstream is one of them. Use --workspace and --repo options to pick one.
 ```
 
 Fix any of them with explicit flags: `bb pr list -w myworkspace -r myrepo`.

@@ -49,7 +49,7 @@ bb context -w other-team -r web --json
 | `repo`             | Resolved repository slug, or `null`                                                               |
 | `source.workspace` | `flag` (`-w`), `remote` (the git remote), `env` (`BB_WORKSPACE`), `config` (`defaultWorkspace`), or `null` |
 | `source.repo`      | `flag` (`-r`), `remote`, or `null`                                                                |
-| `remote`           | The `origin` remote URL with any credentials removed, even when it is not a Bitbucket URL; `null` outside a repository or without `origin` |
+| `remote`           | URL of the git remote the repository was read from, or the only remote when it is not a Bitbucket URL; any password is masked. `null` outside a repository |
 | `branch`           | Current branch; `null` outside a repository or on a detached HEAD                                 |
 
 ### Notes

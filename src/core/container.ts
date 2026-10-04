@@ -132,6 +132,7 @@ export const ServiceTokens = {
   PromptService: 'PromptService',
   OAuthService: 'OAuthService',
   VersionService: 'VersionService',
+  DryRunMode: 'DryRunMode',
 
   // API Clients
   SharedApiAxios: 'SharedApiAxios',
@@ -189,14 +190,18 @@ export const ServiceTokens = {
   HelpCommand: 'HelpCommand',
   ContextCommand: 'ContextCommand',
   AgentInstructionsCommand: 'AgentInstructionsCommand',
+  DoctorCommand: 'DoctorCommand',
 
   // Commands - PR
   CreatePRCommand: 'CreatePRCommand',
   ListPRsCommand: 'ListPRsCommand',
+  StatusPRCommand: 'StatusPRCommand',
   ViewPRCommand: 'ViewPRCommand',
   EditPRCommand: 'EditPRCommand',
   MergePRCommand: 'MergePRCommand',
   ApprovePRCommand: 'ApprovePRCommand',
+  UnapprovePRCommand: 'UnapprovePRCommand',
+  RequestChangesPRCommand: 'RequestChangesPRCommand',
   DeclinePRCommand: 'DeclinePRCommand',
   ReadyPRCommand: 'ReadyPRCommand',
   CheckoutPRCommand: 'CheckoutPRCommand',
@@ -238,6 +243,7 @@ export const ServiceTokens = {
   RunPipelineCommand: 'RunPipelineCommand',
   StopPipelineCommand: 'StopPipelineCommand',
   LogsPipelineCommand: 'LogsPipelineCommand',
+  WatchPipelineCommand: 'WatchPipelineCommand',
 
   // Commands - Commit
   ListCommitsCommand: 'ListCommitsCommand',

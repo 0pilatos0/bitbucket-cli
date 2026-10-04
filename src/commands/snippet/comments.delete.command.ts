@@ -41,7 +41,7 @@ export class DeleteSnippetCommentCommand extends BaseCommand<
       options.workspace ?? context.globalOptions.workspace
     );
 
-    const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
+    const commentId = this.parsePositiveIntArg(options.commentId, 'comment-id');
 
     await this.requireConfirmation(
       options.yes,

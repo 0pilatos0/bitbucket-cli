@@ -150,7 +150,7 @@ describe('ActivityPRCommand', () => {
     expect(requestedPages).toEqual([1, 2]);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -167,7 +167,7 @@ describe('ActivityPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should pass long comment activity whole so the table can fit it', async () => {

@@ -34,11 +34,14 @@ bb pr list --json --all
 bb pr list --json --limit 100
 ```
 
+Output of any size reaches a pipe in full, so `bb pr list --json --all | jq`
+works the same as redirecting to a file, even when the reader is slow.
+
 These flags belong to specific commands, not every list operation. Check
 `bb <group> <command> --help` or the
 [list-command flag reference](/reference/global-flags/#list-command-flags).
-Some commands return complete collections without these flags; others, such
-as `bb pr checks`, return only one page.
+Some commands, such as `bb pr checks`, return complete collections without
+these flags.
 
 ### Field selection and `--jq`
 
@@ -154,8 +157,14 @@ checkout. See the [API command reference](/commands/api/) for every flag.
 | 1    | Command failure, such as authentication, API, validation, network, or jq errors |
 | 130  | An interactive prompt interrupted with Ctrl+C                                   |
 
-To distinguish command failures, read the `code` field of the JSON error envelope,
-which is one of the [error codes](/reference/error-codes/).
+`bb auth status` exits 1 when you are not logged in, and
+[`bb doctor`](/commands/doctor/) exits 1 when any of its checks fails.
+
+Set `BB_DETAILED_EXIT_CODES=1` to split failures into `2` usage, `3` not found,
+`4` authentication and `5` confirmation required; see the
+[full map](/reference/error-codes/#exit-codes-and-error-codes). For anything
+finer, read the `code` field of the JSON error envelope, which is one of the
+[error codes](/reference/error-codes/).
 
 ---
 
@@ -192,16 +201,25 @@ The error envelope carries:
 | `response`   | Raw API response body, `APIError` only, when non-empty              |
 | `hint`       | Remediation advice; optional, see below                             |
 
-`hint` appears only on API errors with status 401, 403, or 404, and is skipped
-on 404 when the message already names the missing resource. Treat it as
-optional in scripts.
+`hint` appears on API errors with status 401, 403, or 404 (skipped on 404 when
+the message already names the missing resource) and on argument-parsing errors.
+Treat it as optional in scripts.
 
-Argument-parsing failures are the exception. An unknown option, a missing
-argument, or too many arguments prints a **plain text** usage error to stderr
-and exits 1 even under `--json`, so `jq` cannot parse it. The one parse failure
-that still emits an envelope is an unknown top-level command, `bb bogus --json`
-returns code 5002, while `bb pr bogus --json` prints
-`error: unknown command 'bogus'` as plain text.
+Argument-parsing failures use the same envelope whenever `--json` or `--jq`
+appears before any `--`. An unknown subcommand or option, or too many
+arguments, returns code 5002; a missing argument, option value or subcommand
+returns 5001. Both carry `context.parseError`, `context.commandPath` and a
+`hint`:
+
+```bash
+bb pr bogus --json 2> err.json
+jq -c '{code, parseError: .context.parseError, commandPath: .context.commandPath, hint}' err.json
+# {"code":5002,"parseError":"unknownCommand","commandPath":"pr","hint":"Run `bb pr --help` for usage."}
+```
+
+An unknown top-level command (`bb bogus --json`) also returns 5002, with
+`context: { command, args }` naming the token that didn't match. Without
+`--json` or `--jq`, parse errors stay plain text.
 
 ---
 

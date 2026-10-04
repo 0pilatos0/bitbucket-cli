@@ -96,7 +96,7 @@ describe('ContextService.inspectContext', () => {
     });
   });
 
-  it('drops credentials from an HTTPS remote', async () => {
+  it('masks the password in an HTTPS remote', async () => {
     const { contextService } = setup({
       isRepo: true,
       remoteUrl: 'https://user:s3cret@bitbucket.org/git-ws/git-repo.git',
@@ -104,7 +104,9 @@ describe('ContextService.inspectContext', () => {
 
     const result = await contextService.inspectContext({});
 
-    expect(result.remote).toBe('https://bitbucket.org/git-ws/git-repo.git');
+    expect(result.remote).toBe(
+      'https://user:***@bitbucket.org/git-ws/git-repo.git'
+    );
     expect(result.repo).toBe('git-repo');
   });
 

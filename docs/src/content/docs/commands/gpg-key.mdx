@@ -41,6 +41,12 @@ Add an ASCII-armored public key. Pass the file, or `-` to read stdin.
 bb gpg-key add <key-file>
 ```
 
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
+
 ### Examples
 
 ```bash
@@ -63,6 +69,12 @@ Delete a key by its fingerprint. Without `--yes` it asks for confirmation in an 
 ```bash
 bb gpg-key delete <fingerprint> --yes
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 
