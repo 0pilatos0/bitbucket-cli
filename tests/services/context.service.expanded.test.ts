@@ -10,7 +10,7 @@ import type {
   IConfigService,
 } from '../../src/core/interfaces/services.js';
 import type { BBError } from '../../src/types/errors.js';
-import type { BBConfig, AuthCredentials } from '../../src/types/config.js';
+import type { BBConfig } from '../../src/types/config.js';
 
 function createMockGitService(options: {
   isRepo?: boolean;
@@ -36,6 +36,18 @@ function createMockGitService(options: {
     async getCurrentBranch() {
       return 'main';
     },
+    async getCurrentCommit() {
+      return 'abcdef0123456789abcdef0123456789abcdef01';
+    },
+    async fastForward() {
+      // Mock implementation
+    },
+    async branchExists() {
+      return false;
+    },
+    async isAncestor() {
+      return true;
+    },
     async getRemotes() {
       if (options.remoteError) {
         throw {
@@ -60,32 +72,8 @@ function createMockConfigService(config: BBConfig = {}): IConfigService {
     async getConfig() {
       return currentConfig;
     },
-    async setConfig(newConfig: BBConfig) {
-      currentConfig = newConfig;
-    },
-    async getCredentials(): Promise<AuthCredentials> {
-      if (!currentConfig.username || !currentConfig.apiToken) {
-        throw {
-          code: ErrorCode.AUTH_REQUIRED,
-          message: 'Auth required',
-        } as BBError;
-      }
-      return {
-        username: currentConfig.username,
-        apiToken: currentConfig.apiToken,
-      };
-    },
-    async setCredentials(creds: AuthCredentials) {
-      currentConfig.username = creds.username;
-      currentConfig.apiToken = creds.apiToken;
-    },
-    async clearCredentials() {
-      const {
-        username: _username,
-        apiToken: _apiToken,
-        ...rest
-      } = currentConfig;
-      currentConfig = rest;
+    async updateConfig(update: (config: BBConfig) => BBConfig) {
+      currentConfig = update(currentConfig);
     },
     async clearConfig() {
       currentConfig = {};

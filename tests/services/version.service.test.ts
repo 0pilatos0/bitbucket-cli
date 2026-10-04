@@ -7,6 +7,7 @@ import {
   detectInstallChannel,
   isStandaloneBinary,
   VersionService,
+  type InstallChannel,
 } from '../../src/services/version.service.js';
 import { createMockConfigService } from '../setup.js';
 import type { BBConfig } from '../../src/types/config.js';
@@ -36,7 +37,7 @@ function stubFetchWithLatest(latest: string): { callCount: () => number } {
       statusText: 'OK',
       json: async () => ({ 'dist-tags': { latest } }),
     } as unknown as Response;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
   return { callCount: () => calls };
 }
 
@@ -48,13 +49,13 @@ function stubFetchWithStatus(status: number, statusText = 'Error'): void {
       statusText,
       json: async () => ({}),
     } as unknown as Response;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 function stubFetchToThrow(error: Error): void {
   globalThis.fetch = (async () => {
     throw error;
-  }) as typeof fetch;
+  }) as unknown as typeof fetch;
 }
 
 describe('isStandaloneBinary', () => {
@@ -70,7 +71,7 @@ describe('isStandaloneBinary', () => {
 });
 
 describe('detectInstallChannel', () => {
-  it.each([
+  it.each<[string, InstallChannel]>([
     ['/$bunfs/root/bb', 'standalone'],
     ['B:\\~BUN\\root\\bb.exe', 'standalone'],
     ['/usr/local/lib/node_modules/@pilatos/bitbucket-cli/dist/index.js', 'npm'],
@@ -273,7 +274,7 @@ describe('VersionService', () => {
     });
 
     it('should send Accept: application/json', async () => {
-      let capturedHeaders: HeadersInit | undefined;
+      let capturedHeaders: RequestInit['headers'];
       globalThis.fetch = (async (_url: unknown, init?: RequestInit) => {
         capturedHeaders = init?.headers;
         return {

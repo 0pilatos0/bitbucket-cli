@@ -273,7 +273,7 @@ describe('alias name validation', () => {
 describe('RESERVED_COMMAND_NAMES drift guard', () => {
   it('matches the live top-level Commander tree (plus implicit help)', () => {
     const liveNames = cli.commands.map((cmd) => cmd.name());
-    expect([...RESERVED_COMMAND_NAMES].sort()).toEqual(
+    expect<string[]>([...RESERVED_COMMAND_NAMES].sort()).toEqual(
       [...new Set([...liveNames, 'help'])].sort()
     );
   });

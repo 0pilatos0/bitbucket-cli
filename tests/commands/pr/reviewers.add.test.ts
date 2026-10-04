@@ -21,7 +21,7 @@ describe('AddReviewerPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],
@@ -57,7 +57,7 @@ describe('AddReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{existing-uuid}', display_name: 'Existing' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -93,7 +93,7 @@ describe('AddReviewerPRCommand', () => {
       id: 42,
       reviewers: new Set([
         { uuid: '{same-uuid}', display_name: 'Same User' },
-      ]) as Pullrequest['reviewers'],
+      ]) as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prWithReviewers],
@@ -125,7 +125,7 @@ describe('AddReviewerPRCommand', () => {
     const prNoReviewers: Pullrequest = {
       ...mockPullRequest,
       id: 42,
-      reviewers: new Set() as Pullrequest['reviewers'],
+      reviewers: new Set() as unknown as Pullrequest['reviewers'],
     };
     const pullrequestsApi = createMockPullrequestsApi({
       pullRequests: [prNoReviewers],

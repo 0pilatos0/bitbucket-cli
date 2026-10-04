@@ -2,7 +2,7 @@ import { describe, it, expect } from 'bun:test';
 import { Command } from 'commander';
 import { registerCommands } from '../../src/commands/register.js';
 import { ServiceTokens } from '../../src/core/container.js';
-import type { ServiceToken } from '../../src/core/container.js';
+import type { CommandToken } from '../../src/core/container.js';
 import type {
   CommandRegistrar,
   ContextOptions,
@@ -12,7 +12,7 @@ import { addGlobalOptions } from '../../src/global-options.js';
 
 interface Dispatch {
   via: 'run' | 'runWithGlobalOptions';
-  token: ServiceToken;
+  token: CommandToken;
   options: unknown;
   contextOptions?: ContextOptions;
 }
@@ -21,8 +21,8 @@ function buildProgram(): { program: Command; dispatches: Dispatch[] } {
   const dispatches: Dispatch[] = [];
   const registrar: CommandRegistrar = {
     buildHelpText: createHelpTextBuilder(true),
-    run: async (token, options) => {
-      dispatches.push({ via: 'run', token, options });
+    run: async (token, ...options) => {
+      dispatches.push({ via: 'run', token, options: options[0] });
     },
     runWithGlobalOptions: async (token, options, contextOptions) => {
       dispatches.push({
@@ -94,7 +94,7 @@ describe('registerCommands', () => {
 
   it('wires every DI command token to exactly one CLI command', async () => {
     const { program } = buildProgram();
-    const tokensByPath = new Map<string, ServiceToken>();
+    const tokensByPath = new Map<string, CommandToken>();
 
     for (const path of leafPaths(program)) {
       const args = findCommand(program, path)
@@ -115,7 +115,9 @@ describe('registerCommands', () => {
         token.endsWith('Command') && token !== ServiceTokens.HelpCommand
     );
     expect(new Set(unshared).size).toBe(unshared.length);
-    expect([...new Set(dispatched)].sort()).toEqual([...commandTokens].sort());
+    expect<string[]>([...new Set(dispatched)].sort()).toEqual(
+      [...commandTokens].sort()
+    );
   });
 
   it.each(['bash', 'zsh', 'fish', 'powershell'])(

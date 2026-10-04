@@ -73,7 +73,7 @@ async function waitForBrowserOpen(timeoutMs = 2000): Promise<string> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
     if (openMock.mock.calls.length > 0) {
-      const [authUrl] = openMock.mock.calls[0];
+      const [authUrl] = openMock.mock.calls[0]!;
       return authUrl as string;
     }
     await new Promise((resolve) => setTimeout(resolve, 10));
@@ -232,14 +232,14 @@ describe('OAuthService', () => {
 
       await service.refreshAccessToken();
 
-      const call = fetchMock.getCalls()[0];
+      const call = fetchMock.getCalls()[0]!;
       expect(call.url).toContain('oauth2/access_token');
       expect(call.options.method).toBe('POST');
 
       // Verify Basic auth header is present
       const authHeader = (call.options.headers as Record<string, string>)[
         'Authorization'
-      ];
+      ]!;
       expect(authHeader).toStartWith('Basic ');
 
       // Verify body contains refresh_token grant type
@@ -395,10 +395,10 @@ describe('OAuthService', () => {
 
       await service.refreshAccessToken();
 
-      const call = fetchMock.getCalls()[0];
+      const call = fetchMock.getCalls()[0]!;
       const authHeader = (call.options.headers as Record<string, string>)[
         'Authorization'
-      ];
+      ]!;
       const decoded = Buffer.from(
         authHeader.replace('Basic ', ''),
         'base64'
@@ -580,7 +580,7 @@ describe('OAuthService', () => {
       await service.revokeToken();
 
       expect(fetchMock.getCallCount()).toBe(1);
-      const call = fetchMock.getCalls()[0];
+      const call = fetchMock.getCalls()[0]!;
       expect(call.url).toContain('oauth2/revoke');
       const body = call.options.body as string;
       expect(body).toContain('token=token-to-revoke');
@@ -623,7 +623,7 @@ describe('OAuthService', () => {
 
       globalThis.fetch = (async () => {
         throw new Error('network down');
-      }) as typeof fetch;
+      }) as unknown as typeof fetch;
 
       const result = await outcome(service.revokeToken());
       expect(result.error).toBeDefined();
@@ -717,7 +717,7 @@ describe('OAuthService', () => {
       });
 
       // Verify token exchange used the authorization code
-      const tokenCall = fetchMock.getCalls()[0];
+      const tokenCall = fetchMock.getCalls()[0]!;
       expect(tokenCall.url).toContain('oauth2/access_token');
       expect(tokenCall.options.method).toBe('POST');
       const tokenBody = tokenCall.options.body as string;
@@ -730,11 +730,11 @@ describe('OAuthService', () => {
       );
 
       // Verify user info was fetched with Bearer token
-      const userCall = fetchMock.getCalls()[1];
+      const userCall = fetchMock.getCalls()[1]!;
       expect(userCall.url).toBe('https://api.bitbucket.org/2.0/user');
       const authHeader = (userCall.options.headers as Record<string, string>)[
         'Authorization'
-      ];
+      ]!;
       expect(authHeader).toBe('Bearer auth-access-token');
 
       // Verify credentials were persisted
@@ -1073,7 +1073,7 @@ describe('OAuthService', () => {
       );
       await authorizePromise;
 
-      const tokenCall = fetchMock.getCalls()[0];
+      const tokenCall = fetchMock.getCalls()[0]!;
       const body = tokenCall.options.body as string;
       const params = new URLSearchParams(body);
       const verifier = params.get('code_verifier');
@@ -1107,10 +1107,10 @@ describe('OAuthService', () => {
       await authorizePromise;
 
       // Token exchange should use the override secret, not the stored one.
-      const tokenCall = fetchMock.getCalls()[0];
+      const tokenCall = fetchMock.getCalls()[0]!;
       const authHeader = (tokenCall.options.headers as Record<string, string>)[
         'Authorization'
-      ];
+      ]!;
       const decoded = Buffer.from(
         authHeader.replace('Basic ', ''),
         'base64'

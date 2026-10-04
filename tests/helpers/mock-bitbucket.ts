@@ -250,7 +250,7 @@ export async function startMockBitbucket(
 
   return {
     url: server.url.origin,
-    port: server.port,
+    port: server.port!,
     requests,
     peakInFlight,
     stop: () => server.stop(true),
