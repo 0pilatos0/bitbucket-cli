@@ -267,6 +267,7 @@ export function normalizeEndpoint(endpoint: string): string {
     });
   }
 
+  // eslint-disable-next-line no-control-regex -- rejecting control characters is the point
   if (/[\\\x00-\x1f\x7f]/.test(trimmed)) {
     throw new BBError({
       code: ErrorCode.VALIDATION_INVALID,

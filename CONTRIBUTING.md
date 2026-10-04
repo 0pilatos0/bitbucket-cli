@@ -24,6 +24,9 @@ bun run check         # lint, lint:docs, format:check and all tests
 bun run test:coverage # run tests with coverage (gated in CI on Linux)
 ```
 
+`bun install` installs a pre-commit hook that runs `format:check`, `lint` and
+`lint:docs`. Set `SKIP_SIMPLE_GIT_HOOKS=1` to bypass it for a single commit.
+
 ## Documentation site
 
 The CLI runs on Bun. The Astro documentation tools also need Node.js >=22.12.
@@ -93,6 +96,11 @@ you write it by hand, the package name must be exactly
 `'@pilatos/bitbucket-cli'` (see
 [AGENTS.md → Changesets and Branches](AGENTS.md#changesets-and-branches)).
 
+CI fails a PR that changes `src/` without a changeset, and any changeset whose
+frontmatter names another package or an unknown bump type. If a `src/` change
+really does not affect users (a pure refactor, say), a maintainer adds the
+`no-changeset` label to waive the requirement.
+
 ### 4. Open a Pull Request
 
 - Fill in the PR template
@@ -114,8 +122,8 @@ Releases are automated via Changesets:
 
 1. PRs with changesets merge to `main`.
 2. A "Version Packages" PR is opened automatically with the version bump
-   and CHANGELOG. Its checks come from CI and Docs lint runs that the Release
-   workflow dispatches (`workflow_dispatch`). The `pull_request` runs for that
+   and CHANGELOG. Its checks come from CI, Docs lint and Changeset runs that
+   the Release workflow dispatches (`workflow_dispatch`). The `pull_request` runs for that
    PR show up in the Actions tab as awaiting approval and later expire as
    failures. They cannot be turned off while the PR is opened with
    `GITHUB_TOKEN`; avoiding them would need a stored PAT or GitHub App secret

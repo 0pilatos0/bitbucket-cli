@@ -27,7 +27,7 @@ bun test <file>      # Run a single test file (e.g., bun test tests/commands/rep
 COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
 # Type-checking / formatting / docs drift
-bun run lint         # Type-check src, tests and scripts (tsc --noEmit)
+bun run lint         # Type-check src, tests and scripts (tsc --noEmit), then lint (oxlint)
 bun run lint:docs    # Fail when error codes, BB_* env vars, commands or flags are missing from the docs
 bun run format       # Prettier write
 bun run format:check # Prettier check
@@ -227,7 +227,13 @@ bun run changeset    # Add a changeset (see Changesets below)
 
 ## Tooling Notes
 
-- Git hook: `simple-git-hooks` runs `bun run format:check` on pre-commit
+- Git hook: `simple-git-hooks` (installed by `prepare`) runs `format:check`,
+  `lint` and `lint:docs` on pre-commit
+- Lint: oxlint, configured in `.oxlintrc.json`; `console.*` is only allowed in
+  the terminal writers listed there, other exceptions need an inline
+  `eslint-disable-next-line <rule> -- <reason>`
+- PRs: the Changeset workflow requires a changeset when `src/` changes
+  (waived by the `no-changeset` label) and validates changeset frontmatter
 - Runtime: Bun only (`src/index.ts` guards against non-Bun runtimes)
 - CI's Bun version lives in `.bun-version`; dependency and Bun bumps follow
   [CONTRIBUTING.md → Dependency Updates](CONTRIBUTING.md#dependency-updates)

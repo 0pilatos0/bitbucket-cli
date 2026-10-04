@@ -1,12 +1,8 @@
 #!/usr/bin/env bun
 
 // Type-only: erased at runtime, so nothing is loaded before argv is rewritten.
+// It also gives the file the module context its top-level await needs.
 import type { IOutputService } from './core/interfaces/services.js';
-
-// Top-level await below requires module context; this file has no static
-// imports (cli.js must load only after argv is rewritten), so mark it a
-// module explicitly.
-export {};
 
 // Runtime check: Ensure Bun runtime is being used
 if (typeof Bun === 'undefined') {

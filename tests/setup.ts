@@ -23,14 +23,7 @@ import type {
   ISpinner,
 } from '../src/core/interfaces/services.js';
 import type { BBError } from '../src/types/errors.js';
-import type {
-  BBConfig,
-  AuthCredentials,
-  OAuthCredentials,
-  AuthMethod,
-  RepoContext,
-  GlobalOptions,
-} from '../src/types/config.js';
+import type { BBConfig } from '../src/types/config.js';
 
 const originalNodeEnv = process.env.NODE_ENV;
 const originalSetTimeout = globalThis.setTimeout;

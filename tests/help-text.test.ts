@@ -107,7 +107,6 @@ describe('buildHelpText', () => {
     });
 
     const lines = result.split('\n');
-    const examplesLine = lines.findIndex((l) => l === 'Examples:');
     const typesLine = lines.findIndex((l) => l === 'Types:');
 
     // There should be a blank line between the last example and the valid values header

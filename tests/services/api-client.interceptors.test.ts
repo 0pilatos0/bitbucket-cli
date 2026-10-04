@@ -20,7 +20,6 @@ import {
 import { APIError, BBError, ErrorCode } from '../../src/types/errors.js';
 import {
   createMockAdapter,
-  createMockConfigService,
   createMockOAuthService,
   createMockOutputService,
   mockConfigService,

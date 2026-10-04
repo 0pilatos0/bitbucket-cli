@@ -1079,7 +1079,9 @@ describe('OutputService', () => {
       }
 
       // The description tail must not start a new line at column 0.
-      expect(stdoutLines.some((line) => /^To connect/.test(line))).toBe(false);
+      expect(stdoutLines.some((line) => line.startsWith('To connect'))).toBe(
+        false
+      );
 
       // Visible words survive — only the control chars are removed/collapsed.
       const printed = stdoutLines.join('\n');
