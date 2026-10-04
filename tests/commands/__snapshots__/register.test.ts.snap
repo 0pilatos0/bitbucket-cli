@@ -8123,3 +8123,120 @@ Examples:
 ,
 }
 `;
+
+
+
+exports[`command tree snapshot bb context 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {},
+    "token": "ContextCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb context [options]
+
+Show the workspace, repository and branch bb would use here, and where each came
+from (no network)
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb context
+  $ bb context --json
+  $ bb context -w my-team -r api --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb agent-instructions 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "AgentInstructionsCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb agent-instructions [options]
+
+Print instructions for AI coding agents that use bb, matching this version
+(paste into a skill or AGENTS.md)
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb agent-instructions
+  $ bb agent-instructions >> AGENTS.md
+  $ bb agent-instructions --json --jq '.instructions'
+
+"
+,
+}
+`;

@@ -1,0 +1,34 @@
+---
+title: Agent instructions command
+description: Print the AI coding agent instructions that ship with the installed bb version, ready to paste into a skill, rules file, or AGENTS.md.
+---
+
+`bb agent-instructions` prints the instructions for AI coding agents that ship
+with the installed version of `bb`. It is the same text as the
+[AI Agent Integration](/guides/ai-agents/) guide shows, so a skill or rules
+file generated from it always matches the CLI you have.
+
+## `bb agent-instructions`
+
+```bash
+bb agent-instructions [options]
+```
+
+### Examples
+
+```bash
+bb agent-instructions
+bb agent-instructions >> AGENTS.md
+bb agent-instructions --json --jq '.instructions'
+```
+
+### JSON output
+
+```json
+{
+  "version": "2.3.0",
+  "instructions": "## Bitbucket CLI\n\nUse `bb` for Bitbucket Cloud operations.\n..."
+}
+```
+
+`version` is the installed CLI version the instructions belong to.

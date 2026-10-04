@@ -177,6 +177,9 @@ import { PrintCompletionCommand } from './commands/completion/print.command.js';
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { HelpCommand } from './commands/help.command.js';
+import { ContextCommand } from './commands/context.command.js';
+import { AgentInstructionsCommand } from './commands/agent-instructions.command.js';
 import { DoctorCommand } from './commands/doctor.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
@@ -1228,6 +1231,20 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.OutputService,
   ]);
 
+  registerCommand(container, ServiceTokens.HelpCommand, HelpCommand, [
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(container, ServiceTokens.ContextCommand, ContextCommand, [
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.AgentInstructionsCommand,
+    AgentInstructionsCommand,
+    [ServiceTokens.OutputService]
+  );
   registerCommand(container, ServiceTokens.DoctorCommand, DoctorCommand, [
     ServiceTokens.ConfigService,
     ServiceTokens.CredentialStore,

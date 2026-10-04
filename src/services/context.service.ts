@@ -10,7 +10,12 @@ import type {
 } from '../core/interfaces/services.js';
 import type { CommandContext } from '../core/interfaces/commands.js';
 import { BBError, ErrorCode } from '../types/errors.js';
-import type { RepoContext, GlobalOptions } from '../types/config.js';
+import type {
+  ContextSource,
+  GlobalOptions,
+  RepoContext,
+  ResolvedContext,
+} from '../types/config.js';
 
 type RepoContextFailureReason =
   'not_a_git_repo' | 'no_remote' | 'remote_not_bitbucket' | 'ambiguous_remote';
@@ -20,6 +25,8 @@ interface GitRepoContextResult {
   reason: RepoContextFailureReason | null;
   /** Remotes behind the failure: all of them, or the competing Bitbucket ones */
   remotes: GitRemote[];
+  /** The remote the context was read from, on success */
+  remote?: GitRemote;
 }
 
 interface ParsedGitUrl {
@@ -87,6 +94,11 @@ function sameRepo(a: RepoContext, b: RepoContext): boolean {
     a.workspace.toLowerCase() === b.workspace.toLowerCase() &&
     a.repoSlug.toLowerCase() === b.repoSlug.toLowerCase()
   );
+}
+
+interface SourcedValue {
+  value: string;
+  source: ContextSource;
 }
 
 export class ContextService implements IContextService {
@@ -161,7 +173,7 @@ export class ContextService implements IContextService {
     if (origin && originPath !== null) {
       const context = parseRepoPath(originPath);
       return context
-        ? { context, reason: null, remotes: [] }
+        ? { context, reason: null, remotes: [], remote: origin }
         : { context: null, reason: 'remote_not_bitbucket', remotes: [origin] };
     }
 
@@ -185,11 +197,21 @@ export class ContextService implements IContextService {
       return { context: null, reason: 'remote_not_bitbucket', remotes };
     }
     if (candidates.every((c) => sameRepo(c.context, first.context))) {
-      return { context: first.context, reason: null, remotes: [] };
+      return {
+        context: first.context,
+        reason: null,
+        remotes: [],
+        remote: first.remote,
+      };
     }
     const upstream = candidates.find((c) => c.remote.name === 'upstream');
     if (upstream) {
-      return { context: upstream.context, reason: null, remotes: [] };
+      return {
+        context: upstream.context,
+        reason: null,
+        remotes: [],
+        remote: upstream.remote,
+      };
     }
     return {
       context: null,
@@ -224,37 +246,67 @@ export class ContextService implements IContextService {
       };
     }
 
-    // Try to get from current git repo
     const gitResult = await this.inspectGitRepoContext();
-    const gitContext = gitResult.context;
-
-    // If only workspace is provided, use it with git-detected repo
-    if (options.workspace && gitContext) {
-      return {
-        context: {
-          workspace: options.workspace,
-          repoSlug: gitContext.repoSlug,
-        },
-        reason: null,
-        remotes: [],
-      };
+    const repo = this.pickRepo(options, gitResult.context);
+    const workspace = repo
+      ? await this.pickWorkspace(options, gitResult.context)
+      : undefined;
+    if (!repo || !workspace) {
+      return gitResult;
     }
 
-    // If only repo is provided, try to use git workspace or fall back to
-    // BB_WORKSPACE / config.defaultWorkspace
-    if (options.repo) {
-      const workspace =
-        gitContext?.workspace ?? (await this.resolveDefaultWorkspace());
-      if (workspace) {
-        return {
-          context: { workspace, repoSlug: options.repo },
-          reason: null,
-          remotes: [],
-        };
-      }
-    }
+    return {
+      context: { workspace: workspace.value, repoSlug: repo.value },
+      reason: null,
+      remotes: [],
+    };
+  }
 
-    return gitResult;
+  /**
+   * Report what workspace and repository commands would use, and where each
+   * came from, without throwing when either is missing. Local only: reads git
+   * and the config file, never the network.
+   */
+  public async inspectContext(
+    options: GlobalOptions
+  ): Promise<ResolvedContext> {
+    const gitResult = await this.inspectGitRepoContext();
+    const repo = this.pickRepo(options, gitResult.context);
+    const workspace = await this.pickWorkspace(options, gitResult.context);
+    // On failure, a lone remote shows why nothing was detected.
+    const remote =
+      gitResult.remote ??
+      (gitResult.remotes.length === 1 ? gitResult.remotes[0] : undefined);
+    return {
+      workspace: workspace?.value ?? null,
+      repo: repo?.value ?? null,
+      source: {
+        workspace: workspace?.source ?? null,
+        repo: repo?.source ?? null,
+      },
+      remote: remote ? redactUrl(remote.url) : null,
+    };
+  }
+
+  private pickRepo(
+    options: GlobalOptions,
+    gitContext: RepoContext | null
+  ): SourcedValue | undefined {
+    if (options.repo) return { value: options.repo, source: 'flag' };
+    if (gitContext) return { value: gitContext.repoSlug, source: 'remote' };
+    return undefined;
+  }
+
+  /** -w, then the git remote, then `BB_WORKSPACE`, then `defaultWorkspace`. */
+  private async pickWorkspace(
+    options: GlobalOptions,
+    gitContext: RepoContext | null
+  ): Promise<SourcedValue | undefined> {
+    if (options.workspace) {
+      return { value: options.workspace, source: 'flag' };
+    }
+    if (gitContext) return { value: gitContext.workspace, source: 'remote' };
+    return this.resolveDefaultWorkspace();
   }
 
   /**
@@ -262,19 +314,19 @@ export class ContextService implements IContextService {
    * `BB_WORKSPACE` wins over `config.defaultWorkspace` so CI pipelines can
    * override a developer's persisted default without rewriting the config.
    */
-  private async resolveDefaultWorkspace(): Promise<string | undefined> {
+  private async resolveDefaultWorkspace(): Promise<SourcedValue | undefined> {
     const fromEnv = process.env.BB_WORKSPACE;
     if (typeof fromEnv === 'string') {
       const trimmed = fromEnv.trim();
       if (trimmed.length > 0) {
-        return trimmed;
+        return { value: trimmed, source: 'env' };
       }
     }
 
     const config = await this.configService.getConfig();
     const fromConfig = config.defaultWorkspace;
     if (typeof fromConfig === 'string' && fromConfig.length > 0) {
-      return fromConfig;
+      return { value: fromConfig, source: 'config' };
     }
 
     return undefined;
@@ -363,7 +415,7 @@ export class ContextService implements IContextService {
 
     const fallback = await this.resolveDefaultWorkspace();
     if (fallback) {
-      return fallback;
+      return fallback.value;
     }
 
     throw new BBError({

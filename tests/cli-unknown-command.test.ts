@@ -267,6 +267,73 @@ describe('bb help <command>', () => {
   });
 });
 
+describe('bb help --json', () => {
+  // OutputService writes straight to process.stdout, not via console.log.
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  let written = '';
+
+  beforeEach(() => {
+    written = '';
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      written +=
+        typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk);
+      return true;
+    }) as typeof process.stdout.write;
+  });
+
+  afterEach(() => {
+    process.stdout.write = originalWrite;
+  });
+
+  it('prints the whole command tree as JSON', async () => {
+    const result = await run(['help', '--json']);
+    const manifest = JSON.parse(written) as {
+      version: string;
+      globalOptions: Array<{ long: string }>;
+      commands: Array<{ path: string }>;
+    };
+
+    expect(result.stdout).toBe('');
+    expect(manifest.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(manifest.globalOptions.map((o) => o.long)).toContain('--workspace');
+    expect(manifest.commands.map((c) => c.path)).toContain('pr comments list');
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  it('scopes to the named command and honours --jq', async () => {
+    const result = await run([
+      'help',
+      'pr',
+      'comments',
+      '--json',
+      '--jq',
+      '[.commands[].path]',
+    ]);
+    const paths = JSON.parse(written) as string[];
+
+    expect(paths[0]).toBe('pr comments');
+    expect(paths.every((path) => path.startsWith('pr comments'))).toBe(true);
+    expect(result.exitCode).toBeFalsy();
+  });
+
+  it('reports an unknown target as a JSON error', async () => {
+    const result = await run(['help', 'zzz', '--json']);
+
+    const payload = JSON.parse(result.stderr) as Record<string, unknown>;
+    expect(payload.code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(written).toBe('');
+    expect(result.exitCode).toBe(1);
+  });
+
+  it('leaves bare `bb --json` printing text help', async () => {
+    const result = await run(['--json']);
+
+    expect(result.stdout).toContain('Usage: bb');
+    // The welcome tip may follow on stdout; no JSON must.
+    expect(written.trimStart().startsWith('{')).toBe(false);
+  });
+});
+
 describe('bare bb', () => {
   it('still prints help and exits 0', async () => {
     const result = await run([]);
