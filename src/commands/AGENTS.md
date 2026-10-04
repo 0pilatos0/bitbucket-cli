@@ -27,10 +27,11 @@ hand.
 1. **Command** `src/commands/<group>/<verb>.command.ts`: extend
    `BaseCommand<TOptions, TResult>`, inject the generated API client and
    services through the constructor.
-2. **Token** `ServiceTokens.<Class>` in `src/core/container.ts`.
+2. **Token** `<Class>: token<Class>('<Class>')` plus an `import type` of the
+   class in `src/core/service-tokens.ts`.
 3. **Wiring** an import and a `registerCommand(...)` call in
-   `src/bootstrap.ts`. The deps array is positional and must match the
-   constructor; `tests/core/bootstrap.test.ts` checks the count.
+   `src/bootstrap.ts`. The deps array is positional; the compiler checks it
+   against the constructor through the typed tokens.
 4. **Commander** a `.command('<verb>')` block in
    `src/commands/<group>/register.ts`, dispatching through
    `registrar.runWithGlobalOptions()`. A new group also gets:

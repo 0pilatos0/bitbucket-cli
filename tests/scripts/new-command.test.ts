@@ -74,7 +74,7 @@ afterAll(() => {
 
 describe('scripts/new-command.ts', () => {
   it('--dry-run reports the plan without writing anything', () => {
-    const before = read('src/core/container.ts');
+    const before = read('src/core/service-tokens.ts');
 
     const result = scaffold(
       'tag',
@@ -89,7 +89,7 @@ describe('scripts/new-command.ts', () => {
     expect(result.stdout).toContain('src/commands/tag/list.command.ts');
     expect(result.stdout).toContain('src/services/output.service.ts');
     expect(existsSync(join(root, 'src/commands/tag'))).toBe(false);
-    expect(read('src/core/container.ts')).toBe(before);
+    expect(read('src/core/service-tokens.ts')).toBe(before);
   });
 
   it('scaffolds a new list group and a verb in an existing group', () => {

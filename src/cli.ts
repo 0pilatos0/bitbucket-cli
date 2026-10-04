@@ -13,19 +13,13 @@ import { formatCompletions, generateCompletions } from './completion.js';
 import { createHelpTextBuilder } from './help-text.js';
 import { addGlobalOptions } from './global-options.js';
 import { ServiceTokens } from './core/container.js';
-import type { ServiceToken } from './core/container.js';
-import type { BaseCommand } from './core/base-command.js';
+import type { CommandToken } from './core/container.js';
 import type {
   CommandRegistrar,
   ContextOptions,
+  RepoOptions,
 } from './core/command-registrar.js';
 import type { CommandContext } from './core/interfaces/commands.js';
-import type {
-  ICredentialStore,
-  IOutputService,
-  IPromptService,
-} from './core/interfaces/services.js';
-import type { DryRunMode } from './services/dry-run.js';
 import type { VersionService } from './services/version.service.js';
 import type { VersionCheckResult } from './types/version.js';
 import { BBError, ErrorCode } from './types/errors.js';
@@ -191,7 +185,7 @@ export function createContext(
     });
   }
 
-  const prompt = container.resolve<IPromptService>(ServiceTokens.PromptService);
+  const prompt = container.resolve(ServiceTokens.PromptService);
   const interactive = opts.input !== false && prompt.isAvailable();
 
   return {
@@ -212,8 +206,7 @@ export function createContext(
     validationError,
     commandPath: activeCommandPath || undefined,
     dryRun:
-      container.resolve<DryRunMode>(ServiceTokens.DryRunMode).isEnabled() ||
-      undefined,
+      container.resolve(ServiceTokens.DryRunMode).isEnabled() || undefined,
     prompt: interactive && !json ? prompt : undefined,
     interactive: interactive || undefined,
     argv: userArgv(),
@@ -225,17 +218,17 @@ function userArgv(): string[] {
   return process.argv.slice(2);
 }
 
-async function runCommand<TOptions, TResult>(
-  token: ServiceToken,
-  options: TOptions,
+async function runCommand(
+  token: CommandToken,
+  options: unknown,
   program: Command,
   context?: CommandContext
-): Promise<TResult | undefined> {
+): Promise<void> {
   try {
-    const cmd = container.resolve<BaseCommand<TOptions, TResult>>(token);
+    const cmd = container.resolve(token);
     const resolvedContext = context ?? createContext(program);
 
-    return await cmd.run(options, resolvedContext);
+    await cmd.run(options, resolvedContext);
   } catch (error) {
     // BaseCommand.run() already calls handleError() which outputs the error
     // and sets process.exitCode before re-throwing. We only need to handle
@@ -250,23 +243,19 @@ async function runCommand<TOptions, TResult>(
     if (!process.exitCode) {
       process.exitCode = 1;
     }
-
-    return undefined;
   }
 }
 
 // Helper to merge global options with local options
-export function withGlobalOptions<T extends Record<string, unknown>>(
+export function withGlobalOptions<T extends RepoOptions>(
   options: T,
   context: CommandContext
-): T & { workspace?: string; repo?: string } {
+): Omit<T, keyof RepoOptions> & RepoOptions {
   return {
     ...options,
-    workspace:
-      (options.workspace as string | undefined) ??
-      context.globalOptions.workspace,
-    repo: (options.repo as string | undefined) ?? context.globalOptions.repo,
-  } as T & { workspace?: string; repo?: string };
+    workspace: options.workspace ?? context.globalOptions.workspace,
+    repo: options.repo ?? context.globalOptions.repo,
+  };
 }
 
 // Build the update-available banner. Pure string-building so it is trivially
@@ -368,9 +357,7 @@ addGlobalOptions(cli)
   .action(async () => {
     // The update-available check runs in the root `postAction` hook so it fires
     // after every command, not just the bare `bb` invocation handled here.
-    const output = container.resolve<IOutputService>(
-      ServiceTokens.OutputService
-    );
+    const output = container.resolve(ServiceTokens.OutputService);
 
     const jsonOption = cli.opts().json;
     const json = jsonOption !== undefined && jsonOption !== false;
@@ -409,9 +396,7 @@ addGlobalOptions(cli)
     // this path immediately after install, so it's the right moment to point
     // at the next step.
     try {
-      const credentialStore = container.resolve<ICredentialStore>(
-        ServiceTokens.CredentialStore
-      );
+      const credentialStore = container.resolve(ServiceTokens.CredentialStore);
       if (!(await credentialStore.hasCredentials())) {
         output.text('');
         output.text(
@@ -430,13 +415,11 @@ addGlobalOptions(cli)
 cli.hook('preAction', (_thisCommand, actionCommand) => {
   activeCommandPath = buildCommandPath(actionCommand);
   if (actionCommand.opts().dryRun === true) {
-    container.resolve<DryRunMode>(ServiceTokens.DryRunMode).enable();
+    container.resolve(ServiceTokens.DryRunMode).enable();
   }
   const { account } = cli.opts<{ account?: string }>();
   if (account !== undefined) {
-    container
-      .resolve<ICredentialStore>(ServiceTokens.CredentialStore)
-      .useAccount(account);
+    container.resolve(ServiceTokens.CredentialStore).useAccount(account);
   }
 });
 
@@ -446,9 +429,7 @@ cli.hook('preAction', (_thisCommand, actionCommand) => {
 // runCommand() and the root action swallow all errors, so no action ever throws
 // out to Commander and skips its postAction hooks.
 cli.hook('postAction', async (thisCommand) => {
-  const versionService = container.resolve<VersionService>(
-    ServiceTokens.VersionService
-  );
+  const versionService = container.resolve(ServiceTokens.VersionService);
   const jsonOpt = thisCommand.opts().json;
   const json = jsonOpt !== undefined && jsonOpt !== false;
   await maybePrintUpdateNotice(versionService, { json, noUnicode });
@@ -456,7 +437,7 @@ cli.hook('postAction', async (thisCommand) => {
 
 const registrar: CommandRegistrar = {
   buildHelpText,
-  run: async (token, options) => {
+  run: async (token, ...[options]) => {
     await runCommand(token, options, cli);
   },
   runWithGlobalOptions: async (token, options, contextOptions) => {
@@ -470,13 +451,9 @@ registerCommands(cli, registrar);
 installParseErrorHandling(cli, {
   argv: userArgv,
   writeTextError: (message) =>
-    container
-      .resolve<IOutputService>(ServiceTokens.OutputService)
-      .error(message),
+    container.resolve(ServiceTokens.OutputService).error(message),
   writeJsonError: (payload) =>
-    container
-      .resolve<IOutputService>(ServiceTokens.OutputService)
-      .jsonError(payload),
+    container.resolve(ServiceTokens.OutputService).jsonError(payload),
   exit: (code) => process.exit(code),
 });
 

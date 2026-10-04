@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { Container } from '../../src/core/container.js';
+import { Container, token } from '../../src/core/container.js';
 
 describe('Container', () => {
   let container: Container;
@@ -85,8 +85,8 @@ describe('Container', () => {
     });
   });
 
-  describe('registerClass', () => {
-    it('should instantiate class with dependencies', () => {
+  describe('resolveAll', () => {
+    it('should resolve tokens positionally for constructor injection', () => {
       class Dependency {
         getValue() {
           return 42;
@@ -94,15 +94,26 @@ describe('Container', () => {
       }
 
       class Service {
-        constructor(public dep: Dependency) {}
+        constructor(
+          public dep: Dependency,
+          public label: string
+        ) {}
       }
 
-      container.register('Dependency', () => new Dependency());
-      container.registerClass('Service', Service, ['Dependency']);
+      const DependencyToken = token<Dependency>('Dependency');
+      const LabelToken = token<string>('Label');
+      container.register(DependencyToken, () => new Dependency());
+      container.registerInstance(LabelToken, 'svc');
 
-      const service = container.resolve<Service>('Service');
+      const service = new Service(
+        ...container.resolveAll<ConstructorParameters<typeof Service>>([
+          DependencyToken,
+          LabelToken,
+        ])
+      );
 
       expect(service.dep.getValue()).toBe(42);
+      expect(service.label).toBe('svc');
     });
   });
 
@@ -123,23 +134,6 @@ describe('Container', () => {
 
     it('should return false for unregistered service', () => {
       expect(container.has('NonExistent')).toBe(false);
-    });
-  });
-
-  describe('unregister', () => {
-    it('should remove a registered service', () => {
-      container.register('TestService', () => ({}));
-      expect(container.has('TestService')).toBe(true);
-
-      container.unregister('TestService');
-
-      expect(container.has('TestService')).toBe(false);
-    });
-
-    it('should return false for non-existent service', () => {
-      const result = container.unregister('NonExistent');
-
-      expect(result).toBe(false);
     });
   });
 

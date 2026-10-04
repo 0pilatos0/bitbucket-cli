@@ -117,7 +117,7 @@ const quotedDescription = JSON.stringify(description);
 
 const root = resolve(flags.root ?? join(import.meta.dir, '..'));
 const paths = {
-  container: 'src/core/container.ts',
+  tokens: 'src/core/service-tokens.ts',
   bootstrap: 'src/bootstrap.ts',
   topRegister: 'src/commands/register.ts',
   groupRegister: `src/commands/${group}/register.ts`,
@@ -218,7 +218,7 @@ if (isNewGroup && existsSync(join(root, paths.leafRegister))) {
 }
 
 const token = className;
-if (new RegExp(`^\\s*${token}:`, 'm').test(read(paths.container))) {
+if (new RegExp(`^\\s*${token}:`, 'm').test(read(paths.tokens))) {
   fail(`ServiceTokens.${token} already exists`);
 }
 
@@ -383,21 +383,42 @@ function lastTokenIndex(
   return last;
 }
 
-const containerSource = read(paths.container);
-const tokenLine = `  ${token}: '${token}',\n`;
-const lastContainerToken = lastTokenIndex(
-  containerSource,
-  (t) => `^\\s*${escapeRe(t)}:`
-);
-if (lastContainerToken >= 0) {
-  insertAfterLineAt(paths.container, lastContainerToken, tokenLine);
+const tokensSource = read(paths.tokens);
+const tokenLine = `  ${token}: token<${className}>('${token}'),\n`;
+const lastToken = lastTokenIndex(tokensSource, (t) => `^\\s*${escapeRe(t)}:`);
+if (lastToken >= 0) {
+  // Entries may wrap over several lines; each one ends with `),`.
+  const entryEnd = /\),$/gm;
+  entryEnd.lastIndex = lastToken;
+  const end = entryEnd.exec(tokensSource);
+  if (!end) fail(`${paths.tokens}: cannot find the end of the token entry`);
+  insertAfterLineAt(paths.tokens, end.index, tokenLine);
 } else {
-  insertBeforeLast(
-    paths.container,
-    /^} as const;/,
-    `\n  // Commands - ${words(group)}\n${tokenLine}`
+  const catalogStart = tokensSource.indexOf('export const ServiceTokens = {');
+  const catalogEnd = tokensSource.indexOf('\n};', catalogStart);
+  if (catalogStart < 0 || catalogEnd < 0) {
+    fail(`${paths.tokens}: ServiceTokens catalog not found`);
+  }
+  insertAt(
+    paths.tokens,
+    `\n  // Commands - ${words(group)}\n${tokenLine}`,
+    catalogEnd + 1
   );
 }
+const commandTypeImports = [
+  ...read(paths.tokens).matchAll(
+    /^import type \{ \w+ \} from '\.\.\/commands\/([\w-]+)\/.*$/gm
+  ),
+];
+const lastTypeImport =
+  commandTypeImports.filter((match) => match[1] === group).at(-1) ??
+  commandTypeImports.at(-1);
+if (!lastTypeImport) fail(`${paths.tokens}: no command type imports found`);
+insertAfterLineAt(
+  paths.tokens,
+  lastTypeImport.index,
+  `import type { ${className} } from '../commands/${group}/${verb}.command.js';\n`
+);
 
 const importLine = `import { ${className} } from './commands/${group}/${verb}.command.js';\n`;
 const bootstrapImports = [

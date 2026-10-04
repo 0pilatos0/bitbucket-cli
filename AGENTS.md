@@ -178,6 +178,9 @@ bun run changeset    # Add a changeset (see Changesets below)
 ### Dependency Injection
 
 - Register services and commands in `src/bootstrap.ts` with `ServiceTokens`
+- Declare a token as `token<T>('Name')` in `ServiceTokens`, where `T` is what
+  it resolves to (the interface consumers depend on, where one exists);
+  `registerCommand` deps and registrar options are type-checked against it
 - Container is a singleton; tests reset it with `Container.reset()` (see
   `tests/AGENTS.md`)
 - Services are singletons by default (override via options if needed)
