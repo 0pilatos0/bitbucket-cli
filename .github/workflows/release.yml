@@ -70,11 +70,11 @@ jobs:
       - name: Create Release Pull Request
         id: release_pr
         if: steps.changesets.outputs.has_changesets == 'true'
-        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v1
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
-          version: bun run version
-          title: 'chore: version packages'
-          commit: 'chore: version packages'
+          version-script: bun run version
+          pr-title: 'chore: version packages'
+          commit-message: 'chore: version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -132,7 +132,7 @@ jobs:
     outputs:
       should_publish: ${{ steps.publish.outputs.should_publish }}
       version: ${{ steps.package.outputs.version }}
-      release_pr_number: ${{ steps.release_pr.outputs.pullRequestNumber }}
+      release_pr_number: ${{ steps.release_pr.outputs.pr-number }}
 
   # Standalone executables with the Bun runtime embedded, for machines without
   # Bun. Each target compiles and is smoke-tested on its native runner, so a
