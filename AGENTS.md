@@ -27,7 +27,7 @@ bun test <file>      # Run a single test file (e.g., bun test tests/commands/rep
 COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test the host binary (downloads a Bun runtime)
 
 # Type-checking / formatting / docs drift
-bun run lint         # Type-check (tsc --noEmit) and lint (oxlint)
+bun run lint         # Type-check src and tests (tsc --noEmit), then lint (oxlint)
 bun run lint:docs    # Fail when error codes, BB_* env vars, commands or flags are missing from the docs
 bun run format       # Prettier write
 bun run format:check # Prettier check
@@ -173,6 +173,9 @@ bun run changeset    # Add a changeset (see Changesets below)
 ### Dependency Injection
 
 - Register services and commands in `src/bootstrap.ts` with `ServiceTokens`
+- Declare a token as `token<T>('Name')` in `ServiceTokens`, where `T` is what
+  it resolves to (the interface consumers depend on, where one exists);
+  `registerCommand` deps and registrar options are type-checked against it
 - Container is a singleton; tests reset it with `Container.reset()` (see
   `tests/AGENTS.md`)
 - Services are singletons by default (override via options if needed)

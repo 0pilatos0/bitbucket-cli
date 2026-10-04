@@ -7,16 +7,13 @@
  * registered token and verify each command can be instantiated, so a
  * broken wiring fails in CI instead of production.
  *
- * Positional dep wiring is pinned against the exported registration table:
- * `deps.length` must equal the constructor's arity exactly. Note the table
- * cannot catch a *swapped* pair of same-arity, same-shape deps (tokens are
- * plain strings) — the named identity checks below close that hole for the
- * non-trivial registerCommand-wired services, and the shared-axios test
- * covers every generated client.
+ * Positional dep order and arity are enforced at compile time by the typed
+ * tokens (see tests/typecheck/di-tokens.ts); the identity checks below pin
+ * the runtime wiring of the non-trivial services.
  */
 
 import { describe, it, expect } from 'bun:test';
-import { bootstrap, commandRegistrations } from '../../src/bootstrap.js';
+import { bootstrap } from '../../src/bootstrap.js';
 import { Container, ServiceTokens } from '../../src/core/container.js';
 import { BaseCommand } from '../../src/core/base-command.js';
 import { OutputService } from '../../src/services/output.service.js';
@@ -125,23 +122,6 @@ describe('bootstrap()', () => {
     const output = container.resolve(ServiceTokens.OutputService);
     expect((viewRepo as unknown as { output: unknown }).output).toBe(output);
     expect((createPR as unknown as { output: unknown }).output).toBe(output);
-  });
-
-  it('matches each registerCommand deps array to its constructor arity', () => {
-    const container = bootstrap();
-
-    for (const registration of commandRegistrations) {
-      const paramCount = (registration.ctor as { length: number }).length;
-      expect(
-        paramCount,
-        `${registration.token} deps length must equal constructor arity`
-      ).toBe(registration.deps.length);
-      for (const dep of registration.deps) {
-        expect(container.has(dep), `${registration.token} dep ${dep}`).toBe(
-          true
-        );
-      }
-    }
   });
 
   it('wires the registerCommand-wired services in constructor order', () => {
