@@ -99,6 +99,7 @@ bb branch-restriction create --kind <kind> (--pattern <glob> | --branch-type <ty
 | `--value <number>`     | Kind-specific count, e.g. the minimum approvals for `require_approvals_to_merge`                            |
 | `--user <user>`        | Exempt a user, by account ID or `{uuid}` (repeatable)                                                       |
 | `--group <slug>`       | Exempt a workspace group, by slug (repeatable)                                                              |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 Pass exactly one of `--pattern` or `--branch-type`.
 
@@ -150,6 +151,12 @@ Delete a rule. Without `--yes` it asks for confirmation in an interactive termin
 ```bash
 bb branch-restriction delete <id> --yes
 ```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `--dry-run` | Print the write request instead of sending it ([details](/reference/global-flags/#--dry-run)) |
 
 ### Examples
 

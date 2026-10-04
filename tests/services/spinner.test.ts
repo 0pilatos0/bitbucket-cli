@@ -293,18 +293,16 @@ describe('OutputService.spinner enabled path', () => {
   let originalNodeEnv: string | undefined;
   let originalWrite: typeof process.stdout.write;
   let writes: string[];
-  let originalLog: typeof console.log;
-  let originalError: typeof console.error;
-  let logs: string[];
+  let originalStderrWrite: typeof process.stderr.write;
+  let stderrWrites: string[];
 
   beforeEach(() => {
     originalIsTTY = process.stdout.isTTY;
     originalNodeEnv = process.env.NODE_ENV;
     originalWrite = process.stdout.write.bind(process.stdout);
-    originalLog = console.log;
-    originalError = console.error;
+    originalStderrWrite = process.stderr.write.bind(process.stderr);
     writes = [];
-    logs = [];
+    stderrWrites = [];
 
     process.env.NODE_ENV = 'production';
     Object.defineProperty(process.stdout, 'isTTY', {
@@ -315,12 +313,10 @@ describe('OutputService.spinner enabled path', () => {
       writes.push(String(chunk));
       return true;
     }) as typeof process.stdout.write;
-    console.log = (...args: unknown[]) => {
-      logs.push(`log:${args.map(String).join(' ')}`);
-    };
-    console.error = (...args: unknown[]) => {
-      logs.push(`err:${args.map(String).join(' ')}`);
-    };
+    process.stderr.write = ((chunk: unknown) => {
+      stderrWrites.push(String(chunk));
+      return true;
+    }) as typeof process.stderr.write;
   });
 
   afterEach(() => {
@@ -334,8 +330,7 @@ describe('OutputService.spinner enabled path', () => {
       process.env.NODE_ENV = originalNodeEnv;
     }
     process.stdout.write = originalWrite;
-    console.log = originalLog;
-    console.error = originalError;
+    process.stderr.write = originalStderrWrite;
   });
 
   it('returns a real Spinner that writes animation frames', () => {
@@ -360,10 +355,10 @@ describe('OutputService.spinner enabled path', () => {
 
     output.success('done');
 
-    // Stop chunk emitted before console.log success line.
-    expect(writes.some((w) => w.includes('\x1b[?25h'))).toBe(true);
-    expect(logs.some((l) => l.startsWith('log:') && l.includes('done'))).toBe(
-      true
+    const stopIndex = writes.findIndex((w) => w.includes('\x1b[?25h'));
+    expect(stopIndex).toBeGreaterThanOrEqual(0);
+    expect(writes.findIndex((w) => w.includes('done'))).toBeGreaterThan(
+      stopIndex
     );
   });
 
@@ -377,9 +372,7 @@ describe('OutputService.spinner enabled path', () => {
     output.error('something broke');
 
     expect(writes.some((w) => w.includes('\x1b[?25h'))).toBe(true);
-    expect(
-      logs.some((l) => l.startsWith('err:') && l.includes('something broke'))
-    ).toBe(true);
+    expect(stderrWrites.some((w) => w.includes('something broke'))).toBe(true);
   });
 
   it('auto-stops the active spinner before printing JSON', async () => {
@@ -391,9 +384,10 @@ describe('OutputService.spinner enabled path', () => {
 
     await output.json({ ok: true });
 
-    expect(writes.some((w) => w.includes('\x1b[?25h'))).toBe(true);
-    expect(logs.some((l) => l.startsWith('log:') && l.includes('"ok"'))).toBe(
-      true
+    const stopIndex = writes.findIndex((w) => w.includes('\x1b[?25h'));
+    expect(stopIndex).toBeGreaterThanOrEqual(0);
+    expect(writes.findIndex((w) => w.includes('"ok"'))).toBeGreaterThan(
+      stopIndex
     );
   });
 

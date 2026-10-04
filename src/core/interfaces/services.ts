@@ -11,6 +11,7 @@ import type {
   AuthMethod,
   RepoContext,
   GlobalOptions,
+  ResolvedContext,
 } from '../../types/config.js';
 import type { CommandContext } from './commands.js';
 
@@ -76,6 +77,11 @@ export interface ICredentialStore {
   isOAuthTokenExpired(): Promise<boolean>;
 }
 
+export interface GitRemote {
+  name: string;
+  url: string;
+}
+
 /**
  * OS keychain access, one secret string per account name.
  */
@@ -88,11 +94,6 @@ export interface ISecretStorage {
 /**
  * Git service interface
  */
-export interface GitRemote {
-  name: string;
-  url: string;
-}
-
 export interface IGitService {
   isRepository(): Promise<boolean>;
   clone(url: string, destination?: string): Promise<void>;
@@ -105,7 +106,7 @@ export interface IGitService {
   getRemotes(): Promise<GitRemote[]>;
   getCurrentBranch(): Promise<string>;
   getCurrentCommit(): Promise<string>;
-  getRemoteUrl(remote?: string): Promise<string>;
+  resolveSshHostname(host: string): Promise<string | null>;
 }
 
 /**
@@ -116,6 +117,11 @@ export interface IContextService {
   getRepoContextFromGit(): Promise<RepoContext | null>;
   getRepoContext(options: GlobalOptions): Promise<RepoContext | null>;
   requireRepoContext(options: GlobalOptions): Promise<RepoContext>;
+  /**
+   * The workspace and repository commands would use, with where each came
+   * from. Never throws for a missing value and never touches the network.
+   */
+  inspectContext(options: GlobalOptions): Promise<ResolvedContext>;
   /**
    * Convenience used by command implementations: merges the global options
    * carried on `context` with command-local options before resolving the repo

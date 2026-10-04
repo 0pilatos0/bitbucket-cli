@@ -3,7 +3,8 @@ title: AI Agent Integration - Claude Code, Cursor, Windsurf & More
 description: Set up the Bitbucket CLI with Claude Code, opencode, Cursor, Windsurf, and other AI coding assistants. Skill files, quick-start guides, and real-world workflow examples.
 ---
 
-import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Aside, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import instructions from '../../../../../src/agent-instructions.md?raw';
 
 Drop a skill or rules file into your project and your coding assistant drives Bitbucket through `bb`. The templates below cover Claude Code, opencode, Cursor, and Windsurf.
 
@@ -14,30 +15,21 @@ Install `bb` and authenticate yourself first. A [standalone binary](/getting-sta
 ```bash
 bb auth login
 bb auth status
+bb doctor
 ```
 
-Ask your assistant to run `bb --help`, then `bb pr list --all --json`.
-For repeated use, put these instructions in its project rules or skill file:
+`bb doctor --json` gives an agent a pass/warn/fail row per check and exits 1
+when something is broken.
 
-```markdown
-## Bitbucket CLI
+Ask your assistant to run `bb help --json`, then `bb pr list --all --json`.
+For repeated use, put these instructions in its project rules or skill file.
+`bb agent-instructions` prints the same text for the version you have
+installed, so you can regenerate the file after an upgrade:
 
-Use `bb` for Bitbucket Cloud operations.
+<Code code={instructions} lang="markdown" />
 
-- Run `bb --help` and `bb <group> <command> --help` before using unfamiliar flags.
-- Use `--json` after the command for structured output. Use `--all` on list
-  commands that support it when the task needs every result. Add `--lean` to
-  drop link noise, or `--jq <filter> --raw-output` to get plain strings.
-- Workspace and repository come from the origin remote. Pass -w and -r
-  explicitly when operating outside that checkout.
-- Read PRs with `bb pr view <id>`, `bb pr diff <id>`, and
-  `bb pr comments list <id> --all --unresolved`.
-- `bb pr checks <id>` reads one page of build statuses. For automation,
-  use the documented paginated API recipe rather than treating it as complete.
-- Use `bb api <endpoint>` for operations without a typed command.
-- Follow the user's approval rules before posting comments, approving,
-  pushing, merging, or deleting resources.
-- Never read, print, or copy credentials. Ask the user to authenticate.
+```bash
+bb agent-instructions >> AGENTS.md
 ```
 
 <Tabs>
@@ -128,6 +120,16 @@ bb pr comments reply 45 109820 "Capped retries at 3 attempts in a1b2c3d."
 bb pr comments resolve 45 109820
 ```
 
+For multi-line markdown, pass the text on stdin with `-F -` and a quoted
+heredoc, so backticks and `$` reach Bitbucket as written. The same flag works on
+`bb pr create`, `bb pr edit` and `bb pr comments add`:
+
+```bash
+bb pr comments reply 45 109820 -F - <<'EOF'
+Capped retries at 3 attempts in `a1b2c3d`.
+EOF
+```
+
 ### Draft PR workflow
 
 ```bash
@@ -180,13 +182,14 @@ scopes or configure a custom consumer with those scopes. See
 | Issue                         | Solution                                                                                                                        |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | "Not authenticated"           | Run `bb auth login`; for tokens, set `BB_USERNAME` to your account email and `BB_API_TOKEN` before login                        |
+| "Browser login needs an interactive terminal" | The agent has no terminal, so OAuth can't finish. Set `BB_USERNAME` and `BB_API_TOKEN`, or run `bb auth login` yourself |
 | Claude doesn't use `bb`       | Restart Claude Code after creating the skill file. Check `/bb-cli` shows in the slash menu                                      |
 | "Could not determine repo"    | Run from a git repo with a Bitbucket remote, or pass `-w`/`-r` flags explicitly                                                 |
 | Skill not auto-activating     | Invoke manually with `/bb-cli`, or check the `description` field in SKILL.md                                                    |
 | Cursor rule not loading       | Ensure the file is at `.cursor/rules/bb-cli.mdc` with valid frontmatter. Restart Cursor                                         |
 | opencode ignoring AGENTS.md   | Ensure the file is in the project root (not a subdirectory). Restart opencode                                                   |
 | `bb` command not found        | Install with `npm install -g @pilatos/bitbucket-cli`. The npm package requires Bun 1.1.30+; standalone binaries need no runtime |
-| AI using wrong flags          | Tell the AI to run `bb <command> --help` first                                                                                  |
+| AI using wrong flags          | Tell the AI to run `bb help --json` or `bb <command> --help` first                                                                                 |
 | Windsurf not picking up rules | Ensure the shared instructions are in the root `AGENTS.md`                                                                      |
 
 ---

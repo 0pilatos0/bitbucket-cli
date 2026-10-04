@@ -17,15 +17,17 @@ Test conventions. The root `AGENTS.md` still applies.
 ## What runs before every test
 
 - `tests/preload.ts` (wired in `bunfig.toml`) runs before any test file:
-  it strips real `BB_*` variables, forces color off, and replaces `fetch`
-  with a guard that only allows `localhost`. Set any `BB_*` variable you need
+  it strips real `BB_*` variables, forces color off, replaces `fetch`
+  with a guard that only allows `localhost`, and resets `process.exitCode`
+  after every test. Set any `BB_*` variable you need
   inside the test and restore it afterwards.
 - `tests/setup.ts` is NOT preloaded. Bun evaluates it once per run, so its
-  `beforeEach`/`afterEach` hooks (reset the DI `Container`, `NODE_ENV`,
-  `process.exitCode`) only attach to the first test file that imports it.
-  Don't rely on them: a test that registers into the container, sets
-  `NODE_ENV` or checks `process.exitCode` resets that state itself (see
-  `tests/core/container.test.ts`).
+  `beforeEach`/`afterEach` hooks (reset the DI `Container` and `NODE_ENV`)
+  only attach to the first test file that imports it. Don't rely on them: a
+  test that registers into the container or sets `NODE_ENV` resets that
+  state itself (see `tests/core/container.test.ts`). A test that asserts
+  `process.exitCode` stays unset should accept `undefined` (it starts that
+  way in each file's first test).
 
 ## Fakes
 

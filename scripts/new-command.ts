@@ -28,7 +28,14 @@ const USAGE =
 const VERIFY = 'bun run check';
 
 // Keys every scaffolded JSON envelope already uses.
-const ENVELOPE_KEYS = new Set(['workspace', 'repoSlug', 'count', 'values']);
+const ENVELOPE_KEYS = new Set([
+  'workspace',
+  'repoSlug',
+  'count',
+  'hasMore',
+  'limit',
+  'values',
+]);
 
 const NAME_RE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 
@@ -340,7 +347,7 @@ describe('${className}', () => {
 
     expect(getJsonPayload(output.logs)).toEqual(${
       isList
-        ? `{ workspace: 'acme', repoSlug: 'demo', count: 0, ${wrapperKey}: [] }`
+        ? `{ workspace: 'acme', repoSlug: 'demo', count: 0, hasMore: false, limit: 25, ${wrapperKey}: [] }`
         : `{ workspace: 'acme', repoSlug: 'demo' }`
     });
   });

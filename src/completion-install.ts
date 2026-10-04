@@ -8,17 +8,19 @@
  * node_modules path, so the read fails on every other machine and tabtab only
  * logs the ENOENT: the install "succeeds" without writing the completion
  * script. Importing the templates as text embeds them in the bundle instead.
+ *
+ * tabtab's prompt (and its index, which loads it) pull in inquirer, which
+ * touches `process.stdout` at load and slows startup, so they load on demand:
+ * every command imports this module through the completion registration.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
-import tabtab from 'tabtab/lib/index.js';
 import {
   writeToShellConfig,
   writeToTabtabScript,
 } from 'tabtab/lib/installer.js';
-import promptForLocation from 'tabtab/lib/prompt.js';
 import bashTemplate from 'tabtab/lib/scripts/bash.sh' with { type: 'text' };
 import fishTemplate from 'tabtab/lib/scripts/fish.sh' with { type: 'text' };
 import zshTemplate from 'tabtab/lib/scripts/zsh.sh' with { type: 'text' };
@@ -72,6 +74,7 @@ export async function installCompletion(
   target: CompletionTarget,
   homeDir: string = homedir()
 ): Promise<void> {
+  const { default: promptForLocation } = await import('tabtab/lib/prompt.js');
   const { location } = await promptForLocation();
   const shell = systemShell();
   const scriptPath = join(
@@ -88,5 +91,6 @@ export async function installCompletion(
 }
 
 export async function uninstallCompletion(name: string): Promise<void> {
+  const { default: tabtab } = await import('tabtab/lib/index.js');
   await tabtab.uninstall({ name });
 }

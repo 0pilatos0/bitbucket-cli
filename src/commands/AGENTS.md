@@ -50,10 +50,12 @@ hand.
    it has one, and the help snapshot:
    `bun test --update-snapshots tests/commands/register.test.ts`, then review
    the snapshot diff.
-8. **Docs** a section in `docs/src/content/docs/commands/<group>.mdx`, or on
-   the right page when the group is a folder (`commands/pr/`). A new group
-   also needs a sidebar entry in `docs/astro.config.mjs`, a row in the README
-   command table and in `docs/src/components/CommandIndex.astro`.
+8. **Docs** a heading of the form ``## `bb <group> <verb>` `` that mentions
+   each of the command's own flags (`bun run lint:docs` enforces both), in
+   `docs/src/content/docs/commands/<group>.mdx` or on the right page when the
+   group is a folder (`commands/pr/`). A new group also needs a sidebar entry
+   in `docs/astro.config.mjs`, a row in the README command table and in
+   `docs/src/components/CommandIndex.astro`.
 9. **Reference docs** a new wrapper key goes in `reference/json-output.mdx`,
    a new `ErrorCode` in `reference/error-codes.mdx` and a new env var in
    `reference/environment-variables.mdx` (`bun run lint:docs` enforces the

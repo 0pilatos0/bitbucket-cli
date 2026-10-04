@@ -73,11 +73,7 @@ export class ListPipelinesCommand extends BaseCommand<
     resolveLimit(options);
 
     const status = options.status
-      ? this.parseEnumOption(
-          options.status.toUpperCase(),
-          'status',
-          PIPELINE_STATUSES
-        )
+      ? this.parseEnumOption(options.status, 'status', PIPELINE_STATUSES)
       : undefined;
     const sort = options.sort
       ? this.parseEnumOption(options.sort, 'sort', PIPELINE_SORTS)

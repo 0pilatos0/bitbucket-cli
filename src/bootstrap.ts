@@ -13,6 +13,7 @@ import {
   PromptService,
   VersionService,
   OAuthService,
+  DryRunMode,
   createApiClient,
   SnippetFilesService,
   DefaultReviewerService,
@@ -68,10 +69,13 @@ import { DeleteDownloadCommand } from './commands/repo/downloads.delete.command.
 // PR commands
 import { CreatePRCommand } from './commands/pr/create.command.js';
 import { ListPRsCommand } from './commands/pr/list.command.js';
+import { StatusPRCommand } from './commands/pr/status.command.js';
 import { ViewPRCommand } from './commands/pr/view.command.js';
 import { EditPRCommand } from './commands/pr/edit.command.js';
 import { MergePRCommand } from './commands/pr/merge.command.js';
 import { ApprovePRCommand } from './commands/pr/approve.command.js';
+import { UnapprovePRCommand } from './commands/pr/unapprove.command.js';
+import { RequestChangesPRCommand } from './commands/pr/request-changes.command.js';
 import { DeclinePRCommand } from './commands/pr/decline.command.js';
 import { ReadyPRCommand } from './commands/pr/ready.command.js';
 import { CheckoutPRCommand } from './commands/pr/checkout.command.js';
@@ -109,6 +113,7 @@ import { ViewPipelineCommand } from './commands/pipeline/view.command.js';
 import { RunPipelineCommand } from './commands/pipeline/run.command.js';
 import { StopPipelineCommand } from './commands/pipeline/stop.command.js';
 import { LogsPipelineCommand } from './commands/pipeline/logs.command.js';
+import { WatchPipelineCommand } from './commands/pipeline/watch.command.js';
 
 // Commit commands
 import { ListCommitsCommand } from './commands/commit/list.command.js';
@@ -172,6 +177,10 @@ import { PrintCompletionCommand } from './commands/completion/print.command.js';
 
 // Top-level commands
 import { BrowseCommand } from './commands/browse.command.js';
+import { HelpCommand } from './commands/help.command.js';
+import { ContextCommand } from './commands/context.command.js';
+import { AgentInstructionsCommand } from './commands/agent-instructions.command.js';
+import { DoctorCommand } from './commands/doctor.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
 export interface BootstrapOptions {
@@ -268,6 +277,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
       })
   );
   container.register(ServiceTokens.PromptService, () => new PromptService());
+  container.register(ServiceTokens.DryRunMode, () => new DryRunMode());
   registerCommand(container, ServiceTokens.OAuthService, OAuthService, [
     ServiceTokens.CredentialStore,
   ]);
@@ -292,7 +302,13 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const outputService = container.resolve<OutputService>(
       ServiceTokens.OutputService
     );
-    return createApiClient(credentialStore, outputService, oauthService);
+    return createApiClient(
+      credentialStore,
+      outputService,
+      oauthService,
+      undefined,
+      container.resolve<DryRunMode>(ServiceTokens.DryRunMode)
+    );
   });
 
   // Generated API clients, all constructed on the shared axios instance
@@ -512,8 +528,15 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
   ]);
   registerCommand(container, ServiceTokens.ListPRsCommand, ListPRsCommand, [
     ServiceTokens.PullrequestsApi,
-    ServiceTokens.UsersApi,
+    ServiceTokens.UserResolverService,
     ServiceTokens.ContextService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(container, ServiceTokens.StatusPRCommand, StatusPRCommand, [
+    ServiceTokens.PullrequestsApi,
+    ServiceTokens.UserResolverService,
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
   registerCommand(container, ServiceTokens.ViewPRCommand, ViewPRCommand, [
@@ -540,6 +563,28 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.GitService,
     ServiceTokens.OutputService,
   ]);
+  registerCommand(
+    container,
+    ServiceTokens.UnapprovePRCommand,
+    UnapprovePRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.RequestChangesPRCommand,
+    RequestChangesPRCommand,
+    [
+      ServiceTokens.PullrequestsApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
   registerCommand(container, ServiceTokens.DeclinePRCommand, DeclinePRCommand, [
     ServiceTokens.PullrequestsApi,
     ServiceTokens.ContextService,
@@ -828,6 +873,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PipelinesApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );
@@ -859,6 +905,18 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     [
       ServiceTokens.PipelinesApi,
       ServiceTokens.ContextService,
+      ServiceTokens.GitService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.WatchPipelineCommand,
+    WatchPipelineCommand,
+    [
+      ServiceTokens.PipelinesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.GitService,
       ServiceTokens.OutputService,
     ]
   );
@@ -1170,6 +1228,28 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     ServiceTokens.ContextService,
     ServiceTokens.GitService,
     ServiceTokens.UrlBuilderService,
+    ServiceTokens.OutputService,
+  ]);
+
+  registerCommand(container, ServiceTokens.HelpCommand, HelpCommand, [
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(container, ServiceTokens.ContextCommand, ContextCommand, [
+    ServiceTokens.ContextService,
+    ServiceTokens.GitService,
+    ServiceTokens.OutputService,
+  ]);
+  registerCommand(
+    container,
+    ServiceTokens.AgentInstructionsCommand,
+    AgentInstructionsCommand,
+    [ServiceTokens.OutputService]
+  );
+  registerCommand(container, ServiceTokens.DoctorCommand, DoctorCommand, [
+    ServiceTokens.ConfigService,
+    ServiceTokens.CredentialStore,
+    ServiceTokens.ContextService,
+    ServiceTokens.UsersApi,
     ServiceTokens.OutputService,
   ]);
 

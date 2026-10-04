@@ -54,11 +54,13 @@ beforeAll(() => {
     cpSync(join(repoRoot, entry), join(root, entry), { recursive: true });
   }
   mkdirSync(join(root, 'docs/src/content/docs'), { recursive: true });
-  cpSync(
-    join(repoRoot, 'docs/src/content/docs/commands'),
-    join(root, 'docs/src/content/docs/commands'),
-    { recursive: true }
-  );
+  for (const entry of [
+    'docs/src/content/docs/commands',
+    'docs/src/content/docs/reference',
+    'scripts/check-command-docs.ts',
+  ]) {
+    cpSync(join(repoRoot, entry), join(root, entry), { recursive: true });
+  }
   symlinkSync(
     join(repoRoot, 'node_modules'),
     join(root, 'node_modules'),
@@ -123,6 +125,12 @@ describe('scripts/new-command.ts', () => {
     );
   });
 
+  it('produces docs that pass the command docs check', () => {
+    const result = run(['bun', 'scripts/check-command-docs.ts']);
+    expect(result.stdout + result.stderr).toContain('command-docs-check: ok');
+    expect(result.exitCode).toBe(0);
+  });
+
   it('produces code that type-checks', () => {
     const result = run(['bun', 'x', 'tsc', '--noEmit', '-p', '.']);
     expect(result.stdout + result.stderr).toBe('');
@@ -164,6 +172,8 @@ describe('scripts/new-command.ts', () => {
       workspace: 'acme',
       repoSlug: 'demo',
       count: 0,
+      hasMore: false,
+      limit: 25,
       tags: [],
     });
   }, 30_000);

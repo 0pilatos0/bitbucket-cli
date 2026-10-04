@@ -98,6 +98,21 @@ describe('createContext prompt gating', () => {
     useFakePrompt(available);
     expect(createContext(fakeProgram(opts)).prompt).toBeUndefined();
   });
+
+  it('stays interactive under --json so a person can finish browser login', () => {
+    useFakePrompt(true);
+    expect(
+      createContext(fakeProgram({ input: true, json: true })).interactive
+    ).toBe(true);
+  });
+
+  it.each([
+    ['the terminal is not interactive', false, { input: true }],
+    ['--no-input is passed', true, { input: false }],
+  ])('is not interactive when %s', (_label, available, opts) => {
+    useFakePrompt(available);
+    expect(createContext(fakeProgram(opts)).interactive).toBeUndefined();
+  });
 });
 
 describe('withGlobalOptions', () => {
@@ -398,6 +413,18 @@ describe('CLI help text integration', () => {
     expect(output).toContain('BB_LOCALE');
   });
 
+  it('should list the global flags in subcommand help', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const listCmd = prCmd.commands.find((c) => c.name() === 'list')!;
+    const output = captureHelp(listCmd);
+
+    expect(output).toContain('Global Options:');
+    expect(output).toContain('-w, --workspace <workspace>');
+    expect(output).toContain('-r, --repo <repo>');
+    expect(output).toContain('--json [fields]');
+    expect(output).toContain('--no-input');
+  });
+
   it('should include merge strategies and examples in pr merge help', () => {
     const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
     const mergeCmd = prCmd.commands.find((c) => c.name() === 'merge')!;
@@ -544,6 +571,7 @@ describe('CLI command registration', () => {
   it('should register all top-level commands', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
+      'agent-instructions',
       'alias',
       'api',
       'auth',
@@ -552,7 +580,9 @@ describe('CLI command registration', () => {
       'commit',
       'completion',
       'config',
+      'context',
       'deployment',
+      'doctor',
       'gpg-key',
       'pipeline',
       'pr',
@@ -650,7 +680,10 @@ describe('CLI command registration', () => {
       'list',
       'merge',
       'ready',
+      'request-changes',
       'reviewers',
+      'status',
+      'unapprove',
       'view',
     ]);
 
@@ -704,6 +737,7 @@ describe('CLI command registration', () => {
       'run',
       'stop',
       'view',
+      'watch',
     ]);
   });
 
@@ -943,10 +977,8 @@ describe('CLI leaf command options', () => {
     expect(required(requireCommand('pr', 'checkout'))).toEqual(['id']);
     expect(required(requireCommand('repo', 'clone'))).toEqual(['repository']);
     expect(required(requireCommand('repo', 'create'))).toEqual(['name']);
-    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual([
-      'id',
-      'message',
-    ]);
+    // <message> is optional so -F/--body-file can supply the text instead.
+    expect(required(requireCommand('pr', 'comments', 'add'))).toEqual(['id']);
     expect(required(requireCommand('pr', 'reviewers', 'add'))).toEqual([
       'id',
       'user',

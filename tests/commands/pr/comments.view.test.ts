@@ -121,7 +121,7 @@ describe('ViewCommentPRCommand', () => {
 
     await expect(
       command.execute({ prId: '42', commentId: '0' }, { globalOptions: {} })
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should wrap a 404 with a not-found message naming the comment', async () => {

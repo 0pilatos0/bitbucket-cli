@@ -6,7 +6,13 @@ import {
   mockPullRequest,
 } from '../../setup.js';
 import { getTableRows } from '../../helpers/output-logs.js';
-import { createMockPullrequestsApi, createMockUsersApi } from './fakes.js';
+import {
+  createMockPullrequestsApi,
+  createMockUsersApi,
+  createUserResolverStub,
+} from './fakes.js';
+import { UserResolverService } from '../../../src/services/user-resolver.service.js';
+import type { WorkspacesApi } from '../../../src/generated/api.js';
 
 describe('ListPRsCommand', () => {
   it('should list open pull requests by default', async () => {
@@ -20,7 +26,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -44,7 +50,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -61,7 +67,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -80,7 +86,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -101,7 +107,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -127,7 +133,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -148,7 +154,7 @@ describe('ListPRsCommand', () => {
     const usersApi = createMockUsersApi({ uuid: '{user-uuid}' });
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -188,7 +194,7 @@ describe('ListPRsCommand', () => {
 
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -214,7 +220,7 @@ describe('ListPRsCommand', () => {
 
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -224,11 +230,11 @@ describe('ListPRsCommand', () => {
     expect(opts.params.q).toBe('reviewers.uuid="{my-uuid}"');
   });
 
-  it('should warn and show all PRs when --mine is set but uuid is missing', async () => {
-    let capturedAxiosOptions: unknown;
+  it('should fail without listing when --mine is set but uuid is missing', async () => {
+    let listCalled = false;
     const pullrequestsApi = createMockPullrequestsApi({
-      onListCall: (_request, axiosOptions) => {
-        capturedAxiosOptions = axiosOptions;
+      onListCall: () => {
+        listCalled = true;
       },
     });
     const usersApi = createMockUsersApi();
@@ -240,21 +246,15 @@ describe('ListPRsCommand', () => {
 
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      new UserResolverService(usersApi, {} as WorkspacesApi),
       contextService,
       output
     );
-    await command.execute({ mine: true }, { globalOptions: {} });
 
-    expect(
-      output.logs.some((log) =>
-        log.includes(
-          'Could not determine your user UUID. Showing all pull requests.'
-        )
-      )
-    ).toBe(true);
-    const opts = capturedAxiosOptions as { params: Record<string, unknown> };
-    expect(opts.params.q).toBeUndefined();
+    await expect(
+      command.execute({ mine: true }, { globalOptions: {} })
+    ).rejects.toThrow("Bitbucket returned no UUID for user '@me'.");
+    expect(listCalled).toBe(false);
   });
 
   it('should use ASCII arrow in branch column when noUnicode mode is on', async () => {
@@ -280,7 +280,7 @@ describe('ListPRsCommand', () => {
 
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
@@ -313,7 +313,7 @@ describe('ListPRsCommand', () => {
 
     const command = new ListPRsCommand(
       pullrequestsApi,
-      usersApi,
+      createUserResolverStub(usersApi),
       contextService,
       output
     );
