@@ -151,6 +151,64 @@ describe('release CI gate', () => {
 });
 
 describe('release binaries', () => {
+  it('checks all four completion templates in release binaries', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    const smoke = jobs.binaries!.steps!.find((step) =>
+      step.run?.includes('begin-{pkgname}-completion')
+    );
+
+    expect(smoke?.run).toContain(
+      `test "$(grep -ao 'begin-{pkgname}-completion' "$BIN" | wc -l | tr -d ' ')" = 4`
+    );
+  });
+
+  it('builds and publishes the same tagged source', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    for (const name of ['binaries', 'release-binaries']) {
+      const checkout = jobs[name]!.steps!.find((step) =>
+        step.uses?.startsWith('actions/checkout@')
+      );
+      expect(checkout?.with?.ref).toBe(
+        'refs/tags/v${{ needs.release.outputs.version }}'
+      );
+    }
+    const publishCheckout = jobs.publish!.steps!.find((step) =>
+      step.uses?.startsWith('actions/checkout@')
+    );
+    expect(publishCheckout?.with?.ref).toBe(
+      "${{ needs.release.outputs.version && format('refs/tags/v{0}', needs.release.outputs.version) || github.sha }}"
+    );
+  });
+
+  it('only resumes a validated draft without recreating its tag', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    const steps = jobs.release!.steps!;
+    const resume = steps.find((step) => step.id === 'resume')!;
+    expect(resume.if).toBe(
+      "github.event_name == 'workflow_dispatch' && inputs.resume_release == true"
+    );
+    expect(resume.run).toContain('test "$PUBLISH_ONLY" != true');
+    expect(resume.run).toContain('test "$HAS_CHANGESETS" = false');
+    expect(resume.run).toContain('test "$TAG_EXISTS" = true');
+    expect(resume.run).toContain(
+      'test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true'
+    );
+    expect(resume.run).toContain(
+      "git diff --exit-code \"refs/tags/$TAG\" HEAD -- . ':!.github/workflows/release.yml' ':!tests/release-workflow.test.ts'"
+    );
+    const publish = steps.find((step) => step.id === 'publish')!;
+    expect(publish.if).toBe(
+      "steps.changesets.outputs.has_changesets == 'false' && (steps.tag.outputs.exists == 'false' || steps.resume.outputs.ready == 'true')"
+    );
+    for (const step of steps.filter((step) =>
+      step.run?.includes('git tag -a')
+    )) {
+      expect(step.if).toBe(
+        "steps.changesets.outputs.has_changesets == 'false' && steps.tag.outputs.exists == 'false'"
+      );
+    }
+  });
+
   it('builds one binary per compile target under its release asset name', async () => {
     const { jobs } = await loadWorkflow('release.yml');
     const legs = jobs.binaries!.strategy!.matrix.include!;

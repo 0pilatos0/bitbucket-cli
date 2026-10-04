@@ -9,6 +9,10 @@ on:
         description: 'Skip the release stage and publish package.json version directly to npm'
         type: boolean
         default: false
+      resume_release:
+        description: 'Resume binaries and npm publication for the existing draft release'
+        type: boolean
+        default: false
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
@@ -27,7 +31,7 @@ jobs:
   release:
     name: Release
     needs: [ci]
-    if: github.event_name != 'workflow_dispatch' || inputs.publish_only != true
+    if: github.event_name != 'workflow_dispatch' || inputs.publish_only != true || inputs.resume_release == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -69,7 +73,7 @@ jobs:
 
       - name: Create Release Pull Request
         id: release_pr
-        if: steps.changesets.outputs.has_changesets == 'true'
+        if: steps.changesets.outputs.has_changesets == 'true' && inputs.resume_release != true
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           version-script: bun run version
@@ -92,6 +96,25 @@ jobs:
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Validate draft release recovery
+        if: github.event_name == 'workflow_dispatch' && inputs.resume_release == true
+        id: resume
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ steps.package.outputs.version }}
+          HAS_CHANGESETS: ${{ steps.changesets.outputs.has_changesets }}
+          TAG_EXISTS: ${{ steps.tag.outputs.exists }}
+          PUBLISH_ONLY: ${{ inputs.publish_only }}
+        run: |
+          test "$PUBLISH_ONLY" != true
+          test "$HAS_CHANGESETS" = false
+          test "$TAG_EXISTS" = true
+          test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true
+          git fetch origin "refs/tags/$TAG:refs/tags/$TAG"
+          git diff --exit-code "refs/tags/$TAG" HEAD -- . ':!.github/workflows/release.yml' ':!tests/release-workflow.test.ts'
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Publish to GitHub Packages
         if: steps.changesets.outputs.has_changesets == 'false' && steps.tag.outputs.exists == 'false'
@@ -125,7 +148,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set publish flag
-        if: steps.changesets.outputs.has_changesets == 'false' && steps.tag.outputs.exists == 'false'
+        if: steps.changesets.outputs.has_changesets == 'false' && (steps.tag.outputs.exists == 'false' || steps.resume.outputs.ready == 'true')
         id: publish
         run: echo "should_publish=true" >> $GITHUB_OUTPUT
 
@@ -168,6 +191,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+        with:
+          ref: refs/tags/v${{ needs.release.outputs.version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -210,7 +235,7 @@ jobs:
           test "$("$BIN" --version | tr -d '\r')" = "$VERSION"
           test "$("$BIN" config list --json --jq '.configPath | type' | tr -d '\r')" = '"string"'
           COMP_LINE='bb pr ' COMP_POINT=6 COMP_CWORD=2 "$BIN" completion -- bb pr '' | tr -d '\r' | grep -x create >/dev/null
-          test "$(grep -ao 'begin-{pkgname}-completion' "$BIN" | wc -l | tr -d ' ')" = 3
+          test "$(grep -ao 'begin-{pkgname}-completion' "$BIN" | wc -l | tr -d ' ')" = 4
 
       - name: Upload binary
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -237,6 +262,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+        with:
+          ref: refs/tags/v${{ needs.release.outputs.version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
@@ -328,6 +355,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v5
+        with:
+          ref: ${{ needs.release.outputs.version && format('refs/tags/v{0}', needs.release.outputs.version) || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
