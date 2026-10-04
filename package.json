@@ -32,7 +32,7 @@
     "build:binary": "bun scripts/compile.ts",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --noEmit -p tests/typecheck",
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts && bun scripts/check-command-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

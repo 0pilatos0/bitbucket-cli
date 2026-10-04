@@ -8129,10 +8129,9 @@ Examples:
 exports[`command tree snapshot bb context 1`] = `
 {
   "dispatch": {
-    "contextOptions": undefined,
-    "options": {},
+    "options": undefined,
     "token": "ContextCommand",
-    "via": "runWithGlobalOptions",
+    "via": "run",
   },
   "help": 
 "Usage: bb context [options]
