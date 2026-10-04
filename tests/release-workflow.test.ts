@@ -44,6 +44,19 @@ function triggers(workflow: Workflow): string[] {
 }
 
 describe('release PR checks', () => {
+  it('uses the supported Changesets action inputs', async () => {
+    const { jobs } = await loadWorkflow('release.yml');
+    const openPr = jobs.release!.steps!.find((step) =>
+      step.uses?.startsWith('changesets/action@')
+    );
+
+    expect(openPr?.with).toEqual({
+      'version-script': 'bun run version',
+      'pr-title': 'chore: version packages',
+      'commit-message': 'chore: version packages',
+    });
+  });
+
   it('dispatches every pull_request workflow after opening the release PR', async () => {
     const { jobs } = await loadWorkflow('release.yml');
     const release = jobs.release!;
@@ -54,7 +67,7 @@ describe('release PR checks', () => {
     );
     expect(openPr?.id).toBeDefined();
     expect(release.outputs?.release_pr_number).toBe(
-      `\${{ steps.${openPr!.id}.outputs.pullRequestNumber }}`
+      `\${{ steps.${openPr!.id}.outputs.pr-number }}`
     );
     expect(release.permissions?.actions).toBeUndefined();
 
