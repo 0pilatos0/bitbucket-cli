@@ -90,7 +90,7 @@ describe('ViewPRCommand', () => {
     expect(output.logs.some((log) => log.startsWith('json:'))).toBe(true);
   });
 
-  it('should reject a non-integer --id', async () => {
+  it('should reject a non-integer <id>', async () => {
     const pullrequestsApi = createMockPullrequestsApi();
     const contextService = createMockContextService({
       workspace: 'workspace',
@@ -107,7 +107,7 @@ describe('ViewPRCommand', () => {
 
     await expect(
       command.execute({ id: 'abc' }, { globalOptions: {} })
-    ).rejects.toThrow(/--id must be a positive integer/);
+    ).rejects.toThrow(/<id> must be a positive integer/);
   });
 
   it('should render "No reviewers assigned" when there are no reviewer participants', async () => {

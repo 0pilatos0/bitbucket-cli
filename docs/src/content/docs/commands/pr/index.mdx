@@ -17,7 +17,7 @@ See [Global flags](/reference/global-flags/) for JSON output, workspace/reposito
   <LinkCard
     title="Create, edit, and view"
     href="/commands/pr/create-and-edit/"
-    description="Open a PR, change its title or description, list PRs, inspect one."
+    description="Open a PR, change its title or description, list and filter PRs, see your PR status, inspect one."
   />
   <LinkCard
     title="Activity and checks"
@@ -32,7 +32,7 @@ See [Global flags](/reference/global-flags/) for JSON output, workspace/reposito
   <LinkCard
     title="Review and merge"
     href="/commands/pr/review-and-merge/"
-    description="Approve, decline, mark a draft ready, and merge with an explicit strategy."
+    description="Approve, request changes, decline, mark a draft ready, and merge with an explicit strategy."
   />
   <LinkCard
     title="Comments"
@@ -67,13 +67,17 @@ It only picks a pull request when exactly one matches. No match, several matches
 | Create a PR with the repository's default reviewers | `bb pr create -t "Add feature" --default-reviewers` |
 | List open PRs                                       | `bb pr list`                                        |
 | List all PRs (ignore the default limit)             | `bb pr list --all`                                  |
-| List PRs where you are a reviewer                   | `bb pr list --mine`                                 |
+| List PRs you opened                                 | `bb pr list --author @me`                           |
+| List PRs where you are a reviewer                   | `bb pr list --reviewer @me`                         |
+| Your PRs, review requests and current branch PR     | `bb pr status`                                      |
 | View PR details                                     | `bb pr view 42`                                     |
 | View the PR for the current branch                  | `bb pr view`                                        |
 | View checks                                         | `bb pr checks 42`                                   |
+| Wait for checks to finish                           | `bb pr checks 42 --watch`                           |
 | Review diff                                         | `bb pr diff 42 --stat`                              |
 | Checkout PR locally                                 | `bb pr checkout 42`                                 |
 | Approve PR                                          | `bb pr approve 42`                                  |
+| Request changes                                     | `bb pr request-changes 42`                          |
 | Merge PR                                            | `bb pr merge 42 --strategy squash`                  |
 
 ## JSON for automation

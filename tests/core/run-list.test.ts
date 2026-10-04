@@ -88,6 +88,8 @@ describe('BaseCommand.runList', () => {
         workspace: 'acme',
         repoSlug: 'site',
         count: 2,
+        hasMore: false,
+        limit: 25,
         values: ITEMS,
       });
       // Key order is part of the observable API surface (metadata-first).
@@ -95,6 +97,8 @@ describe('BaseCommand.runList', () => {
         'workspace',
         'repoSlug',
         'count',
+        'hasMore',
+        'limit',
         'values',
       ]);
     });
@@ -115,6 +119,8 @@ describe('BaseCommand.runList', () => {
       expect(JSON.parse(jsonLog!.slice('json:'.length))).toEqual({
         workspace: 'acme',
         count: 0,
+        hasMore: false,
+        limit: 25,
         values: [],
       });
       // JSON mode never prints the table-mode empty-state message.
@@ -129,8 +135,44 @@ describe('BaseCommand.runList', () => {
       const jsonLog = output.logs.find((log) => log.startsWith('json:'));
       expect(JSON.parse(jsonLog!.slice('json:'.length))).toEqual({
         count: 2,
+        hasMore: false,
+        limit: 25,
         values: ITEMS,
       });
+    });
+
+    it('reports hasMore and the limit when --limit cut the results short', async () => {
+      const { output, command } = makeHarness();
+
+      await command.callRunList(
+        baseSpec({
+          options: { limit: '1' },
+          fetchPage: async () => ({ values: ITEMS, next: 'next-url' }),
+        }),
+        makeContext(true)
+      );
+
+      const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+      expect(JSON.parse(jsonLog!.slice('json:'.length))).toEqual({
+        count: 1,
+        hasMore: true,
+        limit: 1,
+        values: [ITEMS[0]],
+      });
+    });
+
+    it('emits limit: null for --all', async () => {
+      const { output, command } = makeHarness();
+
+      await command.callRunList(
+        baseSpec({ options: { all: true } }),
+        makeContext(true)
+      );
+
+      const jsonLog = output.logs.find((log) => log.startsWith('json:'));
+      const payload = JSON.parse(jsonLog!.slice('json:'.length));
+      expect(payload.hasMore).toBe(false);
+      expect(payload.limit).toBeNull();
     });
   });
 
@@ -235,6 +277,8 @@ describe('BaseCommand.runList', () => {
       const jsonLog = output.logs.find((log) => log.startsWith('json:'));
       expect(JSON.parse(jsonLog!.slice('json:'.length))).toEqual({
         count: 1,
+        hasMore: false,
+        limit: 25,
         values: [{ id: 2, name: 'beta' }],
       });
     });

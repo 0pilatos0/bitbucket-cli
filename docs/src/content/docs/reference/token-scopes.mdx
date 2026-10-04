@@ -28,13 +28,13 @@ The CLI uses these scopes:
 
 | Scope                         | Grants                                                                                                                                            |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `read:user:bitbucket`         | Read user profiles; verifies any login, resolves your UUID for `bb pr list --mine` and the `bb ssh-key` / `bb gpg-key` commands, and user lookups |
+| `read:user:bitbucket`         | Read user profiles; verifies any login, resolves your UUID for `bb pr list --author/--reviewer/--mine`, `bb pr status` and the `bb ssh-key` / `bb gpg-key` commands, and user lookups |
 | `read:repository:bitbucket`   | List and view repositories, their files, downloads, commits, and commit build statuses; search code                                               |
 | `write:repository:bitbucket`  | Upload and delete downloads                                                                                                                       |
 | `admin:repository:bitbucket`  | Create repositories; add and remove default reviewers; list, view, create, and delete branch restrictions                                         |
 | `delete:repository:bitbucket` | Delete repositories                                                                                                                               |
 | `read:pullrequest:bitbucket`  | List, view, and diff pull requests; read comments, activity, checks, reviewers, and default reviewers                                             |
-| `write:pullrequest:bitbucket` | Create, edit, approve, decline, merge, and mark pull requests ready; add/remove reviewers; add, edit, and delete comments                         |
+| `write:pullrequest:bitbucket` | Create, edit, approve, unapprove, request changes, decline, merge, and mark pull requests ready; add/remove reviewers; add, edit, and delete comments |
 | `read:pipeline:bitbucket`     | List and view pipelines and their steps, read step logs; list and view deployments and environments                                               |
 | `write:pipeline:bitbucket`    | Trigger and stop pipelines                                                                                                                        |
 | `read:workspace:bitbucket`    | List and view workspaces                                                                                                                          |
@@ -92,11 +92,11 @@ See [Get a user](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-
 
 ### Pull requests (`bb pr …`)
 
-`read:pullrequest:bitbucket` covers `list`, `view`, `diff`, `checkout`,
+`read:pullrequest:bitbucket` covers `list`, `status`, `view`, `diff`, `checkout`,
 `activity`, `checks`, `comments list`, `comments view` and `reviewers list`.
 
 `write:pullrequest:bitbucket` covers PR mutations (`create`, `edit`, `ready`,
-`approve`, `decline`, `merge`, and reviewer changes). `ready` and reviewer changes
+`approve`, `unapprove`, `request-changes`, `decline`, `merge`, and reviewer changes). `ready` and reviewer changes
 also fetch the PR first, so grant `read:pullrequest:bitbucket` for those workflows.
 `edit` without a PR ID lists open PRs to find the current branch, and
 `create --default-reviewers` reads the effective defaults; those paths also
@@ -108,15 +108,16 @@ is therefore not a guarantee that a token cannot change comments. Check the
 [endpoint reference](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-pullrequests/)
 and account permissions before treating a token as read-only.
 
-`bb pr list --mine` also needs `read:user:bitbucket`; it calls `GET /user` to
-resolve your UUID before filtering. So do the commands that take a `<user>`
+`bb pr status` and `bb pr list --mine` (or `--author`/`--reviewer`) also need
+`read:user:bitbucket`; they call `GET /user` (or `GET /users/{selected_user}`)
+to resolve the UUID before filtering. So do the commands that take a `<user>`
 argument: `bb pr create --reviewer`, `bb pr reviewers add|remove`, and
 `bb repo default-reviewers add|remove` all resolve an account ID or `{uuid}`
 through `GET /users/{selected_user}` (and `@me` through `GET /user`) before
 making the change. Add `read:user:bitbucket` to any token that runs those.
 
-`bb pr create --reviewer` and `bb pr reviewers add|remove` also accept a
-nickname, display name or email, which they look up through
+`bb pr create --reviewer`, `bb pr reviewers add|remove` and
+`bb pr list --author|--reviewer` also accept a nickname, display name or email, which they look up through
 `GET /workspaces/{workspace}/members`. That needs `read:workspace:bitbucket`.
 
 `bb pr checkout` runs `git fetch` and `git checkout` locally after reading the

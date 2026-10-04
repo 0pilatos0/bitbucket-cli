@@ -57,3 +57,14 @@ export function resolveCommandPath(
   }
   return { command: current };
 }
+
+/** Call `visit` on `root` and every command below it, parents first. */
+export function forEachCommand(
+  root: Command,
+  visit: (command: Command) => void
+): void {
+  visit(root);
+  for (const child of root.commands) {
+    forEachCommand(child, visit);
+  }
+}

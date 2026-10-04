@@ -3,6 +3,8 @@ import type {
   CommandRegistrar,
   RegisterCommands,
 } from '../core/command-registrar.js';
+import { forEachCommand } from '../core/command-tree.js';
+import { registerAgentInstructionsCommand } from './agent-instructions.register.js';
 import { registerAliasCommands } from './alias/register.js';
 import { registerApiCommand } from './api.register.js';
 import { registerAuthCommands } from './auth/register.js';
@@ -11,6 +13,7 @@ import { registerBrowseCommand } from './browse.register.js';
 import { registerCommitCommands } from './commit/register.js';
 import { registerCompletionCommands } from './completion/register.js';
 import { registerConfigCommands } from './config/register.js';
+import { registerContextCommand } from './context.register.js';
 import { registerDeploymentCommands } from './deployment/register.js';
 import { registerDoctorCommand } from './doctor.register.js';
 import { registerGpgKeyCommands } from './gpg-key/register.js';
@@ -46,8 +49,10 @@ const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
   registerApiCommand,
   registerAliasCommands,
   registerConfigCommands,
+  registerContextCommand,
   registerDoctorCommand,
   registerCompletionCommands,
+  registerAgentInstructionsCommand,
 ];
 
 export function registerCommands(
@@ -57,4 +62,10 @@ export function registerCommands(
   for (const register of TOP_LEVEL_COMMANDS) {
     register(program, registrar);
   }
+
+  // Every subcommand help lists the root flags under "Global Options:". Set
+  // per node: groups join via addCommand(), which copies no parent settings.
+  forEachCommand(program, (command) => {
+    command.configureHelp({ showGlobalOptions: true });
+  });
 }

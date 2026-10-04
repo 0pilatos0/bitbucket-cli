@@ -9,10 +9,10 @@ Start with [`bb doctor`](/commands/doctor/). It checks Bun, the config file,
 network access, authentication, token scopes, and git remote detection, and
 points at the failing piece. Then find your error message below. Command errors go to stderr and exit 1, with a
 `✗` prefix, or `ERR` under `--no-unicode` or `BB_NO_UNICODE`.
-Under `--json`, command failures become a single-line JSON object on stderr.
-Argument-parser errors, such as an unknown option or subcommand, remain plain
-text. Unknown top-level commands can return a JSON validation error.
-Interrupting an interactive prompt with Ctrl+C exits 130.
+Under `--json`, command failures, argument-parser errors included, become a
+single-line JSON object on stderr. Interrupting an interactive prompt with
+Ctrl+C exits 130. `BB_DETAILED_EXIT_CODES=1` gives each failure class its own
+[exit status](/reference/error-codes/#exit-codes-and-error-codes).
 
 ## Installation
 
@@ -404,8 +404,9 @@ bb pr activity 42   # who requested changes
 
 Common blockers are merge conflicts, unmet required approvals, and failing
 build checks. Inspect repository rules with `bb branch-restriction list --all`.
-`bb pr checks` reads only one page of statuses. For a complete merge gate, use
-the [paginated checks recipe](/recipes/auto-merge-on-ci-green/).
+To wait for running builds first, use `bb pr checks 42 --watch`; it exits
+non-zero if a check failed. For a stricter merge gate, see the
+[auto-merge recipe](/recipes/auto-merge-on-ci-green/).
 
 ---
 
@@ -436,7 +437,7 @@ bb prr
 # (Did you mean pr?)
 
 bb pr lst
-# error: unknown command 'lst'
+# ✗ unknown command 'lst'
 # (Did you mean list?)
 
 bb pr list --state opne
@@ -444,15 +445,7 @@ bb pr list --state opne
 # (Did you mean OPEN?)
 ```
 
-Option values are matched case-sensitively, so `--state open` (lowercase against
-an uppercase set) tells you to fix the case rather than suggesting the same word
-back:
-
-```bash
-bb pr list --state open
-# ✗ --state must be one of: OPEN, MERGED, DECLINED, SUPERSEDED
-# (Values are case-sensitive, use OPEN.)
-```
+Option values ignore case, so `--state open` works the same as `--state OPEN`.
 
 Use `bb help <command>` (or `bb <command> --help`) to see a command's valid
 values.
@@ -479,12 +472,11 @@ the next token.
 
 ```bash
 bb pr list --jq '.pullRequests[].title'
-# ✗ --jq requires --json
+# {"name":"BBError","code":8002,"message":"--jq requires --json"}
 ```
 
-Because `--json` was never set, this failure renders as **plain text on stderr**,
-not as a JSON envelope. This matters in a script that only parses stdout.
-`bb api` is the one exception: it accepts `--jq` on its own.
+The error is a JSON envelope on stderr, since `--jq` asks for machine-readable
+output. `bb api` is the one exception: it accepts `--jq` on its own.
 
 ```bash
 bb pr list --json --jq '.pullRequests[].title'   # correct

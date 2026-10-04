@@ -98,6 +98,8 @@ describe('ListGpgKeysCommand', () => {
     const log = output.logs.find((l) => l.startsWith('json:'))!;
     expect(Object.keys(JSON.parse(log.slice('json:'.length)))).toEqual([
       'count',
+      'hasMore',
+      'limit',
       'gpgKeys',
     ]);
   });

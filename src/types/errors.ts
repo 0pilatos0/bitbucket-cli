@@ -30,6 +30,7 @@ export enum ErrorCode {
   VALIDATION_INVALID = 5002,
   FILE_NOT_FOUND = 5003,
   PROMPT_CANCELLED = 5004,
+  CONFIRMATION_REQUIRED = 5005,
 
   // Context errors (6xxx)
   CONTEXT_REPO_NOT_FOUND = 6001,
@@ -45,6 +46,9 @@ export enum ErrorCode {
   // Completion errors (9xxx, before UNKNOWN)
   COMPLETION_INSTALL_FAILED = 9001,
   COMPLETION_UNINSTALL_FAILED = 9002,
+
+  // CI outcome errors (10xxx): a watched pipeline or check did not pass
+  CI_FAILED = 10001,
 
   // Unknown
   UNKNOWN = 9999,

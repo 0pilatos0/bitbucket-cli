@@ -160,7 +160,7 @@ describe('ReplyCommentPRCommand', () => {
         { prId: 'abc', commentId: '7', message: 'Agreed' },
         { globalOptions: {} }
       )
-    ).rejects.toThrow('--pr-id must be a positive integer.');
+    ).rejects.toThrow('<pr-id> must be a positive integer.');
   });
 
   it('should throw when comment-id is not a positive integer', async () => {
@@ -171,7 +171,7 @@ describe('ReplyCommentPRCommand', () => {
         { prId: '42', commentId: '0', message: 'Agreed' },
         { globalOptions: {} }
       )
-    ).rejects.toThrow('--comment-id must be a positive integer.');
+    ).rejects.toThrow('<comment-id> must be a positive integer.');
   });
 
   it('should throw when no repo context available', async () => {

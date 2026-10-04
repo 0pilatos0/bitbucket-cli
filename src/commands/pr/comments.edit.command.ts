@@ -44,8 +44,8 @@ export class EditCommentPRCommand extends BaseCommand<
       context
     );
 
-    const prId = this.parsePositiveInt(options.prId, 'pr-id');
-    const commentId = this.parsePositiveInt(options.commentId, 'comment-id');
+    const prId = this.parsePositiveIntArg(options.prId, 'pr-id');
+    const commentId = this.parsePositiveIntArg(options.commentId, 'comment-id');
 
     const response =
       await this.pullrequestsApi.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdCommentsCommentIdPut(

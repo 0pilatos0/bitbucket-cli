@@ -7,6 +7,7 @@ import {
 } from '../../core/command-options.js';
 import type { CommandRegistrar } from '../../core/command-registrar.js';
 import { PullrequestMergeParametersMergeStrategyEnum } from '../../generated/api.js';
+import { DEFAULT_POLL_INTERVAL_SECONDS } from '../../services/polling.js';
 import { PR_STATES } from '../../types/pr.js';
 import { COLOR_WHENS } from './diff.command.js';
 import { PR_ID_ARGUMENT_DESCRIPTION } from './shared.js';
@@ -109,8 +110,22 @@ export function registerPrCommands(
     .option('--limit <number>', 'Maximum number of PRs to list', '25')
     .option('--all', 'List all pull requests (overrides --limit)')
     .option(
+      '--author <user>',
+      'Only PRs authored by this user (nickname, display name, email, @me, account ID or {uuid})'
+    )
+    .option(
+      '--reviewer <user>',
+      'Only PRs with this reviewer (nickname, display name, email, @me, account ID or {uuid})'
+    )
+    .option(
       '--mine',
-      'Show only PRs where you are a reviewer (not authored by you)'
+      'Same as --reviewer @me: PRs you review, not authored by you'
+    )
+    .option('--source <branch>', 'Only PRs from this source branch')
+    .option('--destination <branch>', 'Only PRs into this destination branch')
+    .option(
+      '--query <bbql>',
+      'Raw Bitbucket query (BBQL), ANDed with the other filters'
     )
     .addHelpText(
       'after',
@@ -119,7 +134,11 @@ export function registerPrCommands(
           'bb pr list',
           'bb pr list -s MERGED --limit 10',
           'bb pr list --all',
-          'bb pr list --mine',
+          'bb pr list --author @me',
+          'bb pr list --reviewer @me',
+          'bb pr list --source feature/login',
+          'bb pr list --destination develop -s MERGED',
+          'bb pr list --query \'title ~ "hotfix"\'',
           'bb pr list --json',
         ],
         validValues: {
@@ -141,6 +160,26 @@ export function registerPrCommands(
     .action(async (options) => {
       await registrar.runWithGlobalOptions(
         ServiceTokens.ListPRsCommand,
+        options
+      );
+    });
+
+  prCmd
+    .command('status')
+    .description('Show the status of your pull requests')
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb pr status',
+          'bb pr status --json',
+          'bb pr status -w my-workspace -r my-repo',
+        ],
+      })
+    )
+    .action(async (options) => {
+      await registrar.runWithGlobalOptions(
+        ServiceTokens.StatusPRCommand,
         options
       );
     });
@@ -207,10 +246,26 @@ export function registerPrCommands(
     .command('checks')
     .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
     .description('Show CI/CD checks and build status for a pull request')
+    .option(
+      '--watch',
+      'Wait until no check is in progress; exits non-zero if any failed or stopped'
+    )
+    .option(
+      '--interval <seconds>',
+      'Seconds between status checks with --watch',
+      DEFAULT_POLL_INTERVAL_SECONDS
+    )
     .addHelpText(
       'after',
       buildHelpText({
-        examples: ['bb pr checks', 'bb pr checks 42', 'bb pr checks 42 --json'],
+        examples: [
+          'bb pr checks',
+          'bb pr checks 42',
+          'bb pr checks --watch',
+          'bb pr checks 42 --watch && bb pr merge 42',
+          'bb pr checks 42 --json',
+        ],
+        defaults: { interval: DEFAULT_POLL_INTERVAL_SECONDS },
       })
     )
     .action(async (id, options) => {
@@ -308,6 +363,52 @@ export function registerPrCommands(
         id,
         ...options,
       });
+    });
+
+  prCmd
+    .command('unapprove')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
+    .description('Withdraw your approval of a pull request')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb pr unapprove',
+          'bb pr unapprove 42',
+          'bb pr unapprove 42 --json',
+        ],
+      })
+    )
+    .action(async (id, options) => {
+      await registrar.runWithGlobalOptions(ServiceTokens.UnapprovePRCommand, {
+        id,
+        ...options,
+      });
+    });
+
+  prCmd
+    .command('request-changes')
+    .argument('[id]', PR_ID_ARGUMENT_DESCRIPTION)
+    .description('Request changes on a pull request')
+    .option('--undo', 'Remove your change request instead')
+    .option('--dry-run', DRY_RUN_DESCRIPTION)
+    .addHelpText(
+      'after',
+      buildHelpText({
+        examples: [
+          'bb pr request-changes',
+          'bb pr request-changes 42',
+          'bb pr request-changes 42 --undo',
+          'bb pr request-changes 42 --json',
+        ],
+      })
+    )
+    .action(async (id, options) => {
+      await registrar.runWithGlobalOptions(
+        ServiceTokens.RequestChangesPRCommand,
+        { id, ...options }
+      );
     });
 
   prCmd

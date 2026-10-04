@@ -413,6 +413,18 @@ describe('CLI help text integration', () => {
     expect(output).toContain('BB_LOCALE');
   });
 
+  it('should list the global flags in subcommand help', () => {
+    const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
+    const listCmd = prCmd.commands.find((c) => c.name() === 'list')!;
+    const output = captureHelp(listCmd);
+
+    expect(output).toContain('Global Options:');
+    expect(output).toContain('-w, --workspace <workspace>');
+    expect(output).toContain('-r, --repo <repo>');
+    expect(output).toContain('--json [fields]');
+    expect(output).toContain('--no-input');
+  });
+
   it('should include merge strategies and examples in pr merge help', () => {
     const prCmd = cli.commands.find((c) => c.name() === 'pr')!;
     const mergeCmd = prCmd.commands.find((c) => c.name() === 'merge')!;
@@ -559,6 +571,7 @@ describe('CLI command registration', () => {
   it('should register all top-level commands', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
+      'agent-instructions',
       'alias',
       'api',
       'auth',
@@ -567,6 +580,7 @@ describe('CLI command registration', () => {
       'commit',
       'completion',
       'config',
+      'context',
       'deployment',
       'doctor',
       'gpg-key',
@@ -666,7 +680,10 @@ describe('CLI command registration', () => {
       'list',
       'merge',
       'ready',
+      'request-changes',
       'reviewers',
+      'status',
+      'unapprove',
       'view',
     ]);
 
@@ -720,6 +737,7 @@ describe('CLI command registration', () => {
       'run',
       'stop',
       'view',
+      'watch',
     ]);
   });
 

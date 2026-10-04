@@ -45,9 +45,7 @@ if (!isCompleting) {
     // pulls it in) before argv is rewritten.
     const { OutputService } = await import('./services/output.service.js');
     const output: IOutputService = new OutputService();
-    output.error(
-      error instanceof Error ? `Error: ${error.message}` : String(error)
-    );
+    output.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
