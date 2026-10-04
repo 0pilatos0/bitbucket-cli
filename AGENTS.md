@@ -28,7 +28,7 @@ COMPILE_SMOKE=1 bun test tests/compile.smoke.test.ts  # Compile and smoke-test t
 
 # Type-checking / formatting / docs drift
 bun run lint         # Type-check with tsc --noEmit
-bun run lint:docs    # Fail when error codes or BB_* env vars are missing from the docs
+bun run lint:docs    # Fail when error codes, BB_* env vars, commands or flags are missing from the docs
 bun run format       # Prettier write
 bun run format:check # Prettier check
 
@@ -153,6 +153,9 @@ bun run changeset    # Add a changeset (see Changesets below)
   `collectRepeated` for repeatable options
 - `tests/commands/__snapshots__/register.test.ts.snap` pins the command tree
   and help text; review its diff and update it with `bun test --update-snapshots`
+- Every leaf command needs a `` ## `bb <path>` `` heading under
+  `docs/src/content/docs/commands/` that mentions each of its flags;
+  `bun run lint:docs` (`scripts/check-command-docs.ts`) enforces it
 - Register modules never import `src/cli.ts`
 
 ### Output and JSON

@@ -571,6 +571,7 @@ describe('CLI command registration', () => {
   it('should register all top-level commands', () => {
     const names = cli.commands.map((command) => command.name()).sort();
     expect(names).toEqual([
+      'agent-instructions',
       'alias',
       'api',
       'auth',
@@ -579,6 +580,7 @@ describe('CLI command registration', () => {
       'commit',
       'completion',
       'config',
+      'context',
       'deployment',
       'doctor',
       'gpg-key',

@@ -36,6 +36,19 @@ show `help`, but it is there. Every subcommand's help lists these flags under
 `Global Options:`. A group run without a subcommand (`bb pr`) prints its help
 and exits 0.
 
+`bb help --json` prints the command tree as JSON instead: every command's
+path, description, usage, aliases, subcommands, arguments, options (with value
+placeholder, parsed `default`, human-readable `defaultDescription`, choices,
+and whether it is required or repeatable) and
+examples, plus the global flags once under `globalOptions`. Scope it with a
+command path, and filter it with `--jq`:
+
+```bash
+bb help --json
+bb help pr comments --json
+bb help --json --jq '.commands[] | select(.path == "pr list") | .options[].flags'
+```
+
 ## Output flags
 
 ### `--json [fields]`

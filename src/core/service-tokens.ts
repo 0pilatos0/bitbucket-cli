@@ -140,6 +140,9 @@ import type { UninstallCompletionCommand } from '../commands/completion/uninstal
 import type { PrintCompletionCommand } from '../commands/completion/print.command.js';
 import type { BrowseCommand } from '../commands/browse.command.js';
 import type { ApiCommand } from '../commands/api.command.js';
+import type { HelpCommand } from '../commands/help.command.js';
+import type { ContextCommand } from '../commands/context.command.js';
+import type { AgentInstructionsCommand } from '../commands/agent-instructions.command.js';
 import type { DoctorCommand } from '../commands/doctor.command.js';
 
 /**
@@ -218,6 +221,11 @@ export const ServiceTokens = {
   // Commands - Top level
   BrowseCommand: token<BrowseCommand>('BrowseCommand'),
   ApiCommand: token<ApiCommand>('ApiCommand'),
+  HelpCommand: token<HelpCommand>('HelpCommand'),
+  ContextCommand: token<ContextCommand>('ContextCommand'),
+  AgentInstructionsCommand: token<AgentInstructionsCommand>(
+    'AgentInstructionsCommand'
+  ),
   DoctorCommand: token<DoctorCommand>('DoctorCommand'),
 
   // Commands - PR
