@@ -43,6 +43,14 @@ function manifest(
 }
 
 describe('collectCommandSections', () => {
+  it('reads headings from CRLF files', () => {
+    const sections = collectCommandSections(
+      ['## `bb pr list`', '', '`--state`'].join('\r\n')
+    );
+
+    expect([...sections.keys()]).toEqual(['pr list']);
+  });
+
   it('ends a section at the next heading of the same level', () => {
     const sections = collectCommandSections(
       [

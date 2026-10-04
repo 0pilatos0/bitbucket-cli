@@ -33,7 +33,8 @@ export function collectCommandSections(
     }
     open = undefined;
   };
-  for (const line of markdown.split('\n')) {
+  // Windows checkouts can carry CRLF line endings.
+  for (const line of markdown.split(/\r?\n/)) {
     if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
     const heading = inFence ? null : /^(#{1,6}) (.*)$/.exec(line);
     if (heading && open && heading[1]!.length <= open.level) close();
