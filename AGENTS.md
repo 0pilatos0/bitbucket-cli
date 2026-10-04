@@ -32,6 +32,9 @@ bun run lint:docs    # Fail when error codes, BB_* env vars, commands or flags a
 bun run format       # Prettier write
 bun run format:check # Prettier check
 
+# New command
+bun run new:command <group> <verb> [--list --wrapper-key <key>]  # Scaffold code, test, wiring and docs stubs
+
 # Generated API (needs Java 21 on PATH for openapi-generator)
 bun run generate:api # Regenerate src/generated/ from the pinned spec
 bun run check:api-contract # Regenerate and fail if src/generated/ drifts (CI gate)
@@ -138,6 +141,8 @@ bun run changeset    # Add a changeset (see Changesets below)
 
 ### Command Registration
 
+- Start a new command with `bun run new:command <group> <verb>`;
+  [src/commands/AGENTS.md](src/commands/AGENTS.md) has the full checklist
 - Wire a new subcommand in its group's `register.ts`; a new group gets its own
   `register.ts` plus an entry in `src/commands/register.ts`
 - Map parsed arguments to options and dispatch through the `CommandRegistrar`:

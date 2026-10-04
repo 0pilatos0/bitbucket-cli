@@ -33,6 +33,7 @@
     "test": "bun test",
     "test:coverage": "bun test --coverage",
     "lint": "tsc --noEmit && tsc --noEmit -p tests/typecheck && oxlint --deny-warnings",
+    "new:command": "bun scripts/new-command.ts",
     "lint:docs": "bun scripts/check-error-codes-docs.ts && bun scripts/check-env-vars-docs.ts && bun scripts/check-command-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

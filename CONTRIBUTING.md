@@ -64,7 +64,9 @@ Prefixes are listed in
 ### 2. Code
 
 Follow [AGENTS.md](AGENTS.md) for code and
-[tests/AGENTS.md](tests/AGENTS.md) for tests.
+[tests/AGENTS.md](tests/AGENTS.md) for tests. New command? Run
+`bun run new:command <group> <verb>` and follow the checklist in
+[src/commands/AGENTS.md](src/commands/AGENTS.md).
 
 Before pushing:
 
