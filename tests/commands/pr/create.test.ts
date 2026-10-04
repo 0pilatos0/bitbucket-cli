@@ -50,6 +50,8 @@ function createMockDefaultReviewerService(
   return fakeApi<DefaultReviewerService>(svc);
 }
 
+type BranchEndpoint = { branch?: { name?: string } };
+
 interface CreatePRHarnessOptions {
   currentBranch?: string;
   defaultReviewers?: DefaultReviewerEntry[];
@@ -357,7 +359,8 @@ describe('CreatePRCommand', () => {
 
     expect(captured.body?.destination).toBeUndefined();
     const pr = getJsonPayload(output.logs) as Pullrequest;
-    expect(pr.destination?.branch?.name).toBe('develop');
+    const destination = pr.destination as BranchEndpoint | undefined;
+    expect(destination?.branch?.name).toBe('develop');
   });
 
   it('sends an explicit --destination', async () => {
@@ -370,7 +373,9 @@ describe('CreatePRCommand', () => {
       { globalOptions: {} }
     );
 
-    expect(captured.body?.destination?.branch?.name).toBe('release');
+    const destination = captured.body?.destination as
+      BranchEndpoint | undefined;
+    expect(destination?.branch?.name).toBe('release');
     expect(output.logs).toContain('text:  Destination: release');
   });
 

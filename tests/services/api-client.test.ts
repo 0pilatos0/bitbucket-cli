@@ -187,51 +187,6 @@ describe('createApiClient - OAuth auth', () => {
   });
 });
 
-/**
- * Helper: creates an axios adapter with a per-URL response queue, so
- * concurrent requests to different paths each consume their own sequence.
- * Used to prove interceptor state is per-request, not per-instance.
- */
-function createUrlKeyedAdapter(
-  routes: Record<
-    string,
-    Array<{ status: number; data?: unknown; headers?: Record<string, string> }>
-  >
-) {
-  const callCounts: Record<string, number> = {};
-  const adapter = (config: { url?: string }) => {
-    const url = config.url ?? '';
-    const idx = callCounts[url] ?? 0;
-    callCounts[url] = idx + 1;
-    const queue = routes[url] ?? [];
-    const resp = queue[idx] ?? queue[queue.length - 1];
-    if (resp.status >= 200 && resp.status < 300) {
-      return Promise.resolve({
-        data: resp.data ?? {},
-        status: resp.status,
-        statusText: 'OK',
-        headers: resp.headers ?? {},
-        config,
-      });
-    }
-    const error = new Error(`Request failed with status code ${resp.status}`);
-    (error as any).response = {
-      data: resp.data ?? {},
-      status: resp.status,
-      statusText: resp.status.toString(),
-      headers: resp.headers ?? {},
-      config,
-    };
-    (error as any).config = config;
-    (error as any).isAxiosError = true;
-    return Promise.reject(error);
-  };
-  return {
-    adapter,
-    getCallCount: (url: string) => callCounts[url] ?? 0,
-  };
-}
-
 describe('createApiClient - shared instance concurrency', () => {
   let consoleErrorSpy: ReturnType<typeof spyOn>;
 
@@ -324,7 +279,7 @@ describe('createApiClient - shared instance concurrency', () => {
           scopes: '',
         }),
       } as unknown as Response;
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     try {
       const mockAdapter = createUrlKeyedAdapter({

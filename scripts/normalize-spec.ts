@@ -179,7 +179,13 @@ if (defs.comment_content || defs.comment_inline) {
   );
 }
 
-const commentProps = allProps(defs.comment);
+const comment = defs.comment;
+if (!comment) {
+  throw new Error(
+    'normalize-spec: definition comment no longer exists; update scripts/normalize-spec.ts'
+  );
+}
+const commentProps = allProps(comment);
 const contentField = commentProps['content'];
 const inlineField = commentProps['inline'];
 assertShape(contentField, CONTENT_KEYS, 'comment.content');

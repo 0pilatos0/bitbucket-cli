@@ -62,7 +62,7 @@ beforeAll(async () => {
   if (pack.status !== 0) {
     throw new Error(`npm pack failed (${pack.status}): ${pack.stderr}`);
   }
-  [packed] = JSON.parse(pack.stdout) as PackResult[];
+  packed = (JSON.parse(pack.stdout) as PackResult[])[0]!;
 }, BUILD_TIMEOUT_MS + PACK_TIMEOUT_MS);
 
 afterAll(async () => {

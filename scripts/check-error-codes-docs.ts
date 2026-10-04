@@ -31,11 +31,11 @@ if (!enumBlockMatch) {
 
 const codeFromSrc: EnumEntry[] = [];
 const memberRe = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(\d+)\s*,?\s*$/;
-for (const line of enumBlockMatch[1].split('\n')) {
+for (const line of enumBlockMatch[1]!.split('\n')) {
   const stripped = line.replace(/\/\/.*$/, '');
   const m = stripped.match(memberRe);
   if (m) {
-    codeFromSrc.push({ name: m[1], value: Number.parseInt(m[2], 10) });
+    codeFromSrc.push({ name: m[1]!, value: Number.parseInt(m[2]!, 10) });
   }
 }
 
@@ -47,7 +47,7 @@ if (codeFromSrc.length === 0) {
 const docHeadingRe = /^###\s+(\d+)\s*-\s*([A-Z][A-Z0-9_]*)\s*$/gm;
 const codeFromDocs = new Map<number, string>();
 for (const m of docsSrc.matchAll(docHeadingRe)) {
-  codeFromDocs.set(Number.parseInt(m[1], 10), m[2]);
+  codeFromDocs.set(Number.parseInt(m[1]!, 10), m[2]!);
 }
 
 const missingFromDocs: EnumEntry[] = [];

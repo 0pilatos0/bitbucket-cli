@@ -97,7 +97,7 @@ function makeService(responses: unknown[] = []): {
 /** The first 'file' part of a multipart form, as a real File. */
 function filePart(form: FormData, index = 0): File {
   const part = form.getAll('file')[index];
-  if (typeof part === 'string') {
+  if (part === undefined || typeof part === 'string') {
     throw new Error('expected a binary file part');
   }
   return part;
@@ -116,7 +116,11 @@ async function formDataToString(data: unknown): Promise<string> {
     return '';
   }
   const entries: string[] = [];
-  for (const [key, value] of data.entries()) {
+  // bun-types declares entries() as [string, string]; values can be Files.
+  const pairs = data.entries() as IterableIterator<
+    [string, Bun.FormDataEntryValue]
+  >;
+  for (const [key, value] of pairs) {
     if (value instanceof Blob) {
       const text = await value.text();
       entries.push(`${key}:blob(${text})`);
@@ -142,7 +146,7 @@ describe('SnippetFilesService', () => {
 
       expect(result).toEqual({ id: 'abc' });
       expect(captured.length).toBe(1);
-      const req = captured[0];
+      const req = captured[0]!;
       expect(req.method?.toLowerCase()).toBe('post');
       expect(req.url).toBe('/snippets/my-ws');
       expect(req.headers?.['Content-Type']).toBe('multipart/form-data');
@@ -165,7 +169,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath }],
       });
 
-      expect(captured[0].url).toBe('/snippets/ws%20with%20space');
+      expect(captured[0]!.url).toBe('/snippets/ws%20with%20space');
     });
 
     it('sends is_private=false for public snippets', async () => {
@@ -179,7 +183,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath }],
       });
 
-      const flat = await formDataToString(captured[0].data);
+      const flat = await formDataToString(captured[0]!.data);
       expect(flat).toContain('is_private:false');
     });
 
@@ -195,7 +199,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: f1 }, { path: f2 }],
       });
 
-      const form = captured[0].data as FormData;
+      const form = captured[0]!.data as FormData;
       const files = form.getAll('file');
       expect(files.length).toBe(2);
       const contents = await Promise.all(files.map((v) => (v as Blob).text()));
@@ -213,7 +217,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath, filename: 'renamed.txt' }],
       });
 
-      const form = captured[0].data as FormData;
+      const form = captured[0]!.data as FormData;
       expect(filePart(form).name).toBe('renamed.txt');
     });
 
@@ -228,7 +232,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath }],
       });
 
-      const form = captured[0].data as FormData;
+      const form = captured[0]!.data as FormData;
       expect(filePart(form).name).toBe('base-name.txt');
     });
 
@@ -242,7 +246,7 @@ describe('SnippetFilesService', () => {
         files: [],
       });
 
-      const flat = await formDataToString(captured[0].data);
+      const flat = await formDataToString(captured[0]!.data);
       expect(flat).toContain('title:t');
       expect(flat).not.toContain('file:');
     });
@@ -291,7 +295,7 @@ describe('SnippetFilesService', () => {
         title: 'New',
       });
 
-      const req = captured[0];
+      const req = captured[0]!;
       expect(req.method?.toLowerCase()).toBe('put');
       expect(req.url).toBe('/snippets/ws/kypj');
       expect(req.headers?.['Content-Type']).toBe('application/json');
@@ -312,7 +316,7 @@ describe('SnippetFilesService', () => {
         isPrivate: false,
       });
 
-      const req = captured[0];
+      const req = captured[0]!;
       const parsed =
         typeof req.data === 'string'
           ? JSON.parse(req.data)
@@ -347,7 +351,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath }],
       });
 
-      const req = captured[0];
+      const req = captured[0]!;
       expect(req.method?.toLowerCase()).toBe('put');
       expect(req.url).toBe('/snippets/ws/kypj');
       expect(req.headers?.['Content-Type']).toBe('multipart/form-data');
@@ -366,7 +370,7 @@ describe('SnippetFilesService', () => {
         files: [{ path: filePath }],
       });
 
-      const flat = await formDataToString(captured[0].data);
+      const flat = await formDataToString(captured[0]!.data);
       expect(flat).toContain('file:blob(updated)');
       expect(flat).not.toContain('title:');
       expect(flat).not.toContain('is_private:');
@@ -395,15 +399,15 @@ describe('SnippetFilesService', () => {
       const result = await svc.getFileContent('ws', 'kypj', 'path/to/file.txt');
 
       expect(result).toBe('hello file');
-      expect(captured[0].url).toBe('/snippets/ws/kypj/files/path/to/file.txt');
-      expect(captured[0].responseType).toBe('text');
+      expect(captured[0]!.url).toBe('/snippets/ws/kypj/files/path/to/file.txt');
+      expect(captured[0]!.responseType).toBe('text');
     });
 
     it('URL-encodes path segments while preserving slashes', async () => {
       const { svc, captured } = makeService(['x']);
 
       await svc.getFileContent('ws', 'kypj', 'dir name/sub/f oo.txt');
-      expect(captured[0].url).toBe(
+      expect(captured[0]!.url).toBe(
         '/snippets/ws/kypj/files/dir%20name/sub/f%20oo.txt'
       );
     });

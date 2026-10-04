@@ -74,10 +74,10 @@ describe('response-parsers', () => {
 
       const values = Array.from(parsedPage.values ?? []);
       expect(values).toHaveLength(2);
-      expect(values[0].comment?.id).toBe(42);
-      expect(values[0].comment?.content?.raw).toBe('Looks good');
-      expect(values[0].comment?.user?.nickname).toBe('pilot');
-      expect(values[1].approval?.user?.display_name).toBe('Reviewer');
+      expect(values[0]!.comment?.id).toBe(42);
+      expect(values[0]!.comment?.content?.raw).toBe('Looks good');
+      expect(values[0]!.comment?.user?.nickname).toBe('pilot');
+      expect(values[1]!.approval?.user?.display_name).toBe('Reviewer');
       expect(parsedPage.next).toBe('https://api.bitbucket.org?page=2');
     });
 
@@ -95,9 +95,9 @@ describe('response-parsers', () => {
       });
       const values = Array.from(page.values ?? []);
       expect(values).toHaveLength(1);
-      expect(values[0].changes_requested?.user?.username).toBe('alice');
-      expect(values[0].changes_requested?.reason).toBe('Needs tests');
-      expect(values[0].changes_requested?.date).toBe(
+      expect(values[0]!.changes_requested?.user?.username).toBe('alice');
+      expect(values[0]!.changes_requested?.reason).toBe('Needs tests');
+      expect(values[0]!.changes_requested?.date).toBe(
         '2024-02-01T00:00:00.000Z'
       );
     });
@@ -114,7 +114,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.merge?.user?.display_name).toBe('Mergebot');
       expect(entry.merge?.commit?.hash).toBe('abc1234');
     });
@@ -131,7 +131,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.merge?.commit).toBeUndefined();
     });
 
@@ -146,7 +146,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.decline?.user?.nickname).toBe('carol');
     });
 
@@ -162,7 +162,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.commit?.hash).toBe('deadbeef');
       expect(entry.commit?.author?.user?.username).toBe('dave');
     });
@@ -179,7 +179,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.commit?.author).toBeUndefined();
       expect(entry.commit?.hash).toBe('deadbeef');
     });
@@ -198,7 +198,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.update?.author?.display_name).toBe('Edgar');
       expect(entry.update?.title).toBe('New title');
       expect(entry.update?.description).toBe('New description');
@@ -211,8 +211,8 @@ describe('response-parsers', () => {
       });
       const values = Array.from(page.values ?? []);
       expect(values).toHaveLength(2);
-      expect(values[0].approval).toBeUndefined();
-      expect(values[1].approval).toBeUndefined();
+      expect(values[0]!.approval).toBeUndefined();
+      expect(values[1]!.approval).toBeUndefined();
     });
 
     it('drops comment objects when every field is missing', () => {
@@ -220,8 +220,8 @@ describe('response-parsers', () => {
         values: [{ comment: {} }, { comment: { user: 'not a record' } }],
       });
       const values = Array.from(page.values ?? []);
-      expect(values[0].comment).toBeUndefined();
-      expect(values[1].comment).toBeUndefined();
+      expect(values[0]!.comment).toBeUndefined();
+      expect(values[1]!.comment).toBeUndefined();
     });
 
     it('parses comment without id or content when user or date is present', () => {
@@ -235,7 +235,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.comment?.user?.username).toBe('frank');
       expect(entry.comment?.content).toBeUndefined();
     });
@@ -251,7 +251,7 @@ describe('response-parsers', () => {
           },
         ],
       });
-      const [entry] = Array.from(page.values ?? []);
+      const entry = Array.from(page.values ?? [])[0]!;
       expect(entry.comment?.author?.nickname).toBe('greta');
       expect(entry.comment?.user).toBeUndefined();
     });
@@ -265,8 +265,8 @@ describe('response-parsers', () => {
       const values = Array.from(page.values ?? []);
       // Only the {} record survives parseActivity's isRecord check.
       expect(values).toHaveLength(1);
-      expect(values[0].type).toBeUndefined();
-      expect(values[0].comment).toBeUndefined();
+      expect(values[0]!.type).toBeUndefined();
+      expect(values[0]!.comment).toBeUndefined();
     });
 
     it('returns an empty page for a completely non-iterable payload', () => {
