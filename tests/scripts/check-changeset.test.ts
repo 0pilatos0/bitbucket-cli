@@ -9,10 +9,12 @@ const PKG = '@pilatos/bitbucket-cli';
 function run(
   files: Record<string, string>,
   changedFiles: string[],
-  skipRequired = false
+  skipRequired = false,
+  deletedFiles: string[] = []
 ): string[] {
   return checkChangesets({
     changedFiles,
+    deletedFiles,
     readFile: (path) => files[path] ?? '',
     packageName: PKG,
     skipRequired,
@@ -51,6 +53,12 @@ describe('validateChangeset', () => {
     ]);
   });
 
+  it('rejects a closing delimiter with trailing text', () => {
+    expect(validateChangeset(`---\n'${PKG}': patch\n---oops\n`, PKG)).toEqual([
+      'missing `---` frontmatter',
+    ]);
+  });
+
   it('rejects a file without frontmatter', () => {
     expect(validateChangeset('Fix a bug.\n', PKG)).toEqual([
       'missing `---` frontmatter',
@@ -81,6 +89,16 @@ describe('checkChangesets', () => {
     expect(run({}, ['tests/cli.test.ts', '.github/workflows/ci.yml'])).toEqual(
       []
     );
+  });
+
+  it('requires a changeset when src/ files are only deleted', () => {
+    const errors = run({}, [], false, ['src/old.ts']);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('src/ changed but no changeset was added');
+  });
+
+  it('ignores deleted changesets', () => {
+    expect(run({}, ['CHANGELOG.md'], false, ['.changeset/old.md'])).toEqual([]);
   });
 
   it('waives the requirement when skipped', () => {
