@@ -31,6 +31,7 @@ bb api [options] [method] <endpoint>
 | `-X, --method <method>`       | HTTP method. Overrides a positional verb.                                                                                                                        |
 | `-f, --raw-field <key=value>` | Add a string parameter. Query param on `GET`/`HEAD`, JSON body field otherwise. Repeatable.                                                                      |
 | `-F, --field <key=value>`     | Add a typed parameter: `true`/`false`/`null` and numbers are converted; `@file` reads a file and `@-` reads stdin. Repeatable.                                   |
+| `--form <key=value>` | Add a multipart text or file part (repeatable). See multipart uploads below. |
 | `--input <file>`              | Read the raw request body from a file, or `-` for stdin. Sent as `application/json` (override with `-H 'Content-Type: ...'`). Mutually exclusive with `-f`/`-F`. |
 | `-H, --header <key:value>`    | Add a request header. Repeatable. `Authorization` is managed automatically and cannot be set here.                                                               |
 | `-i, --include`               | Print the HTTP status line and response headers before the body, on success and failure (text mode only, suppressed under `--json`).                             |
@@ -196,3 +197,30 @@ jq '.statusCode, .response, .headers' err.json
   filtering work across the CLI.
 - [Authentication](/getting-started/authentication/), the auth methods that
   `bb api` reuses.
+
+### Multipart uploads
+
+Use `--form` for multipart endpoints. Values are literal text, `@path` attaches a
+binary file using its basename, and `@@text` sends literal `@text`. Repeated fields
+keep their order. Field names such as `src/image.png` and `files[]` stay literal.
+
+```bash
+bb api /repositories/{workspace}/{repo}/downloads --form files=@screenshot.png
+bb api /repositories/{workspace}/{repo}/src --form message='Add screenshot' --form images/shot.png=@screenshot.png
+```
+
+Form parts infer POST; an explicit method still takes precedence. GET and HEAD
+are rejected. Do not combine `--form` with `-f`, `-F` or `--input`. Content-Type,
+Content-Length and Transfer-Encoding are managed automatically and cannot be
+set with `-H` in multipart mode.
+
+Files must be readable regular files. Bare `@` and stdin (`@-`) are unsupported;
+use `@./-` for a file named `-`. Curl's `;type=`, `;filename=`, comma expansion and
+`<file` syntax have no special meaning. Text line endings follow multipart CRLF
+normalization. File bytes are preserved. Uploads use the existing transport and
+make no bounded-memory guarantee.
+
+`--dry-run` shows file names and sizes without sending contents. Upload timeouts
+include an allowance for file sizes and UTF-8 text bytes; `BB_HTTP_TIMEOUT=0`
+still disables the timeout. For repository downloads, the typed
+[`bb repo downloads upload`](/commands/repo/downloads/) command is also available.

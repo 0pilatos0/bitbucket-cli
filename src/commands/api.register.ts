@@ -42,6 +42,12 @@ export function registerApiCommand(
       [] as string[]
     )
     .option(
+      '--form <key=value>',
+      'Add a multipart part: literal text, @path for a file, @@text for literal @text (repeatable; mutually exclusive with -f/-F/--input)',
+      collectRepeated,
+      [] as string[]
+    )
+    .option(
       '--input <file>',
       'Read the request body from a file, or - for stdin (sent as application/json; mutually exclusive with -f/-F)'
     )

@@ -86,7 +86,7 @@ export function redactSensitive(
     return value.map((item) => redactSensitive(item, seen));
   }
 
-  const result: Record<string, unknown> = {};
+  const result: Record<string, unknown> = Object.create(null);
   for (const [key, val] of Object.entries(value)) {
     if (isSensitiveKey(key)) {
       result[key] = REDACTED;
