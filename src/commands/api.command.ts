@@ -8,6 +8,8 @@
 
 import fs from 'node:fs';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { buildMultipartForm } from '../services/api-multipart.js';
+import { resolveUploadTimeoutMs } from '../services/api-client.service.js';
 import { BaseCommand } from '../core/base-command.js';
 import { didYouMeanSuffix } from '../core/suggest.js';
 import type { CommandContext } from '../core/interfaces/commands.js';
@@ -46,6 +48,7 @@ export interface ApiCommandOptions {
   field?: string[];
   /** `--input` raw request body from a file, or `-` for stdin. */
   input?: string;
+  form?: string[];
   /** `-H/--header` custom request headers (repeatable). */
   header?: string[];
   /** `-i/--include` print the HTTP status line and response headers before the body. */
@@ -91,6 +94,20 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     const rawFields = options.rawField ?? [];
     const typedFields = options.field ?? [];
     const headerArgs = options.header ?? [];
+    const formEntries = options.form ?? [];
+    const multipart = formEntries.length > 0;
+    if (
+      multipart &&
+      (rawFields.length > 0 ||
+        typedFields.length > 0 ||
+        options.input !== undefined)
+    ) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message:
+          'Cannot use --form together with -f/--raw-field, -F/--field or --input.',
+      });
+    }
 
     // --input is mutually exclusive with -f/-F (matches gh).
     if (
@@ -109,6 +126,17 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     // user-supplied Authorization anyway; reject it up front so the documented
     // "managed automatically" guarantee fails loudly instead of silently.
     for (const name of Object.keys(headers)) {
+      if (
+        multipart &&
+        ['content-type', 'content-length', 'transfer-encoding'].includes(
+          name.toLowerCase()
+        )
+      ) {
+        throw new BBError({
+          code: ErrorCode.VALIDATION_INVALID,
+          message: `${name} is managed automatically when using --form.`,
+        });
+      }
       if (name.toLowerCase() === 'authorization') {
         throw new BBError({
           code: ErrorCode.VALIDATION_INVALID,
@@ -129,11 +157,21 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     const method = resolveMethod({
       explicit: options.method,
       positional: positionalMethod,
-      hasParams,
+      hasParams: hasParams || multipart,
     });
+    if (multipart && (method === 'GET' || method === 'HEAD')) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_INVALID,
+        message: '--form cannot be used with GET or HEAD.',
+      });
+    }
 
     const endpoint = await this.resolveEndpoint(endpointArg, options, context);
-    const { query, data } = buildRequestParts({ method, fields, rawBody });
+    const upload = multipart ? buildMultipartForm(formEntries) : undefined;
+    const { query, data } = upload
+      ? { data: upload.form, query: undefined }
+      : buildRequestParts({ method, fields, rawBody });
+    if (upload) headers['Content-Type'] = 'multipart/form-data';
     const url = query
       ? `${endpoint}${endpoint.includes('?') ? '&' : '?'}${query}`
       : endpoint;
@@ -141,6 +179,7 @@ export class ApiCommand extends BaseCommand<ApiCommandOptions, void> {
     const config: AxiosRequestConfig = {
       url,
       method,
+      ...(upload ? { timeout: resolveUploadTimeoutMs(upload.bytes) } : {}),
       ...(data !== undefined ? { data } : {}),
       ...(Object.keys(headers).length > 0 ? { headers } : {}),
     };

@@ -7097,6 +7097,9 @@ exports[`command tree snapshot bb api 1`] = `
       "field": [
         "field-value",
       ],
+      "form": [
+        "form-value",
+      ],
       "header": [
         "header-value",
       ],
@@ -7133,6 +7136,10 @@ Options:
   -F, --field <key=value>      Add a typed parameter: true/false/null and
                                numbers are converted; @file reads a file and @-
                                reads stdin (repeatable) (default: [])
+  --form <key=value>           Add a multipart part: literal text, @path for a
+                               file, @@text for literal @text (repeatable;
+                               mutually exclusive with -f/-F/--input) (default:
+                               [])
   --input <file>               Read the request body from a file, or - for stdin
                                (sent as application/json; mutually exclusive
                                with -f/-F)

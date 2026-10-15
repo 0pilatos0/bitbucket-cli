@@ -206,6 +206,22 @@ describe('registerCommands', () => {
     ).toEqual({ id: 'kypj', message: 'positional' });
   });
 
+  it('collects multipart fields in CLI order', async () => {
+    const result = await dispatch([
+      'api',
+      '/upload',
+      '--form',
+      'file=@shot.png',
+      '--form',
+      'title=hello',
+      '--form',
+      'file=@other.png',
+    ]);
+    expect(result.options).toMatchObject({
+      form: ['file=@shot.png', 'title=hello', 'file=@other.png'],
+    });
+  });
+
   it('lets bb api use --jq without --json', async () => {
     expect(await dispatch(['api', 'GET', '/user', '-H', 'X-A:1'])).toEqual({
       via: 'runWithGlobalOptions',
@@ -216,6 +232,7 @@ describe('registerCommands', () => {
         rawField: [],
         field: [],
         header: ['X-A:1'],
+        form: [],
       },
       contextOptions: { outputIsJson: true },
     });

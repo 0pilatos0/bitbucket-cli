@@ -54,7 +54,7 @@ export function describeRequestBody(data: unknown): unknown {
     }
   }
   if (data instanceof FormData) {
-    const fields: Record<string, unknown> = {};
+    const fields: Record<string, unknown> = Object.create(null);
     // Bun types FormData entries as strings only; files arrive as `File`.
     for (const [key, value] of data.entries() as Iterable<[string, unknown]>) {
       const shown =
