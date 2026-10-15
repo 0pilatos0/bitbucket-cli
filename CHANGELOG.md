@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.5.0
+
+### Minor Changes
+
+- [#440](https://github.com/0pilatos0/bitbucket-cli/pull/440) [`7c2b63c`](https://github.com/0pilatos0/bitbucket-cli/commit/7c2b63c6246b3f28b442e3dd9c06319129b2f20c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add repeatable `bb api --form` fields for multipart file uploads to downloads, source and snippet endpoints.
+
 ## 2.4.1
 
 ### Patch Changes
