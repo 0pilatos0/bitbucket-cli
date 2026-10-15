@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.1
+
+### Patch Changes
+
+- [#437](https://github.com/0pilatos0/bitbucket-cli/pull/437) [`a448dfe`](https://github.com/0pilatos0/bitbucket-cli/commit/a448dfec3f70235822feb7e1815437bd9ec767f6) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Bump `chalk` to 6.0.1.
+
 ## 2.4.0
 
 ### Minor Changes
