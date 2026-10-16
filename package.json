@@ -72,7 +72,7 @@
     "@types/bun": "^1.4.3",
     "@types/node": "^26.6.5",
     "jq-wasm": "^3.0.0-jq-1.8.2",
-    "oxlint": "^1.87.0",
+    "oxlint": "1.88.0",
     "prettier": "^3.9.10",
     "simple-git-hooks": "^2.14.0",
     "typescript": "^7.0.2"
