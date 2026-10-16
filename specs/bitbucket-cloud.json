@@ -4836,6 +4836,389 @@
         }
       ]
     },
+    "/repositories/{workspace}/{repo_slug}/merge-queues": {
+      "get": {
+        "tags": ["Merge Queues"],
+        "summary": "List merge queues",
+        "description": "Lists merge queues configured for a repository. Optionally filter by branch.",
+        "operationId": "listMergeQueues",
+        "parameters": [
+          {
+            "name": "workspace",
+            "description": "The workspace containing the repository.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "repo_slug",
+            "description": "The repository slug.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "target_branch",
+            "description": "Optional target branch name to filter merge queues.",
+            "required": false,
+            "in": "query",
+            "type": "string"
+          },
+          {
+            "name": "page",
+            "description": "The page number of elements to retrieve.",
+            "required": false,
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "default": 1
+          },
+          {
+            "name": "pagelen",
+            "description": "The maximum number of results to return.",
+            "required": false,
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Merge queues retrieved successfully.",
+            "schema": { "$ref": "#/definitions/paginated_merge_queues" }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "The caller does not have read access to the repository.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "The repository does not exist.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "security": [
+          { "oauth2": ["repository"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:repository:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}": {
+      "get": {
+        "tags": ["Merge Queues"],
+        "summary": "Get a merge queue",
+        "description": "Gets a merge queue by UUID.",
+        "operationId": "getMergeQueue",
+        "parameters": [
+          {
+            "name": "workspace",
+            "description": "The workspace containing the repository.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "repo_slug",
+            "description": "The repository slug.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "merge_queue_uuid",
+            "description": "The UUID of the merge queue.",
+            "required": true,
+            "in": "path",
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Merge queue retrieved successfully.",
+            "schema": { "$ref": "#/definitions/merge_queue" }
+          },
+          "400": {
+            "description": "The merge queue UUID is invalid.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "The caller does not have read access to the repository.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "The repository or merge queue does not exist.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "security": [
+          { "oauth2": ["repository"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:repository:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}/queue": {
+      "get": {
+        "tags": ["Merge Queues"],
+        "summary": "List pullrequests in a merge queue",
+        "description": "Lists pullrequests currently associated with a merge queue.",
+        "operationId": "listMergeQueuePullRequests",
+        "parameters": [
+          {
+            "name": "workspace",
+            "description": "The workspace containing the repository.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "repo_slug",
+            "description": "The repository slug.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "merge_queue_uuid",
+            "description": "The UUID of the merge queue.",
+            "required": true,
+            "in": "path",
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "page",
+            "description": "The page number of elements to retrieve.",
+            "required": false,
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "default": 1
+          },
+          {
+            "name": "pagelen",
+            "description": "The maximum number of results to return.",
+            "required": false,
+            "in": "query",
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 10
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Merge queue pullrequests retrieved successfully.",
+            "schema": {
+              "$ref": "#/definitions/paginated_merge_queue_pullrequests"
+            }
+          },
+          "400": {
+            "description": "The merge queue UUID is invalid.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "The caller does not have read access to the pullrequest.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "The repository or merge queue does not exist.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "security": [
+          { "oauth2": ["pullrequest"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:pullrequest:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      }
+    },
+    "/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}/queue/{pullrequest_id}": {
+      "get": {
+        "tags": ["Merge Queues"],
+        "summary": "Get a pullrequest in a merge queue",
+        "description": "Gets a specific pullrequest in a merge queue.",
+        "operationId": "getMergeQueuePullRequest",
+        "parameters": [
+          {
+            "name": "workspace",
+            "description": "The workspace containing the repository.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "repo_slug",
+            "description": "The repository slug.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "merge_queue_uuid",
+            "description": "The UUID of the merge queue.",
+            "required": true,
+            "in": "path",
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "pullrequest_id",
+            "description": "The ID of the pullrequest.",
+            "required": true,
+            "in": "path",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Merge queue pullrequest retrieved successfully.",
+            "schema": { "$ref": "#/definitions/merge_queue_pullrequest" }
+          },
+          "400": {
+            "description": "The merge queue UUID is invalid.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "The caller does not have read access to the pullrequest.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "The repository, merge queue, or pullrequest does not exist, or the pullrequest is no longer in the merge queue.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "security": [
+          { "oauth2": ["pullrequest"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["read:pullrequest:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      },
+      "delete": {
+        "tags": ["Merge Queues"],
+        "summary": "Remove a pullrequest from a merge queue",
+        "description": "Removes a pullrequest from the specified merge queue asynchronously.",
+        "operationId": "removePullRequestFromMergeQueue",
+        "parameters": [
+          {
+            "name": "workspace",
+            "description": "The workspace containing the repository.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "repo_slug",
+            "description": "The repository slug.",
+            "required": true,
+            "in": "path",
+            "type": "string"
+          },
+          {
+            "name": "merge_queue_uuid",
+            "description": "The UUID of the merge queue.",
+            "required": true,
+            "in": "path",
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "pullrequest_id",
+            "description": "The ID of the pullrequest to remove.",
+            "required": true,
+            "in": "path",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "202": { "description": "The remove request was accepted." },
+          "400": {
+            "description": "The merge queue UUID is invalid.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "401": {
+            "description": "Authentication is required.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "403": {
+            "description": "The caller does not have write access to the pullrequest.",
+            "schema": { "$ref": "#/definitions/error" }
+          },
+          "404": {
+            "description": "The repository, merge queue, or pullrequest does not exist.",
+            "schema": { "$ref": "#/definitions/error" }
+          }
+        },
+        "security": [
+          { "oauth2": ["pullrequest:write"] },
+          { "basic": [] },
+          { "api_key": [] }
+        ],
+        "x-atlassian-oauth2-scopes": [
+          {
+            "state": "Current",
+            "scheme": "oauth2",
+            "scopes": ["write:pullrequest:bitbucket"]
+          }
+        ],
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
+      }
+    },
     "/repositories/{workspace}/{repo_slug}/override-settings": {
       "get": {
         "tags": ["Repositories"],
@@ -9086,7 +9469,7 @@
     "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge": {
       "post": {
         "tags": ["Pullrequests"],
-        "description": "Merges the pull request.",
+        "description": "Merges the pull request.\n\nIf the destination branch has an active merge queue, the pull request\nis added to the queue instead. The API returns a 202 with a polling\nlink to the task-status API in the Location header, even when `async`\nis false. Calling it again on a queued pull request returns the same\nlink.\n\nMerge queues support the `merge_commit`, `squash` and `rebase_merge`\nstrategies. If no strategy is given, the queue's default is used.",
         "summary": "Merge a pull request",
         "responses": {
           "200": {
@@ -9096,8 +9479,16 @@
           "202": {
             "description": "In the Location header, the URL to poll for the pull request merge status"
           },
+          "400": {
+            "description": "If the pull request cannot be merged, or its merge queue is not accepting pull requests",
+            "schema": { "$ref": "#/definitions/error" }
+          },
           "409": {
             "description": "Unable to merge because one of the refs involved changed while attempting to merge"
+          },
+          "503": {
+            "description": "If the merge queue for the destination branch could not be checked. Retry the request later",
+            "schema": { "$ref": "#/definitions/error" }
           },
           "555": {
             "description": "If the merge took too long and timed out.\nIn this case the caller should retry the request later",
@@ -9163,14 +9554,14 @@
     "/repositories/{workspace}/{repo_slug}/pullrequests/{pull_request_id}/merge/task-status/{task_id}": {
       "get": {
         "tags": ["Pullrequests"],
-        "description": "When merging a pull request takes too long, the client receives a\ntask ID along with a 202 status code. The task ID can be used in a call\nto this endpoint to check the status of a merge task.\n\n```\ncurl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\n```\n\nIf the merge task is not yet finished, a PENDING status will be returned.\n\n```\nHTTP/2 200\n{\n    \"task_status\": \"PENDING\",\n    \"links\": {\n        \"self\": {\n            \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"\n        }\n    }\n}\n```\n\nIf the merge was successful, a SUCCESS status will be returned.\n\n```\nHTTP/2 200\n{\n    \"task_status\": \"SUCCESS\",\n    \"links\": {\n        \"self\": {\n            \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"\n        }\n    },\n    \"merge_result\": <the merged pull request object>\n}\n```\n\nIf the merge task failed, an error will be returned.\n\n```\n{\n    \"type\": \"error\",\n    \"error\": {\n        \"message\": \"<error message>\"\n    }\n}\n```",
+        "description": "When merging a pull request takes too long, the client receives a\ntask ID along with a 202 status code. The task ID can be used in a call\nto this endpoint to check the status of a merge task.\n\n```\ncurl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\n```\n\nIf the merge task is not yet finished, a PENDING status will be returned.\n\n```\nHTTP/2 200\n{\n    \"task_status\": \"PENDING\",\n    \"links\": {\n        \"self\": {\n            \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"\n        }\n    }\n}\n```\n\nIf the merge was successful, a SUCCESS status will be returned.\n\n```\nHTTP/2 200\n{\n    \"task_status\": \"SUCCESS\",\n    \"links\": {\n        \"self\": {\n            \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"\n        }\n    },\n    \"merge_result\": <the merged pull request object>\n}\n```\n\nIf the merge task failed, an error will be returned.\n\n```\n{\n    \"type\": \"error\",\n    \"error\": {\n        \"message\": \"<error message>\"\n    }\n}\n```\n\nIf the pull request was added to a merge queue, the task reports its\nlanding through the queue. A PENDING status is returned while it is in\nthe queue, with a `queued_pullrequest` object once the queue has it. A\nSUCCESS status is returned once it merges, and an error if it leaves\nthe queue without merging. The error message can contain Markdown.\n\nUnknown or expired task IDs return a PENDING status.",
         "summary": "Get the merge task status for a pull request",
         "responses": {
           "200": {
             "description": "Returns a task status if the merge is either pending or successful, and if it is successful, a pull request"
           },
           "400": {
-            "description": "If the provided task ID does not relate to this pull request, or if something went wrong during the merge operation"
+            "description": "If the provided task ID does not relate to this pull request, if something went wrong during the merge operation, or if the pull request left the merge queue without merging"
           },
           "403": {
             "description": "The user making the request does not have permission to the repo and is different from the user who queued the task"
@@ -19239,6 +19630,69 @@
         }
       ]
     },
+    "merge_queue_reference": {
+      "type": "object",
+      "title": "Merge Queue Reference",
+      "description": "A reference to the merge queue holding a pullrequest.",
+      "properties": {
+        "type": { "type": "string", "enum": ["merge_queue"] },
+        "uuid": { "type": "string", "format": "uuid" }
+      }
+    },
+    "paginated_merge_queues": {
+      "type": "object",
+      "title": "Paginated Merge Queues",
+      "properties": {
+        "page": { "type": "integer" },
+        "size": { "type": "integer" },
+        "pagelen": { "type": "integer" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/merge_queue" }
+        }
+      }
+    },
+    "merge_queue_pullrequest": {
+      "type": "object",
+      "title": "Merge Queue PullRequest Object",
+      "description": "The pullrequest object in a merge queue.",
+      "properties": {
+        "type": { "type": "string", "enum": ["queued_pullrequest"] },
+        "status": {
+          "type": "string",
+          "enum": [
+            "QUEUED",
+            "PROCESSING",
+            "AWAITING_MERGE",
+            "MERGE_IN_PROGRESS",
+            "REMOVING",
+            "UNKNOWN"
+          ]
+        },
+        "rank": {
+          "type": "integer",
+          "description": "The one-based position of the pullrequest in the merge queue."
+        },
+        "queued_on": { "type": "string", "format": "date-time" },
+        "last_activity_on": { "type": "string", "format": "date-time" },
+        "merge_queue": { "$ref": "#/definitions/merge_queue_reference" },
+        "pipeline": { "$ref": "#/definitions/pipeline" },
+        "pullrequest": { "$ref": "#/definitions/pullrequest" }
+      }
+    },
+    "paginated_merge_queue_pullrequests": {
+      "type": "object",
+      "title": "Paginated Merge Queue PullRequests",
+      "properties": {
+        "page": { "type": "integer" },
+        "size": { "type": "integer" },
+        "pagelen": { "type": "integer" },
+        "values": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/merge_queue_pullrequest" }
+        }
+      }
+    },
     "search_code_search_result": {
       "type": "object",
       "properties": {
@@ -23481,7 +23935,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "62c44056b70c",
+  "x-revision": "2f04cc642ea9",
   "x-atlassian-narrative": {
     "documents": [
       {

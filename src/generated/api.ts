@@ -856,6 +856,53 @@ export const MergeQueueCheckTypeEnum = {
 export type MergeQueueCheckTypeEnum = typeof MergeQueueCheckTypeEnum[keyof typeof MergeQueueCheckTypeEnum];
 
 /**
+ * The pullrequest object in a merge queue.
+ */
+export interface MergeQueuePullrequest {
+    'type'?: MergeQueuePullrequestTypeEnum;
+    'status'?: MergeQueuePullrequestStatusEnum;
+    /**
+     * The one-based position of the pullrequest in the merge queue.
+     */
+    'rank'?: number;
+    'queued_on'?: string;
+    'last_activity_on'?: string;
+    'merge_queue'?: MergeQueueReference;
+    'pipeline'?: Pipeline;
+    'pullrequest'?: Pullrequest;
+}
+
+export const MergeQueuePullrequestTypeEnum = {
+    QueuedPullrequest: 'queued_pullrequest'
+} as const;
+
+export type MergeQueuePullrequestTypeEnum = typeof MergeQueuePullrequestTypeEnum[keyof typeof MergeQueuePullrequestTypeEnum];
+export const MergeQueuePullrequestStatusEnum = {
+    Queued: 'QUEUED',
+    Processing: 'PROCESSING',
+    AwaitingMerge: 'AWAITING_MERGE',
+    MergeInProgress: 'MERGE_IN_PROGRESS',
+    Removing: 'REMOVING',
+    Unknown: 'UNKNOWN'
+} as const;
+
+export type MergeQueuePullrequestStatusEnum = typeof MergeQueuePullrequestStatusEnum[keyof typeof MergeQueuePullrequestStatusEnum];
+
+/**
+ * A reference to the merge queue holding a pullrequest.
+ */
+export interface MergeQueueReference {
+    'type'?: MergeQueueReferenceTypeEnum;
+    'uuid'?: string;
+}
+
+export const MergeQueueReferenceTypeEnum = {
+    MergeQueue: 'merge_queue'
+} as const;
+
+export type MergeQueueReferenceTypeEnum = typeof MergeQueueReferenceTypeEnum[keyof typeof MergeQueueReferenceTypeEnum];
+
+/**
  * Base type for most resource objects. It defines the common `type` element that identifies an object\'s type. It also identifies the element as Swagger\'s `discriminator`.
  */
 export interface ModelError {
@@ -1325,6 +1372,18 @@ export interface PaginatedHookEvents {
      */
     'previous'?: string;
     'values'?: Set<HookEvent>;
+}
+export interface PaginatedMergeQueuePullrequests {
+    'page'?: number;
+    'size'?: number;
+    'pagelen'?: number;
+    'values'?: Array<MergeQueuePullrequest>;
+}
+export interface PaginatedMergeQueues {
+    'page'?: number;
+    'size'?: number;
+    'pagelen'?: number;
+    'values'?: Array<MergeQueue>;
 }
 /**
  * A paged list of pipeline caches
@@ -12632,6 +12691,700 @@ export class GPGApi extends BaseAPI implements GPGApiInterface {
      */
     public usersSelectedUserGpgKeysPost(requestParameters: GPGApiUsersSelectedUserGpgKeysPostRequest, options?: RawAxiosRequestConfig) {
         return GPGApiFp(this.configuration).usersSelectedUserGpgKeysPost(requestParameters.selectedUser, requestParameters.body, options).then((request) => request(this.axios, this.basePath));
+    }
+}
+
+
+
+/**
+ * MergeQueuesApi - axios parameter creator
+ */
+export const MergeQueuesApiAxiosParamCreator = function (configuration?: Configuration) {
+    return {
+        /**
+         * Gets a merge queue by UUID.
+         * @summary Get a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMergeQueue: async (workspace: string, repoSlug: string, mergeQueueUuid: string, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getMergeQueue', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getMergeQueue', 'repoSlug', repoSlug)
+            // verify required parameter 'mergeQueueUuid' is not null or undefined
+            assertParamExists('getMergeQueue', 'mergeQueueUuid', mergeQueueUuid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"merge_queue_uuid"}}`, encodeURIComponent(String(mergeQueueUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["repository"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Gets a specific pullrequest in a merge queue.
+         * @summary Get a pullrequest in a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} pullrequestId The ID of the pullrequest.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMergeQueuePullRequest: async (workspace: string, repoSlug: string, mergeQueueUuid: string, pullrequestId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('getMergeQueuePullRequest', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('getMergeQueuePullRequest', 'repoSlug', repoSlug)
+            // verify required parameter 'mergeQueueUuid' is not null or undefined
+            assertParamExists('getMergeQueuePullRequest', 'mergeQueueUuid', mergeQueueUuid)
+            // verify required parameter 'pullrequestId' is not null or undefined
+            assertParamExists('getMergeQueuePullRequest', 'pullrequestId', pullrequestId)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}/queue/{pullrequest_id}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"merge_queue_uuid"}}`, encodeURIComponent(String(mergeQueueUuid)))
+                .replace(`{${"pullrequest_id"}}`, encodeURIComponent(String(pullrequestId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["pullrequest"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Lists pullrequests currently associated with a merge queue.
+         * @summary List pullrequests in a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} [page] The page number of elements to retrieve.
+         * @param {number} [pagelen] The maximum number of results to return.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listMergeQueuePullRequests: async (workspace: string, repoSlug: string, mergeQueueUuid: string, page?: number, pagelen?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('listMergeQueuePullRequests', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('listMergeQueuePullRequests', 'repoSlug', repoSlug)
+            // verify required parameter 'mergeQueueUuid' is not null or undefined
+            assertParamExists('listMergeQueuePullRequests', 'mergeQueueUuid', mergeQueueUuid)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}/queue`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"merge_queue_uuid"}}`, encodeURIComponent(String(mergeQueueUuid)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["pullrequest"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (pagelen !== undefined) {
+                localVarQueryParameter['pagelen'] = pagelen;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Lists merge queues configured for a repository. Optionally filter by branch.
+         * @summary List merge queues
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} [targetBranch] Optional target branch name to filter merge queues.
+         * @param {number} [page] The page number of elements to retrieve.
+         * @param {number} [pagelen] The maximum number of results to return.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listMergeQueues: async (workspace: string, repoSlug: string, targetBranch?: string, page?: number, pagelen?: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('listMergeQueues', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('listMergeQueues', 'repoSlug', repoSlug)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/merge-queues`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'GET', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["repository"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            if (targetBranch !== undefined) {
+                localVarQueryParameter['target_branch'] = targetBranch;
+            }
+
+            if (page !== undefined) {
+                localVarQueryParameter['page'] = page;
+            }
+
+            if (pagelen !== undefined) {
+                localVarQueryParameter['pagelen'] = pagelen;
+            }
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * Removes a pullrequest from the specified merge queue asynchronously.
+         * @summary Remove a pullrequest from a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} pullrequestId The ID of the pullrequest to remove.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        removePullRequestFromMergeQueue: async (workspace: string, repoSlug: string, mergeQueueUuid: string, pullrequestId: number, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'workspace' is not null or undefined
+            assertParamExists('removePullRequestFromMergeQueue', 'workspace', workspace)
+            // verify required parameter 'repoSlug' is not null or undefined
+            assertParamExists('removePullRequestFromMergeQueue', 'repoSlug', repoSlug)
+            // verify required parameter 'mergeQueueUuid' is not null or undefined
+            assertParamExists('removePullRequestFromMergeQueue', 'mergeQueueUuid', mergeQueueUuid)
+            // verify required parameter 'pullrequestId' is not null or undefined
+            assertParamExists('removePullRequestFromMergeQueue', 'pullrequestId', pullrequestId)
+            const localVarPath = `/repositories/{workspace}/{repo_slug}/merge-queues/{merge_queue_uuid}/queue/{pullrequest_id}`
+                .replace(`{${"workspace"}}`, encodeURIComponent(String(workspace)))
+                .replace(`{${"repo_slug"}}`, encodeURIComponent(String(repoSlug)))
+                .replace(`{${"merge_queue_uuid"}}`, encodeURIComponent(String(mergeQueueUuid)))
+                .replace(`{${"pullrequest_id"}}`, encodeURIComponent(String(pullrequestId)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'DELETE', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+            // authentication api_key required
+            await setApiKeyToObject(localVarHeaderParameter, "Authorization", configuration)
+
+            // authentication oauth2 required
+            // oauth required
+            await setOAuthToObject(localVarHeaderParameter, "oauth2", ["pullrequest:write"], configuration)
+
+            // authentication basic required
+            // http basic authentication required
+            setBasicAuthToObject(localVarRequestOptions, configuration)
+
+            localVarHeaderParameter['Accept'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+    }
+};
+
+/**
+ * MergeQueuesApi - functional programming interface
+ */
+export const MergeQueuesApiFp = function(configuration?: Configuration) {
+    const localVarAxiosParamCreator = MergeQueuesApiAxiosParamCreator(configuration)
+    return {
+        /**
+         * Gets a merge queue by UUID.
+         * @summary Get a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMergeQueue(workspace: string, repoSlug: string, mergeQueueUuid: string, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MergeQueue>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMergeQueue(workspace, repoSlug, mergeQueueUuid, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MergeQueuesApi.getMergeQueue']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Gets a specific pullrequest in a merge queue.
+         * @summary Get a pullrequest in a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} pullrequestId The ID of the pullrequest.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async getMergeQueuePullRequest(workspace: string, repoSlug: string, mergeQueueUuid: string, pullrequestId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<MergeQueuePullrequest>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.getMergeQueuePullRequest(workspace, repoSlug, mergeQueueUuid, pullrequestId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MergeQueuesApi.getMergeQueuePullRequest']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Lists pullrequests currently associated with a merge queue.
+         * @summary List pullrequests in a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} [page] The page number of elements to retrieve.
+         * @param {number} [pagelen] The maximum number of results to return.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listMergeQueuePullRequests(workspace: string, repoSlug: string, mergeQueueUuid: string, page?: number, pagelen?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedMergeQueuePullrequests>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listMergeQueuePullRequests(workspace, repoSlug, mergeQueueUuid, page, pagelen, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MergeQueuesApi.listMergeQueuePullRequests']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Lists merge queues configured for a repository. Optionally filter by branch.
+         * @summary List merge queues
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} [targetBranch] Optional target branch name to filter merge queues.
+         * @param {number} [page] The page number of elements to retrieve.
+         * @param {number} [pagelen] The maximum number of results to return.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async listMergeQueues(workspace: string, repoSlug: string, targetBranch?: string, page?: number, pagelen?: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<PaginatedMergeQueues>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.listMergeQueues(workspace, repoSlug, targetBranch, page, pagelen, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MergeQueuesApi.listMergeQueues']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
+         * Removes a pullrequest from the specified merge queue asynchronously.
+         * @summary Remove a pullrequest from a merge queue
+         * @param {string} workspace The workspace containing the repository.
+         * @param {string} repoSlug The repository slug.
+         * @param {string} mergeQueueUuid The UUID of the merge queue.
+         * @param {number} pullrequestId The ID of the pullrequest to remove.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async removePullRequestFromMergeQueue(workspace: string, repoSlug: string, mergeQueueUuid: string, pullrequestId: number, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<void>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.removePullRequestFromMergeQueue(workspace, repoSlug, mergeQueueUuid, pullrequestId, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['MergeQueuesApi.removePullRequestFromMergeQueue']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+    }
+};
+
+/**
+ * MergeQueuesApi - factory interface
+ */
+export const MergeQueuesApiFactory = function (configuration?: Configuration, basePath?: string, axios?: AxiosInstance) {
+    const localVarFp = MergeQueuesApiFp(configuration)
+    return {
+        /**
+         * Gets a merge queue by UUID.
+         * @summary Get a merge queue
+         * @param {MergeQueuesApiGetMergeQueueRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMergeQueue(requestParameters: MergeQueuesApiGetMergeQueueRequest, options?: RawAxiosRequestConfig): AxiosPromise<MergeQueue> {
+            return localVarFp.getMergeQueue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Gets a specific pullrequest in a merge queue.
+         * @summary Get a pullrequest in a merge queue
+         * @param {MergeQueuesApiGetMergeQueuePullRequestRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        getMergeQueuePullRequest(requestParameters: MergeQueuesApiGetMergeQueuePullRequestRequest, options?: RawAxiosRequestConfig): AxiosPromise<MergeQueuePullrequest> {
+            return localVarFp.getMergeQueuePullRequest(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.pullrequestId, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Lists pullrequests currently associated with a merge queue.
+         * @summary List pullrequests in a merge queue
+         * @param {MergeQueuesApiListMergeQueuePullRequestsRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listMergeQueuePullRequests(requestParameters: MergeQueuesApiListMergeQueuePullRequestsRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMergeQueuePullrequests> {
+            return localVarFp.listMergeQueuePullRequests(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.page, requestParameters.pagelen, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Lists merge queues configured for a repository. Optionally filter by branch.
+         * @summary List merge queues
+         * @param {MergeQueuesApiListMergeQueuesRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        listMergeQueues(requestParameters: MergeQueuesApiListMergeQueuesRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMergeQueues> {
+            return localVarFp.listMergeQueues(requestParameters.workspace, requestParameters.repoSlug, requestParameters.targetBranch, requestParameters.page, requestParameters.pagelen, options).then((request) => request(axios, basePath));
+        },
+        /**
+         * Removes a pullrequest from the specified merge queue asynchronously.
+         * @summary Remove a pullrequest from a merge queue
+         * @param {MergeQueuesApiRemovePullRequestFromMergeQueueRequest} requestParameters Request parameters.
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        removePullRequestFromMergeQueue(requestParameters: MergeQueuesApiRemovePullRequestFromMergeQueueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void> {
+            return localVarFp.removePullRequestFromMergeQueue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.pullrequestId, options).then((request) => request(axios, basePath));
+        },
+    };
+};
+
+/**
+ * MergeQueuesApi - interface
+ */
+export interface MergeQueuesApiInterface {
+    /**
+     * Gets a merge queue by UUID.
+     * @summary Get a merge queue
+     * @param {MergeQueuesApiGetMergeQueueRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getMergeQueue(requestParameters: MergeQueuesApiGetMergeQueueRequest, options?: RawAxiosRequestConfig): AxiosPromise<MergeQueue>;
+
+    /**
+     * Gets a specific pullrequest in a merge queue.
+     * @summary Get a pullrequest in a merge queue
+     * @param {MergeQueuesApiGetMergeQueuePullRequestRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    getMergeQueuePullRequest(requestParameters: MergeQueuesApiGetMergeQueuePullRequestRequest, options?: RawAxiosRequestConfig): AxiosPromise<MergeQueuePullrequest>;
+
+    /**
+     * Lists pullrequests currently associated with a merge queue.
+     * @summary List pullrequests in a merge queue
+     * @param {MergeQueuesApiListMergeQueuePullRequestsRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listMergeQueuePullRequests(requestParameters: MergeQueuesApiListMergeQueuePullRequestsRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMergeQueuePullrequests>;
+
+    /**
+     * Lists merge queues configured for a repository. Optionally filter by branch.
+     * @summary List merge queues
+     * @param {MergeQueuesApiListMergeQueuesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    listMergeQueues(requestParameters: MergeQueuesApiListMergeQueuesRequest, options?: RawAxiosRequestConfig): AxiosPromise<PaginatedMergeQueues>;
+
+    /**
+     * Removes a pullrequest from the specified merge queue asynchronously.
+     * @summary Remove a pullrequest from a merge queue
+     * @param {MergeQueuesApiRemovePullRequestFromMergeQueueRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    removePullRequestFromMergeQueue(requestParameters: MergeQueuesApiRemovePullRequestFromMergeQueueRequest, options?: RawAxiosRequestConfig): AxiosPromise<void>;
+
+}
+
+/**
+ * Request parameters for getMergeQueue operation in MergeQueuesApi.
+ */
+export interface MergeQueuesApiGetMergeQueueRequest {
+    /**
+     * The workspace containing the repository.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository slug.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The UUID of the merge queue.
+     */
+    readonly mergeQueueUuid: string
+}
+
+/**
+ * Request parameters for getMergeQueuePullRequest operation in MergeQueuesApi.
+ */
+export interface MergeQueuesApiGetMergeQueuePullRequestRequest {
+    /**
+     * The workspace containing the repository.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository slug.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The UUID of the merge queue.
+     */
+    readonly mergeQueueUuid: string
+
+    /**
+     * The ID of the pullrequest.
+     */
+    readonly pullrequestId: number
+}
+
+/**
+ * Request parameters for listMergeQueuePullRequests operation in MergeQueuesApi.
+ */
+export interface MergeQueuesApiListMergeQueuePullRequestsRequest {
+    /**
+     * The workspace containing the repository.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository slug.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The UUID of the merge queue.
+     */
+    readonly mergeQueueUuid: string
+
+    /**
+     * The page number of elements to retrieve.
+     */
+    readonly page?: number
+
+    /**
+     * The maximum number of results to return.
+     */
+    readonly pagelen?: number
+}
+
+/**
+ * Request parameters for listMergeQueues operation in MergeQueuesApi.
+ */
+export interface MergeQueuesApiListMergeQueuesRequest {
+    /**
+     * The workspace containing the repository.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository slug.
+     */
+    readonly repoSlug: string
+
+    /**
+     * Optional target branch name to filter merge queues.
+     */
+    readonly targetBranch?: string
+
+    /**
+     * The page number of elements to retrieve.
+     */
+    readonly page?: number
+
+    /**
+     * The maximum number of results to return.
+     */
+    readonly pagelen?: number
+}
+
+/**
+ * Request parameters for removePullRequestFromMergeQueue operation in MergeQueuesApi.
+ */
+export interface MergeQueuesApiRemovePullRequestFromMergeQueueRequest {
+    /**
+     * The workspace containing the repository.
+     */
+    readonly workspace: string
+
+    /**
+     * The repository slug.
+     */
+    readonly repoSlug: string
+
+    /**
+     * The UUID of the merge queue.
+     */
+    readonly mergeQueueUuid: string
+
+    /**
+     * The ID of the pullrequest to remove.
+     */
+    readonly pullrequestId: number
+}
+
+/**
+ * MergeQueuesApi - object-oriented interface
+ */
+export class MergeQueuesApi extends BaseAPI implements MergeQueuesApiInterface {
+    /**
+     * Gets a merge queue by UUID.
+     * @summary Get a merge queue
+     * @param {MergeQueuesApiGetMergeQueueRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMergeQueue(requestParameters: MergeQueuesApiGetMergeQueueRequest, options?: RawAxiosRequestConfig) {
+        return MergeQueuesApiFp(this.configuration).getMergeQueue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Gets a specific pullrequest in a merge queue.
+     * @summary Get a pullrequest in a merge queue
+     * @param {MergeQueuesApiGetMergeQueuePullRequestRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public getMergeQueuePullRequest(requestParameters: MergeQueuesApiGetMergeQueuePullRequestRequest, options?: RawAxiosRequestConfig) {
+        return MergeQueuesApiFp(this.configuration).getMergeQueuePullRequest(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.pullrequestId, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Lists pullrequests currently associated with a merge queue.
+     * @summary List pullrequests in a merge queue
+     * @param {MergeQueuesApiListMergeQueuePullRequestsRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listMergeQueuePullRequests(requestParameters: MergeQueuesApiListMergeQueuePullRequestsRequest, options?: RawAxiosRequestConfig) {
+        return MergeQueuesApiFp(this.configuration).listMergeQueuePullRequests(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.page, requestParameters.pagelen, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Lists merge queues configured for a repository. Optionally filter by branch.
+     * @summary List merge queues
+     * @param {MergeQueuesApiListMergeQueuesRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public listMergeQueues(requestParameters: MergeQueuesApiListMergeQueuesRequest, options?: RawAxiosRequestConfig) {
+        return MergeQueuesApiFp(this.configuration).listMergeQueues(requestParameters.workspace, requestParameters.repoSlug, requestParameters.targetBranch, requestParameters.page, requestParameters.pagelen, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * Removes a pullrequest from the specified merge queue asynchronously.
+     * @summary Remove a pullrequest from a merge queue
+     * @param {MergeQueuesApiRemovePullRequestFromMergeQueueRequest} requestParameters Request parameters.
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     */
+    public removePullRequestFromMergeQueue(requestParameters: MergeQueuesApiRemovePullRequestFromMergeQueueRequest, options?: RawAxiosRequestConfig) {
+        return MergeQueuesApiFp(this.configuration).removePullRequestFromMergeQueue(requestParameters.workspace, requestParameters.repoSlug, requestParameters.mergeQueueUuid, requestParameters.pullrequestId, options).then((request) => request(this.axios, this.basePath));
     }
 }
 
@@ -25704,7 +26457,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * Merges the pull request.
+         * Merges the pull request.  If the destination branch has an active merge queue, the pull request is added to the queue instead. The API returns a 202 with a polling link to the task-status API in the Location header, even when `async` is false. Calling it again on a queued pull request returns the same link.  Merge queues support the `merge_commit`, `squash` and `rebase_merge` strategies. If no strategy is given, the queue\'s default is used.
          * @summary Merge a pull request
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
@@ -25765,7 +26518,7 @@ export const PullrequestsApiAxiosParamCreator = function (configuration?: Config
             };
         },
         /**
-         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
+         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```  If the pull request was added to a merge queue, the task reports its landing through the queue. A PENDING status is returned while it is in the queue, with a `queued_pullrequest` object once the queue has it. A SUCCESS status is returned once it merges, and an error if it leaves the queue without merging. The error message can contain Markdown.  Unknown or expired task IDs return a PENDING status.
          * @summary Get the merge task status for a pull request
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
@@ -26902,7 +27655,7 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * Merges the pull request.
+         * Merges the pull request.  If the destination branch has an active merge queue, the pull request is added to the queue instead. The API returns a 202 with a polling link to the task-status API in the Location header, even when `async` is false. Calling it again on a queued pull request returns the same link.  Merge queues support the `merge_commit`, `squash` and `rebase_merge` strategies. If no strategy is given, the queue\'s default is used.
          * @summary Merge a pull request
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
@@ -26919,7 +27672,7 @@ export const PullrequestsApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
-         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
+         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```  If the pull request was added to a merge queue, the task reports its landing through the queue. A PENDING status is returned while it is in the queue, with a `queued_pullrequest` object once the queue has it. A SUCCESS status is returned once it merges, and an error if it leaves the queue without merging. The error message can contain Markdown.  Unknown or expired task IDs return a PENDING status.
          * @summary Get the merge task status for a pull request
          * @param {number} pullRequestId The id of the pull request.
          * @param {string} repoSlug This can either be the repository slug or the UUID of the repository, surrounded by curly-braces, for example: &#x60;{repository UUID}&#x60;. 
@@ -27386,7 +28139,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
             return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, options).then((request) => request(axios, basePath));
         },
         /**
-         * Merges the pull request.
+         * Merges the pull request.  If the destination branch has an active merge queue, the pull request is added to the queue instead. The API returns a 202 with a polling link to the task-status API in the Location header, even when `async` is false. Calling it again on a queued pull request returns the same link.  Merge queues support the `merge_commit`, `squash` and `rebase_merge` strategies. If no strategy is given, the queue\'s default is used.
          * @summary Merge a pull request
          * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -27396,7 +28149,7 @@ export const PullrequestsApiFactory = function (configuration?: Configuration, b
             return localVarFp.repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters.pullRequestId, requestParameters.repoSlug, requestParameters.workspace, requestParameters.async, requestParameters.body, options).then((request) => request(axios, basePath));
         },
         /**
-         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
+         * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```  If the pull request was added to a merge queue, the task reports its landing through the queue. A PENDING status is returned while it is in the queue, with a `queued_pullrequest` object once the queue has it. A SUCCESS status is returned once it merges, and an error if it leaves the queue without merging. The error message can contain Markdown.  Unknown or expired task IDs return a PENDING status.
          * @summary Get the merge task status for a pull request
          * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGetRequest} requestParameters Request parameters.
          * @param {*} [options] Override http request option.
@@ -27758,7 +28511,7 @@ export interface PullrequestsApiInterface {
     repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGet(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdGetRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pullrequest>;
 
     /**
-     * Merges the pull request.
+     * Merges the pull request.  If the destination branch has an active merge queue, the pull request is added to the queue instead. The API returns a 202 with a polling link to the task-status API in the Location header, even when `async` is false. Calling it again on a queued pull request returns the same link.  Merge queues support the `merge_commit`, `squash` and `rebase_merge` strategies. If no strategy is given, the queue\'s default is used.
      * @summary Merge a pull request
      * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -27767,7 +28520,7 @@ export interface PullrequestsApiInterface {
     repositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePost(requestParameters: PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest, options?: RawAxiosRequestConfig): AxiosPromise<Pullrequest>;
 
     /**
-     * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
+     * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```  If the pull request was added to a merge queue, the task reports its landing through the queue. A PENDING status is returned while it is in the queue, with a `queued_pullrequest` object once the queue has it. A SUCCESS status is returned once it merges, and an error if it leaves the queue without merging. The error message can contain Markdown.  Unknown or expired task IDs return a PENDING status.
      * @summary Get the merge task status for a pull request
      * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -29047,7 +29800,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
     }
 
     /**
-     * Merges the pull request.
+     * Merges the pull request.  If the destination branch has an active merge queue, the pull request is added to the queue instead. The API returns a 202 with a polling link to the task-status API in the Location header, even when `async` is false. Calling it again on a queued pull request returns the same link.  Merge queues support the `merge_commit`, `squash` and `rebase_merge` strategies. If no strategy is given, the queue\'s default is used.
      * @summary Merge a pull request
      * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergePostRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
@@ -29058,7 +29811,7 @@ export class PullrequestsApi extends BaseAPI implements PullrequestsApiInterface
     }
 
     /**
-     * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```
+     * When merging a pull request takes too long, the client receives a task ID along with a 202 status code. The task ID can be used in a call to this endpoint to check the status of a merge task.  ``` curl -X GET https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id> ```  If the merge task is not yet finished, a PENDING status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"PENDING\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     } } ```  If the merge was successful, a SUCCESS status will be returned.  ``` HTTP/2 200 {     \"task_status\": \"SUCCESS\",     \"links\": {         \"self\": {             \"href\": \"https://api.bitbucket.org/2.0/repositories/atlassian/bitbucket/pullrequests/2286/merge/task-status/<task_id>\"         }     },     \"merge_result\": <the merged pull request object> } ```  If the merge task failed, an error will be returned.  ``` {     \"type\": \"error\",     \"error\": {         \"message\": \"<error message>\"     } } ```  If the pull request was added to a merge queue, the task reports its landing through the queue. A PENDING status is returned while it is in the queue, with a `queued_pullrequest` object once the queue has it. A SUCCESS status is returned once it merges, and an error if it leaves the queue without merging. The error message can contain Markdown.  Unknown or expired task IDs return a PENDING status.
      * @summary Get the merge task status for a pull request
      * @param {PullrequestsApiRepositoriesWorkspaceRepoSlugPullrequestsPullRequestIdMergeTaskStatusTaskIdGetRequest} requestParameters Request parameters.
      * @param {*} [options] Override http request option.
