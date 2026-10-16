@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.6.0
+
+### Minor Changes
+
+- [#447](https://github.com/0pilatos0/bitbucket-cli/pull/447) [`aeb125b`](https://github.com/0pilatos0/bitbucket-cli/commit/aeb125b3a4168e851a6b15dc66129fc70c1b8e6b) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb merge-queue list` to list a repository's merge queues with their state.
+
+### Patch Changes
+
+- [#446](https://github.com/0pilatos0/bitbucket-cli/pull/446) [`d5fb035`](https://github.com/0pilatos0/bitbucket-cli/commit/d5fb035992056b925ad6f602dc1f5dd83cfc6438) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Standalone release binaries now embed Bun 1.4.3.
+
+- [#444](https://github.com/0pilatos0/bitbucket-cli/pull/444) [`4d5ec14`](https://github.com/0pilatos0/bitbucket-cli/commit/4d5ec143464aad25bddc48be976511d6e39a71d0) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the bundled Bitbucket Cloud API spec, which adds the merge queue endpoints to the generated client.
+
 ## 2.5.0
 
 ### Minor Changes
