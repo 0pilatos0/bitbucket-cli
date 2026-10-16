@@ -27,6 +27,7 @@ import pkg from '../package.json' with { type: 'json' };
 // Import generated API classes
 import {
   PullrequestsApi,
+  MergeQueuesApi,
   RepositoriesApi,
   UsersApi,
   CommitStatusesApi,
@@ -184,6 +185,9 @@ import { AgentInstructionsCommand } from './commands/agent-instructions.command.
 import { DoctorCommand } from './commands/doctor.command.js';
 import { ApiCommand } from './commands/api.command.js';
 
+// Merge Queue commands
+import { ListMergeQueuesCommand } from './commands/merge-queue/list.command.js';
+
 export interface BootstrapOptions {
   noColor?: boolean;
   noUnicode?: boolean;
@@ -283,6 +287,7 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
 
   // Generated API clients, all constructed on the shared axios instance
   registerApiClient(container, ServiceTokens.PullrequestsApi, PullrequestsApi);
+  registerApiClient(container, ServiceTokens.MergeQueuesApi, MergeQueuesApi);
   registerApiClient(container, ServiceTokens.RepositoriesApi, RepositoriesApi);
   registerApiClient(container, ServiceTokens.UsersApi, UsersApi);
   registerApiClient(
@@ -1256,6 +1261,18 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     const configService = container.resolve(ServiceTokens.ConfigService);
     return new VersionService(configService, pkg.version);
   });
+
+  // Merge Queue commands
+  registerCommand(
+    container,
+    ServiceTokens.ListMergeQueuesCommand,
+    ListMergeQueuesCommand,
+    [
+      ServiceTokens.MergeQueuesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
 
   return container;
 }

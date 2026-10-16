@@ -27,6 +27,7 @@ import { registerSshKeyCommands } from './ssh-key/register.js';
 import { registerStatusCommands } from './status/register.js';
 import { registerWebhookCommands } from './webhook/register.js';
 import { registerWorkspaceCommands } from './workspace/register.js';
+import { registerMergeQueueCommands } from './merge-queue/register.js';
 
 // Registration order is the order `bb --help` and shell completion list them.
 const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
@@ -35,6 +36,7 @@ const TOP_LEVEL_COMMANDS: readonly RegisterCommands[] = [
   registerPrCommands,
   registerSnippetCommands,
   registerPipelineCommands,
+  registerMergeQueueCommands,
   registerCommitCommands,
   registerStatusCommands,
   registerWorkspaceCommands,

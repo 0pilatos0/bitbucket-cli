@@ -23,6 +23,7 @@ import type { DefaultReviewerService } from '../services/default-reviewer.servic
 import type { UserResolverService } from '../services/user-resolver.service.js';
 import type {
   PullrequestsApi,
+  MergeQueuesApi,
   RepositoriesApi,
   UsersApi,
   CommitStatusesApi,
@@ -138,6 +139,7 @@ import type { ListConfigCommand } from '../commands/config/list.command.js';
 import type { InstallCompletionCommand } from '../commands/completion/install.command.js';
 import type { UninstallCompletionCommand } from '../commands/completion/uninstall.command.js';
 import type { PrintCompletionCommand } from '../commands/completion/print.command.js';
+import type { ListMergeQueuesCommand } from '../commands/merge-queue/list.command.js';
 import type { BrowseCommand } from '../commands/browse.command.js';
 import type { ApiCommand } from '../commands/api.command.js';
 import type { HelpCommand } from '../commands/help.command.js';
@@ -163,6 +165,7 @@ export const ServiceTokens = {
   // API Clients
   SharedApiAxios: token<AxiosInstance>('SharedApiAxios'),
   PullrequestsApi: token<PullrequestsApi>('PullrequestsApi'),
+  MergeQueuesApi: token<MergeQueuesApi>('MergeQueuesApi'),
   RepositoriesApi: token<RepositoriesApi>('RepositoriesApi'),
   UsersApi: token<UsersApi>('UsersApi'),
   CommitStatusesApi: token<CommitStatusesApi>('CommitStatusesApi'),
@@ -383,6 +386,11 @@ export const ServiceTokens = {
   ),
   PrintCompletionCommand: token<PrintCompletionCommand>(
     'PrintCompletionCommand'
+  ),
+
+  // Commands - Merge Queue
+  ListMergeQueuesCommand: token<ListMergeQueuesCommand>(
+    'ListMergeQueuesCommand'
   ),
 };
 

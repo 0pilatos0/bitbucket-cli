@@ -51,6 +51,10 @@ const sidebar = [
         slug: "commands/pipeline",
       },
       {
+        label: "Merge Queue Commands",
+        slug: "commands/merge-queue",
+      },
+      {
         label: "Commit Commands",
         slug: "commands/commit",
       },

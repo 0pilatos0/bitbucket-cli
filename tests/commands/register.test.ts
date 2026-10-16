@@ -71,6 +71,7 @@ describe('registerCommands', () => {
       'pr',
       'snippet',
       'pipeline',
+      'merge-queue',
       'commit',
       'status',
       'workspace',

@@ -1633,6 +1633,63 @@ See also:
 }
 `;
 
+exports[`command tree snapshot bb pr status 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {},
+    "token": "StatusPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr status [options]
+
+Show the status of your pull requests
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb pr status
+  $ bb pr status --json
+  $ bb pr status -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb pr view 1`] = `
 {
   "dispatch": {
@@ -2067,195 +2124,6 @@ Examples:
 }
 `;
 
-exports[`command tree snapshot bb pr decline 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "dryRun": true,
-      "id": "id-value",
-    },
-    "token": "DeclinePRCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb pr decline [options] [id]
-
-Decline a pull request
-
-Arguments:
-  id                           Pull request ID (default: the open PR for the
-                               current branch)
-
-Options:
-  --dry-run                    Print the write request instead of sending it
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Examples:
-  $ bb pr decline
-  $ bb pr decline 42
-  $ bb pr decline 42 --json
-  $ bb pr decline 42 -w my-workspace -r my-repo
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb pr ready 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "dryRun": true,
-      "id": "id-value",
-    },
-    "token": "ReadyPRCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb pr ready [options] [id]
-
-Mark a draft pull request as ready for review
-
-Arguments:
-  id                           Pull request ID (default: the open PR for the
-                               current branch)
-
-Options:
-  --dry-run                    Print the write request instead of sending it
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Examples:
-  $ bb pr ready
-  $ bb pr ready 42
-  $ bb pr ready 42 --json
-  $ bb pr ready 42 -w my-workspace -r my-repo
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb pr status 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {},
-    "token": "StatusPRCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb pr status [options]
-
-Show the status of your pull requests
-
-Options:
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Examples:
-  $ bb pr status
-  $ bb pr status --json
-  $ bb pr status -w my-workspace -r my-repo
-
-"
-,
-}
-`;
-
 exports[`command tree snapshot bb pr unapprove 1`] = `
 {
   "dispatch": {
@@ -2383,6 +2251,138 @@ Examples:
   $ bb pr request-changes 42
   $ bb pr request-changes 42 --undo
   $ bb pr request-changes 42 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr decline 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "dryRun": true,
+      "id": "id-value",
+    },
+    "token": "DeclinePRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr decline [options] [id]
+
+Decline a pull request
+
+Arguments:
+  id                           Pull request ID (default: the open PR for the
+                               current branch)
+
+Options:
+  --dry-run                    Print the write request instead of sending it
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb pr decline
+  $ bb pr decline 42
+  $ bb pr decline 42 --json
+  $ bb pr decline 42 -w my-workspace -r my-repo
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb pr ready 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "dryRun": true,
+      "id": "id-value",
+    },
+    "token": "ReadyPRCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb pr ready [options] [id]
+
+Mark a draft pull request as ready for review
+
+Arguments:
+  id                           Pull request ID (default: the open PR for the
+                               current branch)
+
+Options:
+  --dry-run                    Print the write request instead of sending it
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb pr ready
+  $ bb pr ready 42
+  $ bb pr ready 42 --json
+  $ bb pr ready 42 -w my-workspace -r my-repo
 
 "
 ,
@@ -7674,6 +7674,63 @@ Examples:
 }
 `;
 
+exports[`command tree snapshot bb context 1`] = `
+{
+  "dispatch": {
+    "options": undefined,
+    "token": "ContextCommand",
+    "via": "run",
+  },
+  "help": 
+"Usage: bb context [options]
+
+Show the workspace, repository and branch bb would use here, and where each came
+from (no network)
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb context
+  $ bb context --json
+  $ bb context -w my-team -r api --json
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb doctor 1`] = `
 {
   "dispatch": {
@@ -8131,65 +8188,6 @@ Examples:
 }
 `;
 
-
-
-exports[`command tree snapshot bb context 1`] = `
-{
-  "dispatch": {
-    "options": undefined,
-    "token": "ContextCommand",
-    "via": "run",
-  },
-  "help": 
-"Usage: bb context [options]
-
-Show the workspace, repository and branch bb would use here, and where each came
-from (no network)
-
-Options:
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Examples:
-  $ bb context
-  $ bb context --json
-  $ bb context -w my-team -r api --json
-
-"
-,
-}
-`;
-
 exports[`command tree snapshot bb agent-instructions 1`] = `
 {
   "dispatch": {
@@ -8241,6 +8239,119 @@ Examples:
   $ bb agent-instructions
   $ bb agent-instructions >> AGENTS.md
   $ bb agent-instructions --json --jq '.instructions'
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue 1`] = `
+{
+  "help": 
+"Usage: bb merge-queue [options] [command]
+
+Manage merge queues
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Commands:
+  list [options]               List merge queues in a repository
+  help [command]               display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListMergeQueuesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb merge-queue list [options]
+
+List merge queues in a repository
+
+Options:
+  --limit <number>             Maximum number of items to list (default: "25")
+  --all                        List all items (overrides --limit)
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb merge-queue list
+  $ bb merge-queue list --json
+
+Defaults:
+  --limit  25
 
 "
 ,

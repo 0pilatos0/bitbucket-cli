@@ -1,0 +1,30 @@
+---
+title: Merge Queue Commands
+description: List Bitbucket merge queues configured on a repository.
+---
+
+Inspect the merge queues configured on a repository. A queue state is one of `ACTIVE`, `PAUSED`, `DRAINING`, `SUSPENDED`, `INACTIVE` or `UNKNOWN`.
+
+---
+
+## `bb merge-queue list`
+
+List merge queues in a repository.
+
+```bash
+bb merge-queue list [options]
+```
+
+### Options
+
+| Option             | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `--limit <number>` | Maximum number of items to list (default: 25) |
+| `--all`            | List all items (overrides `--limit`)         |
+
+### Examples
+
+```bash
+bb merge-queue list
+bb merge-queue list --json
+```

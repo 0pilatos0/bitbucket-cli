@@ -48,6 +48,7 @@ describe('CLI completion drift (issue #255)', () => {
       'deployments',
       'environments',
       'checks',
+      'mergeQueues',
       'values',
     ];
 
@@ -81,6 +82,7 @@ describe('CLI completion drift (issue #255)', () => {
       'deployment list': 'deployments',
       'deployment environments': 'environments',
       doctor: 'checks',
+      'merge-queue list': 'mergeQueues',
     };
 
     it('WRAPPER_ARRAY_KEYS matches the expected set, in order', () => {
