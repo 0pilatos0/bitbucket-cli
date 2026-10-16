@@ -53,6 +53,7 @@ export const RESERVED_COMMAND_NAMES = [
   'completion',
   'agent-instructions',
   'alias',
+  'merge-queue',
   'help',
 ] as const;
 

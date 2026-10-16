@@ -595,6 +595,7 @@ describe('CLI command registration', () => {
       'deployment',
       'doctor',
       'gpg-key',
+      'merge-queue',
       'pipeline',
       'pr',
       'project',
