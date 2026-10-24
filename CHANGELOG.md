@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.6.0
+
+### Minor Changes
+
+- [#454](https://github.com/0pilatos0/bitbucket-cli/pull/454) [`526539b`](https://github.com/0pilatos0/bitbucket-cli/commit/526539be3d9ba62ddc7397de708a719db2daf98d) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb merge-queue view`, `bb merge-queue prs` and `bb merge-queue remove` to inspect a merge queue, list the pull requests waiting in it, and take a pull request out of it.
+
+- [#447](https://github.com/0pilatos0/bitbucket-cli/pull/447) [`aeb125b`](https://github.com/0pilatos0/bitbucket-cli/commit/aeb125b3a4168e851a6b15dc66129fc70c1b8e6b) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Add `bb merge-queue list` to list a repository's merge queues with their state.
+
+- [#453](https://github.com/0pilatos0/bitbucket-cli/pull/453) [`8f0f90b`](https://github.com/0pilatos0/bitbucket-cli/commit/8f0f90bb875156bc3b5af495c504e4b17538869c) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb repo list` can now filter and sort repositories with `--name`, `--query` (BBQL), `--sort` and `--role`.
+
+### Patch Changes
+
+- [#446](https://github.com/0pilatos0/bitbucket-cli/pull/446) [`d5fb035`](https://github.com/0pilatos0/bitbucket-cli/commit/d5fb035992056b925ad6f602dc1f5dd83cfc6438) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Standalone release binaries now embed Bun 1.4.3.
+
+- [#456](https://github.com/0pilatos0/bitbucket-cli/pull/456) [`09390c0`](https://github.com/0pilatos0/bitbucket-cli/commit/09390c07ebfee874d690b3db83ba6b3c86781e89) Thanks [@0pilatos0](https://github.com/0pilatos0)! - `bb pr list --state` now applies when combined with `--mine`, `--reviewer`, `--author`, `--source`, `--destination` or `--query`; `bb pr status` and commands that find the PR for the current branch no longer pick up merged or declined pull requests.
+
+- [#452](https://github.com/0pilatos0/bitbucket-cli/pull/452) [`8dfd4bf`](https://github.com/0pilatos0/bitbucket-cli/commit/8dfd4bf4b1cf57a4126dd5934297d64cb7dfbbf3) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the bundled Bitbucket Cloud API spec, which adds the workspace code search endpoint and the workspace `enforced_signed_commits` field to the generated client.
+
+- [#444](https://github.com/0pilatos0/bitbucket-cli/pull/444) [`4d5ec14`](https://github.com/0pilatos0/bitbucket-cli/commit/4d5ec143464aad25bddc48be976511d6e39a71d0) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the bundled Bitbucket Cloud API spec, which adds the merge queue endpoints to the generated client.
+
 ## 2.5.0
 
 ### Minor Changes
