@@ -71,7 +71,9 @@ describe('mock Bitbucket integration (pr current-branch inference)', () => {
     expect(server.requests).toHaveLength(2);
     expect(list?.method).toBe('GET');
     expect(list?.query.get('state')).toBe('OPEN');
-    expect(list?.query.get('q')).toBe('source.branch.name = "feat/login"');
+    expect(list?.query.get('q')).toBe(
+      'state="OPEN" AND (source.branch.name = "feat/login")'
+    );
     expect(list?.query.get('page')).toBeNull();
     expect(approve?.path).toEndWith('/pullrequests/42/approve');
     expect(output.logs.join('\n')).toContain('Approved pull request #42');

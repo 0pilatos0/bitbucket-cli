@@ -136,10 +136,10 @@ describe('pr list filters', () => {
     );
 
     expect(listQueries(server)).toEqual([
-      `author.uuid="${ME}" AND reviewers.uuid="${ALICE}" AND ` +
+      `state="OPEN" AND (author.uuid="${ME}" AND reviewers.uuid="${ALICE}" AND ` +
         'source.branch.name="feature/login" AND ' +
         'destination.branch.name="main" AND ' +
-        '(title ~ "login" OR title ~ "auth")',
+        '(title ~ "login" OR title ~ "auth"))',
     ]);
     expect(
       server.requests
@@ -162,7 +162,7 @@ describe('pr list filters', () => {
     await command.execute({ source: 'we"ird\\branch' }, { globalOptions: {} });
 
     expect(listQueries(server)).toEqual([
-      'source.branch.name="we\\"ird\\\\branch"',
+      'state="OPEN" AND (source.branch.name="we\\"ird\\\\branch")',
     ]);
     expect(output.logs).toContain(
       'info:No open pull requests match the filters'
@@ -182,7 +182,9 @@ describe('pr list filters', () => {
 
     await command.execute({ mine: true }, { globalOptions: { json: true } });
 
-    expect(listQueries(server)).toEqual([`reviewers.uuid="${ME}"`]);
+    expect(listQueries(server)).toEqual([
+      `state="OPEN" AND (reviewers.uuid="${ME}")`,
+    ]);
     const json = JSON.parse(output.logs[0]!.replace(/^json:/, '')) as {
       filters: Record<string, unknown>;
     };
@@ -194,6 +196,43 @@ describe('pr list filters', () => {
       destination: null,
       query: null,
     });
+  });
+
+  it('puts --state in the query, since Bitbucket ignores the state parameter once q is set', async () => {
+    const { server, output, build } = await startHarness([
+      pullRequestsRoute(() => []),
+    ]);
+    const command = new ListPRsCommand(
+      build(PullrequestsApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
+      repoContext(),
+      output
+    );
+
+    await command.execute(
+      { state: 'merged', author: '@me' },
+      { globalOptions: {} }
+    );
+
+    expect(listQueries(server)).toEqual([
+      `state="MERGED" AND (author.uuid="${ME}")`,
+    ]);
+  });
+
+  it('sends no query without filters', async () => {
+    const { server, output, build } = await startHarness([
+      pullRequestsRoute(() => []),
+    ]);
+    const command = new ListPRsCommand(
+      build(PullrequestsApi),
+      new UserResolverService(build(UsersApi), build(WorkspacesApi)),
+      repoContext(),
+      output
+    );
+
+    await command.execute({ state: 'MERGED' }, { globalOptions: {} });
+
+    expect(listQueries(server)).toEqual([null]);
   });
 
   it('rejects --mine combined with a different --reviewer before any request', async () => {
@@ -220,14 +259,16 @@ describe('pr list filters', () => {
 
 describe('pr status', () => {
   const BRANCH_QUERY =
-    'source.branch.name="feature/login" AND ' +
-    'source.repository.full_name="acme/app"';
+    'state="OPEN" AND (source.branch.name="feature/login" AND ' +
+    'source.repository.full_name="acme/app")';
+  const AUTHOR_QUERY = `state="OPEN" AND (author.uuid="${ME}")`;
+  const REVIEWER_QUERY = `state="OPEN" AND (reviewers.uuid="${ME}")`;
   const routes = [
     pullRequestsRoute((q) => {
       if (q === BRANCH_QUERY) {
         return [pr(7, 'Add login', 'feature/login')];
       }
-      if (q === `author.uuid="${ME}"`) {
+      if (q === AUTHOR_QUERY) {
         return [pr(7, 'Add login', 'feature/login'), pr(5, 'Docs', 'docs')];
       }
       return [];
@@ -247,8 +288,8 @@ describe('pr status', () => {
     await command.execute({}, { globalOptions: { noTruncate: true } });
 
     expect(listQueries(server).sort()).toEqual([
-      `author.uuid="${ME}"`,
-      `reviewers.uuid="${ME}"`,
+      AUTHOR_QUERY,
+      REVIEWER_QUERY,
       BRANCH_QUERY,
     ]);
     const text = output.logs.join('\n');
