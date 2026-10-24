@@ -6,6 +6,7 @@ import {
   withCompletionChoices,
 } from '../../core/command-options.js';
 import { GIT_PROTOCOLS } from '../../types/config.js';
+import { REPO_ROLES } from './list.command.js';
 import { registerRepoDefaultReviewersCommands } from './default-reviewers.register.js';
 import { registerRepoDownloadsCommands } from './downloads.register.js';
 
@@ -81,6 +82,24 @@ export function registerRepoCommands(
     .description('List repositories')
     .option('--limit <number>', 'Maximum number of repositories to list', '25')
     .option('--all', 'List all repositories (overrides --limit)')
+    .option('--name <text>', 'Only repositories whose name contains this text')
+    .option(
+      '--query <bbql>',
+      'Raw Bitbucket query (BBQL), ANDed with the other filters'
+    )
+    .option(
+      '--sort <attribute>',
+      'Sort attribute (prefix with - for descending)'
+    )
+    .addOption(
+      withCompletionChoices(
+        new Option(
+          '--role <role>',
+          'Only repositories where you have this role'
+        ),
+        REPO_ROLES
+      )
+    )
     .addHelpText(
       'after',
       buildHelpText({
@@ -88,8 +107,14 @@ export function registerRepoCommands(
           'bb repo list',
           'bb repo list --limit 50',
           'bb repo list --all',
+          'bb repo list --name api',
+          'bb repo list --role admin --sort -updated_on',
+          'bb repo list --query \'project.key = "CORE"\'',
           'bb repo list --json',
         ],
+        validValues: {
+          'Valid roles': [...REPO_ROLES],
+        },
         defaults: { limit: '25' },
       })
     )
