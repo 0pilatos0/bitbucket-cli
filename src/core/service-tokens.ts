@@ -140,6 +140,9 @@ import type { InstallCompletionCommand } from '../commands/completion/install.co
 import type { UninstallCompletionCommand } from '../commands/completion/uninstall.command.js';
 import type { PrintCompletionCommand } from '../commands/completion/print.command.js';
 import type { ListMergeQueuesCommand } from '../commands/merge-queue/list.command.js';
+import type { ViewMergeQueueCommand } from '../commands/merge-queue/view.command.js';
+import type { ListMergeQueuePullRequestsCommand } from '../commands/merge-queue/prs.command.js';
+import type { RemoveMergeQueuePullRequestCommand } from '../commands/merge-queue/remove.command.js';
 import type { BrowseCommand } from '../commands/browse.command.js';
 import type { ApiCommand } from '../commands/api.command.js';
 import type { HelpCommand } from '../commands/help.command.js';
@@ -391,6 +394,13 @@ export const ServiceTokens = {
   // Commands - Merge Queue
   ListMergeQueuesCommand: token<ListMergeQueuesCommand>(
     'ListMergeQueuesCommand'
+  ),
+  ViewMergeQueueCommand: token<ViewMergeQueueCommand>('ViewMergeQueueCommand'),
+  ListMergeQueuePullRequestsCommand: token<ListMergeQueuePullRequestsCommand>(
+    'ListMergeQueuePullRequestsCommand'
+  ),
+  RemoveMergeQueuePullRequestCommand: token<RemoveMergeQueuePullRequestCommand>(
+    'RemoveMergeQueuePullRequestCommand'
   ),
 };
 

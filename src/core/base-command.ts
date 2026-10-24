@@ -355,6 +355,21 @@ export abstract class BaseCommand<
     return this.positiveIntOrThrow(value, name, `<${name}>`);
   }
 
+  /**
+   * Parse a positional `{uuid}` argument. Bitbucket ids are brace-wrapped
+   * UUIDs; accept a bare UUID too.
+   */
+  protected parseUuidArg(value: string, name: string): string {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      throw new BBError({
+        code: ErrorCode.VALIDATION_REQUIRED,
+        message: this.appendHelpHint(`<${name}> is required.`),
+      });
+    }
+    return trimmed.startsWith('{') ? trimmed : `{${trimmed}}`;
+  }
+
   private positiveIntOrThrow(
     value: string,
     name: string,

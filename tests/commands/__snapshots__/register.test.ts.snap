@@ -4615,6 +4615,308 @@ Defaults:
 }
 `;
 
+exports[`command tree snapshot bb merge-queue 1`] = `
+{
+  "help": 
+"Usage: bb merge-queue [options] [command]
+
+Manage merge queues
+
+Options:
+  -h, --help                       display help for command
+
+Global Options:
+  --json [fields]                  Output as JSON; optionally project to a
+                                   comma-separated field list (e.g.
+                                   number,title,author.display_name)
+  --jq <expression>                Filter the JSON output through a jq
+                                   expression — runs in-process via embedded jq,
+                                   requires --json (e.g. '.pullRequests[] |
+                                   select(.state == "OPEN") | .title')
+  --raw-output                     With --jq, print string results without JSON
+                                   quotes (like jq -r)
+  --lean                           Trim JSON output: keep only the web URL
+                                   (links.html) from each Bitbucket links map;
+                                   requires --json
+  --no-color                       Disable color output
+  --no-unicode                     Use ASCII fallbacks for symbols (separators,
+                                   arrows, status icons) — also enabled by
+                                   BB_NO_UNICODE
+  --no-truncate                    Show full values in table output without
+                                   truncation
+  --no-input                       Never prompt, even in an interactive
+                                   terminal, except in completion install (also
+                                   enabled by BB_PROMPT_DISABLED)
+  --locale <locale>                BCP-47 locale tag for date/time formatting
+                                   (e.g. de-DE, ja-JP). Falls back to BB_LOCALE,
+                                   then LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>      Specify workspace (falls back to
+                                   BB_WORKSPACE, then config defaultWorkspace)
+  -r, --repo <repo>                Specify repository
+  --account <name>                 Use this saved account for one command (also
+                                   BB_ACCOUNT; see bb auth switch)
+
+Commands:
+  list [options]                   List merge queues in a repository
+  view <uuid>                      View a merge queue
+  prs [options] <uuid>             List pull requests in a merge queue
+  remove [options] <uuid> <pr-id>  Remove a pull request from a merge queue
+  help [command]                   display help for command
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue list 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+    },
+    "token": "ListMergeQueuesCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb merge-queue list [options]
+
+List merge queues in a repository
+
+Options:
+  --limit <number>             Maximum number of items to list (default: "25")
+  --all                        List all items (overrides --limit)
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb merge-queue list
+  $ bb merge-queue list --json
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue view 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "uuid": "uuid-value",
+    },
+    "token": "ViewMergeQueueCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb merge-queue view [options] <uuid>
+
+View a merge queue
+
+Options:
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb merge-queue view {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb merge-queue view a1b2c3d4-0000-0000-0000-000000000000 --json
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue prs 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "all": true,
+      "limit": "limit-value",
+      "uuid": "uuid-value",
+    },
+    "token": "ListMergeQueuePullRequestsCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb merge-queue prs [options] <uuid>
+
+List pull requests in a merge queue
+
+Options:
+  --limit <number>             Maximum number of items to list (default: "25")
+  --all                        List all items (overrides --limit)
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb merge-queue prs {a1b2c3d4-0000-0000-0000-000000000000}
+  $ bb merge-queue prs a1b2c3d4-0000-0000-0000-000000000000 --all --json
+
+Defaults:
+  --limit  25
+
+"
+,
+}
+`;
+
+exports[`command tree snapshot bb merge-queue remove 1`] = `
+{
+  "dispatch": {
+    "contextOptions": undefined,
+    "options": {
+      "dryRun": true,
+      "prId": "pr-id-value",
+      "uuid": "uuid-value",
+      "yes": true,
+    },
+    "token": "RemoveMergeQueuePullRequestCommand",
+    "via": "runWithGlobalOptions",
+  },
+  "help": 
+"Usage: bb merge-queue remove [options] <uuid> <pr-id>
+
+Remove a pull request from a merge queue
+
+Options:
+  -y, --yes                    Skip confirmation prompt
+  --dry-run                    Print the write request instead of sending it
+  -h, --help                   display help for command
+
+Global Options:
+  --json [fields]              Output as JSON; optionally project to a
+                               comma-separated field list (e.g.
+                               number,title,author.display_name)
+  --jq <expression>            Filter the JSON output through a jq expression —
+                               runs in-process via embedded jq, requires --json
+                               (e.g. '.pullRequests[] | select(.state == "OPEN")
+                               | .title')
+  --raw-output                 With --jq, print string results without JSON
+                               quotes (like jq -r)
+  --lean                       Trim JSON output: keep only the web URL
+                               (links.html) from each Bitbucket links map;
+                               requires --json
+  --no-color                   Disable color output
+  --no-unicode                 Use ASCII fallbacks for symbols (separators,
+                               arrows, status icons) — also enabled by
+                               BB_NO_UNICODE
+  --no-truncate                Show full values in table output without
+                               truncation
+  --no-input                   Never prompt, even in an interactive terminal,
+                               except in completion install (also enabled by
+                               BB_PROMPT_DISABLED)
+  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
+                               de-DE, ja-JP). Falls back to BB_LOCALE, then
+                               LC_TIME/LC_ALL/LANG, then en-US.
+  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
+                               then config defaultWorkspace)
+  -r, --repo <repo>            Specify repository
+  --account <name>             Use this saved account for one command (also
+                               BB_ACCOUNT; see bb auth switch)
+
+Examples:
+  $ bb merge-queue remove {a1b2c3d4-0000-0000-0000-000000000000} 42
+  $ bb merge-queue remove a1b2c3d4-0000-0000-0000-000000000000 42 --yes
+
+"
+,
+}
+`;
+
 exports[`command tree snapshot bb commit 1`] = `
 {
   "help": 
@@ -8239,119 +8541,6 @@ Examples:
   $ bb agent-instructions
   $ bb agent-instructions >> AGENTS.md
   $ bb agent-instructions --json --jq '.instructions'
-
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb merge-queue 1`] = `
-{
-  "help": 
-"Usage: bb merge-queue [options] [command]
-
-Manage merge queues
-
-Options:
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Commands:
-  list [options]               List merge queues in a repository
-  help [command]               display help for command
-"
-,
-}
-`;
-
-exports[`command tree snapshot bb merge-queue list 1`] = `
-{
-  "dispatch": {
-    "contextOptions": undefined,
-    "options": {
-      "all": true,
-      "limit": "limit-value",
-    },
-    "token": "ListMergeQueuesCommand",
-    "via": "runWithGlobalOptions",
-  },
-  "help": 
-"Usage: bb merge-queue list [options]
-
-List merge queues in a repository
-
-Options:
-  --limit <number>             Maximum number of items to list (default: "25")
-  --all                        List all items (overrides --limit)
-  -h, --help                   display help for command
-
-Global Options:
-  --json [fields]              Output as JSON; optionally project to a
-                               comma-separated field list (e.g.
-                               number,title,author.display_name)
-  --jq <expression>            Filter the JSON output through a jq expression —
-                               runs in-process via embedded jq, requires --json
-                               (e.g. '.pullRequests[] | select(.state == "OPEN")
-                               | .title')
-  --raw-output                 With --jq, print string results without JSON
-                               quotes (like jq -r)
-  --lean                       Trim JSON output: keep only the web URL
-                               (links.html) from each Bitbucket links map;
-                               requires --json
-  --no-color                   Disable color output
-  --no-unicode                 Use ASCII fallbacks for symbols (separators,
-                               arrows, status icons) — also enabled by
-                               BB_NO_UNICODE
-  --no-truncate                Show full values in table output without
-                               truncation
-  --no-input                   Never prompt, even in an interactive terminal,
-                               except in completion install (also enabled by
-                               BB_PROMPT_DISABLED)
-  --locale <locale>            BCP-47 locale tag for date/time formatting (e.g.
-                               de-DE, ja-JP). Falls back to BB_LOCALE, then
-                               LC_TIME/LC_ALL/LANG, then en-US.
-  -w, --workspace <workspace>  Specify workspace (falls back to BB_WORKSPACE,
-                               then config defaultWorkspace)
-  -r, --repo <repo>            Specify repository
-  --account <name>             Use this saved account for one command (also
-                               BB_ACCOUNT; see bb auth switch)
-
-Examples:
-  $ bb merge-queue list
-  $ bb merge-queue list --json
-
-Defaults:
-  --limit  25
 
 "
 ,

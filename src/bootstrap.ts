@@ -187,6 +187,9 @@ import { ApiCommand } from './commands/api.command.js';
 
 // Merge Queue commands
 import { ListMergeQueuesCommand } from './commands/merge-queue/list.command.js';
+import { ViewMergeQueueCommand } from './commands/merge-queue/view.command.js';
+import { ListMergeQueuePullRequestsCommand } from './commands/merge-queue/prs.command.js';
+import { RemoveMergeQueuePullRequestCommand } from './commands/merge-queue/remove.command.js';
 
 export interface BootstrapOptions {
   noColor?: boolean;
@@ -1267,6 +1270,36 @@ export function bootstrap(options: BootstrapOptions = {}): Container {
     container,
     ServiceTokens.ListMergeQueuesCommand,
     ListMergeQueuesCommand,
+    [
+      ServiceTokens.MergeQueuesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ViewMergeQueueCommand,
+    ViewMergeQueueCommand,
+    [
+      ServiceTokens.MergeQueuesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.ListMergeQueuePullRequestsCommand,
+    ListMergeQueuePullRequestsCommand,
+    [
+      ServiceTokens.MergeQueuesApi,
+      ServiceTokens.ContextService,
+      ServiceTokens.OutputService,
+    ]
+  );
+  registerCommand(
+    container,
+    ServiceTokens.RemoveMergeQueuePullRequestCommand,
+    RemoveMergeQueuePullRequestCommand,
     [
       ServiceTokens.MergeQueuesApi,
       ServiceTokens.ContextService,

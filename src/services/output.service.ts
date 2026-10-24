@@ -92,6 +92,7 @@ export const WRAPPER_ARRAY_KEYS: readonly string[] = [
   'environments', // deployment environments
   'checks', // doctor
   'mergeQueues', // merge-queue list
+  'queuedPullRequests', // merge-queue prs
   'values', // generic fallback for paginated payloads
 ];
 
