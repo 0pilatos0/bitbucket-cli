@@ -133,15 +133,3 @@ function webhookListParams(
     ? Object.fromEntries(new URL(next).searchParams)
     : { page, pagelen };
 }
-
-/** Webhook ids are brace-wrapped UUIDs; accept a bare UUID too. */
-export function normalizeWebhookUid(uid: string): string {
-  const trimmed = uid.trim();
-  if (trimmed.length === 0) {
-    throw new BBError({
-      code: ErrorCode.VALIDATION_REQUIRED,
-      message: 'A webhook UUID is required.',
-    });
-  }
-  return trimmed.startsWith('{') ? trimmed : `{${trimmed}}`;
-}

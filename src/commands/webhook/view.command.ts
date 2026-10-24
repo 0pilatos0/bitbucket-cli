@@ -13,7 +13,6 @@ import { rethrowWithNotFoundContext } from '../../types/errors.js';
 import {
   DEFAULT_WEBHOOK_SCOPE,
   WEBHOOK_SCOPES,
-  normalizeWebhookUid,
   resolveWebhooks,
   type WebhookScopeOptions,
 } from './shared.js';
@@ -38,7 +37,10 @@ export class ViewWebhookCommand extends BaseCommand<ViewWebhookOptions, void> {
     options: ViewWebhookOptions,
     context: CommandContext
   ): Promise<void> {
-    const uid = normalizeWebhookUid(this.requireOption(options.uid, 'uid'));
+    const uid = this.parseUuidArg(
+      this.requireOption(options.uid, 'uid'),
+      'uid'
+    );
     const hooks = await resolveWebhooks(
       this.parseEnumOption(
         options.scope ?? DEFAULT_WEBHOOK_SCOPE,

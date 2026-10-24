@@ -1,9 +1,9 @@
 ---
 title: Merge Queue Commands
-description: List Bitbucket merge queues configured on a repository.
+description: List, inspect and manage Bitbucket merge queues on a repository.
 ---
 
-Inspect the merge queues configured on a repository. A queue state is one of `ACTIVE`, `PAUSED`, `DRAINING`, `SUSPENDED`, `INACTIVE` or `UNKNOWN`.
+Inspect the merge queues configured on a repository and the pull requests waiting in them. A queue state is one of `ACTIVE`, `PAUSED`, `DRAINING`, `SUSPENDED`, `INACTIVE` or `UNKNOWN`.
 
 ---
 
@@ -27,4 +27,73 @@ bb merge-queue list [options]
 ```bash
 bb merge-queue list
 bb merge-queue list --json
+```
+
+---
+
+## `bb merge-queue view`
+
+View one merge queue: its name, state and UUID.
+
+```bash
+bb merge-queue view <uuid> [options]
+```
+
+Pass the queue UUID from `bb merge-queue list`, with or without the braces.
+
+### Examples
+
+```bash
+bb merge-queue view {a1b2c3d4-0000-0000-0000-000000000000}
+bb merge-queue view a1b2c3d4-0000-0000-0000-000000000000 --json
+```
+
+---
+
+## `bb merge-queue prs`
+
+List the pull requests in a merge queue, in queue order. The table shows each entry's rank, pull request, title, status and when it was queued. An entry status is one of `QUEUED`, `PROCESSING`, `AWAITING_MERGE`, `MERGE_IN_PROGRESS`, `REMOVING` or `UNKNOWN`.
+
+```bash
+bb merge-queue prs <uuid> [options]
+```
+
+### Options
+
+| Option             | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `--limit <number>` | Maximum number of items to list (default: 25) |
+| `--all`            | List all items (overrides `--limit`)          |
+
+With `--json`, the entries are under `queuedPullRequests`; each one nests the full pull request under `pullrequest`.
+
+### Examples
+
+```bash
+bb merge-queue prs {a1b2c3d4-0000-0000-0000-000000000000}
+bb merge-queue prs a1b2c3d4-0000-0000-0000-000000000000 --all --json
+```
+
+---
+
+## `bb merge-queue remove`
+
+Remove a pull request from a merge queue. Bitbucket processes the removal asynchronously, so the entry can show as `REMOVING` for a moment afterwards.
+
+```bash
+bb merge-queue remove <uuid> <pr-id> [options]
+```
+
+### Options
+
+| Option      | Description                                   |
+| ----------- | --------------------------------------------- |
+| `-y, --yes` | Skip confirmation prompt                      |
+| `--dry-run` | Print the write request instead of sending it |
+
+### Examples
+
+```bash
+bb merge-queue remove {a1b2c3d4-0000-0000-0000-000000000000} 42
+bb merge-queue remove a1b2c3d4-0000-0000-0000-000000000000 42 --yes
 ```
