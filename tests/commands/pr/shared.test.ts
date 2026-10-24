@@ -62,7 +62,10 @@ describe('findPullRequestIdForCurrentBranch', () => {
       {
         request: { workspace: 'workspace', repoSlug: 'repo', state: 'OPEN' },
         axiosOptions: {
-          params: { q: 'source.branch.name = "feature-branch"', pagelen: 50 },
+          params: {
+            q: 'state="OPEN" AND (source.branch.name = "feature-branch")',
+            pagelen: 50,
+          },
         },
       },
     ]);
@@ -162,7 +165,7 @@ describe('findPullRequestIdForCurrentBranch', () => {
 
     expect(id).toBe(3);
     expect(queries).toEqual([
-      'source.branch.name = "fix/\\"quoted\\"\\\\name"',
+      'state="OPEN" AND (source.branch.name = "fix/\\"quoted\\"\\\\name")',
     ]);
   });
 

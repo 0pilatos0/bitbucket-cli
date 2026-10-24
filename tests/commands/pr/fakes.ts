@@ -112,7 +112,7 @@ export function createMockPullrequestsApi(
       const query = (axiosOptions as RawAxiosRequestConfig | undefined)?.params
         ?.q as string | undefined;
       const branchLiteral = query?.match(
-        /^source\.branch\.name = (".*")$/
+        /^state="OPEN" AND \(source\.branch\.name = (".*")\)$/
       )?.[1];
       if (branchLiteral !== undefined) {
         const branch = JSON.parse(branchLiteral) as string;

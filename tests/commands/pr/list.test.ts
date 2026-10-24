@@ -227,7 +227,7 @@ describe('ListPRsCommand', () => {
     await command.execute({ mine: true }, { globalOptions: {} });
 
     const opts = capturedAxiosOptions as { params: Record<string, unknown> };
-    expect(opts.params.q).toBe('reviewers.uuid="{my-uuid}"');
+    expect(opts.params.q).toBe('state="OPEN" AND (reviewers.uuid="{my-uuid}")');
   });
 
   it('should fail without listing when --mine is set but uuid is missing', async () => {

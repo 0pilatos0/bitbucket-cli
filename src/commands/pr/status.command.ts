@@ -15,7 +15,11 @@ import {
   DEFAULT_LIMIT,
   type CollectPagesResult,
 } from '../../services/pagination.js';
-import { bbqlString, CURRENT_USER } from '../../services/pr-filters.js';
+import {
+  bbqlString,
+  CURRENT_USER,
+  withState,
+} from '../../services/pr-filters.js';
 import type { UserResolverService } from '../../services/user-resolver.service.js';
 import { getBranchName } from '../../services/response-parsers.js';
 import type { GlobalOptions, RepoContext } from '../../types/config.js';
@@ -145,7 +149,7 @@ export class StatusPRCommand extends BaseCommand<StatusPROptions, void> {
               repoSlug: repoContext.repoSlug,
               state: 'OPEN',
             },
-            { params: { page, pagelen, q: query } }
+            { params: { page, pagelen, q: withState(query, 'OPEN') } }
           );
         return response.data;
       },

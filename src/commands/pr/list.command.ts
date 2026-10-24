@@ -10,7 +10,11 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi, Pullrequest } from '../../generated/api.js';
 import { resolveLimit } from '../../services/pagination.js';
-import { bbqlString, CURRENT_USER } from '../../services/pr-filters.js';
+import {
+  bbqlString,
+  CURRENT_USER,
+  withState,
+} from '../../services/pr-filters.js';
 import type { UserResolverService } from '../../services/user-resolver.service.js';
 import type { GlobalOptions } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
@@ -57,10 +61,11 @@ export class ListPRsCommand extends BaseCommand<ListPRsOptions, void> {
     // without an API call; runList re-resolves the same value.
     resolveLimit(options);
     const reviewer = this.resolveReviewerOption(options);
-    const query = await this.buildQuery(repoContext.workspace, {
+    const filters = await this.buildQuery(repoContext.workspace, {
       ...options,
       reviewer,
     });
+    const query = filters ? withState(filters, state) : undefined;
 
     const arrow = this.output.symbol('→', '->');
     await this.runList<Pullrequest>(

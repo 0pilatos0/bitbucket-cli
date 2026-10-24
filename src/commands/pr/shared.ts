@@ -8,7 +8,7 @@ import type {
 } from '../../core/interfaces/services.js';
 import type { PullrequestsApi } from '../../generated/api.js';
 import { MAX_PAGE_LENGTH } from '../../services/pagination.js';
-import { bbqlString } from '../../services/pr-filters.js';
+import { bbqlString, withState } from '../../services/pr-filters.js';
 import type { RepoContext } from '../../types/config.js';
 import { BBError, ErrorCode } from '../../types/errors.js';
 
@@ -63,7 +63,7 @@ export async function findPullRequestIdForCurrentBranch(
       },
       {
         params: {
-          q: `source.branch.name = ${bbqlString(branch)}`,
+          q: withState(`source.branch.name = ${bbqlString(branch)}`, 'OPEN'),
           pagelen: MAX_PAGE_LENGTH,
         },
       }
