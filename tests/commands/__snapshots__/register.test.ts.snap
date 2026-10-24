@@ -575,6 +575,10 @@ exports[`command tree snapshot bb repo list 1`] = `
     "options": {
       "all": true,
       "limit": "limit-value",
+      "name": "name-value",
+      "query": "query-value",
+      "role": "role-value",
+      "sort": "sort-value",
     },
     "token": "ListReposCommand",
     "via": "runWithGlobalOptions",
@@ -588,6 +592,13 @@ Options:
   --limit <number>             Maximum number of repositories to list (default:
                                "25")
   --all                        List all repositories (overrides --limit)
+  --name <text>                Only repositories whose name contains this text
+  --query <bbql>               Raw Bitbucket query (BBQL), ANDed with the other
+                               filters
+  --sort <attribute>           Sort attribute (prefix with - for descending)
+  --role <role>                Only repositories where you have this role
+                               (choices: "admin", "contributor", "member",
+                               "owner")
   -h, --help                   display help for command
 
 Global Options:
@@ -625,7 +636,13 @@ Examples:
   $ bb repo list
   $ bb repo list --limit 50
   $ bb repo list --all
+  $ bb repo list --name api
+  $ bb repo list --role admin --sort -updated_on
+  $ bb repo list --query 'project.key = "CORE"'
   $ bb repo list --json
+
+Valid roles:
+  admin, contributor, member, owner
 
 Defaults:
   --limit  25
