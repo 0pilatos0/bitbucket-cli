@@ -2,8 +2,11 @@
  * Repo command tests
  */
 
-import { describe, it, expect } from 'bun:test';
-import { ListReposCommand } from '../../src/commands/repo/list.command.js';
+import { afterAll, describe, it, expect } from 'bun:test';
+import {
+  ListReposCommand,
+  type ListReposOptions,
+} from '../../src/commands/repo/list.command.js';
 import { ViewRepoCommand } from '../../src/commands/repo/view.command.js';
 import { CreateRepoCommand } from '../../src/commands/repo/create.command.js';
 import { DeleteRepoCommand } from '../../src/commands/repo/delete.command.js';
@@ -17,10 +20,16 @@ import {
   createMockPromptService,
 } from '../setup.js';
 import { BBError, ErrorCode } from '../../src/types/errors.js';
-import type { RepositoriesApi } from '../../src/generated/api.js';
+import { RepositoriesApi } from '../../src/generated/api.js';
 import type { BBConfig } from '../../src/types/config.js';
 import { getTableRows } from '../helpers/output-logs.js';
 import { fakeApi, extractPaginationParams } from '../helpers/fake-api.js';
+import {
+  makeRepo,
+  repositoriesRoute,
+  startCommandHarness,
+  type MockBitbucketServer,
+} from '../helpers/mock-bitbucket.js';
 
 // Helper to create mock RepositoriesApi
 function createMockRepositoriesApi(
@@ -342,6 +351,104 @@ describe('ListReposCommand', () => {
 
     const rows = getTableRows(output.logs);
     expect(rows[0]?.[2]).toBe(longDescription);
+  });
+});
+
+describe('ListReposCommand filters (mock Bitbucket)', () => {
+  const servers: MockBitbucketServer[] = [];
+
+  afterAll(async () => {
+    await Promise.all(servers.map((server) => server.stop()));
+  });
+
+  async function runList(options: ListReposOptions) {
+    const harness = await startCommandHarness([
+      repositoriesRoute({ repos: [makeRepo(1)], baseUrl: '' }),
+    ]);
+    servers.push(harness.server);
+    const command = new ListReposCommand(
+      harness.api(RepositoriesApi),
+      createMockContextService(),
+      harness.output
+    );
+    await command.execute(
+      { workspace: 'workspace', ...options },
+      { globalOptions: {} }
+    );
+    return harness;
+  }
+
+  it('sends no filter params by default', async () => {
+    const { server } = await runList({});
+
+    const query = server.requests[0]!.query;
+    expect(query.has('q')).toBe(false);
+    expect(query.has('sort')).toBe(false);
+    expect(query.has('role')).toBe(false);
+  });
+
+  it('sends --role, --sort and --query on the wire', async () => {
+    const { server } = await runList({
+      role: 'admin',
+      sort: '-updated_on',
+      query: 'project.key = "CORE"',
+    });
+
+    const query = server.requests[0]!.query;
+    expect(query.get('role')).toBe('admin');
+    expect(query.get('sort')).toBe('-updated_on');
+    expect(query.get('q')).toBe('(project.key = "CORE")');
+    expect(query.get('pagelen')).toBe('25');
+  });
+
+  it('turns --name into an escaped name filter ANDed with --query', async () => {
+    const { server } = await runList({
+      name: 'a"b\\c',
+      query: 'is_private = true',
+    });
+
+    expect(server.requests[0]!.query.get('q')).toBe(
+      'name ~ "a\\"b\\\\c" AND (is_private = true)'
+    );
+  });
+
+  it('rejects an unknown --role before calling the API', async () => {
+    const harness = await startCommandHarness([]);
+    servers.push(harness.server);
+    const command = new ListReposCommand(
+      harness.api(RepositoriesApi),
+      createMockContextService(),
+      harness.output
+    );
+
+    const error = await command
+      .execute({ workspace: 'workspace', role: 'admn' }, { globalOptions: {} })
+      .catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(BBError);
+    expect((error as BBError).code).toBe(ErrorCode.VALIDATION_INVALID);
+    expect(harness.server.requests).toHaveLength(0);
+  });
+
+  it('says the filters matched nothing on an empty filtered result', async () => {
+    const harness = await startCommandHarness([
+      repositoriesRoute({ repos: [], baseUrl: '' }),
+    ]);
+    servers.push(harness.server);
+    const command = new ListReposCommand(
+      harness.api(RepositoriesApi),
+      createMockContextService(),
+      harness.output
+    );
+
+    await command.execute(
+      { workspace: 'workspace', name: 'nope' },
+      { globalOptions: {} }
+    );
+
+    expect(harness.output.logs).toContain(
+      'info:No repositories match the filters'
+    );
   });
 });
 

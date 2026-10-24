@@ -9,11 +9,21 @@ import type {
   IOutputService,
 } from '../../core/interfaces/services.js';
 import type { RepositoriesApi, Repository } from '../../generated/api.js';
+import { RepositoriesWorkspaceGetRoleEnum } from '../../generated/api.js';
+import { bbqlString } from '../../services/pr-filters.js';
+
+export const REPO_ROLES = Object.values(
+  RepositoriesWorkspaceGetRoleEnum
+) as readonly string[];
 
 export interface ListReposOptions {
   workspace?: string;
   limit?: string;
   all?: boolean;
+  name?: string;
+  query?: string;
+  sort?: string;
+  role?: string;
 }
 
 export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
@@ -35,6 +45,15 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
     const workspace = await this.contextService.requireWorkspace(
       options.workspace ?? context.globalOptions.workspace
     );
+    const role = options.role
+      ? (this.parseEnumOption(
+          options.role,
+          'role',
+          REPO_ROLES
+        ) as RepositoriesWorkspaceGetRoleEnum)
+      : undefined;
+    const query = this.buildQuery(options);
+
     await this.runList<Repository>(
       {
         options,
@@ -42,6 +61,9 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
           const response = await this.repositoriesApi.repositoriesWorkspaceGet(
             {
               workspace,
+              ...(role ? { role } : {}),
+              ...(query ? { q: query } : {}),
+              ...(options.sort ? { sort: options.sort } : {}),
             },
             {
               params: { page, pagelen },
@@ -52,7 +74,10 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
         },
         wrapperKey: 'repositories',
         jsonMetadata: { workspace },
-        emptyMessage: 'No repositories found',
+        emptyMessage:
+          query || role
+            ? 'No repositories match the filters'
+            : 'No repositories found',
         tableHeaders: ['REPOSITORY', 'VISIBILITY', 'DESCRIPTION'],
         mapRow: (repo) => [
           repo.full_name ?? '',
@@ -64,5 +89,16 @@ export class ListReposCommand extends BaseCommand<ListReposOptions, void> {
       },
       context
     );
+  }
+
+  private buildQuery(options: ListReposOptions): string | undefined {
+    const clauses: string[] = [];
+    if (options.name) {
+      clauses.push(`name ~ ${bbqlString(options.name)}`);
+    }
+    if (options.query) {
+      clauses.push(`(${options.query})`);
+    }
+    return clauses.length > 0 ? clauses.join(' AND ') : undefined;
   }
 }

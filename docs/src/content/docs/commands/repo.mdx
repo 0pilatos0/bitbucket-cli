@@ -116,10 +116,16 @@ bb repo list [options]
 
 ### Options
 
-| Option             | Description                                 | Default |
-| ------------------ | ------------------------------------------- | ------- |
-| `--limit <number>` | Maximum number of repositories              | 25      |
-| `--all`            | List all repositories (overrides `--limit`) |         |
+| Option               | Description                                                                           | Default |
+| -------------------- | ------------------------------------------------------------------------------------- | ------- |
+| `--limit <number>`   | Maximum number of repositories                                                        | 25      |
+| `--all`              | List all repositories (overrides `--limit`)                                           |         |
+| `--name <text>`      | Only repositories whose name contains this text (`name ~ "<text>"`)                   |         |
+| `--query <bbql>`     | Raw [BBQL] filter, combined with `--name` using `AND`                                 |         |
+| `--sort <attribute>` | Sort by a repository field, e.g. `updated_on`; prefix with `-` for descending         |         |
+| `--role <role>`      | Only repositories where you have this role: `member`, `contributor`, `admin`, `owner` |         |
+
+[BBQL]: https://developer.atlassian.com/cloud/bitbucket/rest/intro/#filtering
 
 ### Examples
 
@@ -132,6 +138,15 @@ bb repo list -w myworkspace --limit 50
 
 # List every repository in the workspace
 bb repo list -w myworkspace --all
+
+# Repositories with "api" in the name
+bb repo list -w myworkspace --name api
+
+# Repositories you administer, most recently updated first
+bb repo list -w myworkspace --role admin --sort -updated_on
+
+# Anything BBQL can express, e.g. all repositories in one project
+bb repo list -w myworkspace --query 'project.key = "CORE"'
 
 # List with JSON output for scripting
 bb repo list -w myworkspace --json
