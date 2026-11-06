@@ -614,15 +614,16 @@ describe('OutputService', () => {
       output.separator();
 
       expect(stdoutLines).toHaveLength(1);
-      // Strip ANSI color codes for the character/length assertion
-      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
+      // eslint-disable-next-line no-control-regex -- Strip only ANSI color codes so other controls fail the assertion.
+      const plain = stdoutLines[0]!.replace(/\x1b\[[0-9;]*m/g, '');
       expect(plain).toBe('─'.repeat(60));
     });
 
     it('should respect a custom width', () => {
       output.separator(20);
 
-      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
+      // eslint-disable-next-line no-control-regex -- Strip only ANSI color codes so other controls fail the assertion.
+      const plain = stdoutLines[0]!.replace(/\x1b\[[0-9;]*m/g, '');
       expect(plain).toBe('─'.repeat(20));
     });
 

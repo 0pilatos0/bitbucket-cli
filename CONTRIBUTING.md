@@ -29,7 +29,7 @@ bun run test:coverage # run tests with coverage (gated in CI on Linux)
 
 ## Documentation site
 
-The CLI runs on Bun. The Astro documentation tools also need Node.js >=22.12.
+The CLI runs on Bun. The Astro documentation tools also need Node.js >=22.23.4.
 Install the docs dependencies separately:
 
 ```bash
@@ -117,6 +117,17 @@ Actions stay pinned to commit SHAs with a `# vX` comment; Dependabot opens a
 weekly PR to bump them. Every workflow installs the Bun version in
 `.bun-version`, so bump it there. The `engines.bun` floor in `package.json` is
 checked by the "Minimum Bun" CI job, which runs the built CLI on that version.
+
+Run `bun audit` in both directories after updating dependencies. The weekly
+Security audit workflow checks both lockfiles, including development dependencies,
+and can also be run manually. Findings or registry errors fail the workflow; it
+does not open issues or apply fixes.
+
+The root `glob` override keeps the generator CLI and link checker on a patched
+version while their declared ranges still select vulnerable releases. Review
+whether the override is still needed when updating either tool. The link checker
+is a locked development dependency; CI uses the installed binary.
+Code/docs consistency runs in CI; Docs lint builds the site and checks its links.
 
 ## Release Process
 
