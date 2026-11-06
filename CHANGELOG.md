@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.1
+
+### Patch Changes
+
+- [#461](https://github.com/0pilatos0/bitbucket-cli/pull/461) [`d795770`](https://github.com/0pilatos0/bitbucket-cli/commit/d7957709f99e7a6954ffdaacb47306da7e52fa74) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Refresh the bundled Bitbucket Cloud API spec, which adds the repository `enforced_signed_commits` field to the generated client.
+
+- [#459](https://github.com/0pilatos0/bitbucket-cli/pull/459) [`56f4c37`](https://github.com/0pilatos0/bitbucket-cli/commit/56f4c3717b2d0c9b98596b783ecc935d06530102) Thanks [@0pilatos0](https://github.com/0pilatos0)! - Update Axios and its redirect dependency to fix credential handling vulnerabilities.
+
 ## 2.6.0
 
 ### Minor Changes
