@@ -2857,7 +2857,7 @@
             "scopes": ["admin:repository:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "post": {
         "tags": ["Deployments"],
@@ -3013,7 +3013,7 @@
             "scopes": ["admin:repository:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "put": {
         "tags": ["Deployments"],
@@ -4553,7 +4553,7 @@
             "scopes": ["read:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "post": {
         "operationId": "create_repository_hook",
@@ -4608,7 +4608,7 @@
             "scopes": ["read:webhook:bitbucket", "write:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       }
     },
     "/repositories/{workspace}/{repo_slug}/hooks/{uid}": {
@@ -4662,7 +4662,7 @@
             "scopes": ["read:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "put": {
         "operationId": "update_repository_hook",
@@ -4718,7 +4718,7 @@
             "scopes": ["read:webhook:bitbucket", "write:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "delete": {
         "operationId": "delete_repository_hook",
@@ -4771,7 +4771,7 @@
             "scopes": ["delete:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       }
     },
     "/repositories/{workspace}/{repo_slug}/merge-base/{revspec}": {
@@ -6143,7 +6143,7 @@
           }
         },
         "security": [
-          { "oauth2": ["pipeline"] },
+          { "oauth2": ["pipeline:write"] },
           { "basic": [] },
           { "api_key": [] }
         ],
@@ -14259,7 +14259,7 @@
     "/workspaces/{workspace}/codesearch": {
       "post": {
         "tags": ["Workspaces"],
-        "description": "Search code across repositories in a workspace.\n\nResults are limited to the repositories that the calling user can\naccess.\n\n#### Supported authentication\n\nThe endpoint requires a credential that identifies the calling user.\nThe following authentication modes are accepted:\n\n- Browser session cookie (Bitbucket web UI)\n- Atlassian API token (Basic auth using your email and a scoped API\n  token that includes both `repository:read` and `workspace:read`)\n- OAuth 2.0 via Forge or an Atlassian app (3LO or 2LO, with both\n  `repository:read` and `workspace:read` granted to the app)\n- Bitbucket repository, project, or workspace access tokens\n\nAuthentication modes that **do not** identify the user, including\nAtlassian Connect JWT, legacy Bitbucket OAuth not migrated to\nidentity, app passwords, and API keys, are rejected with a `403`.\n\n#### Request body\n\nRequires `Content-Type: application/json`. Anything else returns `415`.\n\n`query.search_term` is required. These fields are accepted:\n\n- `query.search_term`: non-blank, at most 1024 characters\n- `query.filters`\n- `config.max_results`: a JSON integer (a string or float is rejected),\n  1 to 100, default 50\n- `config.search_mode`: `LEXICAL` or omitted\n- `request_id` and `pagination.next_cursor`: see \"Pagination\"\n\nAny other field is ignored.\n\n```json\n{\n  \"query\": {\n    \"search_term\": \"logr\",\n    \"filters\": { \"attribute\": \"language\", \"eq\": \"go\" }\n  },\n  \"config\": {\n    \"max_results\": 10\n  }\n}\n```\n\n#### Search mode\n\nThis endpoint performs lexical code search only. `config.search_mode`\nis fixed to `LEXICAL` server-side, so callers may omit the field or\nset it explicitly to `LEXICAL`. Any other value returns a `400`.\n\n#### Filters\n\nUse `query.filters` to narrow a search. For example, to search for\n`logr` only in Go files whose path matches `cmd/*/main.go`:\n\n```json\n{\n  \"query\": {\n    \"search_term\": \"logr\",\n    \"filters\": {\n      \"and\": [\n        { \"attribute\": \"language\", \"eq\": \"go\" },\n        { \"attribute\": \"path\", \"wildcard\": \"cmd/*/main.go\" }\n      ]\n    }\n  }\n}\n```\n\nA filter names an `attribute` and exactly one operator:\n\n* `eq` matches a value, and works with every attribute. Values are\n  not case-sensitive.\n* `wildcard` matches a pattern, and works only with `path` and\n  `repository`. In a pattern, `*` matches any run of characters and `?`\n  matches one character. A pattern must match the whole value. On\n  `repository` it ignores case, and on `path` it is case-sensitive.\n\nSetting both `eq` and `wildcard` on one filter returns `400`.\n\nThese attributes are supported:\n\n* `repository`: a repository slug, such as `my-repo`. Use a wildcard\n  such as `my-*` to match every slug that starts with `my-`.\n* `path`: with `eq`, a value such as `src/main` matches any path that\n  contains those folder or file names in that order, such as\n  `app/src/main/App.java`. Each name must match in full. With\n  `wildcard`, the pattern must match the whole file path, such as\n  `*/main.go`.\n* `language`: a language name, such as `go`, `python`, or\n  `javascript`. To filter by file extension, use `extension`.\n* `extension`: a file extension without the dot, such as `go` or `py`.\n* `project`: a project key or name.\n* `scm`: the source control host of the repository.\n* `branches`: searches run on the default branch only. Set `branches`\n  to `\"true\"` to search all indexed branches.\n* `forks`: by default, results include repositories that are forks. Set\n  `forks` to `\"true\"` to get results from forks only, or to `\"false\"` to\n  get results from repositories that are not forks.\n\n`branches` only accepts the value `\"true\"`. `branches` and `forks` only\nwork when they are the whole of `query.filters`. You cannot combine\nthem with other filters.\n\nCombine filters with `and`, `or`, and `not`. Filters can nest up to 5\nlevels deep, and the workspace filter this endpoint adds uses one of\nthem. That leaves 3 levels of `and`, `or`, or `not` around a filter.\nDeeper filters return `400`. This filter uses all 3 levels:\n\n```json\n{\n  \"and\": [\n    { \"or\": [\n      { \"not\": { \"attribute\": \"language\", \"eq\": \"python\" } }\n    ] },\n    { \"attribute\": \"extension\", \"eq\": \"go\" }\n  ]\n}\n```\n\n#### Workspace scoping\n\nThe endpoint always applies a `namespace = <workspace_slug>` filter\nand passes the workspace's wrapped UUID as `scope.workspace_ids`.\nCallers must **not** include a `namespace` filter in `query.filters`\n(anywhere in the tree, including nested AND/OR/NOT). Doing so returns\n`400`. A `scope.workspace_ids` value in the request body is ignored.\nThe workspace in the URL always sets the scope.\n\n#### Pagination\n\nPagination uses a cursor. To page beyond the first result set, include\nthe `id` from the previous response as `request_id`, and the previous\nresponse's `pagination.next_cursor` as `pagination.next_cursor`.\n`request_id` is required whenever `pagination` is sent. Repeat\nuntil `pagination.has_more` is `false`.\n\nOn every page, `query.search_term` and `query.filters` must be the\nsame as on the first page, including the order of items inside\n`and`/`or`. A different value returns `400`. `config.max_results` may\nchange between pages.\n\n```json\n{\n  \"query\": { \"search_term\": \"logr\" },\n  \"config\": { \"max_results\": 10 },\n  \"request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"pagination\": { \"next_cursor\": \"eyJlbnRyaWVzIjpbeyJsZXhpY2FsS2V5Ijoi...\" }\n}\n```\n\n#### Response\n\nYou can rely on these fields:\n\n- `id`, `pagination.next_cursor`, `pagination.has_more`\n- `repositories[]`: `url`, `host`, `ns`, `name`\n- `matched_files[]`: `path`, `name`, `language`, `url`, `repositoryId`,\n  `version` (the commit hash), `branch_or_tag_name`, `is_default_branch`\n- `matched_files[].matched_chunks[]`: `source_code`, `line_range`,\n  `matched_line_numbers`, `matched_ranges`\n- `metadata.total_count`: an approximate size, meaningful on page 1 only\n\n`branch_or_tag_name` and `is_default_branch` are left out when not\nknown, and `language` can be `null`.\n\nLine numbers start at 1, and `line_range.end` is the last line of the\nchunk. Each `matched_ranges` entry is `[line, start_column,\nend_column]`, where `line` is the line number in the file, the columns\nstart at 0, and `end_column` is exclusive.\n\n`matched_line_numbers` and `matched_ranges` mark where a search term\nappears as a whole word in the chunk. They can be empty even when the\nchunk matched.\n\nOther fields can change or be removed without notice, so ignore any\nfield not listed here. Treat ids and `pagination.next_cursor` as opaque.\n\nErrors from this endpoint, including errors from the search backend, use\nthe standard Bitbucket error envelope:\n`{\"type\": \"error\", \"error\": {\"message\": ..., \"code\": ...}}`.\nA backend error keeps its status code, except that a backend 5xx is\nreturned as `502 Bad Gateway`. The backend's own error code, when there\nis one, is in `error.detail.upstream_code`.",
+        "description": "Search code across repositories in a workspace.\n\nResults are limited to the repositories that the calling user can\naccess.\n\n#### Supported authentication\n\nThe endpoint requires a credential that identifies the calling user.\nThe following authentication modes are accepted:\n\n- Browser session cookie (Bitbucket web UI)\n- Atlassian API token (Basic auth using your email and a scoped API\n  token that includes both `repository:read` and `workspace:read`)\n- OAuth 2.0 via Forge or an Atlassian app (3LO or 2LO, with both\n  `repository:read` and `workspace:read` granted to the app)\n- Bitbucket repository, project, or workspace access tokens\n\nAuthentication modes that **do not** identify the user, including\nAtlassian Connect JWT, legacy Bitbucket OAuth not migrated to\nidentity, app passwords, and API keys, are rejected with a `403`.\n\n#### Request body\n\nRequires `Content-Type: application/json`. Anything else returns `415`.\n\n`query.search_term` is required. These fields are accepted:\n\n- `query.search_term`: non-blank, at most 1024 characters\n- `query.filters`\n- `config.max_results`: a JSON integer (a string or float is rejected),\n  1 to 100, default 50\n- `config.search_mode`: `LEXICAL` or omitted\n- `request_id` and `pagination.next_cursor`: see \"Pagination\"\n\nAny other field is ignored.\n\n```json\n{\n  \"query\": {\n    \"search_term\": \"logr\",\n    \"filters\": { \"attribute\": \"language\", \"eq\": \"go\" }\n  },\n  \"config\": {\n    \"max_results\": 10\n  }\n}\n```\n\n#### Search mode\n\nThis endpoint performs lexical code search only. `config.search_mode`\nis fixed to `LEXICAL` server-side, so callers may omit the field or\nset it explicitly to `LEXICAL`. Any other value returns a `400`.\n\n#### Filters\n\nUse `query.filters` to narrow a search. For example, to search for\n`logr` only in Go files whose path matches `cmd/*/main.go`:\n\n```json\n{\n  \"query\": {\n    \"search_term\": \"logr\",\n    \"filters\": {\n      \"and\": [\n        { \"attribute\": \"language\", \"eq\": \"go\" },\n        { \"attribute\": \"path\", \"wildcard\": \"cmd/*/main.go\" }\n      ]\n    }\n  }\n}\n```\n\nA filter names an `attribute` and exactly one operator:\n\n* `eq` matches a value, and works with every attribute. Values are\n  not case-sensitive.\n* `wildcard` matches a pattern, and works only with `path` and\n  `repository`. In a pattern, `*` matches any run of characters and `?`\n  matches one character. A pattern must match the whole value. On\n  `repository` it ignores case, and on `path` it is case-sensitive.\n\nSetting both `eq` and `wildcard` on one filter returns `400`.\n\nThese attributes are supported:\n\n* `repository`: a repository slug, such as `my-repo`. Use a wildcard\n  such as `my-*` to match every slug that starts with `my-`.\n* `path`: with `eq`, a value such as `src/main` matches any path that\n  contains those folder or file names in that order, such as\n  `app/src/main/App.java`. Each name must match in full. With\n  `wildcard`, the pattern must match the whole file path, such as\n  `*/main.go`.\n* `language`: a language name, such as `go`, `python`, or\n  `javascript`. To filter by file extension, use `extension`.\n* `extension`: a file extension without the dot, such as `go` or `py`.\n* `project`: a project key or name.\n* `scm`: the source control host of the repository.\n* `branches`: searches run on the default branch only. Set `branches`\n  to `\"true\"` to search all indexed branches.\n* `forks`: by default, results include repositories that are forks. Set\n  `forks` to `\"true\"` to get results from forks only, or to `\"false\"` to\n  get results from repositories that are not forks.\n\n`branches` only accepts the value `\"true\"`. `branches` and `forks` only\nwork when they are the whole of `query.filters`. You cannot combine\nthem with other filters.\n\nCombine filters with `and`, `or`, and `not`. Filters can nest up to 5\nlevels deep, and the workspace filter this endpoint adds uses one of\nthem. That leaves 3 levels of `and`, `or`, or `not` around a filter.\nDeeper filters return `400`. This filter uses all 3 levels:\n\n```json\n{\n  \"and\": [\n    { \"or\": [\n      { \"not\": { \"attribute\": \"language\", \"eq\": \"python\" } }\n    ] },\n    { \"attribute\": \"extension\", \"eq\": \"go\" }\n  ]\n}\n```\n\n#### Workspace scoping\n\nThe endpoint always applies a `namespace = <workspace_slug>` filter\nand passes the workspace's wrapped UUID as `scope.workspace_ids`.\nCallers must **not** include a `namespace` filter in `query.filters`\n(anywhere in the tree, including nested AND/OR/NOT). Doing so returns\n`400`. A `scope.workspace_ids` value in the request body is ignored.\nThe workspace in the URL always sets the scope.\n\n#### Pagination\n\nPagination uses a cursor. To page beyond the first result set, include\nthe `id` from the previous response as `request_id`, and the previous\nresponse's `pagination.next_cursor` as `pagination.next_cursor`.\n`request_id` is required whenever `pagination` is sent. Repeat\nuntil `pagination.has_more` is `false`.\n\nOn every page, `query.search_term` and `query.filters` must be the\nsame as on the first page, including the order of items inside\n`and`/`or`. A different value returns `400`. `config.max_results` may\nchange between pages.\n\n```json\n{\n  \"query\": { \"search_term\": \"logr\" },\n  \"config\": { \"max_results\": 10 },\n  \"request_id\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"pagination\": { \"next_cursor\": \"eyJlbnRyaWVzIjpbeyJsZXhpY2FsS2V5Ijoi...\" }\n}\n```\n\n#### Response\n\nYou can rely on these fields:\n\n- `id`, `pagination.next_cursor`, `pagination.has_more`\n- `repositories[]`: `url`, `host`, `ns`, `name`\n- `matched_files[]`: `path`, `name`, `language`, `url`, `repositoryId`,\n  `version` (the commit hash), `branch_or_tag_name`, `is_default_branch`\n- `matched_files[].matched_chunks[]`: `source_code`, `line_range`,\n  `matched_line_numbers`, `matched_ranges`\n- `metadata.total_count`: an approximate size, meaningful on page 1 only\n\n`branch_or_tag_name` and `is_default_branch` are left out when not\nknown, and `language` can be `null`.\n\nLine numbers start at 1, and `line_range.end` is the last line of the\nchunk. Each `matched_ranges` entry is `[line, start_column,\nend_column]`, where `line` is the line number in the file, the columns\nstart at 0, and `end_column` is exclusive.\n\n`matched_line_numbers` and `matched_ranges` mark where a search term\nappears as a whole word in the chunk. They can be empty even when the\nchunk matched.\n\nOther fields can change or be removed without notice, so ignore any\nfield not listed here. Treat ids and `pagination.next_cursor` as opaque.\n\nErrors from this endpoint, including errors from the search backend, use\nthe standard Bitbucket error envelope:\n`{\"type\": \"error\", \"error\": {\"message\": ..., \"code\": ...}}`.\nA backend error keeps its status code, except that a backend 5xx is\nreturned as `502 Bad Gateway`. The backend's own error code, when there\nis one, is in `error.detail.upstream_code`. A `429` includes the\nbackend's `Retry-After` header when the backend sends one.",
         "summary": "Search code in a workspace",
         "responses": {
           "200": {
@@ -14362,7 +14362,7 @@
             "scopes": ["read:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "post": {
         "operationId": "create_workspace_hook",
@@ -14410,7 +14410,7 @@
             "scopes": ["read:webhook:bitbucket", "write:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       }
     },
     "/workspaces/{workspace}/hooks/{uid}": {
@@ -14457,7 +14457,7 @@
             "scopes": ["read:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "put": {
         "operationId": "update_workspace_hook",
@@ -14506,7 +14506,7 @@
             "scopes": ["read:webhook:bitbucket", "write:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "delete": {
         "operationId": "delete_workspace_hook",
@@ -14552,7 +14552,7 @@
             "scopes": ["delete:webhook:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       }
     },
     "/workspaces/{workspace}/members": {
@@ -16199,7 +16199,7 @@
             "scopes": ["admin:project:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "post": {
         "tags": ["Deployments"],
@@ -16376,7 +16376,7 @@
             "scopes": ["admin:project:bitbucket"]
           }
         ],
-        "x-atlassian-auth-types": ["api-token"]
+        "x-atlassian-auth-types": ["forge-oauth2", "api-token"]
       },
       "parameters": [
         {
@@ -18178,6 +18178,7 @@
       ]
     },
     "pipeline": {
+      "x-bb-default-fields": ["uuid"],
       "allOf": [
         { "$ref": "#/definitions/object" },
         {
@@ -20517,6 +20518,10 @@
               "type": "string",
               "description": "\nControls the rules for forking this repository.\n\n* **allow_forks**: unrestricted forking\n* **no_public_forks**: restrict forking to private forks (forks cannot\n  be made public later)\n* **no_forks**: deny all forking\n",
               "enum": ["allow_forks", "no_public_forks", "no_forks"]
+            },
+            "enforced_signed_commits": {
+              "type": "boolean",
+              "description": "Whether signed commits are required for this repository: true when the workspace has Premium and the repository, its project, or its workspace enforces them; otherwise false."
             },
             "project": { "$ref": "#/definitions/project" },
             "mainbranch": { "$ref": "#/definitions/branch" }
@@ -24006,7 +24011,7 @@
       "description": "A workspace is where you create repositories, collaborate on\nyour code, and organize different streams of work in your Bitbucket\nCloud account. Workspaces replace the use of teams and users in API\ncalls.\n"
     }
   ],
-  "x-revision": "5650276b1ec5",
+  "x-revision": "d27a0f2c2bfc",
   "x-atlassian-narrative": {
     "documents": [
       {
