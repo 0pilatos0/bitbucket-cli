@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: security-audit-${{ github.ref }}
+  group: security-audit-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
