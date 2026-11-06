@@ -5,6 +5,7 @@
 import { chmod, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { stripVTControlCharacters } from 'node:util';
 import { describe, it, expect, beforeEach, afterEach, spyOn } from 'bun:test';
 import chalk from 'chalk';
 import {
@@ -614,15 +615,14 @@ describe('OutputService', () => {
       output.separator();
 
       expect(stdoutLines).toHaveLength(1);
-      // Strip ANSI color codes for the character/length assertion
-      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
+      const plain = stripVTControlCharacters(stdoutLines[0]!);
       expect(plain).toBe('─'.repeat(60));
     });
 
     it('should respect a custom width', () => {
       output.separator(20);
 
-      const plain = stdoutLines[0]!.replace(/\[[0-9;]*m/g, '');
+      const plain = stripVTControlCharacters(stdoutLines[0]!);
       expect(plain).toBe('─'.repeat(20));
     });
 
